@@ -13,25 +13,37 @@ Samme spillkjerne skal drive:
 
 Kjernen (`scripts/core/`) skal ikke kjenne til Control-noder, scener, stdin eller stdout.
 
-## 2. Ikke-mål (første versjon)
+## 2. Første versjon: ett-bords turnering
+
+Første versjon er en **ett-bords Texas Hold’em No Limit-turnering**, ikke et cash game. Alle deltakere starter med samme antall sjetonger, og spillet fortsetter hånd for hånd til bare én deltaker har sjetonger igjen. Sjetongene er kun spilltilstand; det finnes ingen penge- eller premieoppgjør i v1.
+
+- Startstacken er fast per deltaker.
+- Det er ingen kjøp, cash-out eller rebuys.
+- En deltaker som mister alle sjetongene elimineres permanent fra turneringen.
+- Blinds er faste i v1; det er ingen blindnivåer eller blindtimer.
+- Siste deltaker med sjetonger kåres til vinner.
+- Den menneskelige spilleren kan avslutte spillet når som helst. Da avsluttes turneringen uten at noen kåres til vinner.
+
+## 3. Ikke-mål (første versjon)
 
 - Ikke Omaha, Short Deck, Stud eller Limit/Pot Limit.
-- Ikke turnering, rebuy, straddle, ante eller bomber pot.
+- Ikke rebuy, straddle, ante eller bomber pot.
 - Ikke nettverk, flerspiller over nett eller ekte penger.
 - Ikke rake.
 - Ikke timer på trekk (mennesket venter til input; boter svarer synkront).
 
-## 3. Spillregler (normativt)
+## 4. Spillregler (normativt)
 
-### 3.1 Bord og stacks
+### 4.1 Bord og stacks
 
-- 2–9 deltakere. Standard: **6 seter** (1 menneske + 5 boter).
+- 2–9 turneringsdeltakere. Standard: **6 seter** (1 menneske + 5 boter).
 - Sjetonger er **heltall**. Ingen desimaler.
 - Standard blinds: **small blind = 5**, **big blind = 10**.
-- Standard startstack: **1000** (100 BB) til hver som sitter med.
-- Ingen kjøp underveis. Går stacken til 0, er spilleren ute av neste hender til de ev. får chips (ikke i v1: de sitter igjen som `busted` og skippes).
+- Standard startstack: **1000** (100 BB) til hver deltaker ved turneringsstart.
+- Ingen kjøp, cash-out eller rebuys. Går stacken til 0, er spilleren eliminert og markeres som `busted`; hen deltar ikke i senere hender.
+- Turneringen avsluttes når én spiller har sjetonger igjen. Denne spilleren vinner turneringen.
 
-### 3.2 Kort
+### 4.2 Kort
 
 - Én kortstokk, 52 kort, ingen jokere.
 - Farger: clubs, diamonds, hearts, spades.
@@ -40,15 +52,15 @@ Kjernen (`scripts/core/`) skal ikke kjenne til Control-noder, scener, stdin elle
 - Hver spiller får **to hullkort**, skjult.
 - Community: flop 3, turn 1, river 1. Alle synlige for alle.
 
-### 3.3 Posisjoner
+### 4.3 Posisjoner
 
-- Button (`dealer`) flyttes ett sete med klokken etter hver hånd, hopp over `busted`.
+- Button (`dealer`) flyttes ett sete med klokken etter hver hånd, hopp over eliminerte (`busted`) spillere.
 - SB er venstre for button. BB er venstre for SB.
 - Heads-up: button poster SB og handler **først preflop**, og **sist** postflop.
 
-### 3.4 Håndforløp
+### 4.4 Håndforløp
 
-1. Flytt button (ikke første hånd: trekk tilfeldig første button blant aktive).
+1. Flytt button (ikke første hånd: trekk tilfeldig første button blant aktive deltakere).
 2. Nullstill pott, community og hullkort.
 3. Stokk stokken.
 4. Poster SB og BB (all-in om stack < blind; rest inn i pott).
@@ -59,9 +71,13 @@ Kjernen (`scripts/core/`) skal ikke kjenne til Control-noder, scener, stdin elle
 9. Hvis bettingrunden slutter med én gjenstående: vedkommende vinner potten uten showdown.
 10. Ellers showdown. Beste hånd vinner. Lik hånd deler potten (oddetallssjetong til første gjenstående spiller med klokken fra button).
 
+Etter utbetaling markeres alle spillere med stack 0 som eliminerte. Hvis bare én spiller har sjetonger igjen, avsluttes turneringen og spilleren kåres til vinner. Ellers starter neste hånd.
+
+Den menneskelige spilleren kan når som helst be om å avslutte. Da stoppes pågående handling eller hånd umiddelbart, turneringen markeres som avsluttet av spilleren, og det utbetales eller kåres ingen vinner.
+
 En bettingrunde droppes hvis alle gjenstående er all-in eller det bare er én som kan handle.
 
-### 3.5 Handlinger (No Limit)
+### 4.5 Handlinger (No Limit)
 
 Gyldige trekk avhenger av `current_bet` (største innsats denne runden, inkludert blinds preflop) og spillerens `bet_this_round` og `stack`.
 
@@ -80,11 +96,11 @@ Bettingrunden er ferdig når:
 - alle gjenstående har handlet minst én gang etter siste **full** bet/raise, og
 - alle gjenstående som ikke er all-in har like mye inne denne runden (`bet_this_round` lik `current_bet`, eller all-in).
 
-### 3.6 Potter og sidepotter
+### 4.6 Potter og sidepotter
 
 Når minst én spiller er all-in for mindre enn andre, skal `PotManager` lage **sidepotter**. En spiller kan bare vinne potter hen er med i. Foldede spillere kan ikke vinne, men chipsene deres blir i potten.
 
-### 3.7 Håndvurdering
+### 4.7 Håndvurdering
 
 Hver spiller bruker nøyaktig **fem** kort, valgt som beste kombinasjon av opptil syv (2 hull + 5 board). Ranger, høyest først:
 
@@ -100,16 +116,16 @@ Hver spiller bruker nøyaktig **fem** kort, valgt som beste kombinasjon av oppti
 
 Sammenligning bruker standard kickere. Farge har **ingen** verdi utover flush. Evaluatoren skal være deterministisk og tesbar, uten UI.
 
-## 4. Aktører
+## 5. Aktører
 
-### 4.1 Menneske
+### 5.1 Menneske
 
 - Nøyaktig **én** `HumanAgent` ved bordet i standardspill.
 - Får kun **egen** hullkort + offentlig tilstand.
 - GUI og CLI oversetter klikk/kommando til `PlayerAction` og sender den til kjernen.
 - Kjernen blokkerer hånden til gyldig handling er mottatt (ingen timeout i v1).
 
-### 4.2 Simulerte spillere
+### 5.2 Simulerte spillere
 
 - Alle andre seter har en `BotAgent` som implementerer samme grensesnitt som mennesket.
 - Agentkode skal ligge **utenfor** regelmotoren: `scripts/core/agents/`.
@@ -126,16 +142,16 @@ Strategiene kan være enkle heuristikker (f.eks. Chen-lignende score preflop + b
 
 Standardbord: sete 0 = menneske, seter 1–5 = ulike boter (minst to ulike klasser i bruk).
 
-## 5. Arkitektur
+## 6. Arkitektur
 
-### 5.1 Prinsipper
+### 6.1 Prinsipper
 
 - Ett ansvar per modul: kortstokk, kort, spiller, sjetonger/pott, betting, evaluering, agenter, UI.
 - Spilltilstand eies av kjernen. UI speiler tilstand; UI muterer ikke stacks/kort direkte.
 - Bruk sterkt typet GDScript. Kort- og regeldata som Custom Resources der det passer (`CardData`).
 - Ingen C# eller plattformspesifikke plugins.
 
-### 5.2 Mapper og klasser (skal opprettes)
+### 6.2 Mapper og klasser (skal opprettes)
 
 ```
 scripts/core/
@@ -149,7 +165,7 @@ scripts/core/
   hand_evaluator.gd     # 7 → beste 5, sammenligning
   betting_round.gd      # gyldige trekk, min raise, action-reopen
   table.gd              # seter, button, blinds
-  match.gd              # en session: flere hender til stopp
+  match.gd              # én turnering: flere hender til vinner eller frivillig avslutning
   hand_controller.gd    # én hånd: deal, gater, showdown
   agents/
     agent.gd            # interface: choose_action(view) -> PlayerAction
@@ -165,7 +181,9 @@ scenes/                 # Control-basert bord
 
 `Deck` kjenner ikke spillere. `ChipStack` kjenner ikke kort. `HandEvaluator` kjenner ikke potter. `Agent` kjenner ikke intern mutasjon, bare `GameView`.
 
-### 5.3 Handlingsobjekt
+`match.gd` eier turneringens livssyklus og skal støtte både normal avslutning med vinner og frivillig avslutning med sluttårsak `player_quit`. Frivillig avslutning er en kontrollkommando, ikke et poker-handlingstrekk i `PlayerAction`.
+
+### 6.3 Handlingsobjekt
 
 ```
 enum ActionKind { FOLD, CHECK, CALL, BET, RAISE }
@@ -176,7 +194,7 @@ class PlayerAction:
 
 Ugyldig handling fra UI eller bot skal avvises av `betting_round.gd`. Bot som returnerer ugyldig trekk: fall tilbake til `fold` hvis fold er mulig, ellers `check`/`call`. Logg advarsel.
 
-### 5.4 `GameView` (offentlig kontrakt)
+### 6.4 `GameView` (offentlig kontrakt)
 
 Inneholder minst:
 
@@ -188,29 +206,34 @@ Inneholder minst:
 - `hero_seat`, `hero_hole_cards` (kun for den agenten viewet er bygd for)
 - `legal_actions` med min/maks amount for bet/raise og call-størrelse
 - `hand_number`
+- turneringsstatus: `running` eller `finished`
+- `end_reason`: `none`, `winner` eller `player_quit`
+- aktive seter, eliminerte seter og eventuell vinner
 
 Andres hullkort kun når `street == showdown` eller hånden er over og kortene faktisk ble vist.
 
-## 6. Brukergrensesnitt
+## 7. Brukergrensesnitt
 
-### 6.1 GUI
+### 7.1 GUI
 
 - Control-noder. Skalerbart (`canvas_items`).
-- Vis: board, potter, stacks, blinds, whose turn, egne kort.
+- Vis: board, potter, stacks, blinds, whose turn, egne kort, aktive/eliminert-spillere og turneringsvinner når turneringen er ferdig.
 - Motstanderes kort skjult til showdown.
 - Knapper: Fold, Check/Call, Bet/Raise (beløp: min, 1/2 pot, pot, all-in, fri input).
+- En tydelig `Avslutt`-knapp som kan brukes når som helst. Den skal be om bekreftelse før spillet avsluttes.
 - Én hovedscene for bordet.
 
-### 6.2 CLI (headless)
+### 7.2 CLI (headless)
 
 Start: `godot --headless --path . --script res://scripts/cli/cli_app.gd`
 
 - Skriv lesbar tilstand til stdout.
-- Les kommandoer fra stdin, f.eks. `fold`, `check`, `call`, `bet 50`, `raise 100`, `allin`.
+- Les kommandoer fra stdin, f.eks. `fold`, `check`, `call`, `bet 50`, `raise 100`, `allin`, `quit` eller `exit`.
 - Ugyldig kommando: feilmelding, spør igjen. Ikke krasj.
 - Boter handler uten å vente på stdin.
+- `quit`/`exit` avslutter turneringen umiddelbart når kommandoen kommer fra mennesket.
 
-## 7. Konfigurasjon
+## 8. Konfigurasjon
 
 En Resource eller konstant config:
 
@@ -219,8 +242,9 @@ En Resource eller konstant config:
 - `starting_stack`
 - `rng_seed` (0 = tidsbasert; ellers deterministisk, påkrevd for tester)
 - `seat_agents`: sete → agent-id
+- `tournament_mode`: skal være `single_table` i v1
 
-## 8. Testing (kjerne)
+## 9. Testing (kjerne)
 
 Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen, minst:
 
@@ -230,11 +254,17 @@ Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen, minst:
 - Min raise preflop fra BB-størrelse.
 - Short all-in raise åpner ikke action på nytt for den som allerede har called.
 - Agent får ikke motstanderes hullkort i `GameView` før showdown.
+- Spiller med stack 0 elimineres og deltar ikke i neste hånd.
+- Button og blinds hopper over eliminerte spillere.
+- Turneringen avsluttes med korrekt vinner når bare ett sete har sjetonger.
+- Mennesket kan avslutte under en hånd eller mellom hender, og turneringen får sluttårsak `player_quit` uten vinner.
 
-## 9. Akseptansekriterier for første spillbare versjon
+## 10. Akseptansekriterier for første spillbare versjon
 
-1. En hånd Texas Hold’em No Limit kan spilles ferdig i CLI med 1 menneske og minst 2 boter.
+1. En ett-bords Texas Hold’em No Limit-turnering kan spilles ferdig i CLI med 1 menneske og minst 2 boter.
 2. Samme kjerne kan kobles til GUI uten duplisert regelkode.
 3. Byte av bot-klasse på et sete krever bare config/konstruksjon, ikke endring i `Deck`/`PotManager`/`HandEvaluator`.
-4. Sjetonger stemmer etter hver hånd (sum stacks + pott uendret gjennom hånden; etter utbetaling er pott 0 og sum stacks lik startsum for hånden minus busted-historikk).
-5. Mennesket ser aldri motstanderes hullkort før showdown, verken i GUI eller CLI.
+4. Sjetonger stemmer etter hver hånd (sum spillerstacker + pott er konstant gjennom hånden; etter utbetaling er potten 0 og summen av alle spillerstacker lik turneringens starttotal).
+5. Eliminerte spillere får ikke delta i nye hender, og turneringen stopper når én spiller står igjen.
+6. Mennesket kan avslutte når som helst i GUI eller CLI; spillet stopper uten vinner og rapporterer sluttårsak `player_quit`.
+7. Mennesket ser aldri motstanderes hullkort før showdown, verken i GUI eller CLI.

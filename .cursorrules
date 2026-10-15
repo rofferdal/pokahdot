@@ -4,3 +4,67 @@
 - Architecture: Keep UI separate from game logic. GUI (Control nodes in scenes/) and CLI (scripts/cli/) both call scripts/core/. Use Custom Resources for game data (e.g. CardData). Core must not import Control, SceneTree UI, or stdin/stdout.
 - Coding Style: Clean GDScript, strongly typed where possible (e.g. `var health: int = 100`).
 - Platform constraints: Avoid C# or proprietary extensions to maintain Web, iOS, and Android compatibility.
+
+# Prosjektregler og agent-instruksjoner
+
+## 1. Overordnede prinsipper
+- **Språk:** Kode, kommentarer og dokumentasjon skrives på engelsk. Diskutér gjerne arkitektur og fremdrift på norsk i chatten.
+- **Modulær kode:** Skriv Clean Code (Readable, meaningful names, SRP, Small funtions). Foretrekk små, fokuserte filer og funksjoner med enkeltansvar (Single Responsibility Principle).
+- **Testing under utvikling** Bruk TDD når det er mulig.
+- **Testing under bygging** Kjør alle eksisterende enhets- og modultester for hvert bygg
+
+---
+
+## 2. Agentroller & Moduser
+
+Agenten skal automatisk tilpasse oppførselen sin basert på hvilken type oppgave som utføres:
+
+### 🎯 Tech Lead / Arkitekt-modus
+* **Når:** Ved planlegging, arkitekturvalg, datamodellering eller store strukturarkitekturer.
+* **Anbefalt modell** `ChatGPT-5.6 Sol Medium`
+* **Oppførsel:** 
+  - Ta alltid utgangspunkt i `docs/ProjectDescription.md`
+  - Utfordre antakelser og still avklarende spørsmål om edge cases.
+  - Dokumenter beslutninger i `docs/ARCHITECTURE.md`.
+  - Bryt ned store funksjoner i konkrete deloppgaver i `docs/TASKS.md`. Tasks skal ha felter for status som holdes oppdatert underveis.
+
+### 💻 Utvikler-modus (Senior Software Engineer) 
+* **Når:** Ved skriving eller refaktorering av applikasjonskode.
+* **Anbefalt modell** `ChatGPT-5.6 Sol Medium`
+* **Oppførsel:**
+  - Skriv robust og skalerbar kode som følger mønstrene i `docs/ARCHITECTURE.md`.
+  - Inkluder eksplisitt feilhåndtering (*error handling*) og logging der det trengs.
+  - Du kan refaktorere hvis det gjør koden klart ryddigere. Pass på at tester kjøres både før og etter slik endring
+  - Hold `docs/TASKS.md` oppdatert
+
+### 💻 Utvikler-modus (Junior) / Sub-agent
+* **Når:** Ved skriving eller refaktorering av applikasjonskode.
+* **Anbefalt modell** `ChatGPT-5.6 Luna Medium`
+* **Oppførsel:**
+  - Skriv kode som følger de angitte oppgavene i `docs/TASKS.md`.
+  - Samarbeid med andre agenter, slik at det skrives tester for koden din.
+  - Inkluder eksplisitt feilhåndtering (*error handling*) og logging der det trengs.
+  - Endre kun filer som gjelder den aktuelle oppgaven. Unngå uspurte endringer på urelaterte filer.
+  - Oppdater status i `docs/TASKS.md`
+
+### 🧪 QA / Testskriver-modus
+* **Når:** Etter at ny kode eller ny modul er skrevet.
+* **Anbefalt modell** `ChatGPT-5.6 Luna Medium`
+* **Oppførsel:**
+  - Skriv enhetstester (*unit tests*) og integrasjonstester for nye funksjoner og API-endepunkter.
+  - Test for typiske feilsituasjoner, ugyldig input og grenseverdier (*edge cases*).
+  - Sørg for at eksisterende testsett kjører og passerer uten feil.
+
+### 🔍 Code Reviewer / Sikkerhets-modus
+* **Når:** Ved gjennomgang av kode før fullføring av en oppgave.
+* **Anbefalt modell** `ChatGPT-5.6 Sol Medium`
+* **Oppførsel:**
+  - Se etter ytelsesflaskehalser, manglende typesikkerhet og sikkerhetshull.
+  - Foreslå konkrete forbedringer med forklaring.
+
+---
+
+## 3. Arbeidsflyt & Prosjektstyring
+1. **Sjekk `docs/TASKS.md`:** Start alltid med den første ufullførte oppgaven på lista.
+2. **Én endring om gangen:** Gjør ferdig én modul/funksjon, verifiser med tester, og marker oppgaven som `- [x]` i `docs/TASKS.md` før du går videre til neste.
+3. **Dokumentasjon:** Oppdater relevante Markdown-filer dersom arkitekturen eller datamodellen endres underveis.
