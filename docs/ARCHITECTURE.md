@@ -331,11 +331,13 @@ The startup panel and table are views in one scalable `Control`-based main scene
 
 1. Start through `godot --headless --path . --script res://scripts/cli/cli_app.gd`.
 2. Display the defaults and offer an immediate start that supplies no overrides. If configuration is requested, allow participant count, starting stack, small blind, and big blind to be overridden independently; an empty field supplies no override.
-3. Merge overrides onto a fresh default configuration. Report invalid explicit input and prompt for that field again. After the resolved configuration is valid, print its summary and require no further setup input.
+3. Merge overrides onto a fresh default configuration. Report invalid explicit input and repeat setup until the complete configuration is valid. After validation succeeds, print its summary and require no further setup input.
 4. Follow the common match API and render snapshots as text.
 5. During play, read stdin only when the result is `WAITING_FOR_HUMAN`.
 6. Parse `fold`, `check`, `call`, `bet <amount>`, `raise <amount>`, and `allin` into `PlayerAction`; report parsing or action errors and prompt again without crashing.
 7. Map `quit` and `exit` directly to `request_quit()`.
+
+`cli_app.gd` is the composition/process-exit entry point. `TerminalIO` is the only class that reads stdin or writes stdout, behind an injectable `CliIO` boundary used by `StartupConfigPrompt` and `CliCommandLoop`. `CommandParser` converts normalized terminal text to typed shell commands; poker-action parsing is added only when the corresponding core actions exist. Terminal input reads bytes through `OS.read_buffer_from_stdin()` so an intentional blank line remains distinguishable from EOF; EOF terminates cleanly rather than causing an input-retry loop. Blocking reads are permitted only in this headless adapter, never in `scripts/core/` or the GUI.
 
 ## 7. Commands, results, and events
 
@@ -367,7 +369,7 @@ Events exposed to adapters must not contain unrevealed card values. Visible card
 
 ## 8. Configuration and construction
 
-Use a typed configuration `Resource` as the source of defaults and as the validated value passed to the core:
+Use a typed configuration `Resource` as the source of defaults; its validated resolved snapshot is passed to the core:
 
 - `player_count`: integer 2–9, default 6;
 - `small_blind`: default 5;
@@ -376,6 +378,15 @@ Use a typed configuration `Resource` as the source of defaults and as the valida
 - `rng_seed`: 0 selects a time-based seed; every other value is deterministic and tests must use a nonzero value;
 - `seat_agents`: complete seat-to-agent-ID mapping with exactly one `HumanAgent` in every valid v1 match;
 - `tournament_mode`: only `single_table` is valid in v1.
+
+Configuration crosses the startup boundary through four explicit types:
+
+- `TournamentConfig` is the mutable editor-facing default/template `Resource`; it is never passed to a running match.
+- `StartupOverrides` stores each optional user value with a separate presence flag, so an omitted value differs from an explicitly invalid zero.
+- `ConfigResolver` merges defaults and overrides, performs authoritative validation, and returns typed field/error codes in `ConfigResolution`.
+- `ResolvedTournamentConfig` is a defensive runtime snapshot with read-only public properties and copied collections. `TournamentMatch` will accept only this resolved type.
+
+Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. Milestone 0 validates scalar values and the structural seat map; model/profile ID lookup remains the responsibility of `AgentFactory` when agents are implemented.
 
 Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be positive, and small blind must not exceed big blind. The adapters may perform the same checks for immediate feedback, but core validation of the fully resolved configuration remains authoritative.
 
@@ -387,10 +398,13 @@ An agent ID resolves in the composition layer to a concrete agent preset. `Agent
 
 After resolving a time-based root seed when `rng_seed == 0`, derive separate RNG streams from the root seed for:
 
-- deck shuffling and initial button selection;
+- deck shuffling;
+- initial button selection;
 - each randomized bot.
 
-This prevents a bot model or profile change from accidentally changing future card order or another bot's behavior. Match startup fails with a descriptive configuration error for out-of-range startup choices, unknown model/profile IDs, mismatched parameter types, invalid ranges, missing seats, or duplicate seat assignments.
+`RngStreamFactory` derives each stream from the effective seed plus a stable identity (`deck`, `initial_button`, or `bot:<seat>`), never from stream creation order. `RngStreams` retains the effective seed for diagnostics and owns the separate `RandomNumberGenerator` instances. Consuming one stream therefore cannot change future card order, button selection, or another bot's behavior. Tests compare reproducibility and independence rather than hard-coded random values because Godot's underlying RNG algorithm is not part of this project's contract.
+
+Match startup fails with a descriptive configuration error for out-of-range startup choices, unknown model/profile IDs, mismatched parameter types, invalid ranges, missing seats, or duplicate seat assignments.
 
 ## 9. Recommended libraries and tools
 
@@ -469,6 +483,13 @@ docs/
   TASKS.md
 scripts/
   core/
+    config/
+      tournament_config.gd
+      startup_overrides.gd
+      config_error.gd
+      config_resolution.gd
+      config_resolver.gd
+      resolved_tournament_config.gd
     card_data.gd
     deck.gd
     chip_stack.gd
@@ -480,6 +501,8 @@ scripts/
     hand_evaluator.gd
     game_view.gd
     public_game_event.gd
+    rng_stream_factory.gd
+    rng_streams.gd
     hand_controller.gd
     match.gd
     agents/
@@ -506,8 +529,14 @@ scripts/
     table_controller.gd
   cli/
     cli_app.gd
+    cli_command.gd
+    cli_command_loop.gd
+    cli_input_line.gd
+    cli_io.gd
     command_parser.gd
     startup_config_prompt.gd
+    startup_prompt_result.gd
+    terminal_io.gd
     text_renderer.gd
 resources/
   default_tournament_config.tres

@@ -21,15 +21,15 @@ Human tests complement automated tests; they do not replace them. If a human tes
 
 ## Milestone 0 — Development foundation and CLI shell
 
-- [ ] Vendor and pin GUT 9.7.1, retain its license, add `.gutconfig.json`, and verify a headless test run.
-- [ ] Pin GDScript Toolkit 4.x for development and configure `gdlint` plus `gdformat --check`.
-- [ ] Add shared GUT test support utilities without a custom test runner.
-- [ ] Implement typed configuration defaults, independent optional overrides, and authoritative validation for player count 2–9, positive integer starting stack, positive integer blinds with small blind no greater than big blind, and immutability after match start; add omission, partial-override, boundary, and rejection tests.
-- [ ] Implement deterministic RNG stream creation from the validated configuration.
-- [ ] Implement a CLI startup flow that displays all defaults and can start immediately without supplied values, plus optional independent overrides for participant count, starting stack, small blind, and big blind, invalid-input retry, and a final resolved-configuration summary.
-- [ ] Add CLI startup-flow tests for complete omission, partial overrides, full valid overrides, invalid-value retry, and prevention of match construction before validation succeeds.
-- [ ] Implement the CLI command loop and basic parsing for `help` and `quit` without adding poker rules to the adapter.
-- [ ] **App increment:** `cli_app.gd` starts headlessly, can start with no values supplied or with optional tournament overrides, reports configuration errors clearly, displays help, accepts `quit`, and exits cleanly.
+- [x] Vendor and pin GUT 9.7.1, retain its license, add `.gutconfig.json`, and verify a headless test run.
+- [x] Pin GDScript Toolkit 4.x for development and configure `gdlint` plus `gdformat --check`.
+- [x] Add shared GUT test support utilities without a custom test runner.
+- [x] Implement typed configuration defaults, independent optional overrides, and authoritative validation for player count 2–9, positive integer starting stack, positive integer blinds with small blind no greater than big blind, and immutability after match start; add omission, partial-override, boundary, and rejection tests.
+- [x] Implement deterministic RNG stream creation from the validated configuration.
+- [x] Implement a CLI startup flow that displays all defaults and can start immediately without supplied values, plus optional independent overrides for participant count, starting stack, small blind, and big blind, invalid-input retry, and a final resolved-configuration summary.
+- [x] Add CLI startup-flow tests for complete omission, partial overrides, full valid overrides, invalid-value retry, and prevention of match construction before validation succeeds.
+- [x] Implement the CLI command loop and basic parsing for `help` and `quit` without adding poker rules to the adapter.
+- [x] **App increment:** `cli_app.gd` starts headlessly, can start with no values supplied or with optional tournament overrides, reports configuration errors clearly, displays help, accepts `quit`, and exits cleanly.
 - [ ] **Human test:** launch the CLI from the documented command and start immediately without specifying values; verify the 6-player, 1000-chip, 5/10 summary. Restart with only one overridden field and verify all omitted defaults, then restart with all non-default valid values. Restart again and verify that non-integer, out-of-range, non-positive, and small-blind-greater-than-big-blind input is rejected and re-prompted. Finally verify help, unknown-command recovery, and clean `quit`.
 
 ## Milestone 1 — First interactive preflop hand

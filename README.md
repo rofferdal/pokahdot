@@ -40,7 +40,29 @@ På macOS uten `godot` i `PATH`:
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://scripts/cli/cli_app.gd
 ```
 
-Terminalgrensesnittet er foreløpig bare et startpunkt. Når det er implementert, leser det kommandoer fra stdin og skriver spilltilstand til stdout. Spillogikk skal fortsatt ligge i `scripts/core/`, ikke i CLI-laget.
+The terminal interface currently supports tournament setup with optional overrides, a resolved-configuration summary, and a small command shell with `help`, `quit`, and `exit`. Poker gameplay is added in later milestones. Game rules remain in `scripts/core/`, not in the CLI layer.
+
+## Development checks
+
+Install the pinned development tools in a local virtual environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+```
+
+Run the GDScript linter and verify formatting without modifying files:
+
+```bash
+.venv/bin/gdlint scripts tests my_test_node.gd
+.venv/bin/gdformat --check scripts tests my_test_node.gd
+```
+
+Run the Godot tests headlessly:
+
+```bash
+godot --headless --path . -s addons/gut/gut_cmdln.gd
+```
 
 ## Mappestruktur
 
