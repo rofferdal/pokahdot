@@ -1,0 +1,6 @@
+# Godot 4 & GDScript AI Rules
+- Target Engine: Godot 4.x (GDScript)
+- Renderer: Compatibility Mode
+- Architecture: Keep UI separate from game logic. GUI (Control nodes in scenes/) and CLI (scripts/cli/) both call scripts/core/. Use Custom Resources for game data (e.g. CardData). Core must not import Control, SceneTree UI, or stdin/stdout.
+- Coding Style: Clean GDScript, strongly typed where possible (e.g. `var health: int = 100`).
+- Platform constraints: Avoid C# or proprietary extensions to maintain Web, iOS, and Android compatibility.
