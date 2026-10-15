@@ -17,10 +17,10 @@ Kjernen (`scripts/core/`) skal ikke kjenne til Control-noder, scener, stdin elle
 
 Første versjon er en **ett-bords Texas Hold’em No Limit-turnering**, ikke et cash game. Alle deltakere starter med samme antall sjetonger, og spillet fortsetter hånd for hånd til bare én deltaker har sjetonger igjen. Sjetongene er kun spilltilstand; det finnes ingen penge- eller premieoppgjør i v1.
 
-- Startstacken er fast per deltaker.
+- Ved oppstart kan mennesket velge antall deltakere, felles startstack og small/big blind. Alle feltene har standardverdier og er valgfrie; turneringen kan startes uten at noen verdier oppgis. De ferdig utfylte verdiene er faste gjennom den pågående turneringen.
 - Det er ingen kjøp, cash-out eller rebuys.
 - En deltaker som mister alle sjetongene elimineres permanent fra turneringen.
-- Blinds er faste i v1; det er ingen blindnivåer eller blindtimer.
+- Blinds er faste etter oppstart i v1; det er ingen blindnivåer eller blindtimer.
 - Siste deltaker med sjetonger kåres til vinner.
 - Den menneskelige spilleren kan avslutte spillet når som helst. Da avsluttes turneringen uten at noen kåres til vinner.
 
@@ -36,10 +36,10 @@ Første versjon er en **ett-bords Texas Hold’em No Limit-turnering**, ikke et 
 
 ### 4.1 Bord og stacks
 
-- 2–9 turneringsdeltakere. Standard: **6 seter** (1 menneske + 5 boter).
+- Ved oppstart kan mennesket velge **2–9 turneringsdeltakere**. Hvis verdien ikke oppgis, brukes standarden **6 seter** (1 menneske + 5 boter).
 - Sjetonger er **heltall**. Ingen desimaler.
-- Standard blinds: **small blind = 5**, **big blind = 10**.
-- Standard startstack: **1000** (100 BB) til hver deltaker ved turneringsstart.
+- Ved oppstart kan mennesket velge positive heltall for **small blind** og **big blind**, der small blind ikke kan være større enn big blind. Verdier som ikke oppgis bruker standardene **small blind = 5** og **big blind = 10**. De ferdig utfylte blindsene endres ikke under turneringen.
+- Ved oppstart kan mennesket velge en positiv heltallsverdi for startstack. Hvis verdien ikke oppgis, brukes standarden **1000** (100 BB). Samme ferdig utfylte verdi brukes som initial stack for hver deltaker; deretter endres de aktive stackene bare gjennom vanlig spill.
 - Ingen kjøp, cash-out eller rebuys. Går stacken til 0, er spilleren eliminert og markeres som `busted`; hen deltar ikke i senere hender.
 - Turneringen avsluttes når én spiller har sjetonger igjen. Denne spilleren vinner turneringen.
 
@@ -217,6 +217,8 @@ Andres hullkort kun når `street == showdown` eller hånden er over og kortene f
 ### 7.1 GUI
 
 - Control-noder. Skalerbart (`canvas_items`).
+- Før turneringen opprettes, vis en oppstartsvisning der mennesket kan velge antall deltakere, startstack, small blind og big blind. Feltene er forhåndsutfylt med standardverdiene, og turneringen kan startes direkte uten at feltene redigeres.
+- Ugyldige oppstartsverdier skal forklares i GUI, og første hånd kan ikke starte før alle verdier er gyldige.
 - Vis: board, potter, stacks, blinds, whose turn, egne kort, aktive/eliminert-spillere og turneringsvinner når turneringen er ferdig.
 - Motstanderes kort skjult til showdown.
 - Knapper: Fold, Check/Call, Bet/Raise (beløp: min, 1/2 pot, pot, all-in, fri input).
@@ -227,6 +229,8 @@ Andres hullkort kun når `street == showdown` eller hånden er over og kortene f
 
 Start: `godot --headless --path . --script res://scripts/cli/cli_app.gd`
 
+- Før turneringen opprettes, vis standardverdiene og tilby å starte direkte med alle standardene uten at noen verdi oppgis. Hvis mennesket velger å tilpasse, kan hvert av feltene antall deltakere, startstack, small blind og big blind overstyres separat; tom verdi beholder standarden for feltet.
+- Ugyldige oppstartsverdier skal gi en tydelig feilmelding og nytt spørsmål; ingen hånd starter med ugyldig konfigurasjon.
 - Skriv lesbar tilstand til stdout.
 - Les kommandoer fra stdin, f.eks. `fold`, `check`, `call`, `bet 50`, `raise 100`, `allin`, `quit` eller `exit`.
 - Ugyldig kommando: feilmelding, spør igjen. Ikke krasj.
@@ -235,7 +239,7 @@ Start: `godot --headless --path . --script res://scripts/cli/cli_app.gd`
 
 ## 8. Konfigurasjon
 
-En Resource eller konstant config:
+En Resource eller konstant config brukes som standarder og som validert input til kjernen:
 
 - `player_count` (2–9, default 6)
 - `small_blind`, `big_blind`
@@ -243,6 +247,8 @@ En Resource eller konstant config:
 - `rng_seed` (0 = tidsbasert; ellers deterministisk, påkrevd for tester)
 - `seat_agents`: sete → agent-id
 - `tournament_mode`: skal være `single_table` i v1
+
+GUI og CLI skal tilby valgfrie overstyringer av `player_count`, `starting_stack`, `small_blind` og `big_blind` før hver turnering starter og før `TournamentMatch` opprettes. Standardverdiene er 6, 1000, 5 og 10. Ingen av overstyringene er obligatoriske, og hver manglende verdi fylles inn separat fra standardkonfigurasjonen. Den ferdig utfylte konfigurasjonen valideres, kopieres og fryses når turneringen starter. En ny turnering kan velge nye verdier. Antall botseter er `player_count - 1`; sete 0 er mennesket.
 
 ## 9. Testing (kjerne)
 
@@ -258,6 +264,7 @@ Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen, minst:
 - Button og blinds hopper over eliminerte spillere.
 - Turneringen avsluttes med korrekt vinner når bare ett sete har sjetonger.
 - Mennesket kan avslutte under en hånd eller mellom hender, og turneringen får sluttårsak `player_quit` uten vinner.
+- Oppstart uten oppgitte verdier bruker alle standardene. Delvise, gyldige overstyringer bruker standarden for hvert utelatt felt. Gyldige, ikke-standard valg gir riktig antall deltakere, lik initial stack og de valgte faste blindsene; ugyldige, eksplisitte verdier avvises før første hånd.
 
 ## 10. Akseptansekriterier for første spillbare versjon
 
@@ -268,3 +275,4 @@ Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen, minst:
 5. Eliminerte spillere får ikke delta i nye hender, og turneringen stopper når én spiller står igjen.
 6. Mennesket kan avslutte når som helst i GUI eller CLI; spillet stopper uten vinner og rapporterer sluttårsak `player_quit`.
 7. Mennesket ser aldri motstanderes hullkort før showdown, verken i GUI eller CLI.
+8. Før hver turnering i både GUI og CLI kan mennesket valgfritt overstyre antall deltakere, felles startstack og small/big blinds. Turneringen kan startes uten å oppgi verdier og bruker da standardene 6, 1000 og 5/10; delvise overstyringer beholder standarden for utelatte felt. Den ferdig utfylte konfigurasjonen vises i spillet og kan ikke endres før turneringen avsluttes.

@@ -8,7 +8,9 @@ Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 Pokahdot is a single-table No Limit Texas Hold'em tournament for one human player and automated opponents. The same deterministic game core must support both a Godot `Control`-based GUI and a headless terminal interface.
 
-This document defines module boundaries, state ownership, runtime flow, and the contracts that presentation layers and agents use. If this document conflicts with `docs/ProjectDescription.md`, the project description wins.
+This document defines module boundaries, state ownership, runtime flow, and the contracts that presentation layers and agents use. `docs/ProjectDescription.md` is normative; this document may refine implementation structure but must not add or change game rules.
+
+The v1 boundary is one single-table tournament with 2–9 participants, equal starting stacks, exactly one human, and bots in every other seat. Before each tournament starts, the human may optionally override the participant count, common starting stack, small blind, and big blind; omitted values use defaults, and the resolved values are then fixed for that tournament. V1 has no cash-game accounting, buy-ins, cash-out, rebuys, antes, rake, blind levels, action timer, network play, or prize payout. Normal play ends only when one participant has chips; a human-requested quit ends it without a winner. The project uses Godot 4, GDScript, and the Compatibility renderer, with no C# or platform-specific plugins.
 
 ## 2. Architectural drivers
 
@@ -17,6 +19,7 @@ This document defines module boundaries, state ownership, runtime flow, and the 
 - No hidden-card leakage to agents or presentation layers.
 - Replaceable bot strategies without changes to poker rules.
 - Multiple decision-model implementations with independently tunable, per-seat behavior profiles.
+- Optional startup overrides, with defaults, for participant count, common starting stack, and both blind sizes in GUI and CLI.
 - Deterministic runs when an RNG seed is supplied.
 - A human action may arrive later without blocking Godot's main thread.
 - The human may quit at any time without manufacturing a tournament winner.
@@ -62,6 +65,7 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 | Track per-hand contributions by seat | Main and side pots can then be derived consistently at settlement. |
 | Build a different `GameView` for each recipient | Hidden information is filtered at one boundary instead of relying on UI or bot discipline. |
 | Inject seeded RNG streams | Tests and recorded scenarios remain reproducible. |
+| Build a validated configuration before constructing a match | GUI and CLI can merge optional startup overrides onto defaults without permitting partially configured game state. |
 | Compose bots from agent, decision model, and profile | New decision algorithms and per-seat behavior can be added without changing poker rules or duplicating input/error handling. |
 | Keep runtime state in core objects, not scenes or Resources | Scenes display state. Configuration and static card data may be Resources; mutable match state stays in dedicated runtime objects. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
@@ -81,6 +85,7 @@ Card visuals are presentation metadata and must not be required by the evaluator
 - Reset to exactly 52 unique cards.
 - Shuffle through an injected `RandomNumberGenerator`.
 - Draw cards without replacement.
+- Use the standard 13 ranks and four suits, with no jokers.
 - Fail explicitly if a caller attempts to draw from an empty deck.
 
 `Deck` knows nothing about players, streets, or UI.
@@ -123,7 +128,7 @@ FOLD, CHECK, CALL: amount = 0
 BET, RAISE: amount = target total bet_this_round after the action
 ```
 
-Using a target total avoids ambiguity after blinds or earlier contributions. `BettingRound` remains the authority for whether an action and amount are legal.
+For `BET` and `RAISE`, “total wager amount” means the player's target total contribution on the current street, not the number of additional chips to move. Using a target total avoids ambiguity after blinds or earlier contributions. `BettingRound` remains the authority for whether an action and amount are legal.
 
 ### 5.7 `betting_round.gd`
 
@@ -168,9 +173,17 @@ It must not inspect players, stacks, pots, or UI state.
 
 ### 5.10 `game_view.gd`
 
-`GameView` is a snapshot, never a live reference to mutable core collections. A factory builds it for a specific viewing seat.
+`GameView` is a snapshot, never a live reference to mutable core collections. A factory builds it for a specific viewing seat. Its required fields are:
 
-It contains public table state, recipient hole cards, legal actions when applicable, public action history, tournament status, end reason, and only hole cards that are legitimately revealed at showdown. Public action history contains actions and public outcomes, never folded or unrevealed cards.
+- `street`: `preflop`, `flop`, `turn`, `river`, `showdown`, or `hand_end`;
+- button, acting, small-blind, and big-blind seats;
+- community cards and pots, including each pot's amount and eligible seats;
+- each seat's name, human flag, stack, street contribution, folded/all-in/busted flags, and active/eliminated status;
+- `hero_seat` and only that recipient's `hero_hole_cards`;
+- legal actions, including call size and minimum/maximum bet or raise totals;
+- hand number, tournament status, end reason, and optional winner.
+
+The architecture may add public action history, but it contains only actions and public outcomes. Opponent hole cards appear only at showdown, or at `hand_end` when those cards were actually shown; folded or otherwise unrevealed cards never appear.
 
 Collections exposed in a view are duplicated so a bot or UI cannot mutate core state indirectly.
 
@@ -184,7 +197,7 @@ func choose_action(view: GameView) -> PlayerAction
 
 Bot agents return synchronously in v1. They may depend on `GameView` and `PlayerAction`, but not on mutable `Table`, `Player`, `Deck`, or `PotManager` objects.
 
-`HumanAgent` does not read devices or stdin. It acts as an input mailbox with `submit_action()` and `has_pending_action()`. `HandController` returns `WAITING_FOR_HUMAN` while the mailbox is empty and calls the common `choose_action()` contract only when an action is queued. The queued action is still validated by `BettingRound`; parsing it successfully does not make it legal.
+`HumanAgent` does not read devices or stdin. It acts as an input mailbox with `submit_action()` and `has_pending_action()`. `HandController` returns `WAITING_FOR_HUMAN` while the mailbox is empty, thereby blocking hand progression without blocking Godot's main thread, and calls the common `choose_action()` contract only when an action is queued. The queued action is still validated by `BettingRound`; parsing it successfully does not make it legal.
 
 ### 5.12 Bot decision models and profiles
 
@@ -232,7 +245,7 @@ No changes should be required in `TournamentMatch`, `HandController`, `BettingRo
 
 Every `BotAgent` receives a separate RNG stream derived from the tournament seed. A model must use only that stream for randomness. This makes a model/profile pair reproducible and prevents one bot's random calls from changing deck order or another bot's decisions.
 
-The `RandomAgent`, `TightPassiveAgent`, and `LooseAggressiveAgent` names required for v1 are thin preset constructors around `BotAgent`, their corresponding decision models, and default profiles. Decision logic lives in model classes rather than those wrappers.
+`RandomAgent`, `TightPassiveAgent`, and `LooseAggressiveAgent` are separate concrete classes in the required separate files. Each extends `BotAgent` as a thin preset subclass that supplies its corresponding decision model and default profile; decision logic remains in the model class. The default six-seat setup uses seat 0 for `HumanAgent`, seats 1–5 for these bot classes, and at least two different concrete bot classes.
 
 Model output is still validated by `BettingRound`. Invalid output produces the standard warning and fallback in `HandController`, regardless of model implementation. Network-backed or asynchronous models are outside v1; they may later add a pending decision result without changing poker rules or profile formats.
 
@@ -254,6 +267,8 @@ Any active state -> ABORTED when the tournament receives player_quit
 
 Automatic transitions skip betting when all remaining players are all-in or only one player can act. A fold-to-one result moves directly to settlement without revealing hidden cards.
 
+Setup follows the normative dealing sequence: reset hand state, shuffle, post possibly short all-in blinds, and deal two cards to each active participant clockwise from the small blind. Flop, turn, and river are dealt directly as 3/1/1 community cards; v1 never burns cards.
+
 ### 5.14 `match.gd`
 
 `TournamentMatch` owns the tournament lifecycle:
@@ -266,14 +281,14 @@ NOT_STARTED -> RUNNING -> FINISHED
 
 Responsibilities:
 
-- validate and freeze match configuration;
+- validate and defensively copy the completed startup configuration, then freeze it for the tournament;
 - create and advance hands;
 - mark zero-stack players as busted after a completed hand;
 - stop when one player has chips and record that seat as winner;
 - accept `request_quit()` in every non-finished state;
 - expose snapshots and domain events to adapters.
 
-If the human quits during a hand, the hand becomes `ABORTED`. No pot is awarded and no winner is assigned. The final snapshot is diagnostic state only; chip conservation after an aborted hand is not used to determine tournament results.
+When `request_quit()` is received before, during, or between hands, it immediately marks the tournament finished and prevents any further gameplay transition. A current hand becomes `ABORTED`; no pot is awarded and no winner is assigned. The final snapshot is diagnostic state only, with `end_reason = player_quit`; chip conservation after an aborted hand is not used to determine tournament results.
 
 ## 6. Runtime control flow
 
@@ -281,7 +296,7 @@ The central API is step-based:
 
 ```gdscript
 func start() -> StepResult
-func advance_until_blocked() -> StepResult
+func advance_until_blocked(max_transitions: int = 32) -> StepResult
 func submit_human_action(action: PlayerAction) -> StepResult
 func request_quit() -> StepResult
 func get_view_for(seat: int) -> GameView
@@ -292,27 +307,35 @@ func get_view_for(seat: int) -> GameView
 - `WAITING_FOR_HUMAN`
 - `HAND_COMPLETED`
 - `TOURNAMENT_FINISHED`
+- `YIELDED`
 - `ERROR`
 
-The method may execute several bot turns synchronously, but it must have an iteration guard so a defect cannot freeze the application in an infinite transition loop.
+The method may execute several bot turns synchronously, but it returns `YIELDED` when its positive transition budget is exhausted. This guard prevents a defect from freezing the application in an infinite transition loop.
+
+The core checks a latched quit request before every state transition. GUI driving must use a bounded transition budget and yield back to Godot's event loop between budgets so the always-available quit control remains responsive. The CLI loops through bot progress without requesting stdin and accepts `quit`/`exit` whenever it is reading a human command.
 
 Implementation proceeds through the CLI first. Each runnable core increment is exposed through the CLI and manually tested before the next increment. GUI implementation begins only after a complete single-table tournament is playable through the CLI and the automated and human CLI completion gates in `docs/TASKS.md` pass.
 
 ### GUI adapter
 
-1. Create `TournamentMatch` and call `start()`.
-2. Render the returned human `GameView`.
-3. Enable only actions listed in `legal_actions`.
-4. On a button press, create `PlayerAction`, submit it, and render the next result.
-5. On `Avslutt`, confirm in the GUI and then call `request_quit()`.
+1. Show a startup panel prefilled with 6 participants, 1000 chips, small blind 5, and big blind 10; starting immediately without editing is valid.
+2. Validate edits locally for immediate feedback, then create a fresh validated match configuration and construct `TournamentMatch`; do not create players, chips, or cards while the input is invalid.
+3. Call `start()` and render the returned human `GameView`: board, pots, stacks, selected fixed blinds, acting seat, hero cards, active/eliminated participants, and final winner when applicable. Opponent cards remain hidden unless the view explicitly reveals them.
+4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, and Bet/Raise with minimum, half-pot, pot, all-in, and free-entry amounts as applicable.
+5. On a button press, create `PlayerAction`, submit it, and render the next result.
+6. Keep `Avslutt` available at all times; confirm in the GUI and then call `request_quit()`.
+
+The startup panel and table are views in one scalable `Control`-based main scene with the `canvas_items` stretch mode. Starting a new tournament returns to the startup panel so new values can be chosen.
 
 ### CLI adapter
 
-1. Follow the same match API.
-2. Render snapshots as text.
-3. Read stdin only when the result is `WAITING_FOR_HUMAN`.
-4. Parse input into `PlayerAction`; parsing errors never reach the core.
-5. Map `quit` and `exit` directly to `request_quit()`.
+1. Start through `godot --headless --path . --script res://scripts/cli/cli_app.gd`.
+2. Display the defaults and offer an immediate start that supplies no overrides. If configuration is requested, allow participant count, starting stack, small blind, and big blind to be overridden independently; an empty field supplies no override.
+3. Merge overrides onto a fresh default configuration. Report invalid explicit input and prompt for that field again. After the resolved configuration is valid, print its summary and require no further setup input.
+4. Follow the common match API and render snapshots as text.
+5. During play, read stdin only when the result is `WAITING_FOR_HUMAN`.
+6. Parse `fold`, `check`, `call`, `bet <amount>`, `raise <amount>`, and `allin` into `PlayerAction`; report parsing or action errors and prompt again without crashing.
+7. Map `quit` and `exit` directly to `request_quit()`.
 
 ## 7. Commands, results, and events
 
@@ -344,25 +367,30 @@ Events exposed to adapters must not contain unrevealed card values. Visible card
 
 ## 8. Configuration and construction
 
-Use a typed configuration `Resource` for editable defaults:
+Use a typed configuration `Resource` as the source of defaults and as the validated value passed to the core:
 
-- player count;
-- small and big blind;
-- starting stack;
-- RNG seed;
-- agent specification per seat: human or bot, plus bot profile ID when applicable;
-- tournament mode (`single_table`).
+- `player_count`: integer 2–9, default 6;
+- `small_blind`: default 5;
+- `big_blind`: default 10;
+- `starting_stack`: default 1000, applied equally to every participant;
+- `rng_seed`: 0 selects a time-based seed; every other value is deterministic and tests must use a nonzero value;
+- `seat_agents`: complete seat-to-agent-ID mapping with exactly one `HumanAgent` in every valid v1 match;
+- `tournament_mode`: only `single_table` is valid in v1.
+
+Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be positive, and small blind must not exceed big blind. The adapters may perform the same checks for immediate feedback, but core validation of the fully resolved configuration remains authoritative.
+
+The resolved values are copied into a fresh configuration before `TournamentMatch` is constructed and cannot change after `start()`. Blinds remain constant for that tournament. The composition root builds the complete `seat_agents` map from `player_count`: seat 0 is the human and seats 1 through `player_count - 1` are bots. The default six-seat setup uses at least two of the three required concrete bot classes; smaller and larger tables use the same registered presets without changing poker rules.
 
 Validate configuration before any chips or cards are created. Invalid configuration returns a descriptive startup error.
 
-An `AgentFactory` in the composition layer creates `HumanAgent` or `BotAgent` instances from seat specifications. For bots, it resolves the configured `BotProfile`, asks `DecisionModelRegistry` for a new model instance, validates the profile's parameter type and ranges, and injects the seat's RNG stream. Core rule modules know neither concrete bot class names nor model IDs.
+An agent ID resolves in the composition layer to a concrete agent preset. `AgentFactory` creates the corresponding `HumanAgent` or concrete `BotAgent` subclass. For bots, that preset selects a `BotProfile`; the factory asks `DecisionModelRegistry` for a new model instance, validates the profile's parameter type and ranges, and injects the seat's RNG stream. This preserves the required `seat_agents: seat -> agent-id` contract while allowing model and behavior parameters to vary by preset. Core rule modules know neither concrete bot class names nor model IDs.
 
-For deterministic runs, derive separate RNG streams from the configured seed for:
+After resolving a time-based root seed when `rng_seed == 0`, derive separate RNG streams from the root seed for:
 
 - deck shuffling and initial button selection;
 - each randomized bot.
 
-This prevents a bot model or profile change from accidentally changing future card order or another bot's behavior. Match startup fails with a descriptive configuration error for unknown model/profile IDs, mismatched parameter types, invalid ranges, or duplicate seat assignments.
+This prevents a bot model or profile change from accidentally changing future card order or another bot's behavior. Match startup fails with a descriptive configuration error for out-of-range startup choices, unknown model/profile IDs, mismatched parameter types, invalid ranges, missing seats, or duplicate seat assignments.
 
 ## 9. Recommended libraries and tools
 
@@ -420,9 +448,10 @@ The core maintains these invariants:
 
 - Every card ID appears at most once across deck, board, and hole cards.
 - Player stacks, bets, contributions, and pots are non-negative integers.
-- During a non-aborted hand, total player stacks plus total hand contributions equals the tournament's initial chip total.
+- During a non-aborted hand, total player stacks plus `PotManager`'s contribution ledger (the pot) equals the tournament's initial chip total.
 - After normal settlement, the pot is empty and all chips are in player stacks.
 - A busted player has stack 0 and is never dealt into a later hand.
+- The configured player count, `starting_stack`, `small_blind`, and `big_blind` equal the validated, default-resolved startup values and remain immutable; each live stack starts at `starting_stack` and then changes only through poker actions and pot awards.
 - Exactly one seat acts at a time, or no seat acts while transitioning or finished.
 - A view never contains unrevealed opponent hole cards.
 - A finished tournament has exactly one end reason.
@@ -473,10 +502,12 @@ scripts/
         tight_passive_parameters.gd
         loose_aggressive_parameters.gd
   gui/
+    startup_config_controller.gd
     table_controller.gd
   cli/
     cli_app.gd
     command_parser.gd
+    startup_config_prompt.gd
     text_renderer.gd
 resources/
   default_tournament_config.tres
@@ -500,13 +531,15 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 
 ### 13.1 Unit tests
 
-- deck uniqueness and deterministic shuffle;
+- deck reset plus shuffle produces exactly 52 unique cards, with deterministic order for a fixed seed;
 - chip stack bounds;
-- hand category and tie-break comparisons;
-- betting legality, minimum raises, short all-ins, and raise-right reopening;
-- side-pot construction, eligibility, split pots, and odd chips;
+- startup configuration defaults, complete omission, partial overrides, valid boundaries, invalid explicit values, and immutability after match start;
+- hand category and tie-break comparisons, including that the five-high wheel beats king-high and loses to a six-high straight;
+- betting legality and minimum raises, including a first preflop raise from a big-blind-sized current bet;
+- short all-in raises do not reopen raising for a player who already called and matched the previous full raise;
+- side-pot construction, eligibility, split pots, and odd chips, including A all-in for 40 versus B and C for 100, where A is eligible for only the 120-chip main pot;
 - seat traversal and heads-up order;
-- per-recipient hidden-card filtering.
+- per-recipient hidden-card filtering before showdown;
 - decision-model registration and profile parameter validation;
 - deterministic decisions for a fixed view, profile, and RNG seed;
 - model output limited to the legal actions present in `GameView`.
@@ -514,11 +547,13 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 ### 13.2 Integration tests
 
 - scripted complete hands with deterministic cards and actions;
-- player elimination followed by a hand that skips the busted seat;
-- full tournament ending with one winner;
+- CLI and GUI startup adapters map omitted, partially overridden, and fully overridden input to equivalent resolved core configurations and keep invalid explicit input from constructing a match;
+- non-default startup selections produce the selected participant count, equal initial stacks, and fixed blind postings through both adapter-independent drivers;
+- player elimination followed by a hand whose deal, button, and blinds skip the busted seat;
+- full tournament ending with the only chip-owning seat as winner;
 - two bots using the same model with different profiles and independent RNG streams;
 - different models running at different seats without changes to hand or betting orchestration;
-- human quit before a hand, during human input, during bot progression, and between hands;
+- human quit before a hand, during a hand, and between hands, always producing `player_quit` with no winner or payout;
 - identical outcomes for a fixed seed and scripted actions through GUI-independent and CLI-independent drivers;
 - chip conservation after every completed hand.
 
@@ -526,15 +561,15 @@ Use test doubles for agents and a scripted deck seam in integration tests. Produ
 
 ## 14. Extension points
 
-The design intentionally allows later additions without changing poker rules:
+The design intentionally allows later, post-v1 additions without changing poker rules:
 
 - new agents through `AgentFactory`;
 - new bot decision models through `DecisionModelRegistry`;
 - new parameterized behaviors through typed `DecisionModelParameters` and reusable `BotProfile` Resources;
-- blind schedules owned by tournament orchestration;
+- blind schedules owned by tournament orchestration (v1 keeps blinds fixed);
 - replay or audit logs from domain events;
 - alternate presentation adapters;
-- network input as another human-agent adapter;
+- network input as another human-agent adapter (networking remains excluded from v1);
 - additional tournament formats above `HandController`.
 
 Cash-game accounting, networking, persistence, payouts, antes, and rebuys are outside v1 and must not complicate the first implementation.

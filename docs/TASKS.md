@@ -24,10 +24,13 @@ Human tests complement automated tests; they do not replace them. If a human tes
 - [ ] Vendor and pin GUT 9.7.1, retain its license, add `.gutconfig.json`, and verify a headless test run.
 - [ ] Pin GDScript Toolkit 4.x for development and configure `gdlint` plus `gdformat --check`.
 - [ ] Add shared GUT test support utilities without a custom test runner.
-- [ ] Implement typed configuration validation and deterministic RNG stream creation.
+- [ ] Implement typed configuration defaults, independent optional overrides, and authoritative validation for player count 2–9, positive integer starting stack, positive integer blinds with small blind no greater than big blind, and immutability after match start; add omission, partial-override, boundary, and rejection tests.
+- [ ] Implement deterministic RNG stream creation from the validated configuration.
+- [ ] Implement a CLI startup flow that displays all defaults and can start immediately without supplied values, plus optional independent overrides for participant count, starting stack, small blind, and big blind, invalid-input retry, and a final resolved-configuration summary.
+- [ ] Add CLI startup-flow tests for complete omission, partial overrides, full valid overrides, invalid-value retry, and prevention of match construction before validation succeeds.
 - [ ] Implement the CLI command loop and basic parsing for `help` and `quit` without adding poker rules to the adapter.
-- [ ] **App increment:** `cli_app.gd` starts headlessly, reports configuration errors clearly, displays help, accepts `quit`, and exits cleanly.
-- [ ] **Human test:** launch the CLI from the documented command, verify startup/help output, enter an unknown command and confirm recovery, then verify `quit` exits without an error.
+- [ ] **App increment:** `cli_app.gd` starts headlessly, can start with no values supplied or with optional tournament overrides, reports configuration errors clearly, displays help, accepts `quit`, and exits cleanly.
+- [ ] **Human test:** launch the CLI from the documented command and start immediately without specifying values; verify the 6-player, 1000-chip, 5/10 summary. Restart with only one overridden field and verify all omitted defaults, then restart with all non-default valid values. Restart again and verify that non-integer, out-of-range, non-positive, and small-blind-greater-than-big-blind input is rejected and re-prompted. Finally verify help, unknown-command recovery, and clean `quit`.
 
 ## Milestone 1 — First interactive preflop hand
 
@@ -45,8 +48,8 @@ Human tests complement automated tests; they do not replace them. If a human tes
 - [ ] Implement the first `TournamentMatch` slice: validate configuration, start one hand, expose views/events, accept human actions, and handle `player_quit`.
 - [ ] Extend CLI parsing and rendering for preflop state plus `fold`, `check`, `call`, `bet`, `raise`, `allin`, `quit`, and `exit`.
 - [ ] Add an integration test that completes a hand preflop when all opponents fold.
-- [ ] **App increment:** a human can start one seeded hand against at least two bots, inspect private/public state, make legal preflop actions, win or lose by folds, and quit.
-- [ ] **Human test:** run the CLI hand, verify only the human's hole cards are shown, verify blinds/stacks/legal actions, try an invalid command and illegal amount, complete one fold-to-one hand, and quit both before and during human action.
+- [ ] **App increment:** a human can use the startup-selected participant count, starting stack, and blinds to start one seeded hand against bots, inspect private/public state, make legal preflop actions, win or lose by folds, and quit.
+- [ ] **Human test:** run the CLI hand with non-default startup values, verify the selected number of seats, equal starting stacks, blind postings, only the human's hole cards, and legal actions; try an invalid command and illegal amount, complete one fold-to-one hand, and quit both before and during human action.
 
 ## Milestone 2 — Complete single hand through the CLI
 
@@ -67,7 +70,7 @@ Human tests complement automated tests; they do not replace them. If a human tes
 - [ ] Configure at least two decision model classes at the standard table and report model/profile IDs in startup diagnostics without exposing private model state.
 - [ ] Extend the CLI loop across hands and render hand numbers, eliminated players, remaining players, tournament winner, and `player_quit` termination.
 - [ ] Add deterministic integration tests for button/blind movement, skipped busted seats, heads-up transition, tournament winner, and quit before/during/between hands.
-- [ ] Add CLI configuration selection and a deterministic short-stack manual-test configuration so a complete tournament can be exercised quickly without changing production defaults.
+- [ ] Add a deterministic short-stack startup selection for manual testing and verify that the values chosen by the existing CLI setup flow remain fixed across every hand without changing production defaults.
 - [ ] Add a full seeded tournament smoke test and assert chip conservation after every completed hand.
 - [ ] **App increment:** one human and at least two bots can play a complete single-table tournament through the CLI until one winner remains, or the human can quit without a winner.
 - [ ] **Human test:** use the short-stack configuration to finish a CLI tournament; verify hand transitions, button/blind movement, elimination, heads-up behavior, final winner, and total chips.
@@ -80,19 +83,22 @@ Human tests complement automated tests; they do not replace them. If a human tes
 - [ ] **Gate:** every Milestone 0–3 human-test task is complete with discovered defects covered by regression tests.
 - [ ] **Gate:** the complete CLI tournament satisfies the applicable acceptance criteria in `docs/ProjectDescription.md`.
 - [ ] **Gate:** CLI code contains presentation/parsing only; poker rules remain exclusively in `scripts/core/`.
+- [ ] **Gate:** CLI startup can omit every value, override any subset, or override all participant/stack/blind values; it resolves omitted fields to defaults, rejects invalid explicit values before match creation, and uses the resolved values for the complete tournament.
 - [ ] **Gate:** adding a test decision model and profile requires registry/configuration changes only and no edits to poker-rule modules.
 - [ ] **Gate:** `README.md`, `docs/ProjectDescription.md`, and `docs/ARCHITECTURE.md` describe the working CLI accurately.
 
 ## Milestone 4 — GUI for the functionally complete game
 
+- [ ] Build the startup configuration panel for participant count, starting stack, small blind, and big blind, prefilled with defaults and able to start without any user edits before `TournamentMatch` construction.
+- [ ] Add inline startup validation, prevent starting with invalid values, and map a valid selection into a fresh immutable tournament configuration.
 - [ ] Build the main `Control`-based table scene and GUI controller against the existing `TournamentMatch` API.
 - [ ] Render seats, stacks, private/public cards, board, pots, blinds, dealer, acting player, eliminations, and tournament result.
 - [ ] Connect Fold, Check/Call, Bet/Raise presets, free amount input, all-in, and legal-action enabled states.
 - [ ] Present ordered domain events without duplicating settlement, winner, or legality rules in GUI code.
 - [ ] Add the always-available `Avslutt` control with confirmation and `player_quit` handling.
-- [ ] Add GUI adapter tests for action mapping, recipient-safe rendering data, and quit confirmation behavior.
-- [ ] **App increment:** the same complete tournament available in the CLI is playable through the GUI without duplicated rules.
-- [ ] **Human test:** complete representative preflop and postflop actions in the GUI, including bet sizing, all-in, showdown, and continuing to the next hand.
+- [ ] Add GUI adapter tests for startup-selection mapping and rejection, action mapping, recipient-safe rendering data, and quit confirmation behavior.
+- [ ] **App increment:** the human can start with defaults or optionally change participant count, starting stack, and blind sizes, then play the same complete tournament available in the CLI through the GUI without duplicated rules.
+- [ ] **Human test:** start once without editing the GUI defaults, then verify a partial override, invalid-value feedback, and a fully non-default startup selection; complete representative preflop and postflop actions, including resolved blind postings, bet sizing, all-in, showdown, and continuing to the next hand with unchanged configuration.
 - [ ] **Human test:** verify opponent cards remain hidden until legitimately revealed, eliminated seats are skipped, and the tournament winner is displayed correctly.
 - [ ] **Human test:** verify quit confirmation both cancels safely and ends with `player_quit`; verify desktop resizing and representative mobile aspect ratios under Compatibility rendering.
 
@@ -100,6 +106,7 @@ Human tests complement automated tests; they do not replace them. If a human tes
 
 - [ ] Run all headless tests and resolve warnings or invariant failures.
 - [ ] Verify GUI and CLI produce equivalent core outcomes for the same seed and scripted actions.
+- [ ] Verify both GUI and CLI expose the optional startup overrides and produce identical validated core configuration from equivalent omissions and selections.
 - [ ] Verify development addons and tests are excluded from release exports.
 - [ ] Verify Compatibility rendering on target desktop platforms and basic mobile resizing.
 - [ ] Review all user-facing text and documentation for consistency with the implemented game.
