@@ -76,16 +76,19 @@ func render_hand(view: GameView) -> void:
 		for revealed_seat: int in revealed_seats:
 			var cards: Array[CardData] = []
 			cards.assign(view.revealed_hole_cards[revealed_seat])
-			var line: String = "  Seat %d: %s" % [
-				revealed_seat, CliCardFormatterScript.format_cards(cards)
-			]
+			var line: String = (
+				"  Seat %d: %s" % [revealed_seat, CliCardFormatterScript.format_cards(cards)]
+			)
 			var showdown: ShowdownResult = view.showdown_results.get(revealed_seat)
 			if showdown != null:
-				line += "; %s; kickers %s; best five %s" % [
-					_category_name(showdown.category),
-					_int_list(showdown.tie_break_values),
-					CliCardFormatterScript.format_cards(showdown.selected_cards),
-				]
+				line += (
+					"; %s; kickers %s; best five %s"
+					% [
+						_category_name(showdown.category),
+						_int_list(showdown.tie_break_values),
+						CliCardFormatterScript.format_cards(showdown.selected_cards),
+					]
+				)
 			_io.write_line(line)
 	if not view.pot_awards.is_empty():
 		_io.write_line("Awards:")

@@ -123,7 +123,11 @@ static func for_hand(
 			view._revealed_hole_cards[shown_seat] = shown_hole_cards[shown_seat].duplicate()
 	for result_seat: int in revealed_results:
 		var result_player: Player = table.get_player(result_seat)
-		if result_player != null and not result_player.folded:
+		if (
+			result_player != null
+			and not result_player.folded
+			and view._revealed_hole_cards.has(result_seat)
+		):
 			view._showdown_results[result_seat] = revealed_results[result_seat]
 	for player: Player in table.players:
 		view._seats.append(PlayerView.new(player))

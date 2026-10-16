@@ -230,8 +230,8 @@ func _start_street(next_state: State, card_count: int) -> void:
 
 func _settle_fold_to_one(remaining_seat: int) -> StepResult:
 	winner_seat = remaining_seat
-	_pot_layers = _pots.derive_pots(_table.players)
 	var awarded: int = _pots.award_single_winner(_table.get_player(winner_seat))
+	_pot_layers.clear()
 	_events.append(DomainEvent.new(DomainEvent.Kind.POT_AWARDED, winner_seat, awarded))
 	return _complete_hand()
 

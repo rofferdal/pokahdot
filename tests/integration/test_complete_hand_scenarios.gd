@@ -63,6 +63,7 @@ func test_fold_after_flop_awards_the_pot_without_revealing_cards() -> void:
 	assert_eq(controller.community_cards.size(), 3)
 	assert_eq(controller.winner_seat, 1)
 	assert_true(controller.showdown_hands.is_empty())
+	assert_true(controller.pot_layers.is_empty())
 	assert_eq(controller.events[-2].kind, DomainEvent.Kind.POT_AWARDED)
 	assert_eq(controller.events[-1].kind, DomainEvent.Kind.HAND_COMPLETED)
 	assert_chip_total(_stacks(players), 200)

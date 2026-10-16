@@ -133,6 +133,52 @@ func test_showdown_view_reveals_only_hands_that_controller_marks_shown() -> void
 	assert_true(view.legal_actions.is_empty())
 
 
+func test_showdown_results_are_limited_to_explicitly_revealed_seats() -> void:
+	var players: Array[Player] = _players()
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var shown_cards: Array[CardData] = [
+		CardData.new(14, CardData.Suit.SPADES), CardData.new(14, CardData.Suit.HEARTS)
+	]
+	var rank := (
+		HandEvaluator
+		. new()
+		. evaluate(
+			[
+				CardData.new(14, CardData.Suit.SPADES),
+				CardData.new(14, CardData.Suit.HEARTS),
+				CardData.new(13, CardData.Suit.CLUBS),
+				CardData.new(12, CardData.Suit.DIAMONDS),
+				CardData.new(11, CardData.Suit.CLUBS),
+			]
+		)
+	)
+	var results: Dictionary[int, ShowdownResult] = {
+		0: ShowdownResult.new(0, shown_cards, rank),
+		1: ShowdownResult.new(1, shown_cards, rank),
+	}
+	var view := (
+		GameView
+		. for_hand(
+			table,
+			0,
+			null,
+			PotManager.new(),
+			[],
+			&"hand_end",
+			[],
+			[],
+			{0: shown_cards},
+			1,
+			[],
+			results,
+		)
+	)
+
+	assert_eq(view.showdown_results.keys(), [0])
+	assert_eq(view.showdown_results[0].seat, 0)
+
+
 func _players() -> Array[Player]:
 	var result: Array[Player] = []
 	for seat: int in range(3):

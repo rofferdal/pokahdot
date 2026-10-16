@@ -32,7 +32,9 @@ func test_pair_of_kings_is_decided_by_complete_kicker_order_and_rendered() -> vo
 		seven_cards.assign(hole_cards[seat])
 		seven_cards.append_array(board)
 		ranks[seat] = evaluator.evaluate(seven_cards)
-		results[seat] = ShowdownResult.new(seat, hole_cards[seat], ranks[seat])
+		var revealed_cards: Array[CardData] = []
+		revealed_cards.assign(hole_cards[seat])
+		results[seat] = ShowdownResult.new(seat, revealed_cards, ranks[seat])
 
 	assert_eq(ranks[0].category, HandRank.Category.ONE_PAIR)
 	assert_eq(ranks[0].tie_break_values, [13, 14, 12, 7])
@@ -50,19 +52,22 @@ func test_pair_of_kings_is_decided_by_complete_kicker_order_and_rendered() -> vo
 
 	var table := Table.new(players, 5, 10)
 	table.button_seat = 2
-	var view := GameView.for_hand(
-		table,
-		0,
-		null,
-		pots,
-		[],
-		&"hand_end",
-		board,
-		awards,
-		hole_cards,
-		1,
-		layers,
-		results,
+	var view := (
+		GameView
+		. for_hand(
+			table,
+			0,
+			null,
+			pots,
+			[],
+			&"hand_end",
+			board,
+			awards,
+			hole_cards,
+			1,
+			layers,
+			results,
+		)
 	)
 	view.hand_complete = true
 	view.hand_winner_seat = 0
@@ -72,17 +77,26 @@ func test_pair_of_kings_is_decided_by_complete_kicker_order_and_rendered() -> vo
 	assert_true(io.contains_write("Board: [ A♦ | K♦ | 2♦ | 3♣ | K♠ ]"))
 	assert_true(
 		io.contains_write(
-			"Seat 0: [ 7♣ | Q♦ ]; one pair; kickers [ 13, 14, 12, 7 ]; best five [ 7♣ | Q♦ | A♦ | K♦ | K♠ ]"
+			(
+				"  Seat 0: [ 7♣ | Q♦ ]; one pair; kickers [ 13, 14, 12, 7 ]; "
+				+ "best five [ 7♣ | Q♦ | A♦ | K♦ | K♠ ]"
+			)
 		)
 	)
 	assert_true(
 		io.contains_write(
-			"Seat 1: [ J♥ | 6♣ ]; one pair; kickers [ 13, 14, 11, 6 ]; best five [ J♥ | 6♣ | A♦ | K♦ | K♠ ]"
+			(
+				"  Seat 1: [ J♥ | 6♣ ]; one pair; kickers [ 13, 14, 11, 6 ]; "
+				+ "best five [ J♥ | 6♣ | A♦ | K♦ | K♠ ]"
+			)
 		)
 	)
 	assert_true(
 		io.contains_write(
-			"Seat 2: [ 9♠ | J♦ ]; one pair; kickers [ 13, 14, 11, 9 ]; best five [ 9♠ | J♦ | A♦ | K♦ | K♠ ]"
+			(
+				"  Seat 2: [ 9♠ | J♦ ]; one pair; kickers [ 13, 14, 11, 9 ]; "
+				+ "best five [ 9♠ | J♦ | A♦ | K♦ | K♠ ]"
+			)
 		)
 	)
 
