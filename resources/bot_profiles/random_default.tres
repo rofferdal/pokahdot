@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BotProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/agents/bot_profile.gd" id="1_profile"]
+[ext_resource type="Script" path="res://scripts/core/agents/random_decision_model_parameters.gd" id="2_params"]
+
+[sub_resource type="Resource" id="RandomParameters_default"]
+script = ExtResource("2_params")
+fold_weight = 1
+passive_weight = 4
+aggressive_weight = 2
+
+[resource]
+script = ExtResource("1_profile")
+profile_id = &"random_default"
+model_id = &"random"
+display_name = "Random"
+parameters = SubResource("RandomParameters_default")

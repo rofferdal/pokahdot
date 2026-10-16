@@ -1,7 +1,7 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 
-func test_help_prints_available_commands_and_poker_placeholder() -> void:
+func test_help_prints_available_shell_and_poker_commands() -> void:
 	var io := FakeCliIO.new()
 	io.queue_line("help").queue_line("quit")
 
@@ -11,7 +11,7 @@ func test_help_prints_available_commands_and_poker_placeholder() -> void:
 	assert_true(io.contains_write("Available commands:"))
 	assert_true(io.contains_write("  help - show this help"))
 	assert_true(io.contains_write("  quit, exit - exit Pokahdot"))
-	assert_true(io.contains_write("Poker gameplay commands are not available yet."))
+	assert_true(io.contains_write("  fold, check, call, bet <total>, raise <total>, allin"))
 	assert_write_precedes(io, "Available commands:", "Goodbye.")
 
 

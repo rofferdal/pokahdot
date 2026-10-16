@@ -87,7 +87,7 @@ Gyldige trekk avhenger av `current_bet` (største innsats denne runden, inkluder
 | `check` | Når `bet_this_round == current_bet` (ingen mer å matche). |
 | `call` | Når `current_bet > bet_this_round`. Call = `min(stack, current_bet - bet_this_round)`. Call av hele stacken er all-in. |
 | `bet` | Når `current_bet == 0` postflop (ingen har satset). Min bet = BB. Maks = hele stacken. |
-| `raise` | Når `current_bet > 0`. Min **full raise** = `current_bet + last_full_raise_size`. Første raise preflop: `last_full_raise_size` starter som BB, så min raise totalt er 2 BB hvis BB er `current_bet`. Maks = all-in. |
+| `raise` | Når `current_bet > 0`. Min **full raise** = `current_bet + BB`. Første raise preflop: `last_full_raise_size` starter som BB, så min raise totalt er 2 BB hvis BB er `current_bet`. Maks = all-in. |
 
 All-in som er **mindre enn min full raise** er tillatt, men **åpner ikke** ny action for spillere som allerede har handlet og matchet forrige full raise. Spillere som ennå ikke har handlet, må fortsatt folde/calle/raise.
 
@@ -232,6 +232,9 @@ Start: `godot --headless --path . --script res://scripts/cli/cli_app.gd`
 - Før turneringen opprettes, vis standardverdiene og tilby å starte direkte med alle standardene uten at noen verdi oppgis. Hvis mennesket velger å tilpasse, kan hvert av feltene antall deltakere, startstack, small blind og big blind overstyres separat; tom verdi beholder standarden for feltet.
 - Ugyldige oppstartsverdier skal gi en tydelig feilmelding og nytt spørsmål; ingen hånd starter med ugyldig konfigurasjon.
 - Skriv lesbar tilstand til stdout.
+- I hver CLI-visning som lister spillere, skal den menneskelige spilleren merkes tydelig med det bokstavelige suffikset `(you)` rett etter visningsnavnet, for eksempel `Player 1 (you)`. Nøyaktig én spiller skal ha markøren; botspillere skal ikke ha den. Identifikasjonen skal komme fra spillerens menneske-flagg i `GameView`, ikke utledes fra navn, sete, turstatus eller hvilke kort som vises.
+- Alle synlige kort i CLI skal følge [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md). Ett kort vises som rank etterfulgt direkte av Unicode-symbolet for fargen, for eksempel `A♠` eller `10♥`. Flere kort vises i hakeparenteser med skilletegnet ` | `, for eksempel `[ A♠ | 10♥ | K♦ ]`. Dette gjelder egne hullkort, board og kort som legitimt vises ved showdown. Interne kort-ID-er eller numeriske rank/suit-par skal aldri vises til brukeren.
+- CLI-kortvisningen forutsetter UTF-8 og må håndtere at `10` er bredere enn andre ranker uten hardkodet tegnbredde eller padding.
 - Les kommandoer fra stdin, f.eks. `fold`, `check`, `call`, `bet 50`, `raise 100`, `allin`, `quit` eller `exit`.
 - Ugyldig kommando: feilmelding, spør igjen. Ikke krasj.
 - Boter handler uten å vente på stdin.
@@ -250,9 +253,9 @@ En Resource eller konstant config brukes som standarder og som validert input ti
 
 GUI og CLI skal tilby valgfrie overstyringer av `player_count`, `starting_stack`, `small_blind` og `big_blind` før hver turnering starter og før `TournamentMatch` opprettes. Standardverdiene er 6, 1000, 5 og 10. Ingen av overstyringene er obligatoriske, og hver manglende verdi fylles inn separat fra standardkonfigurasjonen. Den ferdig utfylte konfigurasjonen valideres, kopieres og fryses når turneringen starter. En ny turnering kan velge nye verdier. Antall botseter er `player_count - 1`; sete 0 er mennesket.
 
-## 9. Testing (kjerne)
+## 9. Testing
 
-Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen, minst:
+Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen og adapterne, minst:
 
 - Stokk har 52 unike kort etter `reset` + `shuffle`.
 - Hjul-straight slår K-høy, taper for 6-høy straight.
@@ -265,6 +268,8 @@ Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen, minst:
 - Turneringen avsluttes med korrekt vinner når bare ett sete har sjetonger.
 - Mennesket kan avslutte under en hånd eller mellom hender, og turneringen får sluttårsak `player_quit` uten vinner.
 - Oppstart uten oppgitte verdier bruker alle standardene. Delvise, gyldige overstyringer bruker standarden for hvert utelatt felt. Gyldige, ikke-standard valg gir riktig antall deltakere, lik initial stack og de valgte faste blindsene; ugyldige, eksplisitte verdier avvises før første hånd.
+- Hver CLI-spillerliste merker nøyaktig den menneskelige spilleren med `(you)` etter visningsnavnet, også etter ny rendering og gjennom senere hender; ingen bot får markøren.
+- CLI formaterer hvert synlig kort og hver kortsamling nøyaktig etter `docs/POKERCARDS_IN_CLI.md`, inkludert Unicode-farger, rank `10`, skilletegn og hakeparenteser, uten å vise interne kortkoder.
 
 ## 10. Akseptansekriterier for første spillbare versjon
 
@@ -276,3 +281,5 @@ Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen, minst:
 6. Mennesket kan avslutte når som helst i GUI eller CLI; spillet stopper uten vinner og rapporterer sluttårsak `player_quit`.
 7. Mennesket ser aldri motstanderes hullkort før showdown, verken i GUI eller CLI.
 8. Før hver turnering i både GUI og CLI kan mennesket valgfritt overstyre antall deltakere, felles startstack og small/big blinds. Turneringen kan startes uten å oppgi verdier og bruker da standardene 6, 1000 og 5/10; delvise overstyringer beholder standarden for utelatte felt. Den ferdig utfylte konfigurasjonen vises i spillet og kan ikke endres før turneringen avsluttes.
+9. Alle kort som er synlige i CLI, vises med rank og Unicode-farge og alle kortsamlinger vises med hakeparenteser og ` | ` som definert i `docs/POKERCARDS_IN_CLI.md`; interne kort-ID-er vises aldri.
+10. Hver spilleroversikt i CLI identifiserer nøyaktig den menneskelige spilleren med `(you)` rett etter visningsnavnet; botspillere merkes ikke som menneskelige.

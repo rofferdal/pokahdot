@@ -31,3 +31,34 @@ func test_parser_preserves_normalized_unknown_command_text() -> void:
 
 	assert_eq(command.kind, CliCommand.Kind.UNKNOWN)
 	assert_eq(command.text, "deal now")
+
+
+func test_parser_maps_fixed_poker_actions() -> void:
+	var expected: Dictionary[String, PlayerAction.Kind] = {
+		"fold": PlayerAction.Kind.FOLD,
+		"check": PlayerAction.Kind.CHECK,
+		"call": PlayerAction.Kind.CALL,
+		"allin": PlayerAction.Kind.ALL_IN,
+	}
+	for text: String in expected:
+		var command := CommandParser.new().parse(text)
+		assert_eq(command.kind, CliCommand.Kind.ACTION)
+		assert_eq(command.action.kind, expected[text])
+		assert_eq(command.action.amount, 0)
+
+
+func test_parser_maps_bet_and_raise_target_totals() -> void:
+	var bet := CommandParser.new().parse(" BET 25 ")
+	var raise := CommandParser.new().parse("raise 60")
+
+	assert_eq(bet.kind, CliCommand.Kind.ACTION)
+	assert_eq(bet.action.kind, PlayerAction.Kind.BET)
+	assert_eq(bet.action.amount, 25)
+	assert_eq(raise.kind, CliCommand.Kind.ACTION)
+	assert_eq(raise.action.kind, PlayerAction.Kind.RAISE)
+	assert_eq(raise.action.amount, 60)
+
+
+func test_parser_rejects_missing_non_integer_and_non_positive_amounts() -> void:
+	for text: String in ["bet", "raise nope", "bet 0", "raise -5", "call 10"]:
+		assert_eq(CommandParser.new().parse(text).kind, CliCommand.Kind.UNKNOWN, text)

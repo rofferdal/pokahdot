@@ -1,0 +1,110 @@
+class_name TournamentMatch
+extends RefCounted
+
+enum State {
+	NOT_STARTED,
+	RUNNING,
+	FINISHED,
+}
+
+var state: State = State.NOT_STARTED
+var end_reason: StringName
+var winner_seat: int = Table.NO_SEAT
+
+var _config: ResolvedTournamentConfig
+var _agents: Dictionary[int, Agent]
+var _streams: RngStreams
+var _table: Table
+var _hand: HandController
+var _configuration_error: String
+
+
+func _init(config: ResolvedTournamentConfig, seat_agents: Dictionary[int, Agent]) -> void:
+	_config = config
+	_agents = seat_agents.duplicate()
+	_configuration_error = _validate_configuration()
+	if _configuration_error.is_empty():
+		_streams = RngStreamFactory.new().create(config)
+
+
+func start() -> StepResult:
+	if not _configuration_error.is_empty():
+		return StepResult.new(StepResult.Status.ERROR, _configuration_error)
+	if state != State.NOT_STARTED:
+		return StepResult.new(StepResult.Status.ERROR, "The tournament has already started.")
+	var players: Array[Player] = []
+	for seat: int in range(_config.player_count):
+		(
+			players
+			. append(
+				(
+					Player
+					. new(
+						StringName("player_%d" % seat),
+						"Player %d" % (seat + 1),
+						seat,
+						_config.starting_stack,
+						_agents[seat],
+					)
+				)
+			)
+		)
+	_table = Table.new(players, _config.small_blind, _config.big_blind)
+	_hand = HandController.new(
+		_table, Deck.new(), _streams.get_deck_rng(), _streams.get_initial_button_rng()
+	)
+	state = State.RUNNING
+	return _hand.start()
+
+
+func advance_until_blocked(max_transitions: int = 32) -> StepResult:
+	if state != State.RUNNING:
+		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
+	return _hand.advance_until_blocked(max_transitions)
+
+
+func submit_human_action(action: PlayerAction) -> StepResult:
+	if state != State.RUNNING:
+		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
+	return _hand.submit_human_action(action)
+
+
+func request_quit() -> StepResult:
+	if state == State.FINISHED:
+		return StepResult.new(StepResult.Status.TOURNAMENT_FINISHED)
+	if _hand != null:
+		_hand.abort()
+	state = State.FINISHED
+	end_reason = &"player_quit"
+	winner_seat = Table.NO_SEAT
+	return StepResult.new(StepResult.Status.TOURNAMENT_FINISHED)
+
+
+func get_view_for(seat: int) -> GameView:
+	if _hand == null:
+		return null
+	var view: GameView = _hand.get_view_for(seat)
+	view.tournament_status = &"finished" if state == State.FINISHED else &"running"
+	view.end_reason = end_reason
+	view.tournament_winner_seat = winner_seat
+	return view
+
+
+func get_events() -> Array[DomainEvent]:
+	return [] if _hand == null else _hand.events
+
+
+func _validate_configuration() -> String:
+	if _config == null:
+		return "A resolved tournament configuration is required."
+	if _agents.size() != _config.player_count:
+		return "Every configured seat must have an agent."
+	var human_count: int = 0
+	for seat: int in range(_config.player_count):
+		if not _agents.has(seat) or _agents[seat] == null:
+			return "Seat %d has no agent." % seat
+		if _agents[seat] is HumanAgent:
+			human_count += 1
+	if human_count != 1:
+		return "A tournament requires exactly one human agent."
+	return ""

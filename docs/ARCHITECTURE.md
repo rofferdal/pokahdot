@@ -78,6 +78,8 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 
 Card visuals are presentation metadata and must not be required by the evaluator or deck.
 
+`CardData` may expose stable domain values or diagnostic codes, but it does not own CLI display formatting. The CLI adapter maps ranks to `2`–`10`, `J`, `Q`, `K`, or `A` and suits to `♠`, `♥`, `♦`, or `♣` according to [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md). This prevents terminal-specific Unicode and collection delimiters from leaking into poker rules or card identity.
+
 ### 5.2 `deck.gd`
 
 `Deck` owns the 52-card collection for one hand.
@@ -136,14 +138,14 @@ For `BET` and `RAISE`, “total wager amount” means the player's target total 
 
 - acting seat;
 - current bet;
-- last full raise size;
+- the table's big blind as the fixed minimum full-raise increment;
 - seats that still owe action;
 - seats whose raise rights are open;
 - legal action calculation;
 - action application and next-seat selection;
 - round completion.
 
-Short all-in raises update the amount to call but do not reopen raise rights for players who already acted and matched the previous full raise. This rule must be represented directly in state, not inferred from action history in the UI.
+A full raise must reach at least `current_bet + big_blind`, regardless of the size of any previous bet or raise on the street. An opening postflop bet must be at least one big blind. A short all-in raise with an increment below one big blind updates the amount to call but does not reopen raise rights for players who already acted and matched the previous full raise. These rules must be represented directly in state, not inferred from action history in the UI.
 
 Invalid actions return a typed rejection and leave all state unchanged. Bot fallback selection happens in `HandController`, not inside `BettingRound`.
 
@@ -332,12 +334,16 @@ The startup panel and table are views in one scalable `Control`-based main scene
 1. Start through `godot --headless --path . --script res://scripts/cli/cli_app.gd`.
 2. Display the defaults and offer an immediate start that supplies no overrides. If configuration is requested, allow participant count, starting stack, small blind, and big blind to be overridden independently; an empty field supplies no override.
 3. Merge overrides onto a fresh default configuration. Report invalid explicit input and repeat setup until the complete configuration is valid. After validation succeeds, print its summary and require no further setup input.
-4. Follow the common match API and render snapshots as text.
+4. Follow the common match API and render snapshots as text. In every player list, append the literal suffix `(you)` immediately after the display name of the one `PlayerView` whose human flag is true; never apply it to a bot. Format every visible card as `[Rank][Suit]` using the canonical Unicode suit glyphs, and format card collections as `[ Card1 | Card2 | CardN ]`, exactly as specified in `docs/POKERCARDS_IN_CLI.md`. Never render stable IDs, enum ordinals, or numeric rank/suit pairs to the player.
 5. During play, read stdin only when the result is `WAITING_FOR_HUMAN`.
 6. Parse `fold`, `check`, `call`, `bet <amount>`, `raise <amount>`, and `allin` into `PlayerAction`; report parsing or action errors and prompt again without crashing.
 7. Map `quit` and `exit` directly to `request_quit()`.
 
 `cli_app.gd` is the composition/process-exit entry point. `TerminalIO` is the only class that reads stdin or writes stdout, behind an injectable `CliIO` boundary used by `StartupConfigPrompt` and `CliCommandLoop`. `CommandParser` converts normalized terminal text to typed shell commands; poker-action parsing is added only when the corresponding core actions exist. Terminal input reads bytes through `OS.read_buffer_from_stdin()` so an intentional blank line remains distinguishable from EOF; EOF terminates cleanly rather than causing an input-retry loop. Blocking reads are permitted only in this headless adapter, never in `scripts/core/` or the GUI.
+
+CLI card formatting belongs in a small presentation helper used by the renderer. It accepts `CardData` snapshots and produces UTF-8 text only; it must not mutate cards or influence comparisons, dealing, evaluation, or visibility. Collection formatting joins dynamically rendered cards with ` | ` and wraps them with `[ ` and ` ]`. It must not assume a fixed card width because rank `10` occupies one more character position than the other ranks.
+
+CLI player labeling is also presentation-only. `PlayerView` carries the authoritative human flag already required by the recipient-safe view contract, and `CliRenderer` uses that flag to append `(you)` to the human display name. The renderer must not infer human identity from seat 0, `hero_seat`, the acting seat, a name string, or the presence of hole cards. This keeps the label correct if composition or recipient choices change later, while leaving player identity and poker rules independent of terminal wording.
 
 ## 7. Commands, results, and events
 
@@ -479,6 +485,7 @@ addons/
   gut/                    # pinned GUT development dependency
 docs/
   ARCHITECTURE.md
+  POKERCARDS_IN_CLI.md
   ProjectDescription.md
   TASKS.md
 scripts/
@@ -529,6 +536,7 @@ scripts/
     table_controller.gd
   cli/
     cli_app.gd
+    cli_card_formatter.gd
     cli_command.gd
     cli_command_loop.gd
     cli_input_line.gd
@@ -537,7 +545,7 @@ scripts/
     startup_config_prompt.gd
     startup_prompt_result.gd
     terminal_io.gd
-    text_renderer.gd
+    cli_renderer.gd
 resources/
   default_tournament_config.tres
   bot_profiles/
@@ -564,7 +572,7 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 - chip stack bounds;
 - startup configuration defaults, complete omission, partial overrides, valid boundaries, invalid explicit values, and immutability after match start;
 - hand category and tie-break comparisons, including that the five-high wheel beats king-high and loses to a six-high straight;
-- betting legality and minimum raises, including a first preflop raise from a big-blind-sized current bet;
+- betting legality and the fixed big-blind minimum raise increment, including the first preflop raise and subsequent raises after a larger full raise;
 - short all-in raises do not reopen raising for a player who already called and matched the previous full raise;
 - side-pot construction, eligibility, split pots, and odd chips, including A all-in for 40 versus B and C for 100, where A is eligible for only the 120-chip main pot;
 - seat traversal and heads-up order;
@@ -572,11 +580,15 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 - decision-model registration and profile parameter validation;
 - deterministic decisions for a fixed view, profile, and RNG seed;
 - model output limited to the legal actions present in `GameView`.
+- CLI player-row formatting marks exactly the human `PlayerView` as `(you)`, leaves every bot unmarked, and remains correct across repeated snapshots and non-default table sizes.
+- CLI card formatting for every rank and suit, including `10`, all four canonical Unicode suit glyphs, collection delimiters and brackets, and the absence of internal card codes in rendered output.
 
 ### 13.2 Integration tests
 
 - scripted complete hands with deterministic cards and actions;
 - CLI and GUI startup adapters map omitted, partially overridden, and fully overridden input to equivalent resolved core configurations and keep invalid explicit input from constructing a match;
+- CLI snapshots render hero cards, community cards, and legitimately revealed showdown cards in the format defined by `docs/POKERCARDS_IN_CLI.md`, while unrevealed opponent cards remain absent;
+- CLI snapshots identify the human consistently as `(you)` before and after actions, across hands, and in final player summaries without marking any bot;
 - non-default startup selections produce the selected participant count, equal initial stacks, and fixed blind postings through both adapter-independent drivers;
 - player elimination followed by a hand whose deal, button, and blinds skip the busted seat;
 - full tournament ending with the only chip-owning seat as winner;

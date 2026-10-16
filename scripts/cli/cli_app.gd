@@ -1,5 +1,7 @@
 extends SceneTree
 
+const CliMatchFactoryScript = preload("res://scripts/cli/cli_match_factory.gd")
+
 ## Headless entry point. Run with:
 ##   godot --headless --path . --script res://scripts/cli/cli_app.gd
 ## Keep this layer to stdin/stdout. Game rules belong in scripts/core/.
@@ -24,6 +26,8 @@ func _initialize() -> void:
 		quit()
 		return
 
+	var match_factory := CliMatchFactoryScript.new()
+	var match_instance: TournamentMatch = match_factory.create(result.config)
 	var command_loop := CliCommandLoop.new(io)
-	command_loop.run()
+	command_loop.run_match(match_instance, match_factory.human_seat(result.config))
 	quit()

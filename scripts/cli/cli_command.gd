@@ -5,6 +5,7 @@ enum Kind {
 	EMPTY,
 	HELP,
 	QUIT,
+	ACTION,
 	UNKNOWN,
 }
 
@@ -15,11 +16,18 @@ var kind: Kind:
 var text: String:
 	get:
 		return _text
+var action: PlayerAction:
+	get:
+		return _action
 
 var _kind: Kind
 var _text: String
+var _action: PlayerAction
 
 
-func _init(command_kind: Kind, command_text: String = "") -> void:
+func _init(
+	command_kind: Kind, command_text: String = "", player_action: PlayerAction = null
+) -> void:
 	_kind = command_kind
 	_text = command_text
+	_action = player_action
