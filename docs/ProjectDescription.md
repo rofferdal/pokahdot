@@ -224,6 +224,8 @@ Andres hullkort kun når `street == showdown` eller hånden er over og kortene f
 - Knapper: Fold, Check/Call, Bet/Raise (beløp: min, 1/2 pot, pot, all-in, fri input).
 - En tydelig `Avslutt`-knapp som kan brukes når som helst. Den skal be om bekreftelse før spillet avsluttes.
 - Én hovedscene for bordet.
+- Spillerne skal ha små avatarer (gjerne 32x32 pixler), og de skal være ulike og tildeles tilfeldig. 
+- Det skal vises et grønt bord som illustrerer spillet med tydelig sone for felleskortene og plasser for bud og pott.
 
 ### 7.2 CLI (headless)
 

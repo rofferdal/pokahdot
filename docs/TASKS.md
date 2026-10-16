@@ -103,18 +103,48 @@ Human tests complement automated tests; they do not replace them. If a human tes
 
 ## Milestone 4 — GUI for the functionally complete game
 
+Complete each GUI phase in order. Each human test is a gate for the next phase: record the outcome and add a regression test for any discovered defect before proceeding.
+
+### Milestone 4.1 — GUI startup flow
+
 - [ ] Build the startup configuration panel for participant count, starting stack, small blind, and big blind, prefilled with defaults and able to start without any user edits before `TournamentMatch` construction.
 - [ ] Add inline startup validation, prevent starting with invalid values, and map a valid selection into a fresh immutable tournament configuration.
-- [ ] Build the main `Control`-based table scene and GUI controller against the existing `TournamentMatch` API.
-- [ ] Render seats, stacks, private/public cards, board, pots, blinds, dealer, acting player, eliminations, and tournament result.
+- [ ] Add GUI adapter tests for default startup, independent partial overrides, full valid overrides, invalid-value rejection, and prevention of match construction before validation succeeds.
+- [ ] **App increment:** a person can launch the GUI, start a tournament with defaults, or choose a validated custom configuration before a match is created.
+- [ ] **Human test:** launch the GUI with no edits and confirm the default configuration starts. Restart and verify one partial override, all overrides, and clear inline feedback for invalid values without starting a match.
+
+### Milestone 4.2 — Visual table foundation
+
+- [ ] Generate and add a catalog of 16 distinct small avatar assets for GUI player seats, suitable for 32 by 32 pixel display and compatible with the Godot Compatibility renderer.
+- [ ] Add a GUI-owned avatar catalog and a seeded, non-repeating seat-to-avatar assignment service for each tournament; use distinct small avatar assets targeting 32 by 32 pixels, reject insufficient catalogs clearly, and keep avatar state and RNG outside `scripts/core/`.
+- [ ] Build the main scalable `Control`-based table scene with a green felt surface, seat positions, and explicit visual zones for community cards, player wagers, and the pot.
+- [ ] Add GUI adapter tests for deterministic unique avatar assignment, insufficient avatar catalogs, and the table scene's board/wager/pot-zone bindings.
+- [ ] **App increment:** after valid startup, the GUI opens a responsive green table with all seats and distinct assigned avatars around the table.
+- [ ] **Human test:** start default and 9-player tables; verify that all visible avatars are distinct, seats remain readable, and the community-card, wager, and pot zones are clearly separated at representative desktop and mobile aspect ratios.
+
+### Milestone 4.3 — Read-only live table rendering
+
+- [ ] Connect the table controller to recipient-safe `TournamentMatch` views and render stacks, blinds, dealer, acting player, board, pots, private hero cards, active/eliminated seats, and hidden opponent cards without action controls.
+- [ ] Add GUI adapter tests for recipient-safe card visibility, initial preflop rendering, board and pot updates, player-position markers, and elimination rendering.
+- [ ] **App increment:** a person can start a GUI tournament and inspect the complete current table state before acting, without seeing opponent hole cards.
+- [ ] **Human test:** inspect the initial table and an automatically advanced bot snapshot; verify stacks, blinds, dealer, acting marker, private/public cards, avatars, and hidden opponent cards.
+
+### Milestone 4.4 — Human actions and hand completion
+
 - [ ] Connect Fold, Check/Call, Bet/Raise presets, free amount input, all-in, and legal-action enabled states.
 - [ ] Present ordered domain events without duplicating settlement, winner, or legality rules in GUI code.
+- [ ] Add GUI adapter tests for legal-action enabled states, action mapping, rejected amounts, event ordering, fold-to-one settlement, and showdown rendering.
+- [ ] **App increment:** a person can use the GUI to play one hand from preflop through fold or showdown, with accurate state updates after every action.
+- [ ] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
+
+### Milestone 4.5 — Tournament progression and quit
+
+- [ ] Continue the GUI controller across hand boundaries and render button movement, eliminated seats, heads-up behavior, final stacks, and the tournament winner.
 - [ ] Add the always-available `Avslutt` control with confirmation and `player_quit` handling.
-- [ ] Add GUI adapter tests for startup-selection mapping and rejection, action mapping, recipient-safe rendering data, and quit confirmation behavior.
-- [ ] **App increment:** the human can start with defaults or optionally change participant count, starting stack, and blind sizes, then play the same complete tournament available in the CLI through the GUI without duplicated rules.
-- [ ] **Human test:** start once without editing the GUI defaults, then verify a partial override, invalid-value feedback, and a fully non-default startup selection; complete representative preflop and postflop actions, including resolved blind postings, bet sizing, all-in, showdown, and continuing to the next hand with unchanged configuration.
-- [ ] **Human test:** verify opponent cards remain hidden until legitimately revealed, eliminated seats are skipped, and the tournament winner is displayed correctly.
-- [ ] **Human test:** verify quit confirmation both cancels safely and ends with `player_quit`; verify desktop resizing and representative mobile aspect ratios under Compatibility rendering.
+- [ ] Add GUI adapter tests for next-hand progression, eliminated-seat skipping, winner rendering, quit-confirmation cancel/accept behavior, and clean `player_quit` termination.
+- [ ] **App increment:** the human can start with defaults or optional valid overrides and play the same complete tournament available in the CLI through the GUI, until one winner remains or the human quits, without duplicated rules.
+- [ ] **Human test:** use the short-stack configuration to finish a GUI tournament; verify hand transitions, button and blind movement, eliminations, heads-up behavior, final winner, total chips, distinct avatars, and the green table zones.
+- [ ] **Human test:** start another GUI tournament; verify quit confirmation cancels safely, then confirm quitting produces `player_quit`, no winner, and a clean return from the active table.
 
 ## Release verification
 

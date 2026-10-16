@@ -1,7 +1,7 @@
 # Pokahdot Architecture
 
 Status: Proposed for the first playable version  
-Last updated: 2026-10-15  
+Last updated: 2026-10-16
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -68,6 +68,7 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 | Build a validated configuration before constructing a match | GUI and CLI can merge optional startup overrides onto defaults without permitting partially configured game state. |
 | Compose bots from agent, decision model, and profile | New decision algorithms and per-seat behavior can be added without changing poker rules or duplicating input/error handling. |
 | Keep runtime state in core objects, not scenes or Resources | Scenes display state. Configuration and static card data may be Resources; mutable match state stays in dedicated runtime objects. |
+| Keep avatar selection in the GUI presentation layer | Avatar identity is visual-only and must not affect `Player`, `GameView`, tournament configuration, or core RNG streams. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
 
 ## 5. Core module responsibilities
@@ -328,6 +329,10 @@ Implementation proceeds through the CLI first. Each runnable core increment is e
 6. Keep `Avslutt` available at all times; confirm in the GUI and then call `request_quit()`.
 
 The startup panel and table are views in one scalable `Control`-based main scene with the `canvas_items` stretch mode. Starting a new tournament returns to the startup panel so new values can be chosen.
+
+The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself.
+
+Each seat panel displays one small avatar, targeting 32 by 32 pixels at its native size. At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
 
 ### CLI adapter
 
