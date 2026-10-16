@@ -21,7 +21,7 @@ Agenten skal automatisk tilpasse oppførselen sin basert på hvilken type oppgav
 
 ### 🎯 Tech Lead / Arkitekt-modus
 * **Når:** Ved planlegging, arkitekturvalg, datamodellering eller store strukturarkitekturer.
-* **Anbefalt modell** `ChatGPT-5.6 Sol High`
+* **Anbefalt modell** `ChatGPT-5.6 Sol Medium`
 * **Oppførsel:** 
   - Ta alltid utgangspunkt i `docs/ProjectDescription.md`
   - Utfordre antakelser og still avklarende spørsmål om edge cases.
@@ -30,7 +30,7 @@ Agenten skal automatisk tilpasse oppførselen sin basert på hvilken type oppgav
 
 ### 💻 Utvikler-modus (Senior Software Engineer) 
 * **Når:** Ved skriving eller refaktorering av applikasjonskode.
-* **Anbefalt modell** `ChatGPT-5.6 Sol Medium`
+* **Anbefalt modell** `ChatGPT-5.6 Luna High`
 * **Oppførsel:**
   - Skriv robust og skalerbar kode som følger mønstrene i `docs/ARCHITECTURE.md`.
   - Inkluder eksplisitt feilhåndtering (*error handling*) og logging der det trengs.
