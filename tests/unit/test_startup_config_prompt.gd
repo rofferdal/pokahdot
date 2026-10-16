@@ -49,6 +49,24 @@ func test_full_valid_overrides_are_reported_in_summary() -> void:
 	assert_true(io.contains_write("  Blinds: 10/20"))
 
 
+func test_short_stack_preset_uses_fixed_values_without_changing_defaults() -> void:
+	var defaults := TournamentConfig.new()
+	var io := FakeCliIO.new()
+	io.queue_line("short-stack")
+
+	var result: StartupPromptResult = _run_prompt(io, defaults)
+
+	assert_true(result.is_ready())
+	assert_config_values(result.config, 3, 20, 5, 10)
+	assert_eq(result.config.rng_seed, 991)
+	assert_eq(defaults.player_count, 6)
+	assert_eq(defaults.starting_stack, 1000)
+	assert_eq(defaults.small_blind, 5)
+	assert_eq(defaults.big_blind, 10)
+	assert_eq(defaults.rng_seed, 0)
+	assert_true(io.contains_write("Short-stack manual-test preset selected (seed 991)."))
+
+
 func test_invalid_non_integer_retries_the_same_field() -> void:
 	var io := FakeCliIO.new()
 	io.queue_line("configure")

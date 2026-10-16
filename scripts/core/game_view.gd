@@ -19,6 +19,8 @@ var end_reason: StringName
 var tournament_winner_seat: int = Table.NO_SEAT
 var hand_winner_seat: int = Table.NO_SEAT
 var hand_complete: bool
+var active_seats: Array[int] = []
+var eliminated_seats: Array[int] = []
 
 var seats: Array[PlayerView]:
 	get:
@@ -131,6 +133,10 @@ static func for_hand(
 			view._showdown_results[result_seat] = revealed_results[result_seat]
 	for player: Player in table.players:
 		view._seats.append(PlayerView.new(player))
+		if player.busted:
+			view.eliminated_seats.append(player.seat)
+		else:
+			view.active_seats.append(player.seat)
 	view._hero_hole_cards = table.get_player(recipient_seat).hole_cards
 	if betting_round != null:
 		view._legal_actions = betting_round.legal_actions(recipient_seat)

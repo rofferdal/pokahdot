@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BotProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/agents/bot_profile.gd" id="1_profile"]
+[ext_resource type="Script" path="res://scripts/core/agents/loose_aggressive_decision_model_parameters.gd" id="2_params"]
+
+[sub_resource type="Resource" id="LooseAggressiveParameters_default"]
+script = ExtResource("2_params")
+fold_frequency = 10
+aggression_frequency = 55
+
+[resource]
+script = ExtResource("1_profile")
+profile_id = &"loose_aggressive_default"
+model_id = &"loose_aggressive"
+display_name = "Loose Aggressive"
+parameters = SubResource("LooseAggressiveParameters_default")

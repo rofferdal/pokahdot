@@ -10,6 +10,7 @@ enum State {
 var state: State = State.NOT_STARTED
 var end_reason: StringName
 var winner_seat: int = Table.NO_SEAT
+var hand_number: int = 0
 
 var _config: ResolvedTournamentConfig
 var _agents: Dictionary[int, Agent]
@@ -17,6 +18,7 @@ var _streams: RngStreams
 var _table: Table
 var _hand: HandController
 var _configuration_error: String
+var _awaiting_next_hand: bool = false
 
 
 func _init(config: ResolvedTournamentConfig, seat_agents: Dictionary[int, Agent]) -> void:
@@ -50,23 +52,22 @@ func start() -> StepResult:
 			)
 		)
 	_table = Table.new(players, _config.small_blind, _config.big_blind)
-	_hand = HandController.new(
-		_table, Deck.new(), _streams.get_deck_rng(), _streams.get_initial_button_rng()
-	)
 	state = State.RUNNING
-	return _hand.start()
+	return _start_next_hand()
 
 
 func advance_until_blocked(max_transitions: int = 32) -> StepResult:
 	if state != State.RUNNING:
 		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
-	return _hand.advance_until_blocked(max_transitions)
+	if _awaiting_next_hand:
+		return _start_next_hand()
+	return _handle_hand_result(_hand.advance_until_blocked(max_transitions))
 
 
 func submit_human_action(action: PlayerAction) -> StepResult:
 	if state != State.RUNNING:
 		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
-	return _hand.submit_human_action(action)
+	return _handle_hand_result(_hand.submit_human_action(action))
 
 
 func request_quit() -> StepResult:
@@ -108,3 +109,44 @@ func _validate_configuration() -> String:
 	if human_count != 1:
 		return "A tournament requires exactly one human agent."
 	return ""
+
+
+func _handle_hand_result(result: StepResult) -> StepResult:
+	if result.status != StepResult.Status.HAND_COMPLETED:
+		return result
+	_awaiting_next_hand = true
+	return _finish_hand_or_start_next()
+
+
+func _finish_hand_or_start_next() -> StepResult:
+	_mark_eliminated_players()
+	if _table.active_player_count() == 1:
+		winner_seat = _table.active_seats()[0]
+		end_reason = &"winner"
+		state = State.FINISHED
+		return StepResult.new(StepResult.Status.TOURNAMENT_FINISHED)
+	return StepResult.new(StepResult.Status.HAND_COMPLETED)
+
+
+func _start_next_hand() -> StepResult:
+	if _hand != null:
+		_table.advance_button()
+	_awaiting_next_hand = false
+	hand_number += 1
+	_hand = (
+		HandController
+		. new(
+			_table,
+			Deck.new(),
+			_streams.get_deck_rng(),
+			_streams.get_initial_button_rng(),
+			hand_number,
+		)
+	)
+	return _handle_hand_result(_hand.start())
+
+
+func _mark_eliminated_players() -> void:
+	for player: Player in _table.players:
+		if player.stack == 0:
+			player.busted = true

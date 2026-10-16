@@ -31,9 +31,7 @@ func render_hand(view: GameView) -> void:
 		)
 	)
 	for seat_view: PlayerView in view.seats:
-		var display_name: String = seat_view.display_name
-		if seat_view.is_human:
-			display_name += " (you)"
+		var display_name := _player_display_name(seat_view, view.button_seat)
 		(
 			_io
 			. write_line(
@@ -50,6 +48,9 @@ func render_hand(view: GameView) -> void:
 				)
 			)
 		)
+	_io.write_line("Remaining seats: %s" % _seat_list(view.active_seats))
+	if not view.eliminated_seats.is_empty():
+		_io.write_line("Eliminated seats: %s" % _seat_list(view.eliminated_seats))
 	_io.write_line("Pot: %d" % view.pot_amount)
 	if not view.community_cards.is_empty():
 		_io.write_line("Board: %s" % CliCardFormatterScript.format_cards(view.community_cards))
@@ -108,9 +109,23 @@ func render_hand(view: GameView) -> void:
 			_io.write_line("Hand complete after showdown.")
 		_io.write_line("Final stacks:")
 		for seat_view: PlayerView in view.seats:
-			_io.write_line("  Seat %d: %d chips" % [seat_view.seat, seat_view.stack])
+			var display_name := _player_display_name(seat_view, view.button_seat)
+			_io.write_line(
+				"  Seat %d: %s - %d chips" % [seat_view.seat, display_name, seat_view.stack]
+			)
+	if view.end_reason == &"winner":
+		_io.write_line("Tournament winner: seat %d" % view.tournament_winner_seat)
 	if view.end_reason == &"player_quit":
 		_io.write_line("Tournament ended: player_quit")
+
+
+func _player_display_name(seat_view: PlayerView, button_seat: int) -> String:
+	var display_name: String = seat_view.display_name
+	if seat_view.is_human:
+		display_name += " (you)"
+	if seat_view.seat == button_seat:
+		display_name += " (dealer)"
+	return display_name
 
 
 func _action_names(kinds: Array[PlayerAction.Kind]) -> String:

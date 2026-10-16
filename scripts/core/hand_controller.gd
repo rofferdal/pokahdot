@@ -14,6 +14,7 @@ enum State {
 
 var state: State = State.NOT_STARTED
 var winner_seat: int = Table.NO_SEAT
+var hand_number: int
 var events: Array[DomainEvent]:
 	get:
 		return _events.duplicate()
@@ -56,11 +57,13 @@ func _init(
 	deck: Deck,
 	deck_rng: RandomNumberGenerator,
 	button_rng: RandomNumberGenerator,
+	current_hand_number: int = 1,
 ) -> void:
 	_table = table
 	_deck = deck
 	_deck_rng = deck_rng
 	_button_rng = button_rng
+	hand_number = current_hand_number
 
 
 func start() -> StepResult:
@@ -139,7 +142,7 @@ func get_view_for(seat: int) -> GameView:
 			_community_cards,
 			_pot_awards,
 			_showdown_hands,
-			1,
+			hand_number,
 			_pot_layers,
 			_showdown_results,
 		)

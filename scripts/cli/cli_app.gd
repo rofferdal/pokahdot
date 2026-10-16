@@ -28,6 +28,9 @@ func _initialize() -> void:
 
 	var match_factory := CliMatchFactoryScript.new()
 	var match_instance: TournamentMatch = match_factory.create(result.config)
+	io.write_line("Seat agents:")
+	for diagnostic: String in match_factory.diagnostics(result.config):
+		io.write_line("  %s" % diagnostic)
 	var command_loop := CliCommandLoop.new(io)
 	command_loop.run_match(match_instance, match_factory.human_seat(result.config))
 	quit()

@@ -48,17 +48,39 @@ func run() -> Status:
 
 func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 	var result: StepResult = match_instance.start()
+	var exit_status: Status = Status.EOF
 	if result.status == StepResult.Status.ERROR:
 		_io.write_line("Unable to start tournament: %s" % result.message)
-		return Status.EOF
+		return exit_status
 	_render(match_instance, human_seat)
 
 	while true:
 		if result.status == StepResult.Status.ERROR:
 			_io.write_line("Tournament error: %s" % result.message)
-			return Status.EOF
+			break
 		if result.status == StepResult.Status.HAND_COMPLETED:
-			return Status.EOF
+			_io.write_text("Press Enter for the next hand, or type 'quit': ")
+			var between_hands_input: CliInputLine = _io.read_line()
+			if between_hands_input.is_eof:
+				match_instance.request_quit()
+				_render(match_instance, human_seat)
+				_io.write_line("Input closed. Goodbye.")
+				break
+			var between_hands_command: CliCommand = _parser.parse(between_hands_input.text)
+			if between_hands_command.kind == CliCommand.Kind.QUIT:
+				match_instance.request_quit()
+				_render(match_instance, human_seat)
+				_io.write_line("Goodbye.")
+				exit_status = Status.QUIT
+				break
+			if between_hands_command.kind == CliCommand.Kind.HELP:
+				_print_help()
+				continue
+			result = match_instance.advance_until_blocked()
+			_render(match_instance, human_seat)
+			continue
+		if result.status == StepResult.Status.TOURNAMENT_FINISHED:
+			break
 		if result.status == StepResult.Status.YIELDED:
 			result = match_instance.advance_until_blocked()
 			_render(match_instance, human_seat)
@@ -69,7 +91,7 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 			match_instance.request_quit()
 			_render(match_instance, human_seat)
 			_io.write_line("Input closed. Goodbye.")
-			return Status.EOF
+			break
 		var command: CliCommand = _parser.parse(input.text)
 		match command.kind:
 			CliCommand.Kind.EMPTY:
@@ -80,7 +102,8 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 				match_instance.request_quit()
 				_render(match_instance, human_seat)
 				_io.write_line("Goodbye.")
-				return Status.QUIT
+				exit_status = Status.QUIT
+				break
 			CliCommand.Kind.ACTION:
 				result = match_instance.submit_human_action(command.action)
 				if result.status != StepResult.Status.ERROR and not result.message.is_empty():
@@ -91,7 +114,7 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 					"Unknown command '%s'. Type 'help' for available commands." % command.text
 				)
 
-	return Status.EOF
+	return exit_status
 
 
 func _render(match_instance: TournamentMatch, human_seat: int) -> void:

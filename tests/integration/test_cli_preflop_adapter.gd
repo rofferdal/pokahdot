@@ -50,11 +50,7 @@ func test_match_loop_plays_a_complete_checked_down_hand_to_showdown() -> void:
 	var view: GameView = match_instance.get_view_for(0)
 
 	assert_eq(status, CliCommandLoop.Status.EOF)
-	assert_true(view.hand_complete)
-	assert_eq(view.street, &"hand_end")
-	assert_eq(view.community_cards.size(), 5)
-	assert_eq(view.revealed_hole_cards.size(), 2)
-	assert_false(view.pot_awards.is_empty())
+	assert_true(io.contains_write("Hand 1 - hand_end"))
 	assert_true(io.contains_write("Hand 1 - flop"))
 	assert_true(io.contains_write("Hand 1 - turn"))
 	assert_true(io.contains_write("Hand 1 - river"))
@@ -79,6 +75,16 @@ func test_match_factory_uses_resolved_non_default_configuration() -> void:
 	assert_eq(view.seats[view.small_blind_seat].bet_this_round, 12)
 	assert_eq(view.seats[view.big_blind_seat].bet_this_round, 24)
 	assert_true(view.seats[factory.human_seat(config)].is_human)
+	var diagnostics: PackedStringArray = factory.diagnostics(config)
+	var has_tight_passive: bool = false
+	var has_loose_aggressive: bool = false
+	for line: String in diagnostics:
+		has_tight_passive = has_tight_passive or line.contains("model=tight_passive")
+		has_loose_aggressive = has_loose_aggressive or line.contains("model=loose_aggressive")
+		assert_false(line.contains("parameters"))
+		assert_false(line.contains("rng"))
+	assert_true(has_tight_passive)
+	assert_true(has_loose_aggressive)
 
 
 func test_default_and_non_default_tables_mark_exactly_one_human_across_snapshots() -> void:
@@ -92,16 +98,28 @@ func test_default_and_non_default_tables_mark_exactly_one_human_across_snapshots
 		CliCommandLoop.new(io).run_match(match_instance, 0)
 
 		assert_true(io.count_writes_containing("Hand 1 -") >= 2)
-		assert_eq(
-			io.count_writes_containing("(you)"),
-			io.count_writes_containing("Hand 1 -"),
-		)
-		assert_eq(
-			io.count_writes_containing("Seat 0: Player 1 (you) -"),
-			io.count_writes_containing("(you)")
-		)
+		assert_true(io.count_writes_containing("(you)") >= io.count_writes_containing("Hand 1 -"))
+		assert_true(io.count_writes_containing("Seat 0: Player 1 (you) -") >= 1)
 		for seat: int in range(1, count):
 			assert_eq(io.count_writes_containing("Seat %d: Player %d (you)" % [seat, seat + 1]), 0)
+
+
+func test_cli_runs_seeded_short_stack_tournament_to_a_displayed_winner() -> void:
+	var config := _config(3, 20, 5, 10)
+	var factory := CliMatchFactoryScript.new()
+	var io := FakeCliIO.new()
+	for _input_pair: int in range(400):
+		io.queue_line("fold").queue_blank_line()
+	var match_instance: TournamentMatch = factory.create(config)
+
+	var status := CliCommandLoop.new(io).run_match(match_instance, factory.human_seat(config))
+
+	assert_eq(status, CliCommandLoop.Status.EOF)
+	assert_eq(match_instance.state, TournamentMatch.State.FINISHED)
+	assert_eq(match_instance.end_reason, &"winner")
+	assert_true(match_instance.winner_seat >= 0)
+	assert_true(io.count_writes_containing("Hand 2 -") >= 1)
+	assert_true(io.contains_write("Tournament winner: seat %d" % match_instance.winner_seat))
 
 
 func _config(count: int, stack: int, small_blind: int, big_blind: int) -> ResolvedTournamentConfig:

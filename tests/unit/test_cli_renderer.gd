@@ -20,7 +20,7 @@ func test_renderer_outputs_preflop_public_state_and_only_hero_cards() -> void:
 	CliRenderer.new(io).render_preflop(view)
 
 	assert_true(io.contains_write("Hand 1 - preflop"))
-	assert_eq(io.count_writes_containing("Seat 0: Human (you) - 100 chips"), 1)
+	assert_eq(io.count_writes_containing("Seat 0: Human (you) (dealer) - 100 chips"), 1)
 	assert_eq(io.count_writes_containing("Seat 1: Bot - 100 chips"), 1)
 	assert_true(io.contains_write("Button: 0  SB: 0  BB: 1  Acting: 0"))
 	assert_true(io.contains_write("Pot: 0"))
@@ -124,6 +124,36 @@ func test_renderer_marks_only_player_with_human_agent() -> void:
 	assert_eq(io.count_writes_containing("Bot 3 (you)"), 0)
 
 
+func test_renderer_marks_only_current_button_seat_and_follows_button_movement() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Hero", 0, 100, HumanAgent.new()),
+		Player.new(&"bot_1", "Bot 1", 1, 100),
+		Player.new(&"bot_2", "Bot 2", 2, 100),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 2
+	var first_io := FakeCliIO.new()
+
+	CliRenderer.new(first_io).render_preflop(
+		GameView.for_preflop(table, 0, BettingRound.new(table, 0), PotManager.new(), [])
+	)
+
+	assert_eq(first_io.count_writes_containing("(dealer)"), 1)
+	assert_eq(first_io.count_writes_containing("Seat 2: Bot 2 (dealer) -"), 1)
+	assert_eq(first_io.count_writes_containing("Seat 0: Hero (you) (dealer)"), 0)
+	assert_eq(first_io.count_writes_containing("Seat 1: Bot 1 (dealer)"), 0)
+
+	table.button_seat = 0
+	var second_io := FakeCliIO.new()
+	CliRenderer.new(second_io).render_preflop(
+		GameView.for_preflop(table, 0, BettingRound.new(table, 0), PotManager.new(), [])
+	)
+
+	assert_eq(second_io.count_writes_containing("(dealer)"), 1)
+	assert_eq(second_io.count_writes_containing("Seat 0: Hero (you) (dealer) -"), 1)
+	assert_eq(second_io.count_writes_containing("Seat 2: Bot 2 (dealer)"), 0)
+
+
 func test_renderer_outputs_board_pot_layers_and_street_with_formatted_cards() -> void:
 	var players: Array[Player] = [
 		Player.new(&"human", "Human", 0, 90, HumanAgent.new()),
@@ -194,6 +224,6 @@ func test_renderer_outputs_showdown_awards_and_final_stacks_without_hidden_cards
 	assert_true(io.contains_write("  Pot 1: seat 0 wins 8"))
 	assert_true(io.contains_write("  Pot 1: seat 1 wins 7"))
 	assert_true(io.contains_write("Hand complete after showdown."))
-	assert_true(io.contains_write("  Seat 2: 85 chips"))
+	assert_true(io.contains_write("  Seat 2: Folded (dealer) - 85 chips"))
 	for card: CardData in hidden_cards:
 		assert_eq(io.count_writes_containing(CliCardFormatterScript.format_card(card)), 0)

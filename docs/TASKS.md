@@ -74,17 +74,19 @@ Human tests complement automated tests; they do not replace them. If a human tes
 
 ## Milestone 3 — Complete CLI tournament
 
-- [ ] Extend `TournamentMatch` with the hand-to-hand lifecycle, button movement, elimination, winner detection, and quitting between hands.
-- [ ] Implement `TightPassiveDecisionModel` and `LooseAggressiveDecisionModel`, typed parameters, default profiles, and thin `TightPassiveAgent`/`LooseAggressiveAgent` preset constructors.
-- [ ] Add parameter-boundary tests and prove that the same model can run at multiple seats with different profiles and independent RNG streams.
-- [ ] Configure at least two decision model classes at the standard table and report model/profile IDs in startup diagnostics without exposing private model state.
-- [ ] Extend the CLI loop across hands and render hand numbers, eliminated players, remaining players, tournament winner, and `player_quit` termination; preserve the `(you)` marker on the human in every player summary.
-- [ ] Add deterministic integration tests for button/blind movement, skipped busted seats, heads-up transition, tournament winner, and quit before/during/between hands.
-- [ ] Add a deterministic short-stack startup selection for manual testing and verify that the values chosen by the existing CLI setup flow remain fixed across every hand without changing production defaults.
-- [ ] Add a full seeded tournament smoke test and assert chip conservation after every completed hand.
-- [ ] **App increment:** one human and at least two bots can play a complete single-table tournament through the CLI until one winner remains, or the human can quit without a winner.
-- [ ] **Human test:** use the short-stack configuration to finish a CLI tournament; verify hand transitions, button/blind movement, elimination, heads-up behavior, final winner, and total chips.
-- [ ] **Human test:** start a second CLI tournament and verify `quit`/`exit` produces `player_quit`, no winner, and a clean process exit.
+- [x] Extend `TournamentMatch` with the hand-to-hand lifecycle, button movement, elimination, winner detection, and quitting between hands.
+- [x] Implement `TightPassiveDecisionModel` and `LooseAggressiveDecisionModel`, typed parameters, default profiles, and thin `TightPassiveAgent`/`LooseAggressiveAgent` preset constructors.
+- [x] Add parameter-boundary tests and prove that the same model can run at multiple seats with different profiles and independent RNG streams.
+- [x] Configure at least two decision model classes at the standard table and report model/profile IDs in startup diagnostics without exposing private model state.
+- [x] Extend the CLI loop across hands and render hand numbers, eliminated players, remaining players, tournament winner, and `player_quit` termination; preserve the `(you)` marker on the human in every player summary.
+- [x] Add deterministic integration tests for button/blind movement, skipped busted seats, heads-up transition, tournament winner, and quit before/during/between hands.
+- [x] Add a deterministic short-stack startup selection for manual testing and verify that the values chosen by the existing CLI setup flow remain fixed across every hand without changing production defaults.
+- [x] Add a full seeded tournament smoke test and assert chip conservation after every completed hand.
+- [x] **App increment:** one human and at least two bots can play a complete single-table tournament through the CLI until one winner remains, or the human can quit without a winner.
+- [x] Add a CLI dealer-button indicator to the player summary for the current button seat, with regression coverage proving it follows button movement and never marks another seat.
+- [x] **Human-test handoff:** a person must execute and record the following Milestone 3 CLI scenarios before the human-test tasks can be marked complete. An automated agent may prepare commands and regression coverage, but must not mark this task complete on the person's behalf.
+- [x] **Human test:** use the short-stack configuration to finish a CLI tournament; verify hand transitions, button/blind movement, elimination, heads-up behavior, final winner, and total chips.
+- [x] **Human test:** start a second CLI tournament and verify `quit`/`exit` produces `player_quit`, no winner, and a clean process exit.
 
 ## CLI completion gate — required before GUI work
 
