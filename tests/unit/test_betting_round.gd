@@ -112,6 +112,33 @@ func test_folding_to_one_player_completes_immediately() -> void:
 	assert_eq(round.acting_seat, Table.NO_SEAT)
 
 
+func test_lone_actionable_player_does_not_act_without_chips_to_call() -> void:
+	var players: Array[Player] = _players_with_stacks([100, 10])
+	players[1].commit_chips(10)
+	var round := BettingRound.new(Table.new(players, 5, 10), 0)
+
+	assert_true(round.is_complete())
+	assert_eq(round.acting_seat, Table.NO_SEAT)
+
+
+func test_lone_actionable_player_must_act_when_facing_all_in_wager() -> void:
+	var players: Array[Player] = _players_with_stacks([100, 10])
+	players[1].commit_chips(10)
+	var round := BettingRound.new(Table.new(players, 5, 10), 0, 10)
+
+	assert_false(round.is_complete())
+	assert_eq(round.acting_seat, 0)
+	assert_eq(
+		round.legal_actions(0),
+		[
+			PlayerAction.Kind.FOLD,
+			PlayerAction.Kind.CALL,
+			PlayerAction.Kind.RAISE,
+			PlayerAction.Kind.ALL_IN
+		]
+	)
+
+
 func _players(count: int) -> Array[Player]:
 	var stacks: Array[int] = []
 	for _index: int in range(count):

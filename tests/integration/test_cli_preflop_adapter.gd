@@ -19,7 +19,7 @@ func test_match_loop_renders_before_prompt_rejects_without_losing_turn_and_settl
 	assert_true(
 		io.contains_write("Action rejected: The wager is below the minimum full bet or raise.")
 	)
-	assert_true(io.count_writes_containing("Hand 1 - preflop") >= 3)
+	assert_true(io.count_writes_containing("Hand 1 -") >= 3)
 	assert_true(io.contains_write("Hand complete. Seat 0 wins by folds."))
 	assert_true(io.contains_write("  Seat 0 raises to 20"))
 	_assert_no_bot_cards_are_rendered(io, match_instance)
@@ -36,6 +36,32 @@ func test_quit_routes_through_match_and_renders_player_quit() -> void:
 	assert_eq(match_instance.state, TournamentMatch.State.FINISHED)
 	assert_eq(match_instance.end_reason, &"player_quit")
 	assert_true(io.contains_write("Tournament ended: player_quit"))
+
+
+func test_match_loop_plays_a_complete_checked_down_hand_to_showdown() -> void:
+	var io := FakeCliIO.new()
+	for _street: int in range(4):
+		# One of these is accepted for every passive turn. A rejected action must
+		# preserve the turn, so the following command completes it deterministically.
+		io.queue_line("call").queue_line("check")
+	var match_instance := TournamentMatch.new(_config(2, 100, 5, 10), _showdown_agents())
+
+	var status := CliCommandLoop.new(io).run_match(match_instance, 0)
+	var view: GameView = match_instance.get_view_for(0)
+
+	assert_eq(status, CliCommandLoop.Status.EOF)
+	assert_true(view.hand_complete)
+	assert_eq(view.street, &"hand_end")
+	assert_eq(view.community_cards.size(), 5)
+	assert_eq(view.revealed_hole_cards.size(), 2)
+	assert_false(view.pot_awards.is_empty())
+	assert_true(io.contains_write("Hand 1 - flop"))
+	assert_true(io.contains_write("Hand 1 - turn"))
+	assert_true(io.contains_write("Hand 1 - river"))
+	assert_true(io.contains_write("Hand 1 - hand_end"))
+	assert_true(io.count_writes_containing("Board: [ ") >= 4)
+	assert_true(io.contains_write("Showdown:"))
+	assert_true(io.contains_write("Awards:"))
 
 
 func test_match_factory_uses_resolved_non_default_configuration() -> void:
@@ -65,10 +91,10 @@ func test_default_and_non_default_tables_mark_exactly_one_human_across_snapshots
 
 		CliCommandLoop.new(io).run_match(match_instance, 0)
 
-		assert_true(io.count_writes_containing("Hand 1 - preflop") >= 2)
+		assert_true(io.count_writes_containing("Hand 1 -") >= 2)
 		assert_eq(
 			io.count_writes_containing("(you)"),
-			io.count_writes_containing("Hand 1 - preflop"),
+			io.count_writes_containing("Hand 1 -"),
 		)
 		assert_eq(
 			io.count_writes_containing("Seat 0: Player 1 (you) -"),
@@ -100,6 +126,24 @@ func _passive_agents() -> Dictionary[int, Agent]:
 	return {
 		0: HumanAgent.new(),
 		1: ScriptedAgent.new([PlayerAction.call_action(), PlayerAction.check_action()]),
+	}
+
+
+func _showdown_agents() -> Dictionary[int, Agent]:
+	return {
+		0: HumanAgent.new(),
+		1:
+		(
+			ScriptedAgent
+			. new(
+				[
+					PlayerAction.check_action(),
+					PlayerAction.check_action(),
+					PlayerAction.check_action(),
+					PlayerAction.check_action(),
+				]
+			)
+		),
 	}
 
 

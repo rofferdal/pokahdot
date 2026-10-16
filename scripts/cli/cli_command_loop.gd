@@ -54,10 +54,10 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 	_render(match_instance, human_seat)
 
 	while true:
-		if result.status == StepResult.Status.HAND_COMPLETED:
+		if result.status == StepResult.Status.ERROR:
+			_io.write_line("Tournament error: %s" % result.message)
 			return Status.EOF
-		if result.status == StepResult.Status.PREFLOP_COMPLETE:
-			_io.write_line("Preflop betting complete; later streets are not available yet.")
+		if result.status == StepResult.Status.HAND_COMPLETED:
 			return Status.EOF
 		if result.status == StepResult.Status.YIELDED:
 			result = match_instance.advance_until_blocked()
@@ -83,7 +83,7 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 				return Status.QUIT
 			CliCommand.Kind.ACTION:
 				result = match_instance.submit_human_action(command.action)
-				if not result.message.is_empty():
+				if result.status != StepResult.Status.ERROR and not result.message.is_empty():
 					_io.write_line("Action rejected: %s" % result.message)
 				_render(match_instance, human_seat)
 			CliCommand.Kind.UNKNOWN:
@@ -97,7 +97,7 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 func _render(match_instance: TournamentMatch, human_seat: int) -> void:
 	var view: GameView = match_instance.get_view_for(human_seat)
 	if view != null:
-		_renderer.render_preflop(view)
+		_renderer.render_hand(view)
 
 
 func _print_help() -> void:

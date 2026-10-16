@@ -122,3 +122,78 @@ func test_renderer_marks_only_player_with_human_agent() -> void:
 	assert_eq(io.count_writes_containing("Bot 1 (you)"), 0)
 	assert_eq(io.count_writes_containing("Bot 2 (you)"), 0)
 	assert_eq(io.count_writes_containing("Bot 3 (you)"), 0)
+
+
+func test_renderer_outputs_board_pot_layers_and_street_with_formatted_cards() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 90, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 90),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var pots := PotManager.new()
+	pots.record_contribution(0, 10)
+	pots.record_contribution(1, 10)
+	var board: Array[CardData] = [
+		CardData.new(14, CardData.Suit.SPADES),
+		CardData.new(10, CardData.Suit.HEARTS),
+		CardData.new(13, CardData.Suit.DIAMONDS),
+	]
+	var view := GameView.for_hand(
+		table, 0, BettingRound.new(table, 1), pots, [], &"flop", board, [], {}
+	)
+	var io := FakeCliIO.new()
+
+	CliRenderer.new(io).render_hand(view)
+
+	assert_true(io.contains_write("Hand 1 - flop"))
+	assert_true(io.contains_write("Board: [ A♠ | 10♥ | K♦ ]"))
+	assert_true(io.contains_write("  Pot 1: 20 chips; eligible seats [ 0, 1 ]"))
+	for card: CardData in board:
+		assert_eq(io.count_writes_containing(card.code()), 0)
+
+
+func test_renderer_outputs_showdown_awards_and_final_stacks_without_hidden_cards() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 108, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 107),
+		Player.new(&"folded", "Folded", 2, 85),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 2
+	var hero_cards: Array[CardData] = [
+		CardData.new(14, CardData.Suit.SPADES), CardData.new(12, CardData.Suit.CLUBS)
+	]
+	var bot_cards: Array[CardData] = [
+		CardData.new(14, CardData.Suit.HEARTS), CardData.new(12, CardData.Suit.DIAMONDS)
+	]
+	var hidden_cards: Array[CardData] = [
+		CardData.new(2, CardData.Suit.CLUBS), CardData.new(3, CardData.Suit.CLUBS)
+	]
+	for card: CardData in hero_cards:
+		players[0].add_hole_card(card)
+	for card: CardData in bot_cards:
+		players[1].add_hole_card(card)
+	for card: CardData in hidden_cards:
+		players[2].add_hole_card(card)
+	var shown: Dictionary[int, Array] = {0: hero_cards, 1: bot_cards}
+	var awards: Array[PotAward] = [PotAward.new(0, 15, [0, 1], {0: 8, 1: 7})]
+	var layers: Array[PotLayer] = [PotLayer.new(15, 5, [0, 1, 2], [0, 1])]
+	var view := GameView.for_hand(
+		table, 0, null, PotManager.new(), [], &"hand_end", [], awards, shown, 1, layers
+	)
+	view.hand_complete = true
+	view.hand_winner_seat = Table.NO_SEAT
+	var io := FakeCliIO.new()
+
+	CliRenderer.new(io).render_hand(view)
+
+	assert_true(io.contains_write("Showdown:"))
+	assert_true(io.contains_write("  Seat 0: [ A♠ | Q♣ ]"))
+	assert_true(io.contains_write("  Seat 1: [ A♥ | Q♦ ]"))
+	assert_true(io.contains_write("  Pot 1: seat 0 wins 8"))
+	assert_true(io.contains_write("  Pot 1: seat 1 wins 7"))
+	assert_true(io.contains_write("Hand complete after showdown."))
+	assert_true(io.contains_write("  Seat 2: 85 chips"))
+	for card: CardData in hidden_cards:
+		assert_eq(io.count_writes_containing(CliCardFormatterScript.format_card(card)), 0)

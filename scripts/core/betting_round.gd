@@ -206,7 +206,11 @@ func _refresh_completion() -> void:
 		if not _can_act(_table.get_player(seat)):
 			_pending_action.erase(seat)
 			_raise_rights.erase(seat)
-	_complete = _remaining_player_count() <= 1 or _pending_action.is_empty()
+	_complete = (
+		_remaining_player_count() <= 1
+		or _pending_action.is_empty()
+		or _has_only_one_actionable_player_who_owes_nothing()
+	)
 	if _complete:
 		acting_seat = Table.NO_SEAT
 
@@ -217,6 +221,17 @@ func _remaining_player_count() -> int:
 		if not _table.get_player(seat).folded:
 			count += 1
 	return count
+
+
+func _has_only_one_actionable_player_who_owes_nothing() -> bool:
+	var actionable_player: Player = null
+	for seat: int in _table.active_seats():
+		var player: Player = _table.get_player(seat)
+		if _can_act(player):
+			if actionable_player != null:
+				return false
+			actionable_player = player
+	return actionable_player != null and actionable_player.bet_this_round >= current_bet
 
 
 func _next_pending_seat(from_seat: int) -> int:

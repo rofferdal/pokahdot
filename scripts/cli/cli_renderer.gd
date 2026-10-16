@@ -11,7 +11,11 @@ func _init(io: CliIO) -> void:
 
 
 func render_preflop(view: GameView) -> void:
-	_io.write_line("Hand %d - preflop" % view.hand_number)
+	render_hand(view)
+
+
+func render_hand(view: GameView) -> void:
+	_io.write_line("Hand %d - %s" % [view.hand_number, view.street])
 	(
 		_io
 		. write_line(
@@ -47,13 +51,61 @@ func render_preflop(view: GameView) -> void:
 			)
 		)
 	_io.write_line("Pot: %d" % view.pot_amount)
+	if not view.community_cards.is_empty():
+		_io.write_line("Board: %s" % CliCardFormatterScript.format_cards(view.community_cards))
+	if not view.pots.is_empty():
+		_io.write_line("Pots:")
+		for pot_index: int in range(view.pots.size()):
+			var pot: PotLayer = view.pots[pot_index]
+			_io.write_line(
+				(
+					"  Pot %d: %d chips; eligible seats %s"
+					% [pot_index + 1, pot.amount, _seat_list(pot.eligible_seats)]
+				)
+			)
 	_io.write_line("Action history:")
 	for record: PublicActionRecord in view.action_history:
 		_io.write_line("  %s" % _format_action(record))
 	_io.write_line("Your cards: %s" % CliCardFormatterScript.format_cards(view.hero_hole_cards))
+	if not view.revealed_hole_cards.is_empty():
+		_io.write_line("Showdown:")
+		var revealed_seats: Array[int] = []
+		for revealed_seat: int in view.revealed_hole_cards:
+			revealed_seats.append(revealed_seat)
+		revealed_seats.sort()
+		for revealed_seat: int in revealed_seats:
+			var cards: Array[CardData] = []
+			cards.assign(view.revealed_hole_cards[revealed_seat])
+			var line: String = "  Seat %d: %s" % [
+				revealed_seat, CliCardFormatterScript.format_cards(cards)
+			]
+			var showdown: ShowdownResult = view.showdown_results.get(revealed_seat)
+			if showdown != null:
+				line += "; %s; kickers %s; best five %s" % [
+					_category_name(showdown.category),
+					_int_list(showdown.tie_break_values),
+					CliCardFormatterScript.format_cards(showdown.selected_cards),
+				]
+			_io.write_line(line)
+	if not view.pot_awards.is_empty():
+		_io.write_line("Awards:")
+		for award: PotAward in view.pot_awards:
+			for winning_seat: int in award.winner_seats:
+				_io.write_line(
+					(
+						"  Pot %d: seat %d wins %d"
+						% [award.pot_index + 1, winning_seat, award.amounts_by_seat[winning_seat]]
+					)
+				)
 	_io.write_line("Legal actions: %s" % _legal_actions(view))
 	if view.hand_complete:
-		_io.write_line("Hand complete. Seat %d wins by folds." % view.hand_winner_seat)
+		if view.revealed_hole_cards.is_empty():
+			_io.write_line("Hand complete. Seat %d wins by folds." % view.hand_winner_seat)
+		else:
+			_io.write_line("Hand complete after showdown.")
+		_io.write_line("Final stacks:")
+		for seat_view: PlayerView in view.seats:
+			_io.write_line("  Seat %d: %d chips" % [seat_view.seat, seat_view.stack])
 	if view.end_reason == &"player_quit":
 		_io.write_line("Tournament ended: player_quit")
 
@@ -63,6 +115,24 @@ func _action_names(kinds: Array[PlayerAction.Kind]) -> String:
 	for kind: PlayerAction.Kind in kinds:
 		names.append(PlayerAction.Kind.keys()[kind].to_lower())
 	return ", ".join(names)
+
+
+func _seat_list(seats: Array[int]) -> String:
+	var labels := PackedStringArray()
+	for seat: int in seats:
+		labels.append(str(seat))
+	return "[ %s ]" % ", ".join(labels)
+
+
+func _int_list(values: Array[int]) -> String:
+	var labels := PackedStringArray()
+	for value: int in values:
+		labels.append(str(value))
+	return "[ %s ]" % ", ".join(labels)
+
+
+func _category_name(category: HandRank.Category) -> String:
+	return HandRank.Category.keys()[category].to_lower().replace("_", " ")
 
 
 func _legal_actions(view: GameView) -> String:

@@ -83,6 +83,56 @@ func test_public_action_history_is_copied_without_private_cards() -> void:
 	assert_eq(view.action_history[0].amount, 30)
 
 
+func test_postflop_view_snapshots_board_pots_and_legal_actions() -> void:
+	var players: Array[Player] = _players()
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	players[0].commit_chips(10)
+	players[1].commit_chips(10)
+	players[2].fold()
+	var pot_manager := PotManager.new()
+	pot_manager.record_contribution(0, 10)
+	pot_manager.record_contribution(1, 10)
+	players[0].reset_betting_round()
+	players[1].reset_betting_round()
+	var betting := BettingRound.new(table, 1)
+	var board: Array[CardData] = [
+		CardData.new(14, CardData.Suit.SPADES),
+		CardData.new(13, CardData.Suit.HEARTS),
+		CardData.new(2, CardData.Suit.CLUBS),
+	]
+
+	var view := GameView.for_hand(table, 1, betting, pot_manager, [], &"flop", board, [], {})
+	board.clear()
+
+	assert_eq(view.street, &"flop")
+	assert_eq(view.community_cards.size(), 3)
+	assert_eq(view.pots.size(), 1)
+	assert_eq(view.pots[0].amount, 20)
+	assert_eq(view.pots[0].eligible_seats, [0, 1])
+	assert_eq(view.acting_seat, 1)
+	assert_true(PlayerAction.Kind.CHECK in view.legal_actions)
+
+
+func test_showdown_view_reveals_only_hands_that_controller_marks_shown() -> void:
+	var players: Array[Player] = _players()
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var shown: Dictionary[int, Array] = {
+		0: [CardData.new(14, CardData.Suit.SPADES), CardData.new(14, CardData.Suit.HEARTS)],
+		1: [CardData.new(13, CardData.Suit.SPADES), CardData.new(13, CardData.Suit.HEARTS)],
+	}
+
+	var view := GameView.for_hand(table, 0, null, PotManager.new(), [], &"hand_end", [], [], shown)
+	shown[0].clear()
+	shown[2] = players[2].hole_cards
+
+	assert_eq(view.revealed_hole_cards.size(), 2)
+	assert_eq(view.revealed_hole_cards[0].size(), 2)
+	assert_false(view.revealed_hole_cards.has(2))
+	assert_true(view.legal_actions.is_empty())
+
+
 func _players() -> Array[Player]:
 	var result: Array[Player] = []
 	for seat: int in range(3):
