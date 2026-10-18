@@ -9,10 +9,14 @@ Prosjektet er tidlig i utviklingen. Grafisk UI og terminal-UI er under oppbyggin
 - Godot **4.7** (GDScript, Compatibility-renderer)
 - Godot-binæren tilgjengelig som `godot` i `PATH`, eller full sti til editoren
 
-## Start grafisk (GUI)
+## Start the graphical application (GUI)
 
-1. Åpne mappen `pokahdot` i Godot-editoren (**Import** / **Open**).
-2. Trykk **Play** (F5).
+1. Open the `pokahdot` folder in the Godot editor (**Import** / **Open**).
+2. Press **Play** (F6). The startup screen is prefilled with 6 participants,
+   1000 chips, and 5/10 blinds. Select **Start tournament** without editing to
+   use those defaults, or change any value before starting.
+3. The form validates whole-number input and the tournament constraints inline.
+   A match is created only after all values are valid.
 
 Fra terminal, med prosjektroten som arbeidsmappe:
 
@@ -40,7 +44,9 @@ På macOS uten `godot` i `PATH`:
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://scripts/cli/cli_app.gd
 ```
 
-The terminal interface currently supports tournament setup with optional overrides, a resolved-configuration summary, and a small command shell with `help`, `quit`, and `exit`. Poker gameplay is added in later milestones. Game rules remain in `scripts/core/`, not in the CLI layer.
+The terminal interface supports a complete tournament with optional startup
+overrides, poker actions, `help`, `quit`, and `exit`. Game rules remain in
+`scripts/core/`, not in either presentation layer.
 
 ## Development checks
 

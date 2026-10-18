@@ -1,0 +1,133 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/gui/startup_config_controller.gd" id="1_controller"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_controller")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.035, 0.09, 0.07, 1)
+mouse_filter = 2
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 28
+
+[node name="Form" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Center/Panel/Margin/Form"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Start a tournament"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Center/Panel/Margin/Form"]
+layout_mode = 2
+text = "Change any value or start immediately with the defaults."
+autowrap_mode = 2
+horizontal_alignment = 1
+
+[node name="PlayerCountLabel" type="Label" parent="Center/Panel/Margin/Form"]
+layout_mode = 2
+text = "Participants (2–9)"
+
+[node name="PlayerCountInput" type="LineEdit" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "6"
+
+[node name="PlayerCountError" type="Label" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+autowrap_mode = 2
+
+[node name="StartingStackLabel" type="Label" parent="Center/Panel/Margin/Form"]
+layout_mode = 2
+text = "Starting stack"
+
+[node name="StartingStackInput" type="LineEdit" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "1000"
+
+[node name="StartingStackError" type="Label" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+autowrap_mode = 2
+
+[node name="SmallBlindLabel" type="Label" parent="Center/Panel/Margin/Form"]
+layout_mode = 2
+text = "Small blind"
+
+[node name="SmallBlindInput" type="LineEdit" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "5"
+
+[node name="SmallBlindError" type="Label" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+autowrap_mode = 2
+
+[node name="BigBlindLabel" type="Label" parent="Center/Panel/Margin/Form"]
+layout_mode = 2
+text = "Big blind"
+
+[node name="BigBlindInput" type="LineEdit" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "10"
+
+[node name="BigBlindError" type="Label" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+autowrap_mode = 2
+
+[node name="StartButton" type="Button" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Start tournament"
+
+[node name="FormStatus" type="Label" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 1, 0.67, 1)
+autowrap_mode = 2
+horizontal_alignment = 1

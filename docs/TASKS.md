@@ -107,11 +107,12 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 
 ### Milestone 4.1 — GUI startup flow
 
-- [ ] Build the startup configuration panel for participant count, starting stack, small blind, and big blind, prefilled with defaults and able to start without any user edits before `TournamentMatch` construction.
-- [ ] Add inline startup validation, prevent starting with invalid values, and map a valid selection into a fresh immutable tournament configuration.
-- [ ] Add GUI adapter tests for default startup, independent partial overrides, full valid overrides, invalid-value rejection, and prevention of match construction before validation succeeds.
-- [ ] **App increment:** a person can launch the GUI, start a tournament with defaults, or choose a validated custom configuration before a match is created.
-- [ ] **Human test:** launch the GUI with no edits and confirm the default configuration starts. Restart and verify one partial override, all overrides, and clear inline feedback for invalid values without starting a match.
+- [x] Build the startup configuration panel for participant count, starting stack, small blind, and big blind, prefilled with defaults and able to start without any user edits before `TournamentMatch` construction.
+- [x] Add inline startup validation, prevent starting with invalid values, and map a valid selection into a fresh immutable tournament configuration.
+- [x] Add GUI adapter tests for default startup, independent partial overrides, full valid overrides, invalid-value rejection, and prevention of match construction before validation succeeds.
+- [x] Fill into README.md a section on how to start the application with GUI
+- [x] **App increment:** a person can launch the GUI, start a tournament with defaults, or choose a validated custom configuration before a match is created.
+- [x] **Human test:** launch the GUI with no edits and confirm the default configuration starts. Restart and verify one partial override, all overrides, and clear inline feedback for invalid values without starting a match.
 
 ### Milestone 4.2 — Visual table foundation
 
