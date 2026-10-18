@@ -116,12 +116,16 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 
 ### Milestone 4.2 — Visual table foundation
 
-- [ ] Generate and add a catalog of 16 distinct small avatar assets for GUI player seats, suitable for 32 by 32 pixel display and compatible with the Godot Compatibility renderer.
-- [ ] Add a GUI-owned avatar catalog and a seeded, non-repeating seat-to-avatar assignment service for each tournament; use distinct small avatar assets targeting 32 by 32 pixels, reject insufficient catalogs clearly, and keep avatar state and RNG outside `scripts/core/`.
-- [ ] Build the main scalable `Control`-based table scene with a green felt surface, seat positions, and explicit visual zones for community cards, player wagers, and the pot.
-- [ ] Add GUI adapter tests for deterministic unique avatar assignment, insufficient avatar catalogs, and the table scene's board/wager/pot-zone bindings.
-- [ ] **App increment:** after valid startup, the GUI opens a responsive green table with all seats and distinct assigned avatars around the table.
-- [ ] **Human test:** start default and 9-player tables; verify that all visible avatars are distinct, seats remain readable, and the community-card, wager, and pot zones are clearly separated at representative desktop and mobile aspect ratios.
+- [x] Generate and add a catalog of 16 distinct small avatar assets for GUI player seats, suitable for 32 by 32 pixel display and compatible with the Godot Compatibility renderer.
+- [x] Add a GUI-owned avatar catalog and a seeded, non-repeating seat-to-avatar assignment service for each tournament; use distinct small avatar assets targeting 32 by 32 pixels, reject insufficient catalogs clearly, and keep avatar state and RNG outside `scripts/core/`.
+- [x] Build the main scalable `Control`-based table scene with a green felt surface, seat positions, and explicit visual zones for community cards, player wagers, and the pot.
+- [x] Add visible face-down community-card placeholders, responsive central-zone constraints, and non-wrapping player-seat presentation so the table remains legible at desktop and mobile aspect ratios.
+- [x] Add GUI adapter tests for deterministic unique avatar assignment, insufficient avatar catalogs, and the table scene's board/wager/pot-zone bindings.
+- [x] Add a regression test proving that default and 9-player seat widgets receive distinct, visible, non-overlapping, in-bounds positions after the initially hidden table is shown at desktop and mobile aspect ratios.
+- [x] Set the explicit game-screen startup size default to 1920 by 1080 pixels, and protect the configured dimensions with an automated regression test.
+- [x] The text/font size in the GUI in both startup screen and in the boards is too small. Make it 1.8x larger.
+- [x] **App increment:** after valid startup, the GUI opens a responsive green table with all seats and distinct assigned avatars around the table.
+- [x] **Human test:** start default and 9-player tables; verify that all visible avatars are distinct, seats remain readable, and the community-card, wager, and pot zones are clearly separated at representative desktop and mobile aspect ratios.
 
 ### Milestone 4.3 — Read-only live table rendering
 

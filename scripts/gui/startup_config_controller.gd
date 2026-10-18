@@ -6,6 +6,7 @@ const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_co
 ## Binds the startup controls to the GUI configuration adapter.
 
 var startup_adapter
+var _avatar_assignment_service := AvatarAssignmentService.new()
 
 @onready var _player_count_input: LineEdit = %PlayerCountInput
 @onready var _starting_stack_input: LineEdit = %StartingStackInput
@@ -16,6 +17,8 @@ var startup_adapter
 @onready var _small_blind_error: Label = %SmallBlindError
 @onready var _big_blind_error: Label = %BigBlindError
 @onready var _form_status: Label = %FormStatus
+@onready var _startup_panel: CenterContainer = $Center
+@onready var _poker_table: Control = $PokerTable
 
 
 func _ready() -> void:
@@ -32,10 +35,29 @@ func _on_start_pressed() -> void:
 	startup_adapter.small_blind_text = _small_blind_input.text
 	startup_adapter.big_blind_text = _big_blind_input.text
 	if startup_adapter.try_start():
-		_clear_errors()
-		_form_status.text = (
-			"Tournament started. Hand %d is ready." % (startup_adapter.match_instance.hand_number)
+		var avatar_result = (
+			_avatar_assignment_service
+			. assign_for_tournament(
+				startup_adapter.resolved_config.player_count,
+				startup_adapter.resolved_config.rng_seed,
+			)
 		)
+		if not avatar_result.is_ok():
+			startup_adapter.match_instance.request_quit()
+			startup_adapter.field_errors[&"form"] = avatar_result.error_message
+			_render_errors()
+			return
+		_clear_errors()
+		(
+			_poker_table
+			. call(
+				"bind_view",
+				startup_adapter.match_instance.get_view_for(0),
+				avatar_result.assignments,
+			)
+		)
+		_startup_panel.hide()
+		_poker_table.show()
 		return
 	_render_errors()
 
