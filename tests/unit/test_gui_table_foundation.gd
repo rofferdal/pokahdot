@@ -124,6 +124,44 @@ func test_hidden_table_lays_out_seats_after_showing_at_desktop_and_mobile_sizes(
 		assert_eq(distinct_positions.size(), player_count)
 
 
+func test_desktop_seats_are_equally_wide_for_every_supported_player_count() -> void:
+	for player_count: int in range(2, 10):
+		var table = PokerTableScene.instantiate()
+		table.hide()
+		add_child_autofree(table)
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = Vector2(1920, 1080)
+		table.bind_view(_hero_table_view(player_count), _avatar_assignments(player_count))
+
+		table.show()
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		for seat: int in range(player_count):
+			var panel: PanelContainer = table.get_node(
+				"TableMargin/Felt/TableSurface/Seats/Seat%d" % seat
+			)
+			assert_almost_eq(
+				panel.size.x,
+				280.0,
+				0.001,
+				(
+					"seat %d at %d players should use the shared wide desktop panel"
+					% [seat, player_count]
+				)
+			)
+			if seat != 0:
+				var name_label: Label = panel.find_child("Name", true, false)
+				assert_gte(
+					name_label.size.x,
+					100.0,
+					(
+						"seat %d at %d players should retain a readable name area"
+						% [seat, player_count]
+					)
+				)
+
+
 func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
@@ -144,13 +182,21 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	assert_eq(table.wager_amounts, {0: 5, 1: 10})
 	assert_eq(table.displayed_pot_amount, 55)
 	assert_eq(table.get_card_slot_count(), 5)
-	assert_eq(
+	assert_string_contains(
 		(
 			table
 			. get_node("TableMargin/Felt/TableSurface/CenterZone/BoardZone/BoardContent/BoardLabel")
 			. text
 		),
 		"Community cards"
+	)
+	assert_string_contains(
+		(
+			table
+			. get_node("TableMargin/Felt/TableSurface/CenterZone/BoardZone/BoardContent/BoardLabel")
+			. text
+		),
+		"A♣"
 	)
 	assert_eq(
 		table.get_node("TableMargin/Felt/TableSurface/CenterZone/WagerZone/WagerLabel").text,
@@ -170,6 +216,172 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	assert_eq(avatar.texture_filter, CanvasItem.TEXTURE_FILTER_NEAREST)
 
 
+func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	var view := GameView.new()
+	view.hero_seat = 0
+	view.button_seat = 0
+	view.small_blind_seat = 1
+	view.big_blind_seat = 2
+	view.acting_seat = 2
+	view._community_cards = [
+		CardData.new(14, CardData.Suit.CLUBS), CardData.new(10, CardData.Suit.HEARTS)
+	]
+	view._hero_hole_cards = [
+		CardData.new(13, CardData.Suit.DIAMONDS), CardData.new(2, CardData.Suit.SPADES)
+	]
+	view.pot_amount = 35
+	view._pots = [PotLayer.new(35, 20, [0, 1, 2], [0, 1, 2])]
+	var hero := Player.new(&"hero", "Hero", 0, 95, HumanAgent.new())
+	hero.bet_this_round = 5
+	var opponent := Player.new(
+		&"bot", "Opponent", 1, 90, RandomAgent.new(RandomNumberGenerator.new())
+	)
+	opponent.bet_this_round = 10
+	var eliminated := Player.new(&"out", "Out", 2, 0, RandomAgent.new(RandomNumberGenerator.new()))
+	eliminated.busted = true
+	view._seats = [PlayerView.new(hero), PlayerView.new(opponent), PlayerView.new(eliminated)]
+
+	table.bind_view(view, _avatar_assignments(3))
+
+	var seat_prefix: String = "TableMargin/Felt/TableSurface/Seats/Seat%d/Content/"
+	assert_string_contains(table.find_child("BoardLabel", true, false).text, "A♣")
+	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "D")
+	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "SB")
+	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "BB ACT")
+	assert_string_contains(table.get_node(seat_prefix % 0 + "State").text, "95 chips")
+	assert_eq(table.get_node(seat_prefix % 0 + "HeroCards/HeroCard1").text, "K♦")
+	assert_not_null(table.get_node(seat_prefix % 1 + "Footer/HoleCards/CardBack1"))
+	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Name").text, "Out")
+
+	view._community_cards.append(CardData.new(2, CardData.Suit.DIAMONDS))
+	view.pot_amount = 65
+	view._pots = [
+		PotLayer.new(40, 15, [0, 1, 2], [0, 1, 2]),
+		PotLayer.new(25, 25, [0, 1], [0, 1]),
+	]
+	table.bind_view(view, _avatar_assignments(3))
+
+	assert_string_contains(table.find_child("BoardLabel", true, false).text, "2♦")
+	assert_eq(table.find_child("PotLabel", true, false).text, "POT  •  65  •  2 layers")
+
+
+func test_table_refreshes_from_a_recipient_safe_match_view() -> void:
+	var adapter = GuiStartupConfigAdapter.new()
+	assert_true(adapter.try_start())
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	table.bind_match(adapter.match_instance, 0, _avatar_assignments(6))
+
+	assert_eq(table.displayed_hero_cards.size(), 2)
+	assert_not_null(
+		table.get_node(
+			"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Footer/HoleCards/CardBack1"
+		)
+	)
+	table.refresh_from_match()
+	assert_eq(table.board_card_count, 0)
+
+
+func test_gui_startup_displays_the_initial_read_only_table() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+
+	main.get_node("Center/Panel/Margin/Form/StartButton").emit_signal("pressed")
+
+	var table = main.get_node("PokerTable")
+	assert_true(table.visible)
+	assert_false(main.get_node("Center").visible)
+	assert_eq(table.displayed_hero_cards.size(), 2)
+	assert_eq(table.board_card_count, 0)
+
+
+func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
+	var cases: Array[Dictionary] = [
+		{"player_count": 6, "size": Vector2(1140, 632)},
+		{"player_count": 9, "size": Vector2(390, 780)},
+	]
+	for test_case: Dictionary in cases:
+		var player_count: int = test_case["player_count"]
+		var table = PokerTableScene.instantiate()
+		table.hide()
+		add_child_autofree(table)
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = test_case["size"]
+		table.bind_view(_hero_table_view(player_count), _avatar_assignments(player_count))
+		table.show()
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		var hero_panel: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0")
+		var hero_name: Label = hero_panel.find_child("Name", true, false)
+		var hero_card: Label = hero_panel.find_child("HeroCard1", true, false)
+		assert_gt(hero_panel.get_rect().get_center().y, table.get_surface_size().y * 0.75)
+		assert_eq(hero_name.text, "Player 1 (you)")
+		assert_eq(hero_card.text, "A♥")
+		assert_not_null(hero_card.get_theme_stylebox("normal"))
+		for seat: int in range(1, player_count):
+			var name_label: Label = table.get_node(
+				"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Header/Name" % seat
+			)
+			assert_eq(name_label.text, "Player %d" % (seat + 1))
+
+
+func test_live_seat_panels_show_stacks_positions_and_hidden_opponent_cards() -> void:
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	var view := _hero_table_view(3)
+	view.button_seat = 1
+	view.small_blind_seat = 2
+	view.big_blind_seat = 0
+	view.acting_seat = 2
+	view._seats = [
+		_player_snapshot(0, "Player 1", 975, HumanAgent.new()),
+		_player_snapshot(1, "Player 2", 990, RandomAgent.new(RandomNumberGenerator.new())),
+		_player_snapshot(2, "Player 3", 995, RandomAgent.new(RandomNumberGenerator.new())),
+	]
+	table.bind_view(view, _avatar_assignments(3))
+
+	var seat_prefix: String = "TableMargin/Felt/TableSurface/Seats/Seat%d/Content/"
+	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "D")
+	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "SB")
+	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "ACT")
+	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "BB")
+	assert_string_contains(table.get_node(seat_prefix % 1 + "Footer/Detail").text, "990 chips")
+	var chip_detail: Label = table.get_node(seat_prefix % 1 + "Footer/Detail")
+	var avatar: TextureRect = table.get_node(seat_prefix % 1 + "Header/Avatar")
+	var card_back: Label = table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack1")
+	assert_eq(chip_detail.get_theme_font_size("font_size"), 22)
+	assert_eq(avatar.custom_minimum_size, Vector2(56, 56))
+	assert_eq(card_back.custom_minimum_size, Vector2(30, 38))
+	assert_not_null(card_back)
+	assert_not_null(table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack2"))
+
+
+func test_revealed_bot_cards_match_hidden_card_back_dimensions() -> void:
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	var hidden_view := _hero_table_view(2)
+	table.bind_view(hidden_view, _avatar_assignments(2))
+	var seat_prefix: String = "TableMargin/Felt/TableSurface/Seats/Seat%d/Content/"
+	var hidden_card: Label = table.get_node(seat_prefix % 1 + "Footer/HoleCards/CardBack1")
+
+	var showdown_table = PokerTableScene.instantiate()
+	add_child_autofree(showdown_table)
+	var showdown_view := _hero_table_view(2)
+	showdown_view._revealed_hole_cards[1] = [
+		CardData.new(14, CardData.Suit.SPADES), CardData.new(13, CardData.Suit.HEARTS)
+	]
+	showdown_table.bind_view(showdown_view, _avatar_assignments(2))
+	var revealed_card: Label = showdown_table.get_node(
+		seat_prefix % 1 + "Footer/HoleCards/ShowdownCard1"
+	)
+
+	assert_eq(revealed_card.text, "A♠")
+	assert_eq(revealed_card.custom_minimum_size, hidden_card.custom_minimum_size)
+
+
 func _player_view(seat: int, wager: int) -> PlayerView:
 	var player := Player.new(&"test_%d" % seat, "Test %d" % seat, seat, 100, HumanAgent.new())
 	player.bet_this_round = wager
@@ -181,6 +393,25 @@ func _table_view(player_count: int) -> GameView:
 	for seat: int in range(player_count):
 		view._seats.append(_player_view(seat, 0))
 	return view
+
+
+func _hero_table_view(player_count: int) -> GameView:
+	var view := GameView.new()
+	view.hero_seat = 0
+	view._hero_hole_cards = [
+		CardData.new(14, CardData.Suit.HEARTS), CardData.new(10, CardData.Suit.CLUBS)
+	]
+	for seat: int in range(player_count):
+		var agent: Agent = (
+			HumanAgent.new() if seat == 0 else RandomAgent.new(RandomNumberGenerator.new())
+		)
+		var player := Player.new(&"display_%d" % seat, "Player %d" % (seat + 1), seat, 100, agent)
+		view._seats.append(PlayerView.new(player))
+	return view
+
+
+func _player_snapshot(seat: int, display_name: String, stack: int, agent: Agent) -> PlayerView:
+	return PlayerView.new(Player.new(&"snapshot_%d" % seat, display_name, seat, stack, agent))
 
 
 func _avatar_assignments(player_count: int) -> Dictionary[int, String]:

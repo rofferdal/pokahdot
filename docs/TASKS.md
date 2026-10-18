@@ -129,10 +129,22 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 
 ### Milestone 4.3 — Read-only live table rendering
 
-- [ ] Connect the table controller to recipient-safe `TournamentMatch` views and render stacks, blinds, dealer, acting player, board, pots, private hero cards, active/eliminated seats, and hidden opponent cards without action controls.
-- [ ] Add GUI adapter tests for recipient-safe card visibility, initial preflop rendering, board and pot updates, player-position markers, and elimination rendering.
-- [ ] **App increment:** a person can start a GUI tournament and inspect the complete current table state before acting, without seeing opponent hole cards.
-- [ ] **Human test:** inspect the initial table and an automatically advanced bot snapshot; verify stacks, blinds, dealer, acting marker, private/public cards, avatars, and hidden opponent cards.
+- [x] Connect the table controller to recipient-safe `TournamentMatch` views and render stacks, blinds, dealer, acting player, board, pots, private hero cards, active/eliminated seats, and hidden opponent cards without action controls.
+- [x] Add GUI adapter tests for recipient-safe card visibility, initial preflop rendering, board and pot updates, player-position markers, and elimination rendering.
+- [x] **App increment:** a person can start a GUI tournament and inspect the complete current table state before acting, without seeing opponent hole cards.
+- [x] Keep every seat name and its position marker visibly readable at supported desktop and mobile table sizes.
+- [x] Map the human recipient to the bottom visual seat without changing core seat identities or poker positions; move the human stack/status and private cards into that seat panel, rendering each hole card as a card face.
+- [x] Add GUI layout regressions for full seat names, bottom-anchored human seating, private hero card faces, and non-overlapping seats at default and 9-player sizes.
+- [x] Render every player stack, dealer/small-blind/big-blind/acting markers, and two face-down opponent cards directly in the live seat panels; add a regression test for the human-test omission.
+- [x] Replace clipped position text and unsupported hidden-card glyphs with readable position badges and visible card-back controls; enlarge opponent seat typography and preserve non-overlap at default and 9-player layouts.
+- [x] Increase bot chip-stack text for readability, render avatars at twice their previous display size, and use one shared card dimension for hidden and showdown-revealed bot hole cards.
+- [x] Add GUI layout regressions for enlarged bot chip text and avatars, plus equal hidden/revealed bot-card dimensions.
+- [x] Widen nine-player desktop seat panels so every player name remains readable alongside the enlarged avatar and position badge, while preserving in-bounds non-overlapping layout.
+- [x] Add a nine-player desktop layout regression for the widened panel and readable name area.
+- [x] Apply the same wide desktop player-panel dimensions to every supported player count, including the human seat, while preserving the compact mobile layout.
+- [x] Add desktop layout regression coverage proving that player panels have equal wide dimensions for 2–9 players.
+- [ ] With 3, 5, 6 and 7 players, the distribution of player positions around the table is not symmetric on left vs right side. Distribute players symmetric regardless the number of players.
+- [ ] **Human test:** inspect initial and automatically advanced bot snapshots at 2, 6, and 9 players; verify equally wide desktop player panels, readable bot chip-stack text, blinds, dealer, acting marker, private/public cards, doubled-size avatars, hidden opponent cards, and fully readable player names. At showdown, verify that each visible bot hole card has the same dimensions as its hidden card back.
 
 ### Milestone 4.4 — Human actions and hand completion
 

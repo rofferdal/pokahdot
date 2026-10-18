@@ -51,8 +51,9 @@ func _on_start_pressed() -> void:
 		(
 			_poker_table
 			. call(
-				"bind_view",
-				startup_adapter.match_instance.get_view_for(0),
+				"bind_match",
+				startup_adapter.match_instance,
+				0,
 				avatar_result.assignments,
 			)
 		)
