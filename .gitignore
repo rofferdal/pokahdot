@@ -3,5 +3,8 @@
 /android/
 .venv/
 
+# Reproducible Web release output; deploy it as a CI artifact instead.
+/build/
+
 # macOS
 .DS_Store

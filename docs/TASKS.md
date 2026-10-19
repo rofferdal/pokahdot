@@ -223,7 +223,7 @@ or physical device. Agents may prepare commands, configuration, templates, and
 regression coverage, but must never mark a Human task complete or invent test
 evidence on a person's behalf.
 
-- [ ] **Agent task — export configuration:** add and commit the Godot 4.7.2
+- [x] **Agent task — export configuration:** add and commit the Godot 4.7.2
   `Web` release preset in `export_presets.cfg`. Keep Web threads disabled for
   the baseline release, keep credentials out of version control, and ignore
   reproducible `build/` output. Add a regression or release check proving the

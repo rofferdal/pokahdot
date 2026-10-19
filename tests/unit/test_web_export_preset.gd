@@ -1,0 +1,26 @@
+extends "res://tests/support/poker_gut_test.gd"
+
+const WEB_PRESET_PATH := "res://export_presets.cfg"
+const WEB_PRESET_SECTION := "preset.0"
+const WEB_OPTIONS_SECTION := "preset.0.options"
+
+
+func test_web_release_preset_is_committed_and_single_threaded() -> void:
+	var export_presets := ConfigFile.new()
+	var load_error := export_presets.load(WEB_PRESET_PATH)
+
+	assert_eq(load_error, OK, "The committed Web export preset must be readable.")
+	assert_eq(export_presets.get_value(WEB_PRESET_SECTION, "name"), "Web")
+	assert_eq(export_presets.get_value(WEB_PRESET_SECTION, "platform"), "Web")
+	assert_eq(
+		export_presets.get_value(WEB_PRESET_SECTION, "export_path"),
+		"",
+		"The release command supplies build/web/index.html explicitly."
+	)
+	assert_false(
+		export_presets.get_value(WEB_OPTIONS_SECTION, "variant/thread_support"),
+		"The baseline Web release must not require cross-origin-isolation headers."
+	)
+	assert_false(export_presets.get_value(WEB_OPTIONS_SECTION, "progressive_web_app/enabled"))
+	assert_eq(export_presets.get_value(WEB_OPTIONS_SECTION, "custom_template/debug"), "")
+	assert_eq(export_presets.get_value(WEB_OPTIONS_SECTION, "custom_template/release"), "")
