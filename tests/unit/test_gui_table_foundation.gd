@@ -162,6 +162,30 @@ func test_desktop_seats_are_equally_wide_for_every_supported_player_count() -> v
 				)
 
 
+func test_three_to_seven_player_tables_mirror_seat_positions_left_to_right() -> void:
+	for player_count: int in range(3, 8):
+		var table = PokerTableScene.instantiate()
+		table.hide()
+		add_child_autofree(table)
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = Vector2(1920, 1080)
+		table.bind_view(_hero_table_view(player_count), _avatar_assignments(player_count))
+
+		table.show()
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		var seat_rects: Dictionary[int, Rect2] = table.get_seat_rects()
+		var surface_width: float = table.get_surface_size().x
+		for seat: int in range(1, (player_count + 1) / 2):
+			var mirrored_seat: int = player_count - seat
+			var seat_center: Vector2 = seat_rects[seat].get_center()
+			var mirrored_center: Vector2 = seat_rects[mirrored_seat].get_center()
+			var context := "%d-player seats %d and %d" % [player_count, seat, mirrored_seat]
+			assert_almost_eq(seat_center.x + mirrored_center.x, surface_width, 0.01, context)
+			assert_almost_eq(seat_center.y, mirrored_center.y, 0.01, context)
+
+
 func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)

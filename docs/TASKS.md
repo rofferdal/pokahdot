@@ -90,16 +90,16 @@ Human tests complement automated tests; they do not replace them. If a human tes
 
 ## CLI completion gate — required before GUI work
 
-- [ ] **Gate:** all GUT unit and integration tests pass headlessly.
-- [ ] **Gate:** `gdlint` and `gdformat --check` pass for project GDScript.
-- [ ] **Gate:** every Milestone 0–3 human-test task is complete with discovered defects covered by regression tests.
-- [ ] **Gate:** the complete CLI tournament satisfies the applicable acceptance criteria in `docs/ProjectDescription.md`.
-- [ ] **Gate:** CLI code contains presentation/parsing only; poker rules remain exclusively in `scripts/core/`.
-- [ ] **Gate:** CLI startup can omit every value, override any subset, or override all participant/stack/blind values; it resolves omitted fields to defaults, rejects invalid explicit values before match creation, and uses the resolved values for the complete tournament.
-- [ ] **Gate:** every card visible in the CLI uses the rank-plus-Unicode-suit and bracketed collection format from `docs/POKERCARDS_IN_CLI.md`; internal card IDs and numeric rank/suit pairs never appear in player-facing output.
-- [ ] **Gate:** every CLI player list marks exactly the human player with `(you)` immediately after the display name, and no bot is marked as human.
-- [ ] **Gate:** adding a test decision model and profile requires registry/configuration changes only and no edits to poker-rule modules.
-- [ ] **Gate:** `README.md`, `docs/ProjectDescription.md`, and `docs/ARCHITECTURE.md` describe the working CLI accurately.
+- [x] **Gate:** all GUT unit and integration tests pass headlessly.
+- [x] **Gate:** `gdlint` and `gdformat --check` pass for project GDScript.
+- [x] **Gate:** every Milestone 0–3 human-test task is complete with discovered defects covered by regression tests.
+- [x] **Gate:** the complete CLI tournament satisfies the applicable acceptance criteria in `docs/ProjectDescription.md`.
+- [x] **Gate:** CLI code contains presentation/parsing only; poker rules remain exclusively in `scripts/core/`.
+- [x] **Gate:** CLI startup can omit every value, override any subset, or override all participant/stack/blind values; it resolves omitted fields to defaults, rejects invalid explicit values before match creation, and uses the resolved values for the complete tournament.
+- [x] **Gate:** every card visible in the CLI uses the rank-plus-Unicode-suit and bracketed collection format from `docs/POKERCARDS_IN_CLI.md`; internal card IDs and numeric rank/suit pairs never appear in player-facing output.
+- [x] **Gate:** every CLI player list marks exactly the human player with `(you)` immediately after the display name, and no bot is marked as human.
+- [x] **Gate:** adding a test decision model and profile requires registry/configuration changes only and no edits to poker-rule modules.
+- [x] **Gate:** `README.md`, `docs/ProjectDescription.md`, and `docs/ARCHITECTURE.md` describe the working CLI accurately.
 
 ## Milestone 4 — GUI for the functionally complete game
 
@@ -143,8 +143,9 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 - [x] Add a nine-player desktop layout regression for the widened panel and readable name area.
 - [x] Apply the same wide desktop player-panel dimensions to every supported player count, including the human seat, while preserving the compact mobile layout.
 - [x] Add desktop layout regression coverage proving that player panels have equal wide dimensions for 2–9 players.
-- [ ] With 3, 5, 6 and 7 players, the distribution of player positions around the table is not symmetric on left vs right side. Distribute players symmetric regardless the number of players.
-- [ ] **Human test:** inspect initial and automatically advanced bot snapshots at 2, 6, and 9 players; verify equally wide desktop player panels, readable bot chip-stack text, blinds, dealer, acting marker, private/public cards, doubled-size avatars, hidden opponent cards, and fully readable player names. At showdown, verify that each visible bot hole card has the same dimensions as its hidden card back.
+- [x] With 3, 5, 6 and 7 players, the distribution of player positions around the table is not symmetric on left vs right side. Distribute players symmetric regardless the number of players.
+- [x] Add GUI layout regression coverage proving mirrored left/right player-seat placement for 3–7 player tables.
+- [x] **Human test:** inspect initial and automatically advanced bot snapshots at 2, 6, and 9 players; verify equally wide desktop player panels, readable bot chip-stack text, blinds, dealer, acting marker, private/public cards, doubled-size avatars, hidden opponent cards, and fully readable player names. At showdown, verify that each visible bot hole card has the same dimensions as its hidden card back.
 
 ### Milestone 4.4 — Human actions and hand completion
 
@@ -162,6 +163,14 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 - [ ] **App increment:** the human can start with defaults or optional valid overrides and play the same complete tournament available in the CLI through the GUI, until one winner remains or the human quits, without duplicated rules.
 - [ ] **Human test:** use the short-stack configuration to finish a GUI tournament; verify hand transitions, button and blind movement, eliminations, heads-up behavior, final winner, total chips, distinct avatars, and the green table zones.
 - [ ] **Human test:** start another GUI tournament; verify quit confirmation cancels safely, then confirm quitting produces `player_quit`, no winner, and a clean return from the active table.
+
+### Milestone 4.6 — GUI information and visual polish
+
+- [ ] Audit every GUI game state (startup, live action, street transitions, all-in runout, showdown, hand settlement, elimination, tournament winner, and `player_quit`) to ensure all player-facing information is present, unambiguous, and readable without relying on CLI output.
+- [ ] Improve the presentation-only table and action UI as needed for visual hierarchy, spacing, alignment, color contrast, card and avatar treatment, and consistent state feedback; do not duplicate poker rules or move game state out of `scripts/core/`.
+- [ ] Add or update GUI layout and adapter regressions for every corrected information or visual defect, including supported desktop and mobile aspect ratios and 2–9 player counts where applicable.
+- [ ] **App increment:** the complete GUI tournament presents all required poker, action, and tournament information clearly throughout play, with a coherent and polished visual design.
+- [ ] **Human test:** play representative GUI hands through normal betting, all-in runout, showdown, elimination, tournament completion, and `player_quit`; record and correct any missing, ambiguous, clipped, overlapping, low-contrast, or aesthetically inconsistent information before release verification.
 
 ## Release verification
 

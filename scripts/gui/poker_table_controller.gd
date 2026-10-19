@@ -477,7 +477,7 @@ func _layout_table() -> void:
 		if compact_layout and is_hero:
 			seat_size = Vector2(clampf(surface_size.x * 0.56, 190.0, 220.0), 80.0)
 		var normalized_position: Vector2 = _normalized_seat_position(
-			_visual_slot_for_seat(seat, seat_count), seat_count, compact_layout, is_hero
+			_visual_slot_for_seat(seat, seat_count), seat_count, is_hero
 		)
 		var panel: PanelContainer = _seat_widgets[seat]
 		_apply_compact_seat_typography(panel, compact_layout, is_hero)
@@ -522,69 +522,80 @@ func _visual_slot_for_seat(seat: int, seat_count: int) -> int:
 func _normalized_seat_position(
 	visual_slot: int,
 	seat_count: int,
-	compact_layout: bool,
 	is_hero: bool,
 ) -> Vector2:
 	if is_hero:
 		return Vector2(0.5, 0.91)
-	if compact_layout and seat_count == 9:
-		var positions: Array[Vector2] = [
-			Vector2(0.20, 0.06),
-			Vector2(0.87, 0.25),
-			Vector2(0.87, 0.49),
-			Vector2(0.75, 0.69),
-			Vector2(0.5, 0.91),
-			Vector2(0.25, 0.69),
-			Vector2(0.13, 0.49),
-			Vector2(0.13, 0.25),
-			Vector2(0.80, 0.06),
-		]
-		return positions[visual_slot]
-	if seat_count == 9:
-		var desktop_positions: Array[Vector2] = [
-			Vector2(0.32, 0.05),
-			Vector2(0.90, 0.30),
-			Vector2(0.90, 0.52),
-			Vector2(0.75, 0.75),
-			Vector2(0.5, 0.91),
-			Vector2(0.25, 0.75),
-			Vector2(0.10, 0.52),
-			Vector2(0.10, 0.30),
-			Vector2(0.68, 0.05),
-		]
-		return desktop_positions[visual_slot]
-	if seat_count == 6:
-		var desktop_positions: Array[Vector2] = [
-			Vector2(0.30, 0.08),
-			Vector2(0.88, 0.30),
-			Vector2(0.78, 0.70),
-			Vector2(0.5, 0.91),
-			Vector2(0.22, 0.70),
-			Vector2(0.12, 0.30),
-		]
-		return desktop_positions[visual_slot]
-	if compact_layout and seat_count == 6:
-		var six_positions: Array[Vector2] = [
-			Vector2(0.5, 0.09),
-			Vector2(0.87, 0.30),
-			Vector2(0.84, 0.65),
-			Vector2(0.5, 0.91),
-			Vector2(0.16, 0.65),
-			Vector2(0.13, 0.30),
-		]
-		return six_positions[visual_slot]
-	var angle: float = -PI * 0.5 + TAU * float(visual_slot) / float(seat_count)
-	var horizontal_radius: float = 0.47 if compact_layout else 0.39
-	var vertical_radius: float = 0.58 if compact_layout else (0.48 if seat_count >= 9 else 0.40)
-	var position := Vector2(
-		0.5 + cos(angle) * horizontal_radius, 0.5 + sin(angle) * vertical_radius
-	)
-	var bottom_slot: int = seat_count / 2
-	var clockwise_distance: int = posmod(visual_slot - bottom_slot, seat_count)
-	var counterclockwise_distance: int = posmod(bottom_slot - visual_slot, seat_count)
-	if min(clockwise_distance, counterclockwise_distance) == 1:
-		position.y -= 0.21 if seat_count >= 9 else 0.13
-	return position
+	return _symmetric_seat_positions(seat_count)[visual_slot]
+
+
+func _symmetric_seat_positions(seat_count: int) -> Array[Vector2]:
+	var positions: Array[Vector2] = []
+	match seat_count:
+		2:
+			positions = [Vector2(0.5, 0.08), Vector2(0.5, 0.91)]
+		3:
+			positions = [Vector2(0.15, 0.32), Vector2(0.5, 0.91), Vector2(0.85, 0.32)]
+		4:
+			positions = [
+				Vector2(0.5, 0.06),
+				Vector2(0.88, 0.36),
+				Vector2(0.5, 0.91),
+				Vector2(0.12, 0.36),
+			]
+		5:
+			positions = [
+				Vector2(0.28, 0.12),
+				Vector2(0.14, 0.55),
+				Vector2(0.5, 0.91),
+				Vector2(0.86, 0.55),
+				Vector2(0.72, 0.12),
+			]
+		6:
+			positions = [
+				Vector2(0.5, 0.08),
+				Vector2(0.88, 0.30),
+				Vector2(0.78, 0.70),
+				Vector2(0.5, 0.91),
+				Vector2(0.22, 0.70),
+				Vector2(0.12, 0.30),
+			]
+		7:
+			positions = [
+				Vector2(0.22, 0.72),
+				Vector2(0.30, 0.06),
+				Vector2(0.88, 0.40),
+				Vector2(0.5, 0.91),
+				Vector2(0.12, 0.40),
+				Vector2(0.70, 0.06),
+				Vector2(0.78, 0.72),
+			]
+		8:
+			positions = [
+				Vector2(0.5, 0.05),
+				Vector2(0.82, 0.19),
+				Vector2(0.90, 0.48),
+				Vector2(0.74, 0.75),
+				Vector2(0.5, 0.91),
+				Vector2(0.26, 0.75),
+				Vector2(0.10, 0.48),
+				Vector2(0.18, 0.19),
+			]
+		9:
+			positions = [
+				Vector2(0.20, 0.05),
+				Vector2(0.90, 0.30),
+				Vector2(0.90, 0.52),
+				Vector2(0.75, 0.75),
+				Vector2(0.5, 0.91),
+				Vector2(0.25, 0.75),
+				Vector2(0.10, 0.52),
+				Vector2(0.10, 0.30),
+				Vector2(0.80, 0.05),
+			]
+		_:
+			push_error("PokerTableController does not support %d seats." % seat_count)
+	return positions
 
 
 func _queue_layout() -> void:
