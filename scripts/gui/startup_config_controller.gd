@@ -34,6 +34,7 @@ func _ready() -> void:
 	startup_adapter = GuiStartupConfigAdapterScript.new(
 		load("res://resources/default_tournament_config.tres") as TournamentConfig
 	)
+	_configure_numeric_inputs_for_mobile()
 	_apply_defaults()
 	%StartButton.pressed.connect(_on_start_pressed)
 	_poker_table.tournament_quit_confirmed.connect(_on_tournament_quit_confirmed)
@@ -116,6 +117,18 @@ func _set_startup_form_font_sizes(scale_factor: float) -> void:
 		if control.name == &"Title":
 			default_font_size = DEFAULT_TITLE_FONT_SIZE
 		control.add_theme_font_size_override(&"font_size", roundi(default_font_size * scale_factor))
+
+
+func _configure_numeric_inputs_for_mobile() -> void:
+	for input: LineEdit in [
+		_player_count_input,
+		_starting_stack_input,
+		_small_blind_input,
+		_big_blind_input,
+	]:
+		input.virtual_keyboard_enabled = true
+		input.virtual_keyboard_show_on_focus = true
+		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 
 
 func _apply_defaults() -> void:

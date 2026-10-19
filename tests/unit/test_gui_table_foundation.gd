@@ -63,6 +63,22 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 	)
 
 
+func test_startup_numeric_inputs_request_a_mobile_number_keyboard() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+
+	for input_path: NodePath in [
+		^"Center/Panel/Margin/Form/PlayerCountInput",
+		^"Center/Panel/Margin/Form/StartingStackInput",
+		^"Center/Panel/Margin/Form/SmallBlindInput",
+		^"Center/Panel/Margin/Form/BigBlindInput",
+	]:
+		var input := main.get_node(input_path) as LineEdit
+		assert_true(input.virtual_keyboard_enabled, str(input_path))
+		assert_true(input.virtual_keyboard_show_on_focus, str(input_path))
+		assert_eq(input.virtual_keyboard_type, LineEdit.KEYBOARD_TYPE_NUMBER, str(input_path))
+
+
 func test_default_avatar_catalog_has_sixteen_distinct_loadable_pixel_portraits() -> void:
 	var paths: PackedStringArray = GuiAvatarCatalogScript.default_avatar_paths()
 	var distinct_paths: Dictionary = {}

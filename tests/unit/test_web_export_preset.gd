@@ -22,5 +22,9 @@ func test_web_release_preset_is_committed_and_single_threaded() -> void:
 		"The baseline Web release must not require cross-origin-isolation headers."
 	)
 	assert_false(export_presets.get_value(WEB_OPTIONS_SECTION, "progressive_web_app/enabled"))
+	assert_true(
+		export_presets.get_value(WEB_OPTIONS_SECTION, "html/experimental_virtual_keyboard"),
+		"The Web export must provide touchscreen text entry for the startup form."
+	)
 	assert_eq(export_presets.get_value(WEB_OPTIONS_SECTION, "custom_template/debug"), "")
 	assert_eq(export_presets.get_value(WEB_OPTIONS_SECTION, "custom_template/release"), "")
