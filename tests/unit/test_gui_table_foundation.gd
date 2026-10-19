@@ -188,14 +188,14 @@ func test_three_to_seven_player_tables_mirror_seat_positions_left_to_right() -> 
 
 func test_position_markers_follow_clockwise_core_order_at_every_table_size() -> void:
 	for player_count: int in range(2, 10):
-		var table = PokerTableScene.instantiate()
+		var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 		table.hide()
 		add_child_autofree(table)
 		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		table.size = Vector2(1920, 1080)
 
 		for button_seat: int in range(player_count):
-			var view := _hero_table_view(player_count)
+			var view: GameView = _hero_table_view(player_count)
 			view.button_seat = button_seat
 			view.small_blind_seat = button_seat
 			view.big_blind_seat = posmod(button_seat + 1, player_count)
@@ -211,7 +211,7 @@ func test_position_markers_follow_clockwise_core_order_at_every_table_size() -> 
 			var small_blind_center: Vector2 = seat_rects[view.small_blind_seat].get_center()
 			var big_blind_center: Vector2 = seat_rects[view.big_blind_seat].get_center()
 			var surface_center: Vector2 = table.get_surface_size() * 0.5
-			var context := "%d players, button seat %d" % [player_count, button_seat]
+			var context: String = "%d players, button seat %d" % [player_count, button_seat]
 
 			assert_eq(
 				view.hero_seat, 0, "%s must preserve the recipient's core seat identity" % context

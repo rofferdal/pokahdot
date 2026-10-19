@@ -182,10 +182,10 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 
 ### PR — Code quality and structure gate before Milestone 4.5
 
-- [ ] **PR gate:** review every changed GDScript file for precise, domain-oriented names. Classes, methods, variables, constants, signals, scene nodes, and Resource IDs must describe their responsibility; remove misleading abbreviations, stale names, and ambiguous generic names.
-- [ ] **PR gate:** verify each file has one clear responsibility and is located in the owning layer. Keep poker rules and mutable match state in `scripts/core/`; keep GUI layout, styling, and input adaptation in `scripts/gui/` and `scenes/`; keep terminal parsing and rendering in `scripts/cli/`.
-- [ ] **PR gate:** verify dependency direction and interfaces: presentation uses recipient-safe views and typed core commands/results; `scripts/core/` imports no `Control`, scene, or standard-I/O API; presentation code does not calculate betting, settlement, visibility, or tournament rules.
-- [ ] **PR gate:** require strong types, named constants instead of unexplained literals, explicit validation/error paths, and focused automated regression coverage for any refactoring. Run the full headless test suite, `gdlint`, and `gdformat --check` before approving the PR.
+- [x] **PR gate:** review every changed GDScript file for precise, domain-oriented names. Classes, methods, variables, constants, signals, scene nodes, and Resource IDs must describe their responsibility; remove misleading abbreviations, stale names, and ambiguous generic names.
+- [x] **PR gate:** verify each file has one clear responsibility and is located in the owning layer. Keep poker rules and mutable match state in `scripts/core/`; keep GUI layout, styling, and input adaptation in `scripts/gui/` and `scenes/`; keep terminal parsing and rendering in `scripts/cli/`.
+- [x] **PR gate:** verify dependency direction and interfaces: presentation uses recipient-safe views and typed core commands/results; `scripts/core/` imports no `Control`, scene, or standard-I/O API; presentation code does not calculate betting, settlement, visibility, or tournament rules.
+- [x] **PR gate:** require strong types, named constants instead of unexplained literals, explicit validation/error paths, and focused automated regression coverage for any refactoring. Run the full headless test suite, `gdlint`, and `gdformat --check` before approving the PR.
 
 ### Milestone 4.5 — Tournament progression and quit
 
