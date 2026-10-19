@@ -282,6 +282,10 @@ evidence on a person's behalf.
   just disappears without entering any number.
   I do not want the screen to minimize and I prefer a numeric pad, showing the numbers
   as I enter them (the normal way of entering numbers into a field)
+- [x] **Agent task - Chrome on Android interaction and visual elements are too small**
+  on Chrome on Android, everything on the screen is too small and hard to read.
+  Action buttons and buttons on numeric pad are so small that it is impossible to hit
+  reliably with a finger.  This must be improved.
 - [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
   startup screen, inspect the browser console for errors.

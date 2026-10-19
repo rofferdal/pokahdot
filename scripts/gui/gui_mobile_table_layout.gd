@@ -11,6 +11,7 @@ const OPPONENT_CHIP_FONT_SIZE: int = 22
 const MOBILE_PORTRAIT_ASPECT_RATIO: float = 1.2
 const MOBILE_MAX_CONTENT_SCALE: float = 2.0
 const MOBILE_OPPONENT_MAX_VERTICAL_POSITION: float = 0.6
+const MOBILE_TOUCH_TARGET_HEIGHT: float = 48.0
 
 
 static func is_mobile_portrait(surface_size: Vector2) -> bool:
@@ -83,6 +84,10 @@ static func apply_scale(
 	quit_button.add_theme_font_size_override("font_size", 21 * scale)
 	for control: Control in action_controls:
 		control.add_theme_font_size_override("font_size", 21 * scale)
+		control.custom_minimum_size = Vector2(
+			control.custom_minimum_size.x,
+			MOBILE_TOUCH_TARGET_HEIGHT * scale if mobile_portrait else 0.0,
+		)
 	for card: Control in card_slots.get_children():
 		_scale_card_face(card, Vector2(30.0, 38.0) * scale, 29 * scale)
 	for seat: int in seat_widgets:

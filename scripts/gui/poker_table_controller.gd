@@ -172,6 +172,7 @@ func show_wager_keypad() -> void:
 			_wager_input,
 			_bound_view.minimum_wager_total,
 			_bound_view.maximum_wager_total,
+			GuiMobileTableLayoutScript.content_scale(_surface.size),
 		)
 	)
 
