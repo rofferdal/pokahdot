@@ -297,6 +297,12 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 		assert_lte(
 			event_rect.end.x, hero_rect.position.x - 12.0, "%d-player event position" % player_count
 		)
+		assert_almost_eq(
+			event_rect.end.y,
+			hero_rect.end.y,
+			0.001,
+			"%d-player event log and human seat bottoms must align" % player_count,
+		)
 		assert_lte(action_rect.size.y, 140.0, "%d-player two-row action height" % player_count)
 		assert_gte(event_rect.size.x, 380.0, "%d-player event width" % player_count)
 		assert_lte(event_rect.size.y, 140.0, "%d-player event height" % player_count)

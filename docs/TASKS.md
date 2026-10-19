@@ -204,14 +204,101 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 - [x] **Human test:** use the short-stack configuration to finish a GUI tournament; verify hand transitions, button and blind movement, eliminations, heads-up behavior, final winner, total chips, distinct avatars, and the green table zones.
 - [x] **Human test:** start another GUI tournament; verify quit confirmation cancels safely, then confirm quitting produces `player_quit`, no winner, and a clean return from the active table.
 
-### Milestone 4.6 — GUI information and visual polish
+### Milestone 4.6a — GUI information and visual polish
 
 - [x] Verify that layout is good for different screen sizes, including Ipad, in browsers, on desktop, in mobile phone.
 - [x] Audit every GUI game state (startup, live action, street transitions, all-in runout, showdown, hand settlement, elimination, tournament winner, and `player_quit`) to ensure all player-facing information is present, unambiguous, and readable without relying on CLI output.
 - [x] Improve the presentation-only table and action UI as needed for visual hierarchy, spacing, alignment, color contrast, card and avatar treatment, and consistent state feedback; do not duplicate poker rules or move game state out of `scripts/core/`.
 - [x] Add or update GUI layout and adapter regressions for every corrected information or visual defect, including supported desktop and mobile aspect ratios and 2–9 player counts where applicable.
 - [x] **App increment:** the complete GUI tournament presents all required poker, action, and tournament information clearly throughout play, with a coherent and polished visual design.
-- [ ] Pre-human testing: Describe in the task below in detail how this can be tested on browser and different devices. Consider splitting the task into one task for each device/browser. These devices will not be developer machines and can not run this from a local git code repo.
+- [x] The event log field is not consistently aligned with the human player seat. The bottom of the human player seat and the bottom of the event field should be aligned.
+
+### Milestone 4.6b — Web publishing and pre-human test runbook
+
+Use `docs/WEB_SETUP.md` as the authoritative procedure. An **Agent task** may
+be completed by a coding agent with repository access. A **Human task** is
+written for an inexperienced developer and requires a person because it uses a
+hosting account, makes a release/publication decision, or needs a real browser
+or physical device. Agents may prepare commands, configuration, templates, and
+regression coverage, but must never mark a Human task complete or invent test
+evidence on a person's behalf.
+
+- [ ] **Agent task — export configuration:** add and commit the Godot 4.7.2
+  `Web` release preset in `export_presets.cfg`. Keep Web threads disabled for
+  the baseline release, keep credentials out of version control, and ignore
+  reproducible `build/` output. Add a regression or release check proving the
+  preset is present and named exactly `Web`.
+- [ ] **Human task — install export prerequisites:** install Godot 4.7.2 and
+  its matching export templates using the instructions in `docs/WEB_SETUP.md`.
+  Open **Project > Export** and confirm that the committed `Web` preset is
+  visible without a missing-template warning. Record the Godot version used.
+- [ ] **Agent task — reproducible release build:** add the repository-local
+  commands or automation needed to run lint, formatting, all GUT tests, and
+  `--export-release "Web" build/web/index.html` from a clean commit. Verify
+  that `index.html` and every file it references are in `build/web`, and that
+  development addons and tests are not included in the release output.
+- [ ] **Agent task — deployment configuration:** add a reviewed GitHub Pages
+  deployment workflow which installs pinned Godot 4.7.2 plus matching export
+  templates, runs the release checks, exports only `build/web`, creates
+  `.nojekyll`, uploads the artifact, and deploys it with the least required
+  Pages permissions. The workflow must expose the exact deployed URL and fail
+  on an export or test failure.
+- [ ] **Human task — approve hosting and enable Pages:** confirm that GitHub
+  Pages is an approved host and that the chosen repository visibility/audience
+  is acceptable. In **Settings > Pages**, select **GitHub Actions**, commit and
+  push the reviewed workflow to the approved release branch, and retain the
+  successful deployment run URL. Do not publish a build containing
+  uncommitted changes.
+- [ ] **Agent task — deployment review:** inspect the successful workflow
+  artifact and deployment metadata. Confirm that the generated site is served
+  from the release artifact at the expected stable `https://` URL, that the
+  exported Web build is single-threaded, and that the evidence-record template
+  in `docs/WEB_SETUP.md` is ready for the published commit. Report any issue
+  without marking a browser/device test complete.
+- [ ] **Human task — hosted-build readiness evidence:** on the intended test
+  device, open the stable URL in a private/incognito window. Wait for the
+  startup screen, inspect the browser console for errors, and save screenshots.
+  Record the URL, full commit SHA, deployment-run URL, device model, OS
+  version, browser version, orientation, viewport size, and console result in
+  the evidence record.
+- [ ] **Human task — desktop Chrome or Edge matrix:** on current Windows or
+  macOS Chrome/Edge, execute the representative flow in both 2-player and
+  9-player default tournaments at 1920×1080 and 1280×720. Capture every
+  required state and readability/bounds result specified in `docs/WEB_SETUP.md`.
+- [ ] **Human task — desktop Firefox matrix:** repeat the desktop matrix in
+  current Firefox at both sizes. Explicitly record font rendering, suit
+  colours, scrollable event history, and the event-log/human-seat bottom
+  alignment compared with the approved reference screenshots.
+- [ ] **Human task — physical iPad Safari matrix:** use a physical supported
+  iPad in Safari in portrait and landscape, testing 2-player and 9-player
+  games. Rotate during startup and live play; record screenshots and any
+  scrolling, clipping, overlap, readability, stale-layout, or touch defect.
+- [ ] **Human task — physical iPhone Safari matrix:** use a physical supported
+  iPhone in Safari in both orientations with a 9-player game. Verify wrapped
+  controls, event-history scrolling, Fold/Call/Raise/All-in taps, and one
+  mid-play rotation; save before/after screenshots.
+- [ ] **Human task — physical Android Chrome matrix:** use a physical supported
+  Android phone in current Chrome and repeat the iPhone flow with the browser
+  address bar both expanded and collapsed. Record every touch, clipping,
+  contrast, text-size, and orientation result with screenshots.
+- [ ] **Agent task — defect remediation:** for each human-reported defect,
+  reproduce it from the supplied evidence where possible, fix only the
+  appropriate presentation/deployment layer, add or update a regression test,
+  run the full automated suite, and prepare a new deployment candidate.
+- [ ] **Human task — evidence sign-off:** verify that every required browser
+  and physical-device record is attached to one immutable commit and stable
+  HTTPS URL. Confirm reruns after every defect fix, then mark the corresponding
+  Milestone 4.6c pre-human checks complete.
+
+Milestone 4.6c Human testing with preparations
+
+- [x] Pre-human testing: document hosted-build checks by browser and device so testers do not need local repository access.
+  - [ ] **Pre-human test — hosted build readiness:** publish the Web export at a stable HTTPS URL. On the test device, open that URL in a private/incognito window, wait for the startup screen without browser-console errors, and record the URL, build version/commit, device model, OS version, browser version, orientation, and viewport size with screenshots.
+  - [ ] **Pre-human test — desktop Chrome/Edge:** on a current Windows or macOS desktop browser at 1920×1080 and a resized 1280×720 window, start both 2-player and 9-player default tournaments. Confirm all seats, event history, action controls, cards, board, pot, markers, and Quit confirmation are visible, readable, in bounds, and non-overlapping. Play through a fold, normal betting, all-in runout, showdown, elimination, tournament winner, and player quit; attach screenshots for each state.
+  - [ ] **Pre-human test — desktop Firefox:** on a current Windows or macOS Firefox browser at 1920×1080 and 1280×720, repeat the desktop Chrome/Edge flow. Specifically confirm font rendering, card-suit colours, scrollable event history, and the event-log bottom alignment with the human seat match the reference screenshots.
+  - [ ] **Pre-human test — iPad Safari:** on a physical iPad running a supported iPadOS version, open the hosted URL in Safari in both portrait and landscape. Test 2-player and 9-player games, rotate during startup and live play, and complete the representative flow. Confirm no horizontal page scroll, clipped controls, overlap, unreadable text, stale layout, or lost touch input after rotation; capture a screenshot per orientation and state defect.
+  - [ ] **Pre-human test — iPhone Safari:** on a physical supported iPhone, open the hosted URL in Safari in portrait and landscape. Start a 9-player game, verify wrapped action controls remain fully tappable, scroll event history, submit Fold/Call/Raise/All-in, rotate once during play, and verify all required table states remain legible without zooming. Capture screenshots before and after rotation.
+  - [ ] **Pre-human test — Android Chrome:** on a physical supported Android phone, repeat the iPhone Safari flow in current Chrome. Include browser address-bar expanded and collapsed states, because both change the effective viewport height. Record any touch, clipping, contrast, text-size, or orientation issue with a screenshot and the device/browser details.
 - [ ] **Human test:** play representative GUI hands through normal betting, all-in runout, showdown, elimination, tournament completion, and `player_quit`; record and correct any missing, ambiguous, clipped, overlapping, low-contrast, or aesthetically inconsistent information before release verification.
 
 ## Release verification

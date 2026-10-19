@@ -936,7 +936,11 @@ func _layout_human_adjacent_panels(surface_size: Vector2, compact_layout: bool) 
 	_event_log.size = event_size
 	_event_log.position = Vector2(
 		maxf(12.0, hero_panel.position.x - event_size.x - 14.0),
-		minf(panel_y, surface_size.y - event_size.y - 12.0),
+		clampf(
+			hero_panel.position.y + hero_panel.size.y - event_size.y,
+			12.0,
+			surface_size.y - event_size.y - 12.0,
+		),
 	)
 
 
