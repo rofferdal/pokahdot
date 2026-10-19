@@ -87,7 +87,7 @@ Gyldige trekk avhenger av `current_bet` (største innsats denne runden, inkluder
 | `check` | Når `bet_this_round == current_bet` (ingen mer å matche). |
 | `call` | Når `current_bet > bet_this_round`. Call = `min(stack, current_bet - bet_this_round)`. Call av hele stacken er all-in. |
 | `bet` | Når `current_bet == 0` postflop (ingen har satset). Min bet = BB. Maks = hele stacken. |
-| `raise` | Når `current_bet > 0`. Min **full raise** = `current_bet + BB`. Første raise preflop: `last_full_raise_size` starter som BB, så min raise totalt er 2 BB hvis BB er `current_bet`. Maks = all-in. |
+| `raise` | Når `current_bet > 0`. Min **full raise** = `current_bet + BB`, uavhengig av størrelsen på tidligere full raises denne runden. Første raise preflop er derfor minst 2 BB når `current_bet` er BB. Maks = all-in. |
 
 All-in som er **mindre enn min full raise** er tillatt, men **åpner ikke** ny action for spillere som allerede har handlet og matchet forrige full raise. Spillere som ennå ikke har handlet, må fortsatt folde/calle/raise.
 
@@ -98,7 +98,7 @@ Bettingrunden er ferdig når:
 
 ### 4.6 Potter og sidepotter
 
-Når minst én spiller er all-in for mindre enn andre, skal `PotManager` lage **sidepotter**. En spiller kan bare vinne potter hen er med i. Foldede spillere kan ikke vinne, men chipsene deres blir i potten.
+Når minst én spiller er all-in for mindre enn andre, skal `PotManager` lage **sidepotter**. En spiller kan bare vinne potter hen er med i. Foldede spillere kan ikke vinne, men chipsene deres blir i potten. Umatchet overskytende bidrag returneres til bidragsyteren, ikke som en énspiller-pott, og tilstøtende lag med samme vinnerberettigelse slås sammen til én kanonisk pott.
 
 ### 4.7 Håndvurdering
 
@@ -205,6 +205,7 @@ Inneholder minst:
 - per sete: stack, bet_this_round, folded, all_in, busted, navn, om det er menneske
 - `hero_seat`, `hero_hole_cards` (kun for den agenten viewet er bygd for)
 - `legal_actions` med min/maks amount for bet/raise og call-størrelse
+- offentlig handlingshistorikk og recipient-safe showdown-resultater for kort som legitimt vises, inkludert kategori, tie-break-verdier og valgt femkortshånd
 - `hand_number`
 - turneringsstatus: `running` eller `finished`
 - `end_reason`: `none`, `winner` eller `player_quit`
@@ -224,8 +225,12 @@ Andres hullkort kun når `street == showdown` eller hånden er over og kortene f
 - Knapper: Fold, Check/Call, Bet/Raise (beløp: min, 1/2 pot, pot, all-in, fri input).
 - En tydelig `Avslutt`-knapp som kan brukes når som helst. Den skal be om bekreftelse før spillet avsluttes.
 - Én hovedscene for bordet.
-- Spillerne skal ha små avatarer (gjerne 32x32 pixler), og de skal være ulike og tildeles tilfeldig. 
+- Standardvinduet er 1920 × 1080. Bordet må fortsatt reflowe uten overlapp ved representative desktop- og mobile-aspektforhold.
+- Spillerne skal ha 16 ulike avatarressurser med 32 × 32 piksler som kildestørrelse. De tildeles uten gjentakelse per turnering og kan vises forstørret når lesbarheten krever det.
 - Det skal vises et grønt bord som illustrerer spillet med tydelig sone for felleskortene og plasser for bud og pott.
+- Menneskets sete vises nederst uten å endre kjernens seteidentitet eller pokerposisjoner. Motstandere viser to tydelige kortbaksider til showdown; folded/outbid-seter forblir synlige i gråtoner, men uten hullkort.
+- Setepaneler skal ha lesbare navn, stack direkte under navnet, posisjonsmerker og siste offentlige handling på en separat linje. Fellessone, bud og pott sentreres som én gruppe.
+- Handlingskontroller vises som tydelige, kompakte to-raders kontroller ved menneskets sete. Hendelsesloggen er rullbar, høy-kontrast og må ikke skjule seter. Ved showdown vises hver avslørte spillers beste hånd over det tilhørende setet.
 - All player-facing GUI text must be at least 20 px, matching the desktop opponent-name text size. Compact layouts may reflow controls but must not reduce this minimum.
 
 ### 7.2 CLI (headless)

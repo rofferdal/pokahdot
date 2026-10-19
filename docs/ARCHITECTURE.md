@@ -1,7 +1,7 @@
 # Pokahdot Architecture
 
-Status: Proposed for the first playable version  
-Last updated: 2026-10-16
+Status: Implemented through GUI Milestone 4.4; Milestones 4.5–4.6 remain planned
+Last updated: 2026-10-19
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -163,7 +163,7 @@ For each layer:
 4. Evaluate and award each pot independently.
 5. Give an odd chip to the first eligible winner clockwise from the button.
 
-This ledger-based design keeps side-pot construction independent of the order in which all-ins occurred.
+Unmatched excess contribution is returned to its contributor rather than becoming a one-player pot. Adjacent layers with identical eligible winners are merged, so live blinds or unequal called wagers do not appear as misleading side pots. This ledger-based design keeps side-pot construction independent of the order in which all-ins occurred.
 
 ### 5.9 `hand_evaluator.gd`
 
@@ -185,9 +185,10 @@ It must not inspect players, stacks, pots, or UI state.
 - each seat's name, human flag, stack, street contribution, folded/all-in/busted flags, and active/eliminated status;
 - `hero_seat` and only that recipient's `hero_hole_cards`;
 - legal actions, including call size and minimum/maximum bet or raise totals;
+- public action history and recipient-safe showdown results, including category, ordered tie-break values, and the selected five cards for each legitimately revealed hand;
 - hand number, tournament status, end reason, and optional winner.
 
-The architecture may add public action history, but it contains only actions and public outcomes. Opponent hole cards appear only at showdown, or at `hand_end` when those cards were actually shown; folded or otherwise unrevealed cards never appear.
+Public action history contains only actions and public outcomes. Opponent hole cards appear only at showdown, or at `hand_end` when those cards were actually shown; folded or otherwise unrevealed cards never appear.
 
 Collections exposed in a view are duplicated so a bot or UI cannot mutate core state indirectly.
 
@@ -333,7 +334,11 @@ The startup panel and table are views in one scalable `Control`-based main scene
 
 The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer, blind, and acting markers. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to `PokerTableController` and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
 
-Each seat panel displays one small avatar, targeting 32 by 32 pixels at its native size. At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
+The default game viewport is 1920 by 1080, while the `Control` layout must reflow without overlap at supported desktop and mobile aspect ratios. The human recipient is visually anchored at the bottom; this is a presentation mapping only and must not alter core seat identities or poker positions. Desktop seat panels use equal wide dimensions across 2–9 seats, with mirrored left/right placement where applicable; compact layouts may change dimensions but retain readable names, stacks, markers, and cards.
+
+Each seat panel displays one distinct avatar sourced at 32 by 32 pixels and enlarged for readable presentation (currently 56 pixels for opponents and 64 pixels for the human). At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
+
+Live seat panels show stacks directly below player names, position badges, and two visible card backs for opponents until cards are legitimately revealed. The current public action appears on its own line below the seat. Folded or outbid seats remain visible in grayscale and hide their cards. The centered board/pot/wager zone is visually separate from seats. Human action controls are framed, explicit two-row controls beside the human seat; the ordered event feed is a high-contrast scrollable viewport on the other side. Showdown summaries are rendered above the corresponding revealed seat from the recipient-safe result, never from hidden core state.
 
 ### CLI adapter
 
