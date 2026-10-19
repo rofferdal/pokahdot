@@ -273,6 +273,15 @@ evidence on a person's behalf.
   event history, and action controls instead of retaining desktop-scale UI in
   unused felt. Keep the desktop layout on rotation and add portrait regression
   coverage for a high-resolution Android viewport.
+- [x] **Agent task - Android and iPad numeric field interaction** on Chrome in
+  browser on iPad and on Android, the wager amount field next to the Raise button
+  on the game screen can not be entered. It seems the default is to launch a full
+  alphanumerid keyboard while minimizing the game screen so it is unreadable. The
+  numbers from that keyboard does not show in the wager field. If the full keyboard
+  is closed, a numeric pad shows up, but when pressing a number key, the numeric pad
+  just disappears without entering any number.
+  I do not want the screen to minimize and I prefer a numeric pad, showing the numbers
+  as I enter them (the normal way of entering numbers into a field)
 - [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
   startup screen, inspect the browser console for errors.

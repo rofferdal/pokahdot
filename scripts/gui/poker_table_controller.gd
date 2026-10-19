@@ -72,8 +72,11 @@ func _ready() -> void:
 	_surface.resized.connect(_queue_layout)
 	visibility_changed.connect(_queue_layout)
 	_apply_table_styles()
-	_wager_input.virtual_keyboard_enabled = true
-	_wager_input.virtual_keyboard_show_on_focus = true
+	# The custom keypad preserves the Web canvas and shows its entered value in-place.
+	# Do not request the browser keyboard here: on mobile it can resize the game and
+	# steal or discard numeric input before the presentation-owned keypad receives it.
+	_wager_input.virtual_keyboard_enabled = false
+	_wager_input.virtual_keyboard_show_on_focus = false
 	_wager_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	_wager_keypad = WagerKeypadScript.new()
 	add_child(_wager_keypad)

@@ -41,11 +41,13 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_eq(table.get_node("%WagerButton").text, "Raise")
 	assert_eq(table.get_node("%AllInButton").text, "All-in")
 	var wager_input: LineEdit = table.get_node("%WagerInput")
-	assert_true(wager_input.virtual_keyboard_enabled)
-	assert_true(wager_input.virtual_keyboard_show_on_focus)
+	assert_false(wager_input.virtual_keyboard_enabled)
+	assert_false(wager_input.virtual_keyboard_show_on_focus)
 	assert_eq(wager_input.virtual_keyboard_type, LineEdit.KEYBOARD_TYPE_NUMBER)
 	table.show_wager_keypad()
 	assert_true(table.get_node("WagerKeypad").visible)
+	table.get_node("WagerKeypad/Content/Keys/Key2").emit_signal("pressed")
+	assert_eq(wager_input.text, "2")
 
 	table.submit_wager_total(view.minimum_wager_total)
 
