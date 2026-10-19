@@ -159,12 +159,12 @@ func test_event_log_preserves_domain_event_order_and_fold_settlement() -> void:
 	table.get_node("%FoldButton").emit_signal("pressed")
 
 	var event_texts: Array[String] = _event_texts(table)
-	assert_eq(event_texts[0], "Hand")
-	assert_string_contains(event_texts[1], "blind")
-	assert_string_contains(event_texts[2], "blind")
-	assert_eq(event_texts[3], "Deal")
+	assert_eq(event_texts[0], "Hand 1 started")
+	assert_string_contains(event_texts[1], "Player 1 (you) posted a blind")
+	assert_string_contains(event_texts[2], "Player 2 posted a blind")
+	assert_eq(event_texts[3], "Hole cards dealt")
 	assert_string_contains(event_texts[-2], "wins")
-	assert_eq(event_texts[-1], "Complete")
+	assert_eq(event_texts[-1], "Hand complete")
 	assert_eq(match_instance.get_view_for(0).hand_winner_seat, 1)
 
 
@@ -186,7 +186,7 @@ func test_gui_renders_checked_down_actions_and_the_flop_transition() -> void:
 
 	var view: GameView = match_instance.get_view_for(0)
 	assert_eq(view.community_cards.size(), 3)
-	assert_eq(_event_texts(table)[-1], "P2 action 0")
+	assert_eq(_event_texts(table)[-1], "Player 2: Check")
 
 
 func test_showdown_remains_visible_for_its_configured_pause_before_next_hand() -> void:
@@ -231,7 +231,7 @@ func test_controller_starts_the_next_hand_and_updates_the_button_after_a_hand_bo
 	assert_eq(next_view.hand_number, first_view.hand_number + 1)
 	assert_ne(next_view.button_seat, first_view.button_seat)
 	assert_false(next_view.hand_complete)
-	assert_true(_event_texts(table).has("Hand"))
+	assert_true(_event_texts(table).has("Hand 2 started"))
 
 
 func test_quit_confirmation_can_cancel_or_finish_the_match_without_a_winner() -> void:
@@ -318,7 +318,7 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 						"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"
 					)
 				)
-				is HBoxContainer
+				is FlowContainer
 			)
 		)
 		assert_true(
@@ -329,7 +329,7 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 						"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"
 					)
 				)
-				is HBoxContainer
+				is FlowContainer
 			)
 		)
 		assert_false(
@@ -344,6 +344,46 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 			assert_false(
 				event_rect.intersects(seat_rect),
 				"%d-player event panel %s / %s" % [player_count, event_rect, seat_rect]
+			)
+
+	# Mobile phones and iPad portrait keep every action control inside the visible strip.
+	for viewport_size: Vector2 in [Vector2(320, 568), Vector2(390, 780), Vector2(768, 1024)]:
+		var table = PokerTableScene.instantiate()
+		table.hide()
+		add_child_autofree(table)
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = viewport_size
+		var view := _action_view(9)
+		view.acting_seat = 0
+		view._legal_actions = [
+			PlayerAction.Kind.FOLD,
+			PlayerAction.Kind.CALL,
+			PlayerAction.Kind.RAISE,
+			PlayerAction.Kind.ALL_IN,
+		]
+		view.minimum_wager_total = 20
+		view.maximum_wager_total = 100
+		table.bind_view(view, _empty_assignments())
+		table.show()
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		var action_panel: PanelContainer = table.get_node(
+			"TableMargin/Felt/TableSurface/ActionPanel"
+		)
+		var action_rect: Rect2 = action_panel.get_global_rect()
+		for control: Control in [
+			table.get_node("%FoldButton"),
+			table.get_node("%CheckCallButton"),
+			table.get_node("%MinWagerButton"),
+			table.get_node("%HalfWagerButton"),
+			table.get_node("%AllInButton"),
+			table.get_node("%WagerInput"),
+			table.get_node("%WagerButton"),
+		]:
+			assert_true(
+				action_rect.encloses(control.get_global_rect()),
+				"%s must fit at %s" % [control.name, viewport_size]
 			)
 
 

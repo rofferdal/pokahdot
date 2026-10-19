@@ -1,6 +1,6 @@
 # Pokahdot Architecture
 
-Status: Implemented through GUI Milestone 4.4; Milestones 4.5–4.6 remain planned
+Status: Implemented through GUI Milestone 4.6; final human release verification remains
 Last updated: 2026-10-19
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 

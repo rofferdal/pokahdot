@@ -5,6 +5,7 @@ signal return_to_startup_requested
 
 const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
 const GuiActionPacerScript := preload("res://scripts/gui/gui_action_pacer.gd")
+const GuiEventFormatterScript := preload("res://scripts/gui/gui_event_formatter.gd")
 const GuiMatchProgressInspectorScript := preload(
 	"res://scripts/gui/gui_match_progress_inspector.gd"
 )
@@ -671,11 +672,17 @@ func _refresh_action_controls() -> void:
 	if _bound_view.tournament_status == &"finished":
 		_action_status.text = TournamentStatusFormatterScript.format(_bound_view)
 	elif is_human_turn:
-		_action_status.text = "Your turn."
+		_action_status.text = "Your turn — %s." % GuiEventFormatterScript.street_name(_bound_view)
 	elif _bound_view.hand_complete:
 		_action_status.text = "Hand complete."
 	else:
-		_action_status.text = "Waiting for another player."
+		_action_status.text = (
+			"Waiting for %s — %s."
+			% [
+				GuiEventFormatterScript.player_name_for(_bound_view, _bound_view.acting_seat),
+				GuiEventFormatterScript.street_name(_bound_view),
+			]
+		)
 
 
 func _preset_wager_total() -> int:
@@ -805,38 +812,27 @@ func _schedule_after_completed_hand() -> void:
 
 func _render_events(events: Array[DomainEvent]) -> void:
 	_event_texts.clear()
+	var action_records: Array[PublicActionRecord] = []
+	for record: PublicActionRecord in _bound_view.action_history:
+		if record.record_kind == PublicActionRecord.Kind.ACTION:
+			action_records.append(record)
+	var action_index: int = 0
+	var street_transition_index: int = 0
 	for event: DomainEvent in events:
-		_event_texts.append(_event_text(event))
+		var action_record: PublicActionRecord = null
+		if event.kind == DomainEvent.Kind.ACTION_APPLIED and action_index < action_records.size():
+			action_record = action_records[action_index]
+			action_index += 1
+		if event.kind == DomainEvent.Kind.STREET_CHANGED:
+			_event_texts.append(
+				GuiEventFormatterScript.street_transition_text(street_transition_index)
+			)
+			street_transition_index += 1
+		else:
+			_event_texts.append(
+				GuiEventFormatterScript.format_event(event, _bound_view, action_record)
+			)
 	_event_log.text = "\n".join(_event_texts)
-
-
-func _event_text(event: DomainEvent) -> String:
-	var player_name: String = "P%d" % (event.seat + 1)
-	var text: String = "Event"
-	match event.kind:
-		DomainEvent.Kind.HAND_STARTED:
-			text = "Hand"
-		DomainEvent.Kind.BLIND_POSTED:
-			text = "%s blind %d" % [player_name, event.amount]
-		DomainEvent.Kind.CARDS_DEALT:
-			text = "Deal"
-		DomainEvent.Kind.ACTION_APPLIED:
-			text = "%s action %d" % [player_name, event.amount]
-		DomainEvent.Kind.ACTION_REJECTED:
-			text = "%s rejected" % player_name
-		DomainEvent.Kind.STREET_CHANGED:
-			text = "Street"
-		DomainEvent.Kind.COMMUNITY_CARDS_DEALT:
-			text = "Board"
-		DomainEvent.Kind.SHOWDOWN_STARTED:
-			text = "Showdown"
-		DomainEvent.Kind.POT_AWARDED:
-			text = "%s wins %d" % [player_name, event.amount]
-		DomainEvent.Kind.HAND_COMPLETED:
-			text = "Complete"
-		DomainEvent.Kind.PLAYER_QUIT:
-			text = "Player quit"
-	return text
 
 
 func _layout_table() -> void:
@@ -946,8 +942,9 @@ func _layout_human_adjacent_panels(surface_size: Vector2, compact_layout: bool) 
 
 func _layout_compact_human_panels(surface_size: Vector2, hero_panel: PanelContainer) -> void:
 	var panel_width: float = surface_size.x - 24.0
-	_action_panel.size = Vector2(panel_width, 116.0)
-	_action_panel.position = Vector2(12.0, maxf(12.0, hero_panel.position.y - 124.0))
+	var action_height: float = maxf(150.0, _action_panel.get_combined_minimum_size().y)
+	_action_panel.size = Vector2(panel_width, action_height)
+	_action_panel.position = Vector2(12.0, maxf(12.0, hero_panel.position.y - action_height - 8.0))
 	_event_log.size = Vector2(panel_width, 82.0)
 	_event_log.position = Vector2(12.0, maxf(12.0, _action_panel.position.y - 90.0))
 
