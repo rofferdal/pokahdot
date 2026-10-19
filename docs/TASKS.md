@@ -243,12 +243,14 @@ evidence on a person's behalf.
   `.nojekyll`, uploads the artifact, and deploys it with the least required
   Pages permissions. The workflow must expose the exact deployed URL and fail
   on an export or test failure.
-- [ ] **Human task — approve hosting and enable Pages:** confirm that GitHub
+- [x] **Human task — approve hosting and enable Pages:** confirm that GitHub
   Pages is an approved host and that the chosen repository visibility/audience
   is acceptable. In **Settings > Pages**, select **GitHub Actions**, commit and
   push the reviewed workflow to the approved release branch, and retain the
   successful deployment run URL. Do not publish a build containing
   uncommitted changes.
+- [x] **Agent task - found error after deploy to Github pages** card suites and
+  star for winning player are not displayed correctly in web browser
 - [ ] **Agent task — deployment review:** inspect the successful workflow
   artifact and deployment metadata. Confirm that the generated site is served
   from the release artifact at the expected stable `https://` URL, that the

@@ -512,10 +512,13 @@ func test_showdown_renders_revealed_losing_opponent_hole_cards() -> void:
 	view._pot_awards = [PotAward.new(0, 90, [1], {1: 90})]
 	table.bind_view(view, _empty_assignments())
 
-	var losing_card: Label = table.get_node(
+	var losing_card: PanelContainer = table.get_node(
 		"TableMargin/Felt/TableSurface/Seats/Seat2/Content/Footer/HoleCards/ShowdownCard1"
 	)
-	assert_eq(losing_card.text, "K♥")
+	assert_eq(losing_card.get_node("Content/Rank").text, "K")
+	assert_eq(
+		losing_card.get_node("Content/Suit").texture.resource_path, "res://assets/ui/heart.svg"
+	)
 	assert_true(losing_card.visible)
 	assert_false(
 		table.has_node("TableMargin/Felt/TableSurface/Seats/Seat2/Content/Header/MainPotWinnerStar")
@@ -537,11 +540,10 @@ func test_main_pot_showdown_winner_has_a_yellow_half_avatar_star_without_marking
 	]
 	table.bind_view(view, _empty_assignments())
 
-	var winner_star: Label = table.get_node(
+	var winner_star: TextureRect = table.get_node(
 		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/MainPotWinnerStar"
 	)
-	assert_eq(winner_star.text, "★")
-	assert_eq(winner_star.get_theme_color("font_color"), Color("ffd429"))
+	assert_eq(winner_star.texture.resource_path, "res://assets/ui/winner_star.svg")
 	assert_eq(winner_star.custom_minimum_size, Vector2(28, 28))
 	assert_eq(winner_star.get_parent().name, "Header")
 	assert_false(

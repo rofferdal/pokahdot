@@ -4,6 +4,7 @@ signal tournament_quit_confirmed
 signal return_to_startup_requested
 
 const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
+const CardFaceFactoryScript := preload("res://scripts/gui/card_face_factory.gd")
 const GuiActionPacerScript := preload("res://scripts/gui/gui_action_pacer.gd")
 const GuiEventFormatterScript := preload("res://scripts/gui/gui_event_formatter.gd")
 const GuiMatchProgressInspectorScript := preload(
@@ -18,7 +19,6 @@ const HERO_AVATAR_SIZE := Vector2(64, 64)
 const OPPONENT_CARD_SIZE := Vector2(30, 38)
 const GUI_MINIMUM_FONT_SIZE: int = 20
 const OPPONENT_CHIP_FONT_SIZE: int = 22
-const MAIN_POT_WINNER_STAR_COLOR := Color("ffd429")
 const NORMAL_SEAT_FRAME_WIDTH: int = 1
 const HERO_SEAT_FRAME_WIDTH: int = 2
 const ACTING_SEAT_FRAME_COLOR := Color.WHITE
@@ -29,9 +29,6 @@ var board_card_count: int = 0
 var wager_amounts: Dictionary[int, int] = {}
 var displayed_pot_amount: int = 0
 var displayed_hero_cards: Array[CardData] = []
-var _card_rank_text := PackedStringArray(
-	["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
-)
 var _bound_view: GameView
 var _match: TournamentMatch
 var _recipient_seat: int = Table.NO_SEAT
@@ -239,26 +236,20 @@ func _rebuild_card_slots() -> void:
 	for slot: Node in _card_slots.get_children():
 		slot.queue_free()
 	for index: int in range(5):
-		var slot := Label.new()
-		slot.name = "CardSlot%d" % (index + 1)
-		slot.custom_minimum_size = Vector2(30, 38)
 		var cards: Array[CardData] = _bound_view.community_cards
-		slot.text = _card_text(cards[index]) if index < cards.size() else "♠"
-		slot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		slot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		slot.add_theme_font_size_override("font_size", 29)
-		slot.add_theme_color_override(
-			"font_color",
-			_card_face_color(cards[index]) if index < cards.size() else Color("e7d39b")
-		)
-		slot.modulate.a = 1.0 if index < board_card_count else 0.48
 		var is_face_up: bool = index < cards.size()
-		slot.add_theme_stylebox_override(
-			"normal",
-			GuiTableStyleScript.box(
-				Color("f5f0dc") if is_face_up else Color("173e58"), Color("e7d39b"), 2, 4
+		var slot := (
+			CardFaceFactoryScript
+			. create_card_face(
+				cards[index] if is_face_up else null,
+				"CardSlot%d" % (index + 1),
+				Vector2(30, 38),
+				29,
+				Color("f5f0dc") if is_face_up else Color("173e58"),
+				Color("e7d39b"),
 			)
 		)
+		slot.modulate.a = 1.0 if index < board_card_count else 0.48
 		_card_slots.add_child(slot)
 
 
@@ -382,18 +373,16 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 	content.add_child(cards)
 	if not player_view.folded:
 		for index: int in range(displayed_hero_cards.size()):
-			var card := Label.new()
-			card.name = "HeroCard%d" % (index + 1)
-			card.custom_minimum_size = Vector2(54, 42)
-			card.text = _card_text(displayed_hero_cards[index])
-			card.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			card.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			card.add_theme_font_size_override("font_size", 29)
-			card.add_theme_color_override(
-				"font_color", _card_face_color(displayed_hero_cards[index])
-			)
-			card.add_theme_stylebox_override(
-				"normal", GuiTableStyleScript.box(Color("f5f0dc"), Color("d9b56d"), 2, 5)
+			var card := (
+				CardFaceFactoryScript
+				. create_card_face(
+					displayed_hero_cards[index],
+					"HeroCard%d" % (index + 1),
+					Vector2(54, 42),
+					29,
+					Color("f5f0dc"),
+					Color("d9b56d"),
+				)
 			)
 			cards.add_child(card)
 	if player_view.folded or player_view.busted:
@@ -437,15 +426,7 @@ func _add_main_pot_winner_star(
 ) -> void:
 	if not _is_main_pot_winner_at_showdown(seat):
 		return
-	var star := Label.new()
-	star.name = "MainPotWinnerStar"
-	star.text = "★"
-	star.custom_minimum_size = avatar_size * 0.5
-	star.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	star.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	star.add_theme_font_size_override("font_size", int(avatar_size.y * 0.5))
-	star.add_theme_color_override("font_color", MAIN_POT_WINNER_STAR_COLOR)
-	header.add_child(star)
+	header.add_child(CardFaceFactoryScript.create_main_pot_winner_star(avatar_size))
 
 
 func _is_main_pot_winner_at_showdown(seat: int) -> bool:
@@ -546,19 +527,18 @@ func _create_opponent_card_back(index: int) -> Label:
 	return card_back
 
 
-func _create_opponent_card_face(card_data: CardData, index: int) -> Label:
-	var card_face := Label.new()
-	card_face.name = "ShowdownCard%d" % index
-	card_face.custom_minimum_size = OPPONENT_CARD_SIZE
-	card_face.text = _card_text(card_data)
-	card_face.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	card_face.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	card_face.add_theme_font_size_override("font_size", 20)
-	card_face.add_theme_color_override("font_color", _card_face_color(card_data))
-	card_face.add_theme_stylebox_override(
-		"normal", GuiTableStyleScript.box(Color("f5f0dc"), Color("d9b56d"), 2, 3)
+func _create_opponent_card_face(card_data: CardData, index: int) -> PanelContainer:
+	return (
+		CardFaceFactoryScript
+		. create_card_face(
+			card_data,
+			"ShowdownCard%d" % index,
+			OPPONENT_CARD_SIZE,
+			20,
+			Color("f5f0dc"),
+			Color("d9b56d"),
+		)
 	)
-	return card_face
 
 
 func _seat_title(player_view: PlayerView) -> String:
@@ -613,19 +593,6 @@ func _latest_action_text(seat: int) -> String:
 
 func _pot_layer_text() -> String:
 	return "" if _bound_view.pots.size() <= 1 else "  •  %d layers" % _bound_view.pots.size()
-
-
-func _card_text(card: CardData) -> String:
-	if card == null:
-		return "?"
-	var suit_text: String = ["♣", "♦", "♥", "♠"][card.suit]
-	return "%s%s" % [_card_rank_text[card.rank], suit_text]
-
-
-func _card_face_color(card: CardData) -> Color:
-	if card.suit == CardData.Suit.DIAMONDS or card.suit == CardData.Suit.HEARTS:
-		return Color("ad2636")
-	return Color("172331")
 
 
 func _enforce_minimum_gui_text_size() -> void:
