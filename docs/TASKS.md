@@ -261,6 +261,13 @@ evidence on a person's behalf.
 - [x] **Agent task - found error after new deploy to Github pages** on Chrome
   browser on iPad, there is no way to enter amount next to raise button.
   No number pad or keyboard shows up.
+- [x] **Agent task — Android Chrome startup form sizing:** make the startup
+  form use a readable, screen-filling portrait layout in Android Chrome and
+  restore the desktop layout after rotation. Add automated coverage for both
+  portrait and landscape sizing.
+- [ ] **Agent task - found error after new deploy to Github pages** on Chrome
+  browser on iPad on the startup screen, there is no way to enter numeric amounts.
+  No number pad or keyboard shows up.
 - [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
   startup screen, inspect the browser console for errors.

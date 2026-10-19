@@ -3,6 +3,12 @@ extends Control
 
 const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_config_adapter.gd")
 
+const PORTRAIT_ASPECT_RATIO_THRESHOLD := 1.15
+const PORTRAIT_FORM_WIDTH_RATIO := 0.84
+const PORTRAIT_FONT_SCALE := 1.6
+const DEFAULT_FORM_FONT_SIZE := 29
+const DEFAULT_TITLE_FONT_SIZE := 50
+
 ## Binds the startup controls to the GUI configuration adapter.
 
 var startup_adapter
@@ -18,6 +24,8 @@ var _avatar_assignment_service := AvatarAssignmentService.new()
 @onready var _big_blind_error: Label = %BigBlindError
 @onready var _form_status: Label = %FormStatus
 @onready var _startup_panel: CenterContainer = $Center
+@onready var _startup_form_panel: PanelContainer = %Panel
+@onready var _startup_form: VBoxContainer = %Form
 @onready var _poker_table: Control = $PokerTable
 @onready var _quit_application_button: Button = %QuitApplicationButton
 
@@ -31,6 +39,8 @@ func _ready() -> void:
 	_poker_table.tournament_quit_confirmed.connect(_on_tournament_quit_confirmed)
 	_poker_table.return_to_startup_requested.connect(_on_return_to_startup_requested)
 	_quit_application_button.pressed.connect(_on_quit_application_pressed)
+	resized.connect(_refresh_startup_layout)
+	call_deferred("_refresh_startup_layout")
 
 
 func _on_start_pressed() -> void:
@@ -83,6 +93,29 @@ func _return_to_startup(status_message: String) -> void:
 
 func _on_quit_application_pressed() -> void:
 	get_tree().quit()
+
+
+func _refresh_startup_layout() -> void:
+	if size.x <= 0.0 or size.y <= 0.0:
+		return
+	var is_portrait: bool = size.y / size.x >= PORTRAIT_ASPECT_RATIO_THRESHOLD
+	if is_portrait:
+		_startup_form_panel.custom_minimum_size.x = size.x * PORTRAIT_FORM_WIDTH_RATIO
+		_set_startup_form_font_sizes(PORTRAIT_FONT_SCALE)
+		return
+	_startup_form_panel.custom_minimum_size.x = 0.0
+	_set_startup_form_font_sizes(1.0)
+
+
+func _set_startup_form_font_sizes(scale_factor: float) -> void:
+	for child: Node in _startup_form.get_children():
+		if not child is Control:
+			continue
+		var control := child as Control
+		var default_font_size := DEFAULT_FORM_FONT_SIZE
+		if control.name == &"Title":
+			default_font_size = DEFAULT_TITLE_FONT_SIZE
+		control.add_theme_font_size_override(&"font_size", roundi(default_font_size * scale_factor))
 
 
 func _apply_defaults() -> void:

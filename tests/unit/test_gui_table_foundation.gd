@@ -39,6 +39,30 @@ func test_startup_and_table_fonts_are_scaled_by_one_point_eight() -> void:
 	assert_eq(table.find_child("Name", true, false).get_theme_font_size("font_size"), 23)
 
 
+func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rotation() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	main.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	main.size = Vector2(1920, 3840)
+	main._refresh_startup_layout()
+
+	var panel: PanelContainer = main.get_node("Center/Panel")
+	assert_true(is_equal_approx(panel.custom_minimum_size.x, 1612.8))
+	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 80)
+	assert_eq(
+		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 46
+	)
+
+	main.size = Vector2(1920, 1080)
+	main._refresh_startup_layout()
+
+	assert_eq(panel.custom_minimum_size.x, 0.0)
+	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 50)
+	assert_eq(
+		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 29
+	)
+
+
 func test_default_avatar_catalog_has_sixteen_distinct_loadable_pixel_portraits() -> void:
 	var paths: PackedStringArray = GuiAvatarCatalogScript.default_avatar_paths()
 	var distinct_paths: Dictionary = {}
