@@ -149,10 +149,10 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 
 ### Milestone 4.4 — Human actions and hand completion
 
-- [ ] Connect Fold, Check/Call, Bet/Raise presets, free amount input, all-in, and legal-action enabled states.
-- [ ] Present ordered domain events without duplicating settlement, winner, or legality rules in GUI code.
-- [ ] Add GUI adapter tests for legal-action enabled states, action mapping, rejected amounts, event ordering, fold-to-one settlement, and showdown rendering.
-- [ ] **App increment:** a person can use the GUI to play one hand from preflop through fold or showdown, with accurate state updates after every action.
+- [x] Connect Fold, Check/Call, Bet/Raise presets, free amount input, all-in, and legal-action enabled states.
+- [x] Present ordered domain events without duplicating settlement, winner, or legality rules in GUI code.
+- [x] Add GUI adapter tests for legal-action enabled states, action mapping, rejected amounts, event ordering, fold-to-one settlement, and showdown rendering.
+- [x] **App increment:** a person can use the GUI to play one hand from preflop through fold or showdown, with accurate state updates after every action.
 - [ ] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
 
 ### Milestone 4.5 — Tournament progression and quit

@@ -113,3 +113,88 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="ActionPanel" type="PanelContainer" parent="TableMargin/Felt/TableSurface"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = 122.0
+grow_horizontal = 2
+
+[node name="Margin" type="MarginContainer" parent="TableMargin/Felt/TableSurface/ActionPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="VBoxContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ActionStatus" type="Label" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Waiting for the current player."
+horizontal_alignment = 1
+
+[node name="Buttons" type="HFlowContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 6
+
+[node name="FoldButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Fold"
+
+[node name="CheckCallButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Check"
+
+[node name="MinWagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Min bet"
+
+[node name="HalfWagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Half stack"
+
+[node name="WagerInput" type="LineEdit" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(108, 0)
+layout_mode = 2
+placeholder_text = "Total wager"
+alignment = 1
+
+[node name="WagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Bet / raise"
+
+[node name="AllInButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "All-in"
+
+[node name="EventLog" type="RichTextLabel" parent="TableMargin/Felt/TableSurface"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 130.0
+offset_right = -18.0
+offset_bottom = 330.0
+grow_horizontal = 0
+bbcode_enabled = false
+fit_content = true
+scroll_active = true
+mouse_filter = 2

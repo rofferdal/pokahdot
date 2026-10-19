@@ -18,6 +18,7 @@ var _recipient_seat: int = Table.NO_SEAT
 var _avatar_assignments: Dictionary[int, String] = {}
 var _seat_widgets: Dictionary[int, PanelContainer] = {}
 var _layout_queued: bool = false
+var _event_texts: Array[String] = []
 
 @onready var _felt: Panel = $TableMargin/Felt
 @onready var _surface: Control = $TableMargin/Felt/TableSurface
@@ -30,6 +31,16 @@ var _layout_queued: bool = false
 @onready var _pot_label: Label = %PotLabel
 @onready var _card_slots: HBoxContainer = %CardSlots
 @onready var _seats: Control = %Seats
+@onready var _action_panel: PanelContainer = $TableMargin/Felt/TableSurface/ActionPanel
+@onready var _action_status: Label = %ActionStatus
+@onready var _fold_button: Button = %FoldButton
+@onready var _check_call_button: Button = %CheckCallButton
+@onready var _min_wager_button: Button = %MinWagerButton
+@onready var _half_wager_button: Button = %HalfWagerButton
+@onready var _wager_input: LineEdit = %WagerInput
+@onready var _wager_button: Button = %WagerButton
+@onready var _all_in_button: Button = %AllInButton
+@onready var _event_log: RichTextLabel = %EventLog
 
 
 func _ready() -> void:
@@ -37,6 +48,12 @@ func _ready() -> void:
 	_surface.resized.connect(_queue_layout)
 	visibility_changed.connect(_queue_layout)
 	_apply_table_styles()
+	_fold_button.pressed.connect(_on_fold_pressed)
+	_check_call_button.pressed.connect(_on_check_call_pressed)
+	_min_wager_button.pressed.connect(_on_min_wager_pressed)
+	_half_wager_button.pressed.connect(_on_half_wager_pressed)
+	_wager_button.pressed.connect(_on_wager_pressed)
+	_all_in_button.pressed.connect(_on_all_in_pressed)
 	_refresh_visuals()
 	_queue_layout()
 
@@ -47,6 +64,7 @@ func bind_view(view: GameView, avatar_assignments: Dictionary[int, String]) -> v
 		return
 	_bound_view = view
 	_avatar_assignments = avatar_assignments.duplicate()
+	_event_texts.clear()
 	board_card_count = view.community_cards.size()
 	displayed_pot_amount = view.pot_amount
 	displayed_hero_cards = view.hero_hole_cards
@@ -79,6 +97,7 @@ func refresh_from_match() -> void:
 		push_error("TournamentMatch has no view for the requested table recipient.")
 		return
 	bind_view(view, _avatar_assignments)
+	_render_events(_match.get_events())
 
 
 func get_card_slot_count() -> int:
@@ -97,6 +116,19 @@ func get_surface_size() -> Vector2:
 	return _surface.size if is_node_ready() else Vector2.ZERO
 
 
+func get_event_texts() -> Array[String]:
+	return _event_texts.duplicate()
+
+
+func submit_wager_total(total: int) -> void:
+	if _bound_view == null:
+		return
+	if PlayerAction.Kind.BET in _bound_view.legal_actions:
+		_submit_action(PlayerAction.bet_to(total))
+	elif PlayerAction.Kind.RAISE in _bound_view.legal_actions:
+		_submit_action(PlayerAction.raise_to(total))
+
+
 func _refresh_visuals() -> void:
 	if not is_node_ready() or _bound_view == null:
 		return
@@ -107,6 +139,7 @@ func _refresh_visuals() -> void:
 	_pot_label.text = "POT  •  %d%s" % [displayed_pot_amount, _pot_layer_text()]
 	_rebuild_card_slots()
 	_rebuild_seats()
+	_refresh_action_controls()
 	_queue_layout()
 
 
@@ -120,6 +153,9 @@ func _apply_table_styles() -> void:
 	)
 	_wager_zone.add_theme_stylebox_override(
 		"panel", _style_box(Color("062516d9"), Color("4fae7c"), 1, 12)
+	)
+	_action_panel.add_theme_stylebox_override(
+		"panel", _style_box(Color("062516ed"), Color("d9b56d"), 1, 12)
 	)
 
 
@@ -451,6 +487,127 @@ func _card_face_color(card: CardData) -> Color:
 	if card.suit == CardData.Suit.DIAMONDS or card.suit == CardData.Suit.HEARTS:
 		return Color("ad2636")
 	return Color("172331")
+
+
+func _refresh_action_controls() -> void:
+	if _bound_view == null:
+		return
+	var is_human_turn: bool = _bound_view.acting_seat == _bound_view.hero_seat
+	var legal: Array = _bound_view.legal_actions if is_human_turn else []
+	var can_wager: bool = PlayerAction.Kind.BET in legal or PlayerAction.Kind.RAISE in legal
+	_fold_button.disabled = not (PlayerAction.Kind.FOLD in legal)
+	_check_call_button.disabled = not (
+		PlayerAction.Kind.CHECK in legal or PlayerAction.Kind.CALL in legal
+	)
+	_min_wager_button.disabled = not can_wager
+	_half_wager_button.disabled = not can_wager
+	_wager_input.editable = can_wager
+	_wager_button.disabled = not can_wager
+	_all_in_button.disabled = not (PlayerAction.Kind.ALL_IN in legal)
+	if PlayerAction.Kind.CHECK in legal:
+		_check_call_button.text = "Check"
+	elif PlayerAction.Kind.CALL in legal:
+		_check_call_button.text = "Call %d" % _bound_view.call_amount
+	else:
+		_check_call_button.text = "Check / Call"
+	var wager_name: String = "Bet" if PlayerAction.Kind.BET in legal else "Raise"
+	_min_wager_button.text = "%s %d" % [wager_name, _bound_view.minimum_wager_total]
+	_half_wager_button.text = "%s %d" % [wager_name, _preset_wager_total()]
+	_wager_button.text = wager_name
+	if is_human_turn:
+		_action_status.text = "Your turn — choose a legal action."
+	elif _bound_view.hand_complete:
+		_action_status.text = "Hand complete."
+	else:
+		_action_status.text = "Waiting for another player."
+
+
+func _preset_wager_total() -> int:
+	var minimum: int = _bound_view.minimum_wager_total
+	var maximum: int = _bound_view.maximum_wager_total
+	return clampi(minimum + (maximum - minimum) / 2, minimum, maximum)
+
+
+func _on_fold_pressed() -> void:
+	_submit_action(PlayerAction.fold_action())
+
+
+func _on_check_call_pressed() -> void:
+	if _bound_view == null:
+		return
+	if PlayerAction.Kind.CHECK in _bound_view.legal_actions:
+		_submit_action(PlayerAction.check_action())
+	elif PlayerAction.Kind.CALL in _bound_view.legal_actions:
+		_submit_action(PlayerAction.call_action())
+
+
+func _on_min_wager_pressed() -> void:
+	submit_wager_total(_bound_view.minimum_wager_total)
+
+
+func _on_half_wager_pressed() -> void:
+	submit_wager_total(_preset_wager_total())
+
+
+func _on_wager_pressed() -> void:
+	if not _wager_input.text.is_valid_int():
+		_action_status.text = "Enter a whole-number wager total."
+		return
+	submit_wager_total(_wager_input.text.to_int())
+
+
+func _on_all_in_pressed() -> void:
+	_submit_action(PlayerAction.all_in_action())
+
+
+func _submit_action(action: PlayerAction) -> void:
+	if _match == null:
+		push_error("PokerTableController cannot submit without a TournamentMatch.")
+		return
+	var result: StepResult = _match.submit_human_action(action)
+	refresh_from_match()
+	if not result.message.is_empty():
+		_action_status.text = result.message
+
+
+func _render_events(events: Array[DomainEvent]) -> void:
+	_event_texts.clear()
+	for event: DomainEvent in events:
+		_event_texts.append(_event_text(event))
+	_event_log.text = "\n".join(_event_texts)
+
+
+func _event_text(event: DomainEvent) -> String:
+	var player_name: String = "Player %d" % (event.seat + 1)
+	if _bound_view != null:
+		for player_view: PlayerView in _bound_view.seats:
+			if player_view.seat == event.seat:
+				player_name = player_view.display_name
+	var text: String = "Game event"
+	match event.kind:
+		DomainEvent.Kind.HAND_STARTED:
+			text = "Hand started"
+		DomainEvent.Kind.BLIND_POSTED:
+			text = "%s posted %d" % [player_name, event.amount]
+		DomainEvent.Kind.CARDS_DEALT:
+			text = "Hole cards dealt"
+		DomainEvent.Kind.ACTION_APPLIED:
+			text = "%s wagered %d" % [player_name, event.amount]
+		DomainEvent.Kind.ACTION_REJECTED:
+			text = "%s action rejected" % player_name
+		DomainEvent.Kind.STREET_CHANGED:
+			text = "Street changed"
+		DomainEvent.Kind.COMMUNITY_CARDS_DEALT:
+			text = "Community cards dealt"
+		DomainEvent.Kind.SHOWDOWN_STARTED:
+			text = "Showdown"
+		DomainEvent.Kind.POT_AWARDED:
+			text = "%s received %d" % [player_name, event.amount]
+		DomainEvent.Kind.HAND_COMPLETED:
+			text = "Hand complete"
+		DomainEvent.Kind.PLAYER_QUIT:
+			text = "Tournament ended by player quit"
+	return text
 
 
 func _layout_table() -> void:
