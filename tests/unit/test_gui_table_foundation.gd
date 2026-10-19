@@ -186,6 +186,68 @@ func test_three_to_seven_player_tables_mirror_seat_positions_left_to_right() -> 
 			assert_almost_eq(seat_center.y, mirrored_center.y, 0.01, context)
 
 
+func test_position_markers_follow_clockwise_core_order_at_every_table_size() -> void:
+	for player_count: int in range(2, 10):
+		var table = PokerTableScene.instantiate()
+		table.hide()
+		add_child_autofree(table)
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = Vector2(1920, 1080)
+
+		for button_seat: int in range(player_count):
+			var view := _hero_table_view(player_count)
+			view.button_seat = button_seat
+			view.small_blind_seat = button_seat
+			view.big_blind_seat = posmod(button_seat + 1, player_count)
+			if player_count > 2:
+				view.small_blind_seat = posmod(button_seat + 1, player_count)
+				view.big_blind_seat = posmod(button_seat + 2, player_count)
+			table.bind_view(view, _avatar_assignments(player_count))
+			table.show()
+			await get_tree().process_frame
+
+			var seat_rects: Dictionary[int, Rect2] = table.get_seat_rects()
+			var dealer_center: Vector2 = seat_rects[button_seat].get_center()
+			var small_blind_center: Vector2 = seat_rects[view.small_blind_seat].get_center()
+			var big_blind_center: Vector2 = seat_rects[view.big_blind_seat].get_center()
+			var surface_center: Vector2 = table.get_surface_size() * 0.5
+			var context := "%d players, button seat %d" % [player_count, button_seat]
+
+			assert_eq(
+				view.hero_seat, 0, "%s must preserve the recipient's core seat identity" % context
+			)
+			assert_gt(
+				seat_rects[view.hero_seat].get_center().y,
+				table.get_surface_size().y * 0.75,
+				"%s must keep the human seat at the bottom" % context
+			)
+			if player_count == 2:
+				assert_eq(
+					dealer_center,
+					small_blind_center,
+					"%s heads-up dealer is the small blind" % context
+				)
+				assert_almost_eq(
+					_clockwise_distance(small_blind_center, big_blind_center, surface_center),
+					PI,
+					0.001,
+					"%s big blind is opposite the dealer/small blind" % context
+				)
+			else:
+				_assert_clockwise_after(
+					dealer_center,
+					small_blind_center,
+					surface_center,
+					"%s dealer to small blind" % context
+				)
+				_assert_clockwise_after(
+					small_blind_center,
+					big_blind_center,
+					surface_center,
+					"%s small blind to big blind" % context
+				)
+
+
 func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
@@ -500,6 +562,18 @@ func _avatar_assignments(player_count: int) -> Dictionary[int, String]:
 	for seat: int in range(player_count):
 		assignments[seat] = paths[seat]
 	return assignments
+
+
+func _assert_clockwise_after(from: Vector2, to: Vector2, center: Vector2, context: String) -> void:
+	var clockwise_distance := _clockwise_distance(from, to, center)
+	assert_gt(clockwise_distance, 0.0, context)
+	assert_lt(clockwise_distance, PI, context)
+
+
+func _clockwise_distance(from: Vector2, to: Vector2, center: Vector2) -> float:
+	var from_angle: float = atan2(from.x - center.x, center.y - from.y)
+	var to_angle: float = atan2(to.x - center.x, center.y - to.y)
+	return fposmod(to_angle - from_angle, TAU)
 
 
 func _assert_minimum_gui_font_size(node: Node) -> void:

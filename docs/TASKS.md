@@ -177,8 +177,8 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 - [x] Narrow the dealer and blind marker area while preserving legible position labels.
 - [x] Add GUI regression coverage for the separate name/stack rows and compact position-marker width.
 - [x] At showdown, mark the player with the best hand, winning the main pot With a yellow star next to the player seat area, but overlapping nothing. Make the star half the size of the avatar.
-- [ ] Fix the GUI seat-layout mapping so dealer, small blind, and big blind markers always appear in consecutive clockwise order around the visual table, while preserving the human recipient at the bottom and core seat identities; add layout regressions for 2–9 players.
-- [ ] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
+- [x] Fix the GUI seat-layout mapping so dealer, small blind, and big blind markers always appear in consecutive clockwise order around the visual table, while preserving the human recipient at the bottom and core seat identities; add layout regressions for 2–9 players.
+- [x] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
 
 ### PR — Code quality and structure gate before Milestone 4.5
 
