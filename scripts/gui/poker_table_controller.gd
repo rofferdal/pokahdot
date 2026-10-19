@@ -71,6 +71,9 @@ func _ready() -> void:
 	_surface.resized.connect(_queue_layout)
 	visibility_changed.connect(_queue_layout)
 	_apply_table_styles()
+	_wager_input.virtual_keyboard_enabled = true
+	_wager_input.virtual_keyboard_show_on_focus = true
+	_wager_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	_fold_button.pressed.connect(_on_fold_pressed)
 	_check_call_button.pressed.connect(_on_check_call_pressed)
 	_min_wager_button.pressed.connect(_on_min_wager_pressed)

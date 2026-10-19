@@ -257,12 +257,12 @@ evidence on a person's behalf.
   exported Web build is single-threaded, and that the evidence-record template
   in `docs/WEB_SETUP.md` is ready for the published commit. Report any issue
   without marking a browser/device test complete.
-- [ ] **Human task — hosted-build readiness evidence:** on the intended test
+- [x] **Agent task - found error after new deploy to Github pages** on iPad, there
+  is no way to enter amount next to raise button. No number pad or keyboard shows
+  up.
+- [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
-  startup screen, inspect the browser console for errors, and save screenshots.
-  Record the URL, full commit SHA, deployment-run URL, device model, OS
-  version, browser version, orientation, viewport size, and console result in
-  the evidence record.
+  startup screen, inspect the browser console for errors.
 - [ ] **Human task — desktop Chrome or Edge matrix:** on current Windows or
   macOS Chrome/Edge, execute the representative flow in both 2-player and
   9-player default tournaments at 1920×1080 and 1280×720. Capture every
