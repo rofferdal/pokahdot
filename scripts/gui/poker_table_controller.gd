@@ -2,7 +2,6 @@ class_name PokerTableController
 extends Control
 signal tournament_quit_confirmed
 signal return_to_startup_requested
-
 const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
 const CardFaceFactoryScript := preload("res://scripts/gui/card_face_factory.gd")
 const GuiActionPacerScript := preload("res://scripts/gui/gui_action_pacer.gd")
@@ -14,6 +13,7 @@ const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
 const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_formatter.gd")
 const TableSeatLayoutScript := preload("res://scripts/gui/table_seat_layout.gd")
 const TournamentStatusFormatterScript := preload("res://scripts/gui/tournament_status_formatter.gd")
+const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
 const OPPONENT_AVATAR_SIZE := Vector2(56, 56)
 const HERO_AVATAR_SIZE := Vector2(64, 64)
 const OPPONENT_CARD_SIZE := Vector2(30, 38)
@@ -22,7 +22,6 @@ const OPPONENT_CHIP_FONT_SIZE: int = 22
 const NORMAL_SEAT_FRAME_WIDTH: int = 1
 const HERO_SEAT_FRAME_WIDTH: int = 2
 const ACTING_SEAT_FRAME_COLOR := Color.WHITE
-
 @export var action_timing_config: Resource
 
 var board_card_count: int = 0
@@ -39,6 +38,7 @@ var _seat_showdown_widgets: Dictionary[int, Label] = {}
 var _layout_queued: bool = false
 var _event_texts: Array[String] = []
 var _action_pacer = GuiActionPacerScript.new()
+var _wager_keypad: WagerKeypad
 
 @onready var _felt: Panel = $TableMargin/Felt
 @onready var _surface: Control = $TableMargin/Felt/TableSurface
@@ -74,6 +74,9 @@ func _ready() -> void:
 	_wager_input.virtual_keyboard_enabled = true
 	_wager_input.virtual_keyboard_show_on_focus = true
 	_wager_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
+	_wager_keypad = WagerKeypadScript.new()
+	add_child(_wager_keypad)
+	_wager_input.gui_input.connect(_on_wager_input_gui_input)
 	_fold_button.pressed.connect(_on_fold_pressed)
 	_check_call_button.pressed.connect(_on_check_call_pressed)
 	_min_wager_button.pressed.connect(_on_min_wager_pressed)
@@ -154,6 +157,32 @@ func submit_wager_total(total: int) -> void:
 		_submit_action(PlayerAction.bet_to(total))
 	elif PlayerAction.Kind.RAISE in _bound_view.legal_actions:
 		_submit_action(PlayerAction.raise_to(total))
+
+
+func show_wager_keypad() -> void:
+	if _bound_view == null or not WagerKeypadScript.can_wager(_bound_view):
+		return
+	(
+		_wager_keypad
+		. open(
+			_wager_input,
+			_bound_view.minimum_wager_total,
+			_bound_view.maximum_wager_total,
+		)
+	)
+
+
+func _on_wager_input_gui_input(event: InputEvent) -> void:
+	if (
+		event is InputEventScreenTouch and event.pressed
+		or (
+			event is InputEventMouseButton
+			and event.pressed
+			and event.button_index == MOUSE_BUTTON_LEFT
+		)
+	):
+		show_wager_keypad()
+		accept_event()
 
 
 func _refresh_visuals() -> void:
@@ -618,7 +647,7 @@ func _refresh_action_controls() -> void:
 		return
 	var is_human_turn: bool = _bound_view.acting_seat == _bound_view.hero_seat
 	var legal: Array = _bound_view.legal_actions if is_human_turn else []
-	var can_wager: bool = PlayerAction.Kind.BET in legal or PlayerAction.Kind.RAISE in legal
+	var can_wager: bool = WagerKeypadScript.can_wager(_bound_view)
 	_fold_button.disabled = not (PlayerAction.Kind.FOLD in legal)
 	_check_call_button.disabled = not (
 		PlayerAction.Kind.CHECK in legal or PlayerAction.Kind.CALL in legal
@@ -639,6 +668,8 @@ func _refresh_action_controls() -> void:
 	_half_wager_button.text = "Preset %s %d" % [wager_name, _preset_wager_total()]
 	_wager_button.text = wager_name
 	_all_in_button.text = "All-in"
+	if not can_wager and _wager_keypad != null:
+		_wager_keypad.hide()
 	if _bound_view.tournament_status == &"finished":
 		_action_status.text = TournamentStatusFormatterScript.format(_bound_view)
 	elif is_human_turn:

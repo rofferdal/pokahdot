@@ -44,6 +44,8 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_true(wager_input.virtual_keyboard_enabled)
 	assert_true(wager_input.virtual_keyboard_show_on_focus)
 	assert_eq(wager_input.virtual_keyboard_type, LineEdit.KEYBOARD_TYPE_NUMBER)
+	table.show_wager_keypad()
+	assert_true(table.get_node("WagerKeypad").visible)
 
 	table.submit_wager_total(view.minimum_wager_total)
 

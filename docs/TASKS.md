@@ -10,6 +10,7 @@ Status markers:
 - `[~]` In progress
 - `[x]` Complete
 - `[!]` Blocked
+- `[-] (reason)` Unable to perform
 
 Task labels:
 
@@ -257,9 +258,9 @@ evidence on a person's behalf.
   exported Web build is single-threaded, and that the evidence-record template
   in `docs/WEB_SETUP.md` is ready for the published commit. Report any issue
   without marking a browser/device test complete.
-- [x] **Agent task - found error after new deploy to Github pages** on iPad, there
-  is no way to enter amount next to raise button. No number pad or keyboard shows
-  up.
+- [x] **Agent task - found error after new deploy to Github pages** on Chrome
+  browser on iPad, there is no way to enter amount next to raise button.
+  No number pad or keyboard shows up.
 - [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
   startup screen, inspect the browser console for errors.
@@ -267,10 +268,10 @@ evidence on a person's behalf.
   macOS Chrome/Edge, execute the representative flow in both 2-player and
   9-player default tournaments at 1920×1080 and 1280×720. Capture every
   required state and readability/bounds result specified in `docs/WEB_SETUP.md`.
-- [ ] **Human task — desktop Firefox matrix:** repeat the desktop matrix in
-  current Firefox at both sizes. Explicitly record font rendering, suit
-  colours, scrollable event history, and the event-log/human-seat bottom
-  alignment compared with the approved reference screenshots.
+- [-] (Firefox not available) **Human task — desktop Firefox matrix:** repeat 
+  the desktop matrix in current Firefox at both sizes. Explicitly record font 
+  rendering, suit colours, scrollable event history, and the event-log/human-seat 
+  bottom alignment compared with the approved reference screenshots.
 - [ ] **Human task — physical iPad Safari matrix:** use a physical supported
   iPad in Safari in portrait and landscape, testing 2-player and 9-player
   games. Rotate during startup and live play; record screenshots and any
