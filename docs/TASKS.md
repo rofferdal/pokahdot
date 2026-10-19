@@ -305,10 +305,10 @@ evidence on a person's behalf.
   iPad in Safari in portrait and landscape, testing 2-player and 9-player
   games. Rotate during startup and live play; record screenshots and any
   scrolling, clipping, overlap, readability, stale-layout, or touch defect.
-- [ ] **Human task — physical iPhone Safari matrix:** use a physical supported
-  iPhone in Safari in both orientations with a 9-player game. Verify wrapped
-  controls, event-history scrolling, Fold/Call/Raise/All-in taps, and one
-  mid-play rotation; save before/after screenshots.
+- [-] (no available iPhone for testing) **Human task — physical iPhone Safari matrix:**
+  use a physical supported iPhone in Safari in both orientations with a 9-player
+  game. Verify wrapped controls, event-history scrolling, Fold/Call/Raise/All-in
+  taps, and one mid-play rotation; save before/after screenshots.
 - [ ] **Human task — physical Android Chrome matrix:** use a physical supported
   Android phone in current Chrome and repeat the iPhone flow with the browser
   address bar both expanded and collapsed. Record every touch, clipping,
@@ -341,3 +341,190 @@ Milestone 4.6c Human testing with preparations
 - [ ] Verify development addons and tests are excluded from release exports.
 - [ ] Verify Compatibility rendering on target desktop platforms and basic mobile resizing.
 - [ ] Review all user-facing text and documentation for consistency with the implemented game.
+
+
+# Strategy Plan Tasks
+
+This backlog follows `docs/StratPlan.md` and is ordered as vertical, runnable increments. Complete tasks in order unless a dependency explicitly allows parallel work.
+
+Status markers:
+- `[ ]` Not started
+- `[~]` In progress
+- `[x]` Complete
+- `[!]` Blocked
+- `[-] (reason)` Unable to perform
+
+Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
+
+## Stratmilestone1 — Parameterized strategy foundation
+
+- [ ] Define `StrategyDecisionModelParameters` as a typed
+  `DecisionModelParameters` Resource with the four exported integer fields
+  `tight_vs_loose`, `passive_vs_aggressive`, `call_vs_bet`, and `bluff_rate`.
+  Document that each field is inclusive 0--100 and immutable during a running
+  tournament.
+- [ ] Add boundary and rejection tests for all four parameters, including 0,
+  100, negative values, and values above 100.
+- [ ] Implement `StrategyDecisionModel` using only its injected
+  `RandomNumberGenerator` and recipient-safe `GameView`; reject missing,
+  mismatched, or invalid parameters during configuration.
+- [ ] Register the stable `strategy_parameterized` model ID in every relevant
+  composition root without adding registry access to poker-rule modules.
+- [ ] Add the `nit_caller`, `tight_aggressive`, `loose_passive`,
+  `loose_aggressive`, and `balanced` `BotProfile` Resources with the initial
+  parameter values from `docs/StratPlan.md`.
+- [ ] Add an immutable, disabled-by-default `allow_experimental_models` startup
+  option to the resolved configuration and startup diagnostics. Preserve it
+  across match creation without adding strategy-selection logic to poker-rule
+  modules.
+- [ ] Parse the CLI user flag `--allow-experimental-models` (passed after
+  Godot's `--` separator), default it to disabled when absent, and report the
+  selected production or experimental roster during startup diagnostics.
+- [ ] Add an unchecked **Allow experimental models** checkbox to the GUI
+  startup form. Bind it through the GUI startup adapter, reset it to unchecked
+  on a fresh startup screen, and label it clearly as an evaluated,
+  non-production bot roster.
+- [ ] Update the CLI and GUI composition roots so the disabled option keeps
+  the legacy roster and the enabled option selects the documented mixed
+  parameterized-profile roster; retain seat 0 as the human and identify every
+  bot's selected model/profile in diagnostics.
+- [ ] Add CLI argument/startup and GUI adapter regressions for absent and
+  present experimental opt-in, default false behavior, resolved-config
+  immutability, experimental roster selection, startup-screen reset, and
+  unchanged opponent-card privacy.
+- [ ] Add registry and factory regressions for parameter-type matching, deep
+  copied profile Resources, fresh model instances per seat, and identical
+  same-seed decisions.
+- [ ] Update `docs/ARCHITECTURE.md` to describe the implemented parameterized
+  model, profile Resources, determinism, and information boundary.
+- [ ] **Human verification:** start two seeded CLI tournaments with
+  `--allow-experimental-models` and confirm startup diagnostics identify the
+  new profile IDs, the games complete without bot-action warnings, and the
+  same seed produces the same observable sequence of bot actions and outcome.
+  Restart without the flag and confirm the legacy production roster remains.
+  In the GUI, confirm the checkbox starts unchecked, enables the experimental
+  roster only when checked, and resets to unchecked after returning to startup.
+
+## Stratmilestone2 — Public hand-potential estimation
+
+- [ ] Implement a pure `HandPotentialEstimator` that accepts only hero cards,
+  public board/state, and explicitly supplied contextual values; it must not
+  depend on `Table`, `Player`, `Deck`, GUI, CLI, or mutable match state.
+- [ ] Implement a documented 0--100 preflop score for pairs, rank strength,
+  suitedness, connectivity, and position.
+- [ ] Add preflop tests covering premium pairs, high cards, suited connectors,
+  weak offsuit hands, all score boundaries, and positional adjustments.
+- [ ] Extend the estimator postflop for made-hand class, flush/straight draw
+  quality, paired or coordinated boards, board-only hands, and realistic
+  improvement potential.
+- [ ] Add recipient-safety regressions proving estimator inputs and model
+  decisions cannot access opponent hole cards, deck order, or mutable core
+  references.
+- [ ] **Human verification:** play or observe seeded CLI hands with the new
+  profiles and confirm their public decisions remain plausible for their shown
+  hole cards and board, while no bot hole cards, deck information, or private
+  diagnostic values are ever rendered.
+
+## Stratmilestone3 — Action policy and legal sizing
+
+- [ ] Implement a typed, test-only decision trace that records profile ID,
+  hand-potential band, selected branch, legal alternatives, and requested
+  action without exposing private diagnostics to opponents or the regular UI.
+- [ ] Implement the documented fold/continue decision using
+  `tight_vs_loose`, call price, position, stack pressure, and a check baseline
+  when checking is free.
+- [ ] Implement eligible bluff selection using exactly `bluff_rate / 100` for
+  weak hands with a legal bet or raise; do not use bluff rate as a general
+  aggression multiplier.
+- [ ] Implement passive-versus-aggressive continuation using both
+  `passive_vs_aggressive` and `call_vs_bet`, with separate seeded rolls and
+  documented behavior when only passive or only aggressive actions are legal.
+- [ ] Implement discrete legal wager sizing—minimum, approximately half-pot,
+  approximately pot, and deliberately selected all-in—clamped to the view's
+  wager bounds and emitted as total wager amounts.
+- [ ] Add action-policy tests for free checks, calls, folds, unavailable bets
+  or raises, short stacks, all-ins, and every legal-action combination.
+- [ ] Add property-style seeded regressions that every action and wager
+  returned by the model is legal for its `GameView`, leaving the existing
+  HandController fallback as a safety net rather than normal behavior.
+- [ ] **Human verification:** play representative GUI and CLI hands covering
+  check, call, fold, bet, raise, and all-in situations; confirm bots make only
+  visibly legal actions, wager amounts are valid totals, and normal play shows
+  no fallback-warning behavior.
+
+## Stratmilestone4 — Headless bot-only simulation harness
+
+- [ ] Add a simulation-only composition root outside `scripts/core`, GUI, and
+  CLI that can create a `TournamentMatch` with all seats assigned to
+  `BotAgent`s without weakening the product's one-human default contract.
+- [ ] Implement deterministic simulation batches over declared seed ranges,
+  named profile sets, rotated seat assignments, and normal, shallow, and
+  short-stack blind/stack regimes.
+- [ ] Implement metrics per profile: tournament wins, chip EV, BB/100, VPIP,
+  preflop raise rate, aggression factor, fold-to-bet rate, call-versus-raise
+  split, bluff attempts/successes, mean wager size, bust order, hands played,
+  and invalid-action fallbacks.
+- [ ] Produce a machine-readable and human-readable batch report that records
+  seed range, profile IDs and exact parameter values, engine revision, table
+  regime, and aggregate results.
+- [ ] Add harness tests for same-seed reproducibility, seat rotation, metric
+  accounting, complete no-human tournaments, and the absence of GUI, CLI,
+  stdin, or scene dependencies.
+- [ ] Run and retain a small deterministic smoke batch as a fast automated
+  regression; keep the 1,000-tournament acceptance batches opt-in so the
+  normal test suite remains practical.
+- [ ] **Human verification:** run a documented small simulation batch and
+  inspect its report; confirm the requested profiles, seed range, rotated
+  seats, table regime, metric totals, and engine revision are present and that
+  the batch finishes without GUI, CLI, or input interaction.
+
+## Stratmilestone5 — Evidence-based calibration and rollout
+
+- [ ] Run fixed-seed mirrored and mixed-table baseline batches comparing the
+  legacy tight-passive/loose-aggressive models, random bots, and every new
+  parameterized profile; rotate seat positions across seeds.
+- [ ] Run at least 1,000 complete tournaments per acceptance matchup and
+  report win-rate and BB/100 confidence or bootstrap intervals, not only
+  means.
+- [ ] Verify the expected ordered statistics: tight profiles have lower VPIP
+  than loose profiles; aggressive profiles have higher bet/raise rates than
+  passive profiles; increasing `call_vs_bet` increases aggressive
+  continuations; and increasing `bluff_rate` increases eligible bluffs.
+- [ ] Calibrate initial thresholds, sizing fractions, and profile values only
+  from recorded simulation evidence; retain the report and seed range with the
+  change.
+- [ ] Version any changed published profile ID or document the versioned
+  Resource so historical results remain interpretable.
+- [ ] Migrate the default seat-agent configuration from legacy strategies only
+  after the candidate profiles meet the behavior and quality gates; retain
+  `RandomDecisionModel` for smoke testing and preserve a visibly mixed default
+  table. Until this migration, `allow_experimental_models` remains opt-in and
+  disabled by default in both interfaces.
+- [ ] Re-run the full GUT suite, `gdlint`, and `gdformat --check`; confirm no
+  representative simulation decision requires the invalid-action fallback.
+- [ ] **App increment:** the normal tournament uses the approved mixture of
+  parameterized strategy profiles without changing poker rules, UI behavior,
+  determinism, or card-information privacy.
+- [ ] **Human verification:** run the recorded acceptance batch, then play one
+  seeded GUI tournament and one seeded CLI tournament using the approved
+  profiles; confirm the documented profile mix, deterministic outcomes for
+  repeated seeds, legal actions, opponent-card privacy, and unchanged
+  tournament flow.
+
+## Stratmilestone6 — Deferred advanced strategy research
+
+- [ ] **Deferred:** evaluate an `EquitySamplingDecisionModel` only after the
+  heuristic model is stable and simulation evidence identifies a concrete
+  limitation.
+- [ ] **Deferred:** if approved, design deterministic Monte-Carlo unknown-card
+  sampling with a separate injected or derived RNG stream, explicit Web/
+  headless performance limits, and tests proving no access to real unrevealed
+  cards.
+- [ ] **Deferred:** do not add online learning, opponent-specific persistent
+  memory, mid-tournament profile switching, solver-grade play, or GUI profile
+  selection without a new architecture decision and evidence-backed tasks.
+- [ ] **Human verification (only if this milestone is approved):** run the
+  documented equity-sampling benchmark and a seeded headless batch; confirm it
+  meets the approved performance budget, remains reproducible, produces legal
+  actions, and reveals no real unrevealed cards or sampling diagnostics in the
+  player UI.
