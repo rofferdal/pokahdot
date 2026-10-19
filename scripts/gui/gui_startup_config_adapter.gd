@@ -12,6 +12,7 @@ var player_count_text: String
 var starting_stack_text: String
 var small_blind_text: String
 var big_blind_text: String
+var allow_experimental_models: bool = false
 var field_errors: Dictionary[StringName, String] = {}
 var resolved_config: ResolvedTournamentConfig
 var match_instance: TournamentMatch
@@ -38,6 +39,7 @@ func reset_to_defaults() -> void:
 	starting_stack_text = str(_defaults.starting_stack)
 	small_blind_text = str(_defaults.small_blind)
 	big_blind_text = str(_defaults.big_blind)
+	allow_experimental_models = false
 	field_errors.clear()
 	resolved_config = null
 	match_instance = null
@@ -61,6 +63,7 @@ func try_start() -> bool:
 	overrides.set_starting_stack(starting_stack)
 	overrides.set_small_blind(small_blind)
 	overrides.set_big_blind(big_blind)
+	overrides.set_allow_experimental_models(allow_experimental_models)
 	var resolution: ConfigResolution = ConfigResolver.new().resolve(_defaults, overrides)
 	if not resolution.is_ok():
 		for error: ConfigError in resolution.get_errors():

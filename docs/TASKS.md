@@ -358,44 +358,44 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
 
 ## Stratmilestone1 — Parameterized strategy foundation
 
-- [ ] Define `StrategyDecisionModelParameters` as a typed
+- [x] Define `StrategyDecisionModelParameters` as a typed
   `DecisionModelParameters` Resource with the four exported integer fields
   `tight_vs_loose`, `passive_vs_aggressive`, `call_vs_bet`, and `bluff_rate`.
   Document that each field is inclusive 0--100 and immutable during a running
   tournament.
-- [ ] Add boundary and rejection tests for all four parameters, including 0,
+- [x] Add boundary and rejection tests for all four parameters, including 0,
   100, negative values, and values above 100.
-- [ ] Implement `StrategyDecisionModel` using only its injected
+- [x] Implement `StrategyDecisionModel` using only its injected
   `RandomNumberGenerator` and recipient-safe `GameView`; reject missing,
   mismatched, or invalid parameters during configuration.
-- [ ] Register the stable `strategy_parameterized` model ID in every relevant
+- [x] Register the stable `strategy_parameterized` model ID in every relevant
   composition root without adding registry access to poker-rule modules.
-- [ ] Add the `nit_caller`, `tight_aggressive`, `loose_passive`,
+- [x] Add the `nit_caller`, `tight_aggressive`, `loose_passive`,
   `loose_aggressive`, and `balanced` `BotProfile` Resources with the initial
   parameter values from `docs/StratPlan.md`.
-- [ ] Add an immutable, disabled-by-default `allow_experimental_models` startup
+- [x] Add an immutable, disabled-by-default `allow_experimental_models` startup
   option to the resolved configuration and startup diagnostics. Preserve it
   across match creation without adding strategy-selection logic to poker-rule
   modules.
-- [ ] Parse the CLI user flag `--allow-experimental-models` (passed after
+- [x] Parse the CLI user flag `--allow-experimental-models` (passed after
   Godot's `--` separator), default it to disabled when absent, and report the
   selected production or experimental roster during startup diagnostics.
-- [ ] Add an unchecked **Allow experimental models** checkbox to the GUI
+- [x] Add an unchecked **Allow experimental models** checkbox to the GUI
   startup form. Bind it through the GUI startup adapter, reset it to unchecked
   on a fresh startup screen, and label it clearly as an evaluated,
   non-production bot roster.
-- [ ] Update the CLI and GUI composition roots so the disabled option keeps
+- [x] Update the CLI and GUI composition roots so the disabled option keeps
   the legacy roster and the enabled option selects the documented mixed
   parameterized-profile roster; retain seat 0 as the human and identify every
   bot's selected model/profile in diagnostics.
-- [ ] Add CLI argument/startup and GUI adapter regressions for absent and
+- [x] Add CLI argument/startup and GUI adapter regressions for absent and
   present experimental opt-in, default false behavior, resolved-config
   immutability, experimental roster selection, startup-screen reset, and
   unchanged opponent-card privacy.
-- [ ] Add registry and factory regressions for parameter-type matching, deep
+- [x] Add registry and factory regressions for parameter-type matching, deep
   copied profile Resources, fresh model instances per seat, and identical
   same-seed decisions.
-- [ ] Update `docs/ARCHITECTURE.md` to describe the implemented parameterized
+- [x] Update `docs/ARCHITECTURE.md` to describe the implemented parameterized
   model, profile Resources, determinism, and information boundary.
 - [ ] **Human verification:** start two seeded CLI tournaments with
   `--allow-experimental-models` and confirm startup diagnostics identify the

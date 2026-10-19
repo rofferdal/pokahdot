@@ -21,6 +21,7 @@ var _number_keypad: WagerKeypad
 @onready var _starting_stack_input: LineEdit = %StartingStackInput
 @onready var _small_blind_input: LineEdit = %SmallBlindInput
 @onready var _big_blind_input: LineEdit = %BigBlindInput
+@onready var _allow_experimental_models_checkbox: CheckBox = %AllowExperimentalModelsCheckBox
 @onready var _player_count_error: Label = %PlayerCountError
 @onready var _starting_stack_error: Label = %StartingStackError
 @onready var _small_blind_error: Label = %SmallBlindError
@@ -55,6 +56,7 @@ func _on_start_pressed() -> void:
 	startup_adapter.starting_stack_text = _starting_stack_input.text
 	startup_adapter.small_blind_text = _small_blind_input.text
 	startup_adapter.big_blind_text = _big_blind_input.text
+	startup_adapter.allow_experimental_models = _allow_experimental_models_checkbox.button_pressed
 	if startup_adapter.try_start():
 		var avatar_result = (
 			_avatar_assignment_service
@@ -94,6 +96,8 @@ func _on_return_to_startup_requested() -> void:
 
 func _return_to_startup(status_message: String) -> void:
 	_poker_table.hide()
+	startup_adapter.reset_to_defaults()
+	_apply_defaults()
 	_startup_panel.show()
 	_form_status.text = status_message
 
@@ -163,6 +167,7 @@ func _apply_defaults() -> void:
 	_starting_stack_input.text = startup_adapter.starting_stack_text
 	_small_blind_input.text = startup_adapter.small_blind_text
 	_big_blind_input.text = startup_adapter.big_blind_text
+	_allow_experimental_models_checkbox.button_pressed = startup_adapter.allow_experimental_models
 	_clear_errors()
 
 

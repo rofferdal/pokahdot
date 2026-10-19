@@ -87,6 +87,28 @@ func test_match_factory_uses_resolved_non_default_configuration() -> void:
 	assert_true(has_loose_aggressive)
 
 
+func test_match_factory_selects_the_experimental_mixed_roster_only_when_enabled() -> void:
+	var factory := CliMatchFactoryScript.new()
+	var production_diagnostics := factory.diagnostics(_config(6, 240, 12, 24))
+	var experimental_diagnostics := factory.diagnostics(_config(6, 240, 12, 24, true))
+	var experimental_match := factory.create(_config(6, 240, 12, 24, true))
+
+	assert_has(production_diagnostics, "Bot roster: production")
+	assert_has(experimental_diagnostics, "Bot roster: experimental")
+	for profile_id: String in [
+		"nit_caller",
+		"tight_aggressive",
+		"loose_passive",
+		"loose_aggressive",
+		"balanced",
+	]:
+		assert_true(_diagnostics_contain(experimental_diagnostics, profile_id))
+	assert_ne(experimental_match.start().status, StepResult.Status.ERROR)
+	var human_view := experimental_match.get_view_for(0)
+	assert_eq(human_view.hero_hole_cards.size(), 2)
+	assert_true(human_view.revealed_hole_cards.is_empty())
+
+
 func test_default_and_non_default_tables_mark_exactly_one_human_across_snapshots() -> void:
 	for count: int in [TournamentConfig.new().player_count, 3]:
 		var io := FakeCliIO.new()
@@ -122,7 +144,13 @@ func test_cli_runs_seeded_short_stack_tournament_to_a_displayed_winner() -> void
 	assert_true(io.contains_write("Tournament winner: seat %d" % match_instance.winner_seat))
 
 
-func _config(count: int, stack: int, small_blind: int, big_blind: int) -> ResolvedTournamentConfig:
+func _config(
+	count: int,
+	stack: int,
+	small_blind: int,
+	big_blind: int,
+	allow_experimental_models: bool = false
+) -> ResolvedTournamentConfig:
 	var defaults := TournamentConfig.new()
 	defaults.rng_seed = 4242
 	var overrides := StartupOverrides.new()
@@ -130,6 +158,7 @@ func _config(count: int, stack: int, small_blind: int, big_blind: int) -> Resolv
 	overrides.set_starting_stack(stack)
 	overrides.set_small_blind(small_blind)
 	overrides.set_big_blind(big_blind)
+	overrides.set_allow_experimental_models(allow_experimental_models)
 	return ConfigResolver.new().resolve(defaults, overrides).get_config()
 
 
@@ -176,3 +205,10 @@ func _assert_no_bot_cards_are_rendered(io: FakeCliIO, match_instance: Tournament
 		for token: String in write.trim_prefix("Your cards: [ ").trim_suffix(" ]").split(" | "):
 			assert_true(token in hero_cards)
 			assert_false(token.contains(":"))
+
+
+func _diagnostics_contain(diagnostics: PackedStringArray, text: String) -> bool:
+	for line: String in diagnostics:
+		if line.contains(text):
+			return true
+	return false

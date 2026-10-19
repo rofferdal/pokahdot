@@ -17,6 +17,10 @@ Prosjektet er tidlig i utviklingen. Grafisk UI og terminal-UI er under oppbyggin
    use those defaults, or change any value before starting.
 3. The form validates whole-number input and the tournament constraints inline.
    A match is created only after all values are valid.
+4. **Allow experimental models** is unchecked by default. Select it to use the
+   evaluated mixed roster of parameterized bot profiles; leave it unchecked to
+   retain the production roster. The choice resets to unchecked when returning
+   to the startup screen.
 
 Fra terminal, med prosjektroten som arbeidsmappe:
 
@@ -47,6 +51,22 @@ På macOS uten `godot` i `PATH`:
 The terminal interface supports a complete tournament with optional startup
 overrides, poker actions, `help`, `quit`, and `exit`. Game rules remain in
 `scripts/core/`, not in either presentation layer.
+
+### Experimental bot roster
+
+The production roster remains the default. To opt into the evaluated,
+non-production parameterized roster, pass the flag after Godot's `--`
+argument separator:
+
+```bash
+godot --headless --path . --script res://scripts/cli/cli_app.gd -- --allow-experimental-models
+```
+
+Startup diagnostics identify the selected production or experimental roster
+and every bot's model and profile ID. The experimental mixed roster uses the
+`nit_caller`, `tight_aggressive`, `loose_passive`, `loose_aggressive`, and
+`balanced` profiles. It is deterministic for a fixed tournament seed and does
+not expose opponent hole cards.
 
 ## Development checks
 

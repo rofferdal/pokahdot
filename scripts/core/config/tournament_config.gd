@@ -12,6 +12,7 @@ extends Resource
 @export var big_blind: int = 10
 @export var rng_seed: int = 0
 @export var tournament_mode: StringName = &"single_table"
+@export var allow_experimental_models: bool = false
 @export var seat_agents: Dictionary[int, StringName] = {
 	0: &"human",
 	1: &"random",

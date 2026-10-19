@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CliMatchFactoryScript = preload("res://scripts/cli/cli_match_factory.gd")
+const CliStartupArgumentsScript = preload("res://scripts/cli/cli_startup_arguments.gd")
 
 ## Headless entry point. Run with:
 ##   godot --headless --path . --script res://scripts/cli/cli_app.gd
@@ -18,7 +19,10 @@ func _initialize() -> void:
 		return
 
 	var prompt := StartupConfigPrompt.new(io)
-	var result: StartupPromptResult = prompt.run(defaults)
+	var allow_experimental_models := CliStartupArgumentsScript.allow_experimental_models(
+		OS.get_cmdline_user_args()
+	)
+	var result: StartupPromptResult = prompt.run(defaults, allow_experimental_models)
 	if result.status == StartupPromptResult.Status.ERROR:
 		quit(1)
 		return

@@ -37,6 +37,11 @@ func resolve(defaults: TournamentConfig, overrides: StartupOverrides) -> ConfigR
 	var big_blind: int = (
 		applied_overrides.big_blind if applied_overrides.has_big_blind else defaults.big_blind
 	)
+	var allow_experimental_models: bool = (
+		applied_overrides.allow_experimental_models
+		if applied_overrides.has_allow_experimental_models
+		else defaults.allow_experimental_models
+	)
 
 	var errors: Array[ConfigError] = []
 	_validate_scalars(
@@ -65,6 +70,7 @@ func resolve(defaults: TournamentConfig, overrides: StartupOverrides) -> ConfigR
 			defaults.rng_seed,
 			defaults.tournament_mode,
 			seat_agents,
+			allow_experimental_models,
 		)
 	)
 	return ConfigResolution.new(resolved_config)

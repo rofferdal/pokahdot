@@ -12,6 +12,20 @@ func test_default_form_starts_with_resolved_defaults() -> void:
 	assert_eq(factory.creation_count, 1)
 	assert_not_null(adapter.match_instance)
 	assert_config(adapter.resolved_config, 6, 1000, 5, 10)
+	assert_false(adapter.resolved_config.allow_experimental_models)
+
+
+func test_experimental_model_opt_in_resolves_and_resets_to_disabled() -> void:
+	var adapter = GuiStartupConfigAdapterScript.new()
+	adapter.allow_experimental_models = true
+
+	assert_true(adapter.try_start())
+	assert_true(adapter.resolved_config.allow_experimental_models)
+	adapter.allow_experimental_models = false
+	assert_true(adapter.resolved_config.allow_experimental_models)
+
+	adapter.reset_to_defaults()
+	assert_false(adapter.allow_experimental_models)
 
 
 func test_each_partial_override_preserves_the_other_defaults() -> void:

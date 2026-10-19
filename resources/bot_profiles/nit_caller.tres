@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BotProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/agents/bot_profile.gd" id="1_profile"]
+[ext_resource type="Script" path="res://scripts/core/agents/strategy_decision_model_parameters.gd" id="2_parameters"]
+
+[sub_resource type="Resource" id="StrategyParameters_nit_caller"]
+script = ExtResource("2_parameters")
+tight_vs_loose = 15
+passive_vs_aggressive = 20
+call_vs_bet = 20
+bluff_rate = 2
+
+[resource]
+script = ExtResource("1_profile")
+profile_id = &"nit_caller"
+model_id = &"strategy_parameterized"
+display_name = "Nit Caller"
+parameters = SubResource("StrategyParameters_nit_caller")

@@ -254,6 +254,27 @@ Every `BotAgent` receives a separate RNG stream derived from the tournament seed
 
 `RandomAgent`, `TightPassiveAgent`, and `LooseAggressiveAgent` are separate concrete classes in the required separate files. Each extends `BotAgent` as a thin preset subclass that supplies its corresponding decision model and default profile; decision logic remains in the model class. The default six-seat setup uses seat 0 for `HumanAgent`, seats 1–5 for these bot classes, and at least two different concrete bot classes.
 
+`StrategyDecisionModel` is the first parameterized strategy model, registered as
+`strategy_parameterized`. Its typed `StrategyDecisionModelParameters` Resource
+contains inclusive integer percentages for `tight_vs_loose`,
+`passive_vs_aggressive`, `call_vs_bet`, and `bluff_rate`. The model receives
+only its per-seat injected RNG and recipient-safe `GameView`; it has no access
+to opponents' hole cards, the deck, or mutable poker state. Its initial
+foundation uses a conservative legal check/call/fold baseline while later
+strategy milestones add public hand-potential estimation and wagering policy.
+The five immutable-at-runtime profile Resources are `nit_caller`,
+`tight_aggressive`, `loose_passive`, `loose_aggressive`, and `balanced`.
+
+Experimental parameterized models are opt-in. `TournamentConfig` defaults
+`allow_experimental_models` to false, `StartupOverrides` can explicitly select
+it, and `ResolvedTournamentConfig` freezes the resolved value. The CLI reads
+`--allow-experimental-models` only from Godot user arguments after `--`; the
+GUI presents an unchecked “Allow experimental models” checkbox and clears it
+when returning to startup. Roster selection remains in the CLI and GUI
+composition roots: disabled keeps the legacy production roster, while enabled
+uses the documented mixed parameterized profiles. Poker-rule modules only see
+the constructed agents, never a strategy-selection branch.
+
 Model output is still validated by `BettingRound`. Invalid output produces the standard warning and fallback in `HandController`, regardless of model implementation. Network-backed or asynchronous models are outside v1; they may later add a pending decision result without changing poker rules or profile formats.
 
 ### 5.13 `hand_controller.gd`
@@ -403,11 +424,11 @@ Use a typed configuration `Resource` as the source of defaults; its validated re
 Configuration crosses the startup boundary through four explicit types:
 
 - `TournamentConfig` is the mutable editor-facing default/template `Resource`; it is never passed to a running match.
-- `StartupOverrides` stores each optional user value with a separate presence flag, so an omitted value differs from an explicitly invalid zero.
+- `StartupOverrides` stores each optional user value with a separate presence flag, so an omitted value differs from an explicitly invalid zero. It also carries the explicit experimental-model opt-in.
 - `ConfigResolver` merges defaults and overrides, performs authoritative validation, and returns typed field/error codes in `ConfigResolution`.
 - `ResolvedTournamentConfig` is a defensive runtime snapshot with read-only public properties and copied collections. `TournamentMatch` will accept only this resolved type.
 
-Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. Milestone 0 validates scalar values and the structural seat map; model/profile ID lookup remains the responsibility of `AgentFactory` when agents are implemented.
+Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. This includes `allow_experimental_models`, which is disabled by default and does not change poker rules. Milestone 0 validates scalar values and the structural seat map; model/profile ID lookup remains the responsibility of `AgentFactory` when agents are implemented.
 
 Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be positive, and small blind must not exceed big blind. The adapters may perform the same checks for immediate feedback, but core validation of the fully resolved configuration remains authoritative.
 
