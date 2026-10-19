@@ -69,6 +69,7 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 | Compose bots from agent, decision model, and profile | New decision algorithms and per-seat behavior can be added without changing poker rules or duplicating input/error handling. |
 | Keep runtime state in core objects, not scenes or Resources | Scenes display state. Configuration and static card data may be Resources; mutable match state stays in dedicated runtime objects. |
 | Keep avatar selection in the GUI presentation layer | Avatar identity is visual-only and must not affect `Player`, `GameView`, tournament configuration, or core RNG streams. |
+| Keep GUI action pacing in a Resource | Per-seat visual pauses are configurable without putting timers or presentation policy in poker rules. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
 
@@ -333,6 +334,8 @@ Implementation proceeds through the CLI first. Each runnable core increment is e
 The startup panel and table are views in one scalable `Control`-based main scene with the `canvas_items` stretch mode. Starting a new tournament returns to the startup panel so new values can be chosen.
 
 The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer, blind, and acting markers. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to `PokerTableController` and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
+
+`GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls the nonblocking pause after each rendered action. Its default is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
 
 The default game viewport is 1920 by 1080, while the `Control` layout must reflow without overlap at supported desktop and mobile aspect ratios. The human recipient is visually anchored at the bottom; this is a presentation mapping only and must not alter core seat identities or poker positions. Desktop seat panels use equal wide dimensions across 2–9 seats, with mirrored left/right placement where applicable; compact layouts may change dimensions but retain readable names, stacks, markers, and cards.
 

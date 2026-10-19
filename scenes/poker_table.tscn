@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/poker_table_controller.gd" id="1_controller"]
 [ext_resource type="Theme" path="res://resources/gui_theme.tres" id="2_theme"]
+[ext_resource type="Resource" path="res://resources/gui_action_timing_config.tres" id="3_timing"]
 
 [node name="PokerTable" type="Control"]
 layout_mode = 3
@@ -12,6 +13,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("2_theme")
 script = ExtResource("1_controller")
+action_timing_config = ExtResource("3_timing")
 
 [node name="TableMargin" type="MarginContainer" parent="."]
 layout_mode = 1

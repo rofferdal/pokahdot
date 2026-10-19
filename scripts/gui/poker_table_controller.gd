@@ -1,18 +1,29 @@
 class_name PokerTableController
 extends Control
 const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
+const GuiActionPacerScript := preload("res://scripts/gui/gui_action_pacer.gd")
 const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_formatter.gd")
+const TableSeatLayoutScript := preload("res://scripts/gui/table_seat_layout.gd")
+const TournamentStatusFormatterScript := preload("res://scripts/gui/tournament_status_formatter.gd")
 const OPPONENT_AVATAR_SIZE := Vector2(56, 56)
 const HERO_AVATAR_SIZE := Vector2(64, 64)
 const OPPONENT_CARD_SIZE := Vector2(30, 38)
 const GUI_MINIMUM_FONT_SIZE: int = 20
 const OPPONENT_CHIP_FONT_SIZE: int = 22
 const MAIN_POT_WINNER_STAR_COLOR := Color("ffd429")
+const NORMAL_SEAT_FRAME_WIDTH: int = 1
+const HERO_SEAT_FRAME_WIDTH: int = 2
+const ACTING_SEAT_FRAME_COLOR := Color.WHITE
+
+@export var action_timing_config: Resource
 
 var board_card_count: int = 0
 var wager_amounts: Dictionary[int, int] = {}
 var displayed_pot_amount: int = 0
 var displayed_hero_cards: Array[CardData] = []
+var _card_rank_text := PackedStringArray(
+	["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+)
 var _bound_view: GameView
 var _match: TournamentMatch
 var _recipient_seat: int = Table.NO_SEAT
@@ -22,6 +33,7 @@ var _seat_action_widgets: Dictionary[int, Label] = {}
 var _seat_showdown_widgets: Dictionary[int, Label] = {}
 var _layout_queued: bool = false
 var _event_texts: Array[String] = []
+var _action_pacer = GuiActionPacerScript.new()
 
 @onready var _felt: Panel = $TableMargin/Felt
 @onready var _surface: Control = $TableMargin/Felt/TableSurface
@@ -47,6 +59,7 @@ var _event_texts: Array[String] = []
 
 
 func _ready() -> void:
+	_action_pacer.configure(get_tree(), action_timing_config)
 	resized.connect(_queue_layout)
 	_surface.resized.connect(_queue_layout)
 	visibility_changed.connect(_queue_layout)
@@ -77,6 +90,12 @@ func bind_view(view: GameView, avatar_assignments: Dictionary[int, String]) -> v
 	_refresh_visuals()
 
 
+func set_action_timing_config(timing_config: Resource) -> void:
+	action_timing_config = timing_config
+	if is_node_ready():
+		_action_pacer.configure(get_tree(), action_timing_config)
+
+
 func bind_match(
 	match: TournamentMatch,
 	recipient_seat: int,
@@ -89,6 +108,7 @@ func bind_match(
 	_recipient_seat = recipient_seat
 	_avatar_assignments = avatar_assignments.duplicate()
 	refresh_from_match()
+	_schedule_after_latest_action()
 
 
 func refresh_from_match() -> void:
@@ -129,6 +149,10 @@ func get_event_log_rect() -> Rect2:
 
 func get_event_texts() -> Array[String]:
 	return _event_texts.duplicate()
+
+
+func is_action_advance_pending() -> bool:
+	return _action_pacer.is_waiting()
 
 
 func submit_wager_total(total: int) -> void:
@@ -318,8 +342,17 @@ func _create_seat_widget(player_view: PlayerView) -> PanelContainer:
 	panel.name = "Seat%d" % player_view.seat
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.clip_contents = true
-	panel.add_theme_stylebox_override(
-		"panel", _style_box(Color("0d271bd9"), Color("5dbf86"), 1, 10)
+	(
+		panel
+		. add_theme_stylebox_override(
+			"panel",
+			_seat_frame_style(
+				player_view,
+				Color("0d271bd9"),
+				Color("5dbf86"),
+				NORMAL_SEAT_FRAME_WIDTH,
+			),
+		)
 	)
 	var content := VBoxContainer.new()
 	content.name = "Content"
@@ -358,8 +391,17 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 	panel.name = "Seat%d" % player_view.seat
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.clip_contents = true
-	panel.add_theme_stylebox_override(
-		"panel", _style_box(Color("102d21f2"), Color("e7d39b"), 2, 10)
+	(
+		panel
+		. add_theme_stylebox_override(
+			"panel",
+			_seat_frame_style(
+				player_view,
+				Color("102d21f2"),
+				Color("e7d39b"),
+				HERO_SEAT_FRAME_WIDTH,
+			),
+		)
 	)
 	var content := VBoxContainer.new()
 	content.name = "Content"
@@ -406,6 +448,18 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 	if player_view.folded:
 		FoldedSeatStyleScript.apply(panel)
 	return panel
+
+
+func _seat_frame_style(
+	player_view: PlayerView,
+	background_color: Color,
+	normal_border_color: Color,
+	normal_border_width: int,
+) -> StyleBoxFlat:
+	var is_acting: bool = player_view.seat == _bound_view.acting_seat
+	var border_color: Color = ACTING_SEAT_FRAME_COLOR if is_acting else normal_border_color
+	var border_width: int = normal_border_width * 3 if is_acting else normal_border_width
+	return _style_box(background_color, border_color, border_width, 10)
 
 
 func _create_marker_label(player_view: PlayerView) -> Label:
@@ -478,7 +532,7 @@ func _create_opponent_hole_cards(player_view: PlayerView) -> HBoxContainer:
 	var cards := HBoxContainer.new()
 	cards.name = "HoleCards"
 	cards.add_theme_constant_override("separation", 3)
-	if player_view.folded:
+	if player_view.folded or player_view.busted:
 		return cards
 	var revealed_cards: Array = _bound_view.revealed_hole_cards.get(player_view.seat, [])
 	if revealed_cards.size() == 2:
@@ -557,10 +611,9 @@ func _create_opponent_card_face(card_data: CardData, index: int) -> Label:
 
 
 func _seat_title(player_view: PlayerView) -> String:
-	var title: String = player_view.display_name
-	if player_view.is_human:
-		title += " (you)"
-	return title
+	var human_suffix: String = " (you)" if player_view.is_human else ""
+	var elimination_suffix: String = " (eliminated)" if player_view.busted else ""
+	return "%s%s%s" % [player_view.display_name, human_suffix, elimination_suffix]
 
 
 func _seat_marker_text(player_view: PlayerView) -> String:
@@ -608,26 +661,14 @@ func _latest_action_text(seat: int) -> String:
 
 
 func _pot_layer_text() -> String:
-	var pots: Array[PotLayer] = _bound_view.pots
-	if pots.size() <= 1:
-		return ""
-	return "  •  %d layers" % pots.size()
+	return "" if _bound_view.pots.size() <= 1 else "  •  %d layers" % _bound_view.pots.size()
 
 
 func _card_text(card: CardData) -> String:
 	if card == null:
 		return "?"
-	var rank_text: String = str(card.rank)
-	if card.rank == 14:
-		rank_text = "A"
-	elif card.rank == 13:
-		rank_text = "K"
-	elif card.rank == 12:
-		rank_text = "Q"
-	elif card.rank == 11:
-		rank_text = "J"
 	var suit_text: String = ["♣", "♦", "♥", "♠"][card.suit]
-	return "%s%s" % [rank_text, suit_text]
+	return "%s%s" % [_card_rank_text[card.rank], suit_text]
 
 
 func _card_face_color(card: CardData) -> Color:
@@ -677,7 +718,9 @@ func _refresh_action_controls() -> void:
 	_half_wager_button.text = "Preset %s %d" % [wager_name, _preset_wager_total()]
 	_wager_button.text = wager_name
 	_all_in_button.text = "All-in"
-	if is_human_turn:
+	if _bound_view.tournament_status == &"finished":
+		_action_status.text = TournamentStatusFormatterScript.format(_bound_view)
+	elif is_human_turn:
 		_action_status.text = "Your turn."
 	elif _bound_view.hand_complete:
 		_action_status.text = "Hand complete."
@@ -727,9 +770,37 @@ func _submit_action(action: PlayerAction) -> void:
 	if _match == null:
 		push_error("PokerTableController cannot submit without a TournamentMatch.")
 		return
-	var result: StepResult = _match.submit_human_action(action)
+	var result: StepResult = _match.submit_human_action_without_advance(action)
 	refresh_from_match()
 	if not result.message.is_empty():
+		_action_status.text = result.message
+	if result.status == StepResult.Status.YIELDED:
+		_schedule_after_latest_action()
+
+
+func _schedule_after_latest_action() -> void:
+	if _match == null:
+		return
+	var events: Array[DomainEvent] = _match.get_events()
+	if events.is_empty() or events[-1].kind != DomainEvent.Kind.ACTION_APPLIED:
+		return
+	_schedule_next_action(events[-1].seat)
+
+
+func _schedule_next_action(actor_seat: int) -> void:
+	_action_pacer.schedule_after_action(actor_seat, _advance_after_action_pause)
+
+
+func _advance_after_action_pause() -> void:
+	if _match == null:
+		return
+	var result: StepResult = _match.advance_one_action()
+	refresh_from_match()
+	if result.status == StepResult.Status.YIELDED:
+		_schedule_after_latest_action()
+	elif result.status == StepResult.Status.HAND_COMPLETED:
+		call_deferred("_advance_after_action_pause")
+	elif result.status == StepResult.Status.ERROR:
 		_action_status.text = result.message
 
 
@@ -913,76 +984,7 @@ func _normalized_seat_position(
 ) -> Vector2:
 	if is_hero:
 		return Vector2(0.5, 0.91)
-	return _symmetric_seat_positions(seat_count)[visual_slot]
-
-
-func _symmetric_seat_positions(seat_count: int) -> Array[Vector2]:
-	var positions: Array[Vector2] = []
-	match seat_count:
-		2:
-			positions = [Vector2(0.5, 0.08), Vector2(0.5, 0.91)]
-		3:
-			positions = [Vector2(0.85, 0.32), Vector2(0.5, 0.91), Vector2(0.15, 0.32)]
-		4:
-			positions = [
-				Vector2(0.5, 0.06),
-				Vector2(0.88, 0.36),
-				Vector2(0.5, 0.91),
-				Vector2(0.12, 0.36),
-			]
-		5:
-			positions = [
-				Vector2(0.72, 0.12),
-				Vector2(0.86, 0.55),
-				Vector2(0.5, 0.91),
-				Vector2(0.14, 0.55),
-				Vector2(0.28, 0.12),
-			]
-		6:
-			positions = [
-				Vector2(0.5, 0.08),
-				Vector2(0.88, 0.30),
-				Vector2(0.78, 0.70),
-				Vector2(0.5, 0.91),
-				Vector2(0.22, 0.70),
-				Vector2(0.12, 0.30),
-			]
-		7:
-			positions = [
-				Vector2(0.70, 0.06),
-				Vector2(0.88, 0.40),
-				Vector2(0.78, 0.72),
-				Vector2(0.5, 0.91),
-				Vector2(0.22, 0.72),
-				Vector2(0.12, 0.40),
-				Vector2(0.30, 0.06),
-			]
-		8:
-			positions = [
-				Vector2(0.5, 0.05),
-				Vector2(0.82, 0.19),
-				Vector2(0.90, 0.48),
-				Vector2(0.74, 0.75),
-				Vector2(0.5, 0.91),
-				Vector2(0.26, 0.75),
-				Vector2(0.10, 0.48),
-				Vector2(0.18, 0.19),
-			]
-		9:
-			positions = [
-				Vector2(0.80, 0.05),
-				Vector2(0.90, 0.30),
-				Vector2(0.90, 0.52),
-				Vector2(0.75, 0.75),
-				Vector2(0.5, 0.91),
-				Vector2(0.25, 0.75),
-				Vector2(0.10, 0.52),
-				Vector2(0.10, 0.30),
-				Vector2(0.20, 0.05),
-			]
-		_:
-			push_error("PokerTableController does not support %d seats." % seat_count)
-	return positions
+	return TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
 
 
 func _queue_layout() -> void:

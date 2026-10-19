@@ -69,7 +69,7 @@ func try_start() -> bool:
 
 	resolved_config = resolution.get_config()
 	match_instance = _match_factory.create(resolved_config)
-	start_result = match_instance.start()
+	start_result = match_instance.start(1)
 	if start_result.status == StepResult.Status.ERROR:
 		field_errors[&"form"] = start_result.message
 		match_instance = null

@@ -1,12 +1,31 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
+const GuiActionTimingConfigScript := preload("res://scripts/gui/gui_action_timing_config.gd")
+
+
+func test_acting_seat_uses_a_white_frame_three_times_thicker_than_ordinary_seats() -> void:
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	var view := _action_view(3)
+	view.acting_seat = 1
+	table.bind_view(view, _empty_assignments())
+
+	var acting_panel: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1")
+	var ordinary_panel: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2")
+	var acting_style: StyleBoxFlat = acting_panel.get_theme_stylebox("panel")
+	var ordinary_style: StyleBoxFlat = ordinary_panel.get_theme_stylebox("panel")
+
+	assert_eq(acting_style.border_color, Color.WHITE)
+	assert_eq(acting_style.border_width_left, ordinary_style.border_width_left * 3)
+	assert_eq(ordinary_style.border_color, Color("5dbf86"))
 
 
 func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> void:
 	var match_instance := _waiting_match([PlayerAction.call_action()])
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
+	_disable_action_pacing(table)
 	table.bind_match(match_instance, 0, _empty_assignments())
 
 	var view: GameView = match_instance.get_view_for(0)
@@ -28,10 +47,61 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_true(table.get_event_texts().any(func(text: String) -> bool: return "action" in text))
 
 
+func test_gui_renders_an_action_before_its_configured_nonblocking_pause_advances_a_bot() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var timing_config := GuiActionTimingConfigScript.new()
+	timing_config.default_pause_seconds = 0.1
+	table.set_action_timing_config(timing_config)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	table.get_node("%CheckCallButton").emit_signal("pressed")
+	assert_true(table.is_action_advance_pending())
+	assert_eq(match_instance.get_events().filter(_is_action_event).size(), 1)
+
+	await get_tree().create_timer(0.15).timeout
+	assert_gte(match_instance.get_events().filter(_is_action_event).size(), 2)
+
+
+func _is_action_event(event: DomainEvent) -> bool:
+	return event.kind == DomainEvent.Kind.ACTION_APPLIED
+
+
+func test_tournament_winner_and_eliminated_seat_are_rendered_from_the_match_view() -> void:
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var view := _action_view(2)
+	view.tournament_status = &"finished"
+	view.end_reason = &"winner"
+	view.tournament_winner_seat = 0
+	view._seats[1].busted = true
+	table.bind_view(view, _empty_assignments())
+
+	assert_eq(table.get_node("%ActionStatus").text, "Player 1 wins the tournament!")
+	assert_string_contains(
+		(
+			table
+			. get_node("TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/Identity/Name")
+			. text
+		),
+		"(eliminated)"
+	)
+	assert_eq(
+		(
+			table
+			. get_node("TableMargin/Felt/TableSurface/Seats/Seat1/Content/Footer/HoleCards")
+			. get_child_count()
+		),
+		0
+	)
+
+
 func test_rejected_free_wager_keeps_human_turn_and_displays_core_error() -> void:
 	var match_instance := _waiting_match([PlayerAction.call_action()])
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
+	_disable_action_pacing(table)
 	table.bind_match(match_instance, 0, _empty_assignments())
 
 	var input: LineEdit = table.get_node("%WagerInput")
@@ -47,6 +117,7 @@ func test_event_log_preserves_domain_event_order_and_fold_settlement() -> void:
 	var match_instance := _waiting_match([PlayerAction.fold_action()])
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
+	_disable_action_pacing(table)
 	table.bind_match(match_instance, 0, _empty_assignments())
 	table.get_node("%FoldButton").emit_signal("pressed")
 
@@ -71,6 +142,7 @@ func test_gui_actions_complete_a_checked_down_showdown_and_render_its_events() -
 	)
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
+	_disable_action_pacing(table)
 	table.bind_match(match_instance, 0, _empty_assignments())
 
 	table.get_node("%CheckCallButton").emit_signal("pressed")
@@ -318,6 +390,12 @@ func _waiting_match(bot_actions: Array[PlayerAction]) -> TournamentMatch:
 	)
 	assert_eq(match_instance.start().status, StepResult.Status.WAITING_FOR_HUMAN)
 	return match_instance
+
+
+func _disable_action_pacing(table: PokerTableController) -> void:
+	var timing_config := GuiActionTimingConfigScript.new()
+	timing_config.default_pause_seconds = 0.0
+	table.set_action_timing_config(timing_config)
 
 
 func _empty_assignments() -> Dictionary[int, String]:

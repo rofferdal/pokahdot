@@ -66,7 +66,7 @@ func _init(
 	hand_number = current_hand_number
 
 
-func start() -> StepResult:
+func start(max_transitions: int = 32) -> StepResult:
 	if state != State.NOT_STARTED:
 		return StepResult.new(StepResult.Status.ERROR, "The hand has already started.")
 	if _table.button_seat == Table.NO_SEAT:
@@ -89,7 +89,35 @@ func start() -> StepResult:
 	_deal_hole_cards()
 	_betting = BettingRound.new(_table, _table.first_to_act_preflop(), _largest_round_bet())
 	state = State.PREFLOP
-	return advance_until_blocked()
+	return advance_until_blocked(max_transitions)
+
+
+func advance_one_action() -> StepResult:
+	if state == State.COMPLETE:
+		return StepResult.new(StepResult.Status.HAND_COMPLETED)
+	if not _is_betting_state():
+		return StepResult.new(StepResult.Status.ERROR, "The hand is not active.")
+	for _transition: int in range(32):
+		if _betting.is_complete():
+			var transition_result: StepResult = _advance_after_betting_round()
+			if transition_result != null:
+				return transition_result
+			continue
+		return _advance_current_action()
+	return StepResult.new(
+		StepResult.Status.ERROR, "The hand exceeded its automatic transition limit."
+	)
+
+
+func _advance_current_action() -> StepResult:
+	var player: Player = _table.get_player(_betting.acting_seat)
+	var agent := player.agent as Agent
+	if agent == null:
+		return StepResult.new(StepResult.Status.ERROR, "The acting player has no agent.")
+	if agent is HumanAgent:
+		return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN)
+	_apply_with_fallback(player.seat, agent.choose_action(get_view_for(player.seat)))
+	return StepResult.new(StepResult.Status.YIELDED)
 
 
 func advance_until_blocked(max_transitions: int = 32) -> StepResult:
@@ -116,6 +144,13 @@ func advance_until_blocked(max_transitions: int = 32) -> StepResult:
 
 
 func submit_human_action(action: PlayerAction) -> StepResult:
+	var result: StepResult = submit_human_action_without_advance(action)
+	if result.status != StepResult.Status.YIELDED:
+		return result
+	return advance_until_blocked()
+
+
+func submit_human_action_without_advance(action: PlayerAction) -> StepResult:
 	if not _is_betting_state():
 		return StepResult.new(StepResult.Status.ERROR, "The hand is not accepting actions.")
 	var player: Player = _table.get_player(_betting.acting_seat)
@@ -126,7 +161,7 @@ func submit_human_action(action: PlayerAction) -> StepResult:
 		_events.append(DomainEvent.new(DomainEvent.Kind.ACTION_REJECTED, player.seat))
 		return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN, result.message)
 	_record_action(player.seat, action, result.chips_committed)
-	return advance_until_blocked()
+	return StepResult.new(StepResult.Status.YIELDED)
 
 
 func get_view_for(seat: int) -> GameView:

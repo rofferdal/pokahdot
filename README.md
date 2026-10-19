@@ -70,6 +70,10 @@ Run the Godot tests headlessly:
 godot --headless --path . -s addons/gut/gut_cmdln.gd
 ```
 
+## GUI action pace
+
+The GUI waits two seconds after rendering each player action before advancing to the next automatic action. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, or add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`). Set a value to `0.0` for immediate progression during development.
+
 ## Mappestruktur
 
 ```

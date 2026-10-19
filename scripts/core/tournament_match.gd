@@ -29,7 +29,7 @@ func _init(config: ResolvedTournamentConfig, seat_agents: Dictionary[int, Agent]
 		_streams = RngStreamFactory.new().create(config)
 
 
-func start() -> StepResult:
+func start(max_transitions: int = 32) -> StepResult:
 	if not _configuration_error.is_empty():
 		return StepResult.new(StepResult.Status.ERROR, _configuration_error)
 	if state != State.NOT_STARTED:
@@ -53,7 +53,7 @@ func start() -> StepResult:
 		)
 	_table = Table.new(players, _config.small_blind, _config.big_blind)
 	state = State.RUNNING
-	return _start_next_hand()
+	return _start_next_hand(max_transitions)
 
 
 func advance_until_blocked(max_transitions: int = 32) -> StepResult:
@@ -68,6 +68,20 @@ func submit_human_action(action: PlayerAction) -> StepResult:
 	if state != State.RUNNING:
 		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
 	return _handle_hand_result(_hand.submit_human_action(action))
+
+
+func submit_human_action_without_advance(action: PlayerAction) -> StepResult:
+	if state != State.RUNNING:
+		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
+	return _handle_hand_result(_hand.submit_human_action_without_advance(action))
+
+
+func advance_one_action() -> StepResult:
+	if state != State.RUNNING:
+		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
+	if _awaiting_next_hand:
+		return _start_next_hand(1)
+	return _handle_hand_result(_hand.advance_one_action())
 
 
 func request_quit() -> StepResult:
@@ -128,7 +142,7 @@ func _finish_hand_or_start_next() -> StepResult:
 	return StepResult.new(StepResult.Status.HAND_COMPLETED)
 
 
-func _start_next_hand() -> StepResult:
+func _start_next_hand(max_transitions: int = 32) -> StepResult:
 	if _hand != null:
 		_table.advance_button()
 	_awaiting_next_hand = false
@@ -143,7 +157,7 @@ func _start_next_hand() -> StepResult:
 			hand_number,
 		)
 	)
-	return _handle_hand_result(_hand.start())
+	return _handle_hand_result(_hand.start(max_transitions))
 
 
 func _mark_eliminated_players() -> void:
