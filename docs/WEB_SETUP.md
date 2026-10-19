@@ -133,7 +133,7 @@ deploying.
 
 This repository does not currently contain a hosting configuration. GitHub
 Pages is a suitable default because it provides HTTPS and a predictable URL
-without adding a runtime server. For a public GitHub.com repository the normal
+without adding a runtime server. For a public GitHub.com repository the normal[text](https://github.com/rofferdal/pokahdot/commits/main/)
 address is:
 
 ```text
