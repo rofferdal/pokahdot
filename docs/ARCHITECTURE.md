@@ -1,6 +1,6 @@
 # Pokahdot Architecture
 
-Status: Implemented through GUI Milestone 4.6; final human release verification remains
+Status: Implemented through GUI Milestone 4.6 and automated Stratmilestone2; final human release and strategy verification remain
 Last updated: 2026-10-19
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
@@ -264,6 +264,19 @@ foundation uses a conservative legal check/call/fold baseline while later
 strategy milestones add public hand-potential estimation and wagering policy.
 The five immutable-at-runtime profile Resources are `nit_caller`,
 `tight_aggressive`, `loose_passive`, `loose_aggressive`, and `balanced`.
+
+`HandPotentialEstimator` is a pure helper for the later policy stage. Its only
+inputs are the recipient's two hole cards, public board cards, and an explicit
+`HandPotentialContext` containing public scalar values: street, position
+ordinal, active opponents, pot, call amount, effective stack, and big blind.
+It copies those inputs into `HandPotentialEstimate` and neither accepts nor
+retains `Table`, `Player`, `Deck`, `GameView`, GUI, CLI, or mutable match
+references. Its preflop 0--100 heuristic weights pair strength (45%), rank
+strength (30%), suitedness (10%), connectivity (10%), and position (5%).
+Postflop it reports a bounded score plus made-hand class, direct/backdoor draw
+quality, draw outs, public board texture, board-only status, and improvement
+potential. The estimate is a deterministic heuristic, not equity; it must not
+be rendered in normal player UI or used to reveal unshown cards.
 
 Experimental parameterized models are opt-in. `TournamentConfig` defaults
 `allow_experimental_models` to false, `StartupOverrides` can explicitly select

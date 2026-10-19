@@ -53,6 +53,42 @@ func test_every_strategy_decision_is_legal_and_wager_is_in_range() -> void:
 			assert_between(action.amount, view.minimum_wager_total, view.maximum_wager_total)
 
 
+func test_decision_is_independent_of_opponent_hole_cards_and_deck_order() -> void:
+	var model := _model(1234)
+	var baseline_view := _view_with_opponent_cards("AC AD", 17)
+	var alternate_view := _view_with_opponent_cards("2H 2S", 41)
+
+	assert_eq(
+		_action_signature(model.choose_action(baseline_view)),
+		_action_signature(model.choose_action(alternate_view)),
+	)
+
+
+func test_decision_uses_snapshot_after_source_table_and_deck_mutation() -> void:
+	var model := _model(5678)
+	var players: Array[Player] = [
+		Player.new(&"hero", "Hero", 0, 100),
+		Player.new(&"opponent", "Opponent", 1, 100),
+	]
+	players[0].add_hole_card(CardData.new(14, CardData.Suit.SPADES))
+	players[0].add_hole_card(CardData.new(13, CardData.Suit.HEARTS))
+	players[1].add_hole_card(CardData.new(2, CardData.Suit.CLUBS))
+	players[1].add_hole_card(CardData.new(2, CardData.Suit.DIAMONDS))
+	var table := Table.new(players, 5, 10)
+	var deck := Deck.new()
+	var view := GameView.for_preflop(table, 0, BettingRound.new(table, 0), PotManager.new(), [])
+	var expected := _action_signature(model.choose_action(view))
+
+	players[1].fold()
+	players[0].commit_chips(50)
+	deck.reset()
+	var returned_seats: Array[PlayerView] = view.seats
+	returned_seats[0].stack = 1
+	returned_seats.clear()
+
+	assert_eq(_action_signature(model.choose_action(view)), expected)
+
+
 func _model(seed_value: int) -> DecisionModel:
 	var model: DecisionModel = StrategyModelScript.new()
 	assert_true(model.configure(StrategyParametersScript.new(), _rng(seed_value)).is_empty())
@@ -83,6 +119,50 @@ func _view_for_check() -> GameView:
 	var table := Table.new(players, 5, 10)
 	table.button_seat = 0
 	return GameView.for_preflop(table, 0, BettingRound.new(table, 0), PotManager.new(), [])
+
+
+func _view_with_opponent_cards(card_codes: String, deck_seed: int) -> GameView:
+	var players: Array[Player] = [
+		Player.new(&"hero", "Hero", 0, 100),
+		Player.new(&"opponent", "Opponent", 1, 100),
+	]
+	players[0].add_hole_card(CardData.new(14, CardData.Suit.SPADES))
+	players[0].add_hole_card(CardData.new(13, CardData.Suit.HEARTS))
+	for card: CardData in _cards(card_codes):
+		players[1].add_hole_card(card)
+	var deck := Deck.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = deck_seed
+	deck.shuffle(rng)
+	var table := Table.new(players, 5, 10)
+	return GameView.for_preflop(table, 0, BettingRound.new(table, 0), PotManager.new(), [])
+
+
+func _cards(card_codes: String) -> Array[CardData]:
+	var cards: Array[CardData] = []
+	for token: String in card_codes.split(" "):
+		var rank_text := token.substr(0, token.length() - 1)
+		var rank: int = int(rank_text)
+		if rank_text == "A":
+			rank = 14
+		elif rank_text == "K":
+			rank = 13
+		elif rank_text == "Q":
+			rank = 12
+		elif rank_text == "J":
+			rank = 11
+		var suit: CardData.Suit = CardData.Suit.CLUBS
+		match token.right(1):
+			"C":
+				suit = CardData.Suit.CLUBS
+			"D":
+				suit = CardData.Suit.DIAMONDS
+			"H":
+				suit = CardData.Suit.HEARTS
+			"S":
+				suit = CardData.Suit.SPADES
+		cards.append(CardData.new(rank, suit))
+	return cards
 
 
 func _action_signature(action: PlayerAction) -> String:

@@ -397,7 +397,7 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
   same-seed decisions.
 - [x] Update `docs/ARCHITECTURE.md` to describe the implemented parameterized
   model, profile Resources, determinism, and information boundary.
-- [ ] **Human verification:** start two seeded CLI tournaments with
+- [x] **Human verification:** start two seeded CLI tournaments with
   `--allow-experimental-models` and confirm startup diagnostics identify the
   new profile IDs, the games complete without bot-action warnings, and the
   same seed produces the same observable sequence of bot actions and outcome.
@@ -407,20 +407,20 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
 
 ## Stratmilestone2 — Public hand-potential estimation
 
-- [ ] Implement a pure `HandPotentialEstimator` that accepts only hero cards,
+- [x] Implement a pure `HandPotentialEstimator` that accepts only hero cards,
   public board/state, and explicitly supplied contextual values; it must not
   depend on `Table`, `Player`, `Deck`, GUI, CLI, or mutable match state.
-- [ ] Implement a documented 0--100 preflop score for pairs, rank strength,
+- [x] Implement a documented 0--100 preflop score for pairs, rank strength,
   suitedness, connectivity, and position.
-- [ ] Add preflop tests covering premium pairs, high cards, suited connectors,
+- [x] Add preflop tests covering premium pairs, high cards, suited connectors,
   weak offsuit hands, all score boundaries, and positional adjustments.
-- [ ] Extend the estimator postflop for made-hand class, flush/straight draw
+- [x] Extend the estimator postflop for made-hand class, flush/straight draw
   quality, paired or coordinated boards, board-only hands, and realistic
   improvement potential.
-- [ ] Add recipient-safety regressions proving estimator inputs and model
+- [x] Add recipient-safety regressions proving estimator inputs and model
   decisions cannot access opponent hole cards, deck order, or mutable core
   references.
-- [ ] **Human verification:** play or observe seeded CLI hands with the new
+- [x] **Human verification:** play or observe seeded CLI hands with the new
   profiles and confirm their public decisions remain plausible for their shown
   hole cards and board, while no bot hole cards, deck information, or private
   diagnostic values are ever rendered.
