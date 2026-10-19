@@ -12,10 +12,10 @@ func test_web_release_preset_is_committed_and_single_threaded() -> void:
 	assert_eq(load_error, OK, "The committed Web export preset must be readable.")
 	assert_eq(export_presets.get_value(WEB_PRESET_SECTION, "name"), "Web")
 	assert_eq(export_presets.get_value(WEB_PRESET_SECTION, "platform"), "Web")
+	assert_eq(export_presets.get_value(WEB_PRESET_SECTION, "export_path"), "build/web/index.html")
 	assert_eq(
-		export_presets.get_value(WEB_PRESET_SECTION, "export_path"),
-		"",
-		"The release command supplies build/web/index.html explicitly."
+		export_presets.get_value(WEB_PRESET_SECTION, "exclude_filter"),
+		"addons/*,tests/*,.gutconfig.json,my_test_node.gd,my_test_node.tscn"
 	)
 	assert_false(
 		export_presets.get_value(WEB_OPTIONS_SECTION, "variant/thread_support"),

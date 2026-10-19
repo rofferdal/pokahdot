@@ -228,11 +228,11 @@ evidence on a person's behalf.
   the baseline release, keep credentials out of version control, and ignore
   reproducible `build/` output. Add a regression or release check proving the
   preset is present and named exactly `Web`.
-- [ ] **Human task — install export prerequisites:** install Godot 4.7.2 and
+- [x] **Human task — install export prerequisites:** install Godot 4.7.2 and
   its matching export templates using the instructions in `docs/WEB_SETUP.md`.
   Open **Project > Export** and confirm that the committed `Web` preset is
   visible without a missing-template warning. Record the Godot version used.
-- [ ] **Agent task — reproducible release build:** add the repository-local
+- [x] **Agent task — reproducible release build:** add the repository-local
   commands or automation needed to run lint, formatting, all GUT tests, and
   `--export-release "Web" build/web/index.html` from a clean commit. Verify
   that `index.html` and every file it references are in `build/web`, and that

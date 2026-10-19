@@ -93,26 +93,24 @@ Add this ignore entry if it is not already present:
 Start with a clean working tree. The commit ID is part of the test evidence,
 so never publish a build that silently includes uncommitted changes.
 
-Run the project checks first:
+Use the repository-local release command. It fails before exporting if the
+working tree is not clean, then runs lint, formatting, and the full GUT suite
+before creating the release output:
 
 ```bash
-.venv/bin/gdlint scripts tests my_test_node.gd
-.venv/bin/gdformat --check scripts tests my_test_node.gd
-godot --headless --path . -s addons/gut/gut_cmdln.gd
-git status --short
-git rev-parse HEAD
+make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-release
 ```
 
-The final `git status --short` output must be empty before a release build.
-On macOS, replace `godot` in the remaining commands with
-`/Applications/Godot.app/Contents/MacOS/Godot` if it is not on `PATH`.
+On systems where `godot` is on `PATH`, omit the `GODOT=...` override. The
+command verifies that `build/web/index.html`, its direct HTML references, and
+the JavaScript, WebAssembly, and game-pack payloads exist. It also rejects a
+release output containing `addons` or `tests` directories. The final release
+path remains ignored by Git.
 
-Create the output directory and export the release:
+The command performs the equivalent export:
 
 ```bash
-mkdir -p build/web
 godot --headless --path . --export-release "Web" build/web/index.html
-find build/web -maxdepth 1 -type f -print | sort
 ```
 
 The command must exit with status 0. `build/web/index.html` must exist along
