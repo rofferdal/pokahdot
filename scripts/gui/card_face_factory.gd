@@ -7,6 +7,7 @@ const DIAMOND_TEXTURE := preload("res://assets/ui/diamond.svg")
 const HEART_TEXTURE := preload("res://assets/ui/heart.svg")
 const SPADE_TEXTURE := preload("res://assets/ui/spade.svg")
 const MAIN_POT_WINNER_STAR_TEXTURE := preload("res://assets/ui/winner_star.svg")
+const SUIT_SIZE_RATIO: float = 0.9
 static var card_rank_text: PackedStringArray = PackedStringArray(
 	["", "", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
 )
@@ -41,7 +42,9 @@ static func create_card_face(
 	content.add_child(rank)
 	var suit := TextureRect.new()
 	suit.name = "Suit"
-	suit.custom_minimum_size = Vector2(rank_font_size * 0.45, rank_font_size * 0.45)
+	suit.custom_minimum_size = Vector2(
+		rank_font_size * SUIT_SIZE_RATIO, rank_font_size * SUIT_SIZE_RATIO
+	)
 	suit.texture = _suit_texture(card_data)
 	suit.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	suit.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

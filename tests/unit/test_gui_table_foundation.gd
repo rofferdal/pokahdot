@@ -382,6 +382,9 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 		table.get_node("%CardSlots/CardSlot1/Content/Suit").texture.resource_path,
 		"res://assets/ui/club.svg"
 	)
+	assert_eq(
+		table.get_node("%CardSlots/CardSlot1/Content/Suit").custom_minimum_size, Vector2(26.1, 26.1)
+	)
 	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "D")
 	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "SB")
 	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "BB ACT")
