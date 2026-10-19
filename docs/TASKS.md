@@ -251,7 +251,7 @@ evidence on a person's behalf.
   uncommitted changes.
 - [x] **Agent task - found error after deploy to Github pages** card suites and
   star for winning player are not displayed correctly in web browser
-- [ ] **Agent task — deployment review:** inspect the successful workflow
+- [x] **Agent task — deployment review:** inspect the successful workflow
   artifact and deployment metadata. Confirm that the generated site is served
   from the release artifact at the expected stable `https://` URL, that the
   exported Web build is single-threaded, and that the evidence-record template
