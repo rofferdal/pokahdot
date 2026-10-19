@@ -268,6 +268,11 @@ evidence on a person's behalf.
 - [x] **Agent task - found error after new deploy to Github pages** on Chrome
   browser on iPad on the startup screen, there is no way to enter numeric amounts.
   No number pad or keyboard shows up.
+- [x] **Agent task — Android Chrome live-table readability:** use the available
+  portrait table surface for readable player seats, cards, community information,
+  event history, and action controls instead of retaining desktop-scale UI in
+  unused felt. Keep the desktop layout on rotation and add portrait regression
+  coverage for a high-resolution Android viewport.
 - [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
   startup screen, inspect the browser console for errors.

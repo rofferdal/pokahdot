@@ -9,6 +9,7 @@ const GuiEventFormatterScript := preload("res://scripts/gui/gui_event_formatter.
 const GuiMatchProgressInspectorScript := preload(
 	"res://scripts/gui/gui_match_progress_inspector.gd"
 )
+const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_layout.gd")
 const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
 const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_formatter.gd")
 const TableSeatLayoutScript := preload("res://scripts/gui/table_seat_layout.gd")
@@ -842,32 +843,97 @@ func _layout_table() -> void:
 	var surface_size: Vector2 = _surface.size
 	if surface_size.x <= 0.0 or surface_size.y <= 0.0:
 		return
+	var mobile_portrait_layout: bool = GuiMobileTableLayoutScript.is_mobile_portrait(surface_size)
+	var mobile_content_scale: float = GuiMobileTableLayoutScript.content_scale(surface_size)
+	(
+		GuiMobileTableLayoutScript
+		. apply_scale(
+			mobile_portrait_layout,
+			mobile_content_scale,
+			_board_label,
+			_pot_label,
+			_wager_label,
+			_action_status,
+			_event_log,
+			_quit_button,
+			[
+				_fold_button,
+				_check_call_button,
+				_min_wager_button,
+				_half_wager_button,
+				_wager_input,
+				_wager_button,
+				_all_in_button,
+			],
+			_card_slots,
+			_seat_widgets,
+			_seat_action_widgets,
+			_seat_showdown_widgets,
+		)
+	)
 	var center_minimum_size: Vector2 = _center_zone.get_combined_minimum_size()
 	var center_size := Vector2(
-		maxf(clampf(surface_size.x * 0.48, 230.0, 340.0), center_minimum_size.x),
-		maxf(184.0, center_minimum_size.y),
+		maxf(
+			clampf(
+				surface_size.x * (0.56 if mobile_portrait_layout else 0.48),
+				230.0,
+				680.0 if mobile_portrait_layout else 340.0,
+			),
+			center_minimum_size.x,
+		),
+		maxf(
+			184.0 * mobile_content_scale if mobile_portrait_layout else 184.0, center_minimum_size.y
+		),
 	)
 	_center_zone.size = center_size
 	_center_zone.position = (surface_size - center_size) * 0.5
 	if _seat_widgets.is_empty():
 		return
-	var compact_layout: bool = surface_size.x < 600.0
+	var compact_layout: bool = surface_size.x < 600.0 or mobile_portrait_layout
 	var seat_width: float = (
-		clampf(surface_size.x * 0.27, 104.0, 140.0)
-		if compact_layout
-		else clampf(surface_size.x * 0.23, 250.0, 280.0)
+		clampf(
+			surface_size.x * 0.32,
+			104.0 * mobile_content_scale,
+			280.0 * mobile_content_scale,
+		)
+		if mobile_portrait_layout
+		else (
+			clampf(surface_size.x * 0.27, 104.0, 140.0)
+			if compact_layout
+			else clampf(surface_size.x * 0.23, 250.0, 280.0)
+		)
 	)
 	var seat_count: int = _seat_widgets.size()
 	for seat: int in _seat_widgets:
 		var is_hero: bool = seat == _bound_view.hero_seat
-		var seat_size := Vector2(seat_width, 96.0) if is_hero else Vector2(seat_width, 70.0)
+		var seat_size := (
+			Vector2(seat_width, 96.0 * mobile_content_scale)
+			if is_hero
+			else Vector2(seat_width, 70.0 * mobile_content_scale)
+		)
 		if compact_layout and is_hero:
-			seat_size = Vector2(clampf(surface_size.x * 0.56, 190.0, 220.0), 80.0)
+			seat_size = Vector2(
+				clampf(
+					surface_size.x * (0.76 if mobile_portrait_layout else 0.56),
+					190.0 * mobile_content_scale,
+					440.0 * mobile_content_scale,
+				),
+				80.0 * mobile_content_scale,
+			)
 		var normalized_position: Vector2 = _normalized_seat_position(
 			_visual_slot_for_seat(seat, seat_count), seat_count, is_hero
 		)
+		normalized_position = (
+			GuiMobileTableLayoutScript
+			. opponent_position(
+				normalized_position,
+				mobile_portrait_layout and mobile_content_scale > 1.0 and not is_hero,
+			)
+		)
 		var panel: PanelContainer = _seat_widgets[seat]
-		_apply_compact_seat_typography(panel, compact_layout, is_hero)
+		GuiMobileTableLayoutScript.apply_seat_typography(
+			panel, mobile_portrait_layout, mobile_content_scale, is_hero
+		)
 		var minimum_size: Vector2 = panel.get_combined_minimum_size()
 		var resolved_seat_size := Vector2(
 			maxf(seat_size.x, minimum_size.x), maxf(seat_size.y, minimum_size.y)
@@ -880,96 +946,23 @@ func _layout_table() -> void:
 			clampf(intended_position.x, 0.0, surface_size.x - resolved_seat_size.x),
 			clampf(intended_position.y, 0.0, surface_size.y - resolved_seat_size.y),
 		)
-		_layout_seat_action_label(seat, panel, compact_layout)
-		_layout_seat_showdown_label(seat, panel, compact_layout)
-	_layout_human_adjacent_panels(surface_size, compact_layout)
-
-
-func _layout_seat_action_label(seat: int, panel: PanelContainer, compact_layout: bool) -> void:
-	var action_label: Label = _seat_action_widgets.get(seat)
-	if action_label == null:
-		return
-	var action_height: float = 20.0 if not compact_layout else 17.0
-	action_label.size = Vector2(panel.size.x, action_height)
-	action_label.position = Vector2(panel.position.x, panel.position.y + panel.size.y + 2.0)
-
-
-func _layout_seat_showdown_label(seat: int, panel: PanelContainer, compact_layout: bool) -> void:
-	var showdown_label: Label = _seat_showdown_widgets.get(seat)
-	if showdown_label == null or not showdown_label.visible:
-		return
-	var label_height: float = 22.0 if compact_layout else 24.0
-	showdown_label.size = Vector2(panel.size.x, label_height)
-	showdown_label.position = Vector2(
-		panel.position.x, maxf(0.0, panel.position.y - showdown_label.size.y - 2.0)
+		GuiMobileTableLayoutScript.layout_seat_action_label(
+			_seat_action_widgets.get(seat), panel, compact_layout, mobile_content_scale
+		)
+		GuiMobileTableLayoutScript.layout_seat_showdown_label(
+			_seat_showdown_widgets.get(seat), panel, compact_layout, mobile_content_scale
+		)
+	(
+		GuiMobileTableLayoutScript
+		. layout_human_adjacent_panels(
+			surface_size,
+			compact_layout,
+			mobile_content_scale,
+			_seat_widgets.get(_bound_view.hero_seat),
+			_action_panel,
+			_event_log,
+		)
 	)
-
-
-func _layout_human_adjacent_panels(surface_size: Vector2, compact_layout: bool) -> void:
-	var hero_panel: PanelContainer = _seat_widgets.get(_bound_view.hero_seat)
-	if hero_panel == null:
-		return
-	if compact_layout:
-		_layout_compact_human_panels(surface_size, hero_panel)
-		return
-	var action_size := Vector2(clampf(surface_size.x * 0.32, 560.0, 640.0), 104.0)
-	action_size = Vector2(
-		maxf(action_size.x, _action_panel.get_combined_minimum_size().x),
-		maxf(action_size.y, _action_panel.get_combined_minimum_size().y),
-	)
-	var event_size := Vector2(clampf(surface_size.x * 0.22, 380.0, 440.0), 132.0)
-	event_size = Vector2(
-		maxf(event_size.x, _event_log.get_combined_minimum_size().x),
-		maxf(event_size.y, _event_log.get_combined_minimum_size().y),
-	)
-	var panel_y: float = minf(
-		hero_panel.position.y + hero_panel.size.y - action_size.y,
-		surface_size.y - action_size.y - 12.0,
-	)
-	_action_panel.size = action_size
-	_action_panel.position = Vector2(
-		minf(
-			surface_size.x - action_size.x - 12.0,
-			hero_panel.position.x + hero_panel.size.x + 14.0,
-		),
-		panel_y,
-	)
-	_event_log.size = event_size
-	_event_log.position = Vector2(
-		maxf(12.0, hero_panel.position.x - event_size.x - 14.0),
-		clampf(
-			hero_panel.position.y + hero_panel.size.y - event_size.y,
-			12.0,
-			surface_size.y - event_size.y - 12.0,
-		),
-	)
-
-
-func _layout_compact_human_panels(surface_size: Vector2, hero_panel: PanelContainer) -> void:
-	var panel_width: float = surface_size.x - 24.0
-	var action_height: float = maxf(150.0, _action_panel.get_combined_minimum_size().y)
-	_action_panel.size = Vector2(panel_width, action_height)
-	_action_panel.position = Vector2(12.0, maxf(12.0, hero_panel.position.y - action_height - 8.0))
-	_event_log.size = Vector2(panel_width, 82.0)
-	_event_log.position = Vector2(12.0, maxf(12.0, _action_panel.position.y - 90.0))
-
-
-func _apply_compact_seat_typography(
-	panel: PanelContainer,
-	compact_layout: bool,
-	is_hero: bool,
-) -> void:
-	if not compact_layout or is_hero:
-		return
-	var avatar := panel.find_child("Avatar", true, false) as TextureRect
-	if avatar != null:
-		avatar.custom_minimum_size = OPPONENT_AVATAR_SIZE
-	var name_label := panel.find_child("Name", true, false) as Label
-	if name_label != null:
-		name_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
-	var marker_label := panel.find_child("Marker", true, false) as Label
-	if marker_label != null:
-		marker_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 
 
 func _visual_slot_for_seat(seat: int, seat_count: int) -> int:
