@@ -237,7 +237,7 @@ evidence on a person's behalf.
   `--export-release "Web" build/web/index.html` from a clean commit. Verify
   that `index.html` and every file it references are in `build/web`, and that
   development addons and tests are not included in the release output.
-- [ ] **Agent task — deployment configuration:** add a reviewed GitHub Pages
+- [x] **Agent task — deployment configuration:** add a reviewed GitHub Pages
   deployment workflow which installs pinned Godot 4.7.2 plus matching export
   templates, runs the release checks, exports only `build/web`, creates
   `.nojekyll`, uploads the artifact, and deploys it with the least required

@@ -1,0 +1,85 @@
+name: Deploy Web release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_RELEASE: 4.7.2-stable
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@v6
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned Godot editor and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot_archive="Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          templates_archive="Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          release_url="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+
+          curl --fail --location --retry 3 --output "/tmp/${godot_archive}" "${release_url}/${godot_archive}"
+          unzip -q "/tmp/${godot_archive}" -d "$RUNNER_TEMP/godot"
+          install -m 0755 "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" "$RUNNER_TEMP/godot/godot"
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+
+          template_dir="$HOME/.local/share/godot/export_templates/${GODOT_RELEASE}"
+          mkdir -p "$template_dir"
+          curl --fail --location --retry 3 --output "/tmp/${templates_archive}" "${release_url}/${templates_archive}"
+          unzip -q "/tmp/${templates_archive}" -d "$template_dir"
+          test -f "$template_dir/web_nothreads_debug.zip"
+          test -f "$template_dir/web_nothreads_release.zip"
+
+      - name: Install pinned development tools
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --requirement requirements-dev.txt
+
+      - name: Validate and export the release artifact
+        run: make web-release
+
+      - name: Prevent Jekyll processing
+        run: touch build/web/.nojekyll
+
+      - name: Upload Web release artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/web
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+      - name: Publish deployment URL
+        run: 'echo "Deployed URL: ${{ steps.deployment.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"'
