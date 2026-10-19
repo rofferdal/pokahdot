@@ -71,6 +71,7 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 | Keep avatar selection in the GUI presentation layer | Avatar identity is visual-only and must not affect `Player`, `GameView`, tournament configuration, or core RNG streams. |
 | Keep GUI action pacing in a Resource | Per-seat visual pauses are configurable without putting timers or presentation policy in poker rules. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
+| Share one in-canvas numeric keypad between startup and live-table inputs | Web and iPad number entry remains consistent, preserves the canvas viewport, and avoids browser keyboard behavior. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
 
 ## 5. Core module responsibilities

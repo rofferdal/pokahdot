@@ -31,7 +31,7 @@ func test_keypad_scales_its_buttons_for_a_high_resolution_mobile_surface() -> vo
 
 	keypad.open(input, 20, 100, 2.0)
 
-	assert_gte(keypad.size.x, 500.0)
-	assert_gte(keypad.size.y, 700.0)
-	assert_eq(keypad.get_node("Content/Keys/Key1").custom_minimum_size, Vector2(160, 96))
-	assert_eq(keypad.get_node("Content/Done").custom_minimum_size, Vector2(0, 96))
+	assert_gte(float(keypad.size.x), 500.0)
+	assert_gte(float(keypad.size.y), 700.0)
+	assert_eq(keypad.get_node("Content/Keys/Key1").custom_minimum_size, Vector2(160.0, 96.0))
+	assert_eq(keypad.get_node("Content/Done").custom_minimum_size, Vector2(0.0, 96.0))

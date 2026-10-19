@@ -69,8 +69,22 @@ func open(input: LineEdit, minimum: int, maximum: int, content_scale: float = 1.
 	_input = input
 	if not _input.text.is_valid_int():
 		_input.text = ""
+	_title.text = "Enter wager total"
 	_value_label.text = _input.text if not _input.text.is_empty() else "—"
 	_range_label.text = "Min %d  •  Max %d" % [minimum, maximum]
+	_range_label.show()
+	var scale: float = clampf(content_scale, 1.0, 2.0)
+	_apply_content_scale(scale)
+	popup_centered(Vector2i(roundi(KEYPAD_WIDTH * scale), roundi(KEYPAD_HEIGHT * scale)))
+
+
+func open_number(input: LineEdit, content_scale: float = 1.0) -> void:
+	_input = input
+	if not _input.text.is_valid_int():
+		_input.text = ""
+	_title.text = "Enter number"
+	_value_label.text = _input.text if not _input.text.is_empty() else "—"
+	_range_label.hide()
 	var scale: float = clampf(content_scale, 1.0, 2.0)
 	_apply_content_scale(scale)
 	popup_centered(Vector2i(roundi(KEYPAD_WIDTH * scale), roundi(KEYPAD_HEIGHT * scale)))

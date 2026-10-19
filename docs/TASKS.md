@@ -286,6 +286,10 @@ evidence on a person's behalf.
   on Chrome on Android, everything on the screen is too small and hard to read.
   Action buttons and buttons on numeric pad are so small that it is impossible to hit
   reliably with a finger.  This must be improved.
+- [x] **Agent task — iPad numeric input consistency:** make every numeric startup
+  field use the same in-canvas numeric keypad as the live-table wager field, so
+  iPad entry does not invoke a browser keyboard or resize the game. Add regression
+  coverage for startup keypad opening and digit entry.
 - [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
   startup screen, inspect the browser console for errors.

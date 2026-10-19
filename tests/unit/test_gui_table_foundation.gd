@@ -63,7 +63,7 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 	)
 
 
-func test_startup_numeric_inputs_request_a_mobile_number_keyboard() -> void:
+func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_table() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)
 
@@ -74,9 +74,18 @@ func test_startup_numeric_inputs_request_a_mobile_number_keyboard() -> void:
 		^"Center/Panel/Margin/Form/BigBlindInput",
 	]:
 		var input := main.get_node(input_path) as LineEdit
-		assert_true(input.virtual_keyboard_enabled, str(input_path))
-		assert_true(input.virtual_keyboard_show_on_focus, str(input_path))
+		assert_false(input.virtual_keyboard_enabled, str(input_path))
+		assert_false(input.virtual_keyboard_show_on_focus, str(input_path))
 		assert_eq(input.virtual_keyboard_type, LineEdit.KEYBOARD_TYPE_NUMBER, str(input_path))
+
+	var player_count_input := main.get_node("%PlayerCountInput") as LineEdit
+	main.show_numeric_keypad(player_count_input)
+	var keypad := main.get_node("StartupNumberKeypad") as WagerKeypad
+	assert_true(keypad.visible)
+	assert_eq(keypad.get_node("Content/Title").text, "Enter number")
+	assert_false(keypad.get_node("Content/Range").visible)
+	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	assert_eq(player_count_input.text, "62")
 
 
 func test_default_avatar_catalog_has_sixteen_distinct_loadable_pixel_portraits() -> void:

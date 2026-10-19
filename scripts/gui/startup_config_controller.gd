@@ -2,6 +2,8 @@ class_name StartupConfigController
 extends Control
 
 const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_config_adapter.gd")
+const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_layout.gd")
+const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
 
 const PORTRAIT_ASPECT_RATIO_THRESHOLD := 1.15
 const PORTRAIT_FORM_WIDTH_RATIO := 0.84
@@ -13,6 +15,7 @@ const DEFAULT_TITLE_FONT_SIZE := 50
 
 var startup_adapter
 var _avatar_assignment_service := AvatarAssignmentService.new()
+var _number_keypad: WagerKeypad
 
 @onready var _player_count_input: LineEdit = %PlayerCountInput
 @onready var _starting_stack_input: LineEdit = %StartingStackInput
@@ -35,6 +38,9 @@ func _ready() -> void:
 		load("res://resources/default_tournament_config.tres") as TournamentConfig
 	)
 	_configure_numeric_inputs_for_mobile()
+	_number_keypad = WagerKeypadScript.new()
+	_number_keypad.name = "StartupNumberKeypad"
+	add_child(_number_keypad)
 	_apply_defaults()
 	%StartButton.pressed.connect(_on_start_pressed)
 	_poker_table.tournament_quit_confirmed.connect(_on_tournament_quit_confirmed)
@@ -126,9 +132,30 @@ func _configure_numeric_inputs_for_mobile() -> void:
 		_small_blind_input,
 		_big_blind_input,
 	]:
-		input.virtual_keyboard_enabled = true
-		input.virtual_keyboard_show_on_focus = true
+		# Use the same in-canvas keypad as the table to preserve the Web viewport.
+		input.virtual_keyboard_enabled = false
+		input.virtual_keyboard_show_on_focus = false
 		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
+		input.gui_input.connect(_on_numeric_input_gui_input.bind(input))
+
+
+func show_numeric_keypad(input: LineEdit) -> void:
+	if input == null or _number_keypad == null:
+		return
+	_number_keypad.open_number(input, GuiMobileTableLayoutScript.content_scale(size))
+
+
+func _on_numeric_input_gui_input(event: InputEvent, input: LineEdit) -> void:
+	if (
+		event is InputEventScreenTouch and event.pressed
+		or (
+			event is InputEventMouseButton
+			and event.pressed
+			and event.button_index == MOUSE_BUTTON_LEFT
+		)
+	):
+		show_numeric_keypad(input)
+		accept_event()
 
 
 func _apply_defaults() -> void:
