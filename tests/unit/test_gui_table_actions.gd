@@ -253,6 +253,33 @@ func test_showdown_summaries_use_recipient_safe_results_above_revealed_seats() -
 	assert_lte(pair_label.position.y + pair_label.size.y, hero_panel.position.y)
 
 
+func test_main_pot_showdown_winner_has_a_yellow_half_avatar_star_without_marking_side_pot_winners(
+) -> void:
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	var view := _action_view(3)
+	view._showdown_results = {
+		0: _showdown_result(0, HandRank.Category.ONE_PAIR, [13, 14, 12, 7]),
+		1: _showdown_result(1, HandRank.Category.FULL_HOUSE, [14, 10]),
+	}
+	view._pot_awards = [
+		PotAward.new(0, 120, [1], {1: 120}),
+		PotAward.new(1, 40, [0], {0: 40}),
+	]
+	table.bind_view(view, _empty_assignments())
+
+	var winner_star: Label = table.get_node(
+		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/MainPotWinnerStar"
+	)
+	assert_eq(winner_star.text, "★")
+	assert_eq(winner_star.get_theme_color("font_color"), Color("ffd429"))
+	assert_eq(winner_star.custom_minimum_size, Vector2(28, 28))
+	assert_eq(winner_star.get_parent().name, "Header")
+	assert_false(
+		table.has_node("TableMargin/Felt/TableSurface/Seats/Seat0/Content/Header/MainPotWinnerStar")
+	)
+
+
 func _showdown_result(
 	seat: int,
 	category: HandRank.Category,

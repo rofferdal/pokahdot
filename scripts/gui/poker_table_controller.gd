@@ -7,6 +7,7 @@ const HERO_AVATAR_SIZE := Vector2(64, 64)
 const OPPONENT_CARD_SIZE := Vector2(30, 38)
 const GUI_MINIMUM_FONT_SIZE: int = 20
 const OPPONENT_CHIP_FONT_SIZE: int = 22
+const MAIN_POT_WINNER_STAR_COLOR := Color("ffd429")
 
 var board_card_count: int = 0
 var wager_amounts: Dictionary[int, int] = {}
@@ -338,6 +339,7 @@ func _create_seat_widget(player_view: PlayerView) -> PanelContainer:
 	if not avatar_path.is_empty():
 		avatar.texture = load(avatar_path) as Texture2D
 	row.add_child(avatar)
+	_add_main_pot_winner_star(row, player_view.seat, OPPONENT_AVATAR_SIZE)
 	row.add_child(_create_seat_identity(player_view, 20))
 	row.add_child(_create_marker_label(player_view))
 	var footer := HBoxContainer.new()
@@ -377,6 +379,7 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 	if not avatar_path.is_empty():
 		avatar.texture = load(avatar_path) as Texture2D
 	header.add_child(avatar)
+	_add_main_pot_winner_star(header, player_view.seat, HERO_AVATAR_SIZE)
 	header.add_child(_create_seat_identity(player_view, 23))
 	header.add_child(_create_marker_label(player_view))
 	var cards := HBoxContainer.new()
@@ -420,6 +423,33 @@ func _create_marker_label(player_view: PlayerView) -> Label:
 		"normal", _compact_style_box(Color("e7d39b"), Color("f5f0dc"), 1, 5)
 	)
 	return marker
+
+
+func _add_main_pot_winner_star(
+	header: HBoxContainer,
+	seat: int,
+	avatar_size: Vector2,
+) -> void:
+	if not _is_main_pot_winner_at_showdown(seat):
+		return
+	var star := Label.new()
+	star.name = "MainPotWinnerStar"
+	star.text = "★"
+	star.custom_minimum_size = avatar_size * 0.5
+	star.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	star.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	star.add_theme_font_size_override("font_size", int(avatar_size.y * 0.5))
+	star.add_theme_color_override("font_color", MAIN_POT_WINNER_STAR_COLOR)
+	header.add_child(star)
+
+
+func _is_main_pot_winner_at_showdown(seat: int) -> bool:
+	if _bound_view == null or not _bound_view.showdown_results.has(seat):
+		return false
+	for award: PotAward in _bound_view.pot_awards:
+		if award.pot_index == 0:
+			return seat in award.winner_seats
+	return false
 
 
 func _create_seat_identity(player_view: PlayerView, name_font_size: int) -> VBoxContainer:

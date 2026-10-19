@@ -176,7 +176,9 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 - [x] Reflow every seat so its chip stack appears directly below the player name, keeping wagers and all-in actions outside the seat panel.
 - [x] Narrow the dealer and blind marker area while preserving legible position labels.
 - [x] Add GUI regression coverage for the separate name/stack rows and compact position-marker width.
-- [x] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
+- [x] At showdown, mark the player with the best hand, winning the main pot With a yellow star next to the player seat area, but overlapping nothing. Make the star half the size of the avatar.
+- [ ] Fix the GUI seat-layout mapping so dealer, small blind, and big blind markers always appear in consecutive clockwise order around the visual table, while preserving the human recipient at the bottom and core seat identities; add layout regressions for 2–9 players.
+- [ ] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
 
 ### PR — Code quality and structure gate before Milestone 4.5
 
@@ -187,6 +189,8 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 
 ### Milestone 4.5 — Tournament progression and quit
 
+- [ ] In GUI mode, highlight the acting player's seat with a white frame three times thicker than the normal seat-frame line; retain the existing frame styling for every non-acting seat, and add adapter/layout regression coverage.
+- [ ] In GUI mode, after rendering an active player's action, wait two seconds before advancing to the next player who must act; keep the UI responsive throughout the delay and add deterministic adapter coverage for the timing behavior.  The length of this pause should be configurable in some way in accordance with best godot code practice for configurability.
 - [ ] Continue the GUI controller across hand boundaries and render button movement, eliminated seats, heads-up behavior, final stacks, and the tournament winner.
 - [ ] Add the always-available `Avslutt` control with confirmation and `player_quit` handling.
 - [ ] Add GUI adapter tests for next-hand progression, eliminated-seat skipping, winner rendering, quit-confirmation cancel/accept behavior, and clean `player_quit` termination.
