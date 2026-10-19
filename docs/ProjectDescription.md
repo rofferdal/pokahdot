@@ -226,6 +226,7 @@ Andres hullkort kun når `street == showdown` eller hånden er over og kortene f
 - Én hovedscene for bordet.
 - Spillerne skal ha små avatarer (gjerne 32x32 pixler), og de skal være ulike og tildeles tilfeldig. 
 - Det skal vises et grønt bord som illustrerer spillet med tydelig sone for felleskortene og plasser for bud og pott.
+- All player-facing GUI text must be at least 20 px, matching the desktop opponent-name text size. Compact layouts may reflow controls but must not reduce this minimum.
 
 ### 7.2 CLI (headless)
 

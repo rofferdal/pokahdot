@@ -25,9 +25,9 @@ offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
+theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_bottom = 4
 
 [node name="Felt" type="Panel" parent="TableMargin"]
 layout_mode = 2
@@ -48,17 +48,7 @@ mouse_filter = 2
 
 [node name="CenterZone" type="VBoxContainer" parent="TableMargin/Felt/TableSurface"]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -170.0
-offset_top = -130.0
-offset_right = 170.0
-offset_bottom = 130.0
-grow_horizontal = 2
-grow_vertical = 2
+anchors_preset = 0
 theme_override_constants/separation = 8
 mouse_filter = 2
 
@@ -133,55 +123,72 @@ theme_override_constants/margin_bottom = 8
 
 [node name="Content" type="VBoxContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
 [node name="ActionStatus" type="Label" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Waiting for the current player."
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
 
-[node name="Buttons" type="HFlowContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
+[node name="ActionRows" type="VBoxContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="PrimaryButtons" type="HBoxContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
-[node name="FoldButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+[node name="FoldButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Fold"
+theme_override_font_sizes/font_size = 21
 
-[node name="CheckCallButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+[node name="CheckCallButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Check"
+theme_override_font_sizes/font_size = 21
 
-[node name="MinWagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+[node name="MinWagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Min bet"
+theme_override_font_sizes/font_size = 21
 
-[node name="HalfWagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+[node name="HalfWagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Half stack"
+theme_override_font_sizes/font_size = 21
 
-[node name="WagerInput" type="LineEdit" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(108, 0)
-layout_mode = 2
-placeholder_text = "Total wager"
-alignment = 1
-
-[node name="WagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Bet / raise"
-
-[node name="AllInButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/Buttons"]
+[node name="AllInButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "All-in"
+theme_override_font_sizes/font_size = 21
+
+[node name="WagerControls" type="HBoxContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="WagerInput" type="LineEdit" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(76, 0)
+layout_mode = 2
+placeholder_text = "Wager total"
+alignment = 1
+theme_override_font_sizes/font_size = 21
+
+[node name="WagerButton" type="Button" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Bet / raise"
+theme_override_font_sizes/font_size = 21
 
 [node name="EventLog" type="RichTextLabel" parent="TableMargin/Felt/TableSurface"]
 unique_name_in_owner = true
@@ -195,6 +202,7 @@ offset_right = -18.0
 offset_bottom = 330.0
 grow_horizontal = 0
 bbcode_enabled = false
-fit_content = true
+fit_content = false
 scroll_active = true
 mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 20

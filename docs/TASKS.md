@@ -153,7 +153,30 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 - [x] Present ordered domain events without duplicating settlement, winner, or legality rules in GUI code.
 - [x] Add GUI adapter tests for legal-action enabled states, action mapping, rejected amounts, event ordering, fold-to-one settlement, and showdown rendering.
 - [x] **App increment:** a person can use the GUI to play one hand from preflop through fold or showdown, with accurate state updates after every action.
-- [ ] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
+- [x] Reposition the human action controls to the bottom-right table area immediately right of the human seat, without obscuring any seat at supported desktop sizes.
+- [x] Reposition the ordered event feed to the left of the human seat without obscuring any seat, using concise event text.
+- [x] Render each player's latest public action directly below that player's seat using compact poker abbreviations.
+- [x] Add GUI layout and adapter regressions for non-overlapping action/event panels and per-seat compact action labels at 6 and 9 players.
+- [x] Replace the tall human-action panel with a compact single-row strip using action text larger than the human-seat detail text.
+- [x] Widen the ordered event feed, give it a fixed scrollable viewport, and preserve access to earlier events without obscuring seats.
+- [x] Add GUI regressions for the compact action-strip height and typography, plus the event-feed width and scrolling configuration.
+- [x] Replace abbreviated and ambiguous action labels with explicit controls arranged across two compact rows; show `All-in` in full and distinguish minimum and preset raise controls.
+- [x] Widen and restyle the scrollable event feed with black text on a light-grey surface.
+- [x] Render each player's latest public action as a separate line directly below the seat rather than inside its seat panel.
+- [x] Render folded/outbid players in grayscale while keeping their seats visible and hiding their hole cards.
+- [x] Add GUI regressions for explicit two-row action controls, high-contrast event history, external action labels, and folded-seat privacy/grayscale treatment.
+- [x] Give every human action control a compact framed treatment so adjacent actions are visually distinct.
+- [x] Center the complete community-card, pot, and wager zone from its resolved bounds at supported viewport sizes.
+- [x] Render face-up community-card suits in their standard red or dark colours rather than a shared yellow colour.
+- [x] Enforce a 20 px minimum for all player-facing GUI text, including compact layouts, matching the desktop opponent-name baseline.
+- [x] Add GUI regressions for center-zone alignment, suit-aware community cards, and the GUI text-size floor.
+- [x] Render dealt community cards with a light, high-contrast face background matching exposed hole cards, while retaining dark face-down placeholders.
+- [x] At showdown, render each revealed player's best evaluated hand above that seat using the recipient-safe `ShowdownResult` category and rank data.
+- [x] Add GUI regression coverage for showdown hand-summary wording and placement above the corresponding seat.
+- [x] Reflow every seat so its chip stack appears directly below the player name, keeping wagers and all-in actions outside the seat panel.
+- [x] Narrow the dealer and blind marker area while preserving legible position labels.
+- [x] Add GUI regression coverage for the separate name/stack rows and compact position-marker width.
+- [x] **Human test:** complete one fold-to-one hand and one showdown hand; verify enabled actions, wager presets and free input, rejected amounts, board progression, pot awards, and opponent-card privacy.
 
 ### Milestone 4.5 — Tournament progression and quit
 

@@ -1,11 +1,11 @@
 class_name PokerTableController
 extends Control
-
-## Presentation-only table shell. Poker state stays in TournamentMatch views.
-
+const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
+const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_formatter.gd")
 const OPPONENT_AVATAR_SIZE := Vector2(56, 56)
 const HERO_AVATAR_SIZE := Vector2(64, 64)
 const OPPONENT_CARD_SIZE := Vector2(30, 38)
+const GUI_MINIMUM_FONT_SIZE: int = 20
 const OPPONENT_CHIP_FONT_SIZE: int = 22
 
 var board_card_count: int = 0
@@ -17,6 +17,8 @@ var _match: TournamentMatch
 var _recipient_seat: int = Table.NO_SEAT
 var _avatar_assignments: Dictionary[int, String] = {}
 var _seat_widgets: Dictionary[int, PanelContainer] = {}
+var _seat_action_widgets: Dictionary[int, Label] = {}
+var _seat_showdown_widgets: Dictionary[int, Label] = {}
 var _layout_queued: bool = false
 var _event_texts: Array[String] = []
 
@@ -116,6 +118,14 @@ func get_surface_size() -> Vector2:
 	return _surface.size if is_node_ready() else Vector2.ZERO
 
 
+func get_action_panel_rect() -> Rect2:
+	return Rect2(_action_panel.position, _action_panel.size)
+
+
+func get_event_log_rect() -> Rect2:
+	return Rect2(_event_log.position, _event_log.size)
+
+
 func get_event_texts() -> Array[String]:
 	return _event_texts.duplicate()
 
@@ -132,14 +142,13 @@ func submit_wager_total(total: int) -> void:
 func _refresh_visuals() -> void:
 	if not is_node_ready() or _bound_view == null:
 		return
-	_board_label.text = (
-		"Community cards  %s" % _card_collection_text(_bound_view.community_cards, "No board yet")
-	)
+	_board_label.text = "Community cards"
 	_wager_label.text = "Wagers  •  %d active" % _count_wagers()
 	_pot_label.text = "POT  •  %d%s" % [displayed_pot_amount, _pot_layer_text()]
 	_rebuild_card_slots()
 	_rebuild_seats()
 	_refresh_action_controls()
+	_enforce_minimum_gui_text_size()
 	_queue_layout()
 
 
@@ -157,6 +166,46 @@ func _apply_table_styles() -> void:
 	_action_panel.add_theme_stylebox_override(
 		"panel", _style_box(Color("062516ed"), Color("d9b56d"), 1, 12)
 	)
+	_event_log.add_theme_stylebox_override(
+		"normal", _style_box(Color("dedede"), Color("8e8e8e"), 1, 8)
+	)
+	_event_log.add_theme_color_override("default_color", Color("111111"))
+	_apply_action_control_styles()
+
+
+func _apply_action_control_styles() -> void:
+	var action_buttons: Array[Button] = [
+		_fold_button,
+		_check_call_button,
+		_min_wager_button,
+		_half_wager_button,
+		_wager_button,
+		_all_in_button,
+	]
+	for action_button: Button in action_buttons:
+		action_button.add_theme_stylebox_override(
+			"normal", _action_control_style_box(Color("102d21"), Color("75c99a"), 1)
+		)
+		action_button.add_theme_stylebox_override(
+			"hover", _action_control_style_box(Color("1b4933"), Color("e7d39b"), 2)
+		)
+		action_button.add_theme_stylebox_override(
+			"pressed", _action_control_style_box(Color("0b1d15"), Color("d9b56d"), 2)
+		)
+		action_button.add_theme_stylebox_override(
+			"disabled", _action_control_style_box(Color("0a1711"), Color("385443"), 1)
+		)
+		action_button.add_theme_color_override("font_disabled_color", Color("7e8a83"))
+	_wager_input.add_theme_stylebox_override(
+		"normal", _action_control_style_box(Color("102d21"), Color("75c99a"), 1)
+	)
+	_wager_input.add_theme_stylebox_override(
+		"focus", _action_control_style_box(Color("1b4933"), Color("e7d39b"), 2)
+	)
+	_wager_input.add_theme_stylebox_override(
+		"read_only", _action_control_style_box(Color("0a1711"), Color("385443"), 1)
+	)
+	_wager_input.add_theme_color_override("font_placeholder_color", Color("7e8a83"))
 
 
 func _style_box(
@@ -191,6 +240,19 @@ func _compact_style_box(
 	return style
 
 
+func _action_control_style_box(
+	background_color: Color,
+	border_color: Color,
+	border_width: int,
+) -> StyleBoxFlat:
+	var style := _style_box(background_color, border_color, border_width, 4)
+	style.content_margin_left = 5.0
+	style.content_margin_top = 2.0
+	style.content_margin_right = 5.0
+	style.content_margin_bottom = 2.0
+	return style
+
+
 func _count_wagers() -> int:
 	var count: int = 0
 	for amount: int in wager_amounts.values():
@@ -211,10 +273,15 @@ func _rebuild_card_slots() -> void:
 		slot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		slot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		slot.add_theme_font_size_override("font_size", 29)
-		slot.add_theme_color_override("font_color", Color("e7d39b"))
+		slot.add_theme_color_override(
+			"font_color",
+			_card_face_color(cards[index]) if index < cards.size() else Color("e7d39b")
+		)
 		slot.modulate.a = 1.0 if index < board_card_count else 0.48
+		var is_face_up: bool = index < cards.size()
 		slot.add_theme_stylebox_override(
-			"normal", _style_box(Color("173e58"), Color("e7d39b"), 2, 4)
+			"normal",
+			_style_box(Color("f5f0dc") if is_face_up else Color("173e58"), Color("e7d39b"), 2, 4)
 		)
 		_card_slots.add_child(slot)
 
@@ -222,7 +289,13 @@ func _rebuild_card_slots() -> void:
 func _rebuild_seats() -> void:
 	for seat_widget: PanelContainer in _seat_widgets.values():
 		seat_widget.queue_free()
+	for action_widget: Label in _seat_action_widgets.values():
+		action_widget.queue_free()
+	for showdown_widget: Label in _seat_showdown_widgets.values():
+		showdown_widget.queue_free()
 	_seat_widgets.clear()
+	_seat_action_widgets.clear()
+	_seat_showdown_widgets.clear()
 	for player_view: PlayerView in _bound_view.seats:
 		var seat_widget := (
 			_create_hero_seat_widget(player_view)
@@ -231,6 +304,12 @@ func _rebuild_seats() -> void:
 		)
 		_seats.add_child(seat_widget)
 		_seat_widgets[player_view.seat] = seat_widget
+		var action_widget := _create_seat_action_label(player_view)
+		_seats.add_child(action_widget)
+		_seat_action_widgets[player_view.seat] = action_widget
+		var showdown_widget := _create_showdown_label(player_view.seat)
+		_seats.add_child(showdown_widget)
+		_seat_showdown_widgets[player_view.seat] = showdown_widget
 
 
 func _create_seat_widget(player_view: PlayerView) -> PanelContainer:
@@ -259,31 +338,16 @@ func _create_seat_widget(player_view: PlayerView) -> PanelContainer:
 	if not avatar_path.is_empty():
 		avatar.texture = load(avatar_path) as Texture2D
 	row.add_child(avatar)
-	var name_label := Label.new()
-	name_label.name = "Name"
-	name_label.text = _seat_title(player_view)
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	name_label.clip_text = true
-	name_label.add_theme_font_size_override("font_size", 20)
-	row.add_child(name_label)
+	row.add_child(_create_seat_identity(player_view, 20))
 	row.add_child(_create_marker_label(player_view))
-	var detail_label := Label.new()
-	detail_label.name = "Detail"
-	detail_label.text = _opponent_detail_text(player_view)
-	detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	detail_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	detail_label.clip_text = true
-	detail_label.add_theme_font_size_override("font_size", OPPONENT_CHIP_FONT_SIZE)
 	var footer := HBoxContainer.new()
 	footer.name = "Footer"
+	footer.alignment = BoxContainer.ALIGNMENT_END
 	footer.add_theme_constant_override("separation", 4)
 	content.add_child(footer)
-	footer.add_child(detail_label)
 	footer.add_child(_create_opponent_hole_cards(player_view))
+	if player_view.folded:
+		FoldedSeatStyleScript.apply(panel)
 	return panel
 
 
@@ -313,42 +377,31 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 	if not avatar_path.is_empty():
 		avatar.texture = load(avatar_path) as Texture2D
 	header.add_child(avatar)
-	var name_label := Label.new()
-	name_label.name = "Name"
-	name_label.text = _seat_title(player_view)
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	name_label.clip_text = true
-	name_label.add_theme_font_size_override("font_size", 23)
-	header.add_child(name_label)
+	header.add_child(_create_seat_identity(player_view, 23))
 	header.add_child(_create_marker_label(player_view))
 	var cards := HBoxContainer.new()
 	cards.name = "HeroCards"
 	cards.alignment = BoxContainer.ALIGNMENT_CENTER
 	cards.add_theme_constant_override("separation", 6)
 	content.add_child(cards)
-	for index: int in range(displayed_hero_cards.size()):
-		var card := Label.new()
-		card.name = "HeroCard%d" % (index + 1)
-		card.custom_minimum_size = Vector2(54, 42)
-		card.text = _card_text(displayed_hero_cards[index])
-		card.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		card.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		card.add_theme_font_size_override("font_size", 29)
-		card.add_theme_color_override("font_color", _card_face_color(displayed_hero_cards[index]))
-		card.add_theme_stylebox_override(
-			"normal", _style_box(Color("f5f0dc"), Color("d9b56d"), 2, 5)
-		)
-		cards.add_child(card)
-	var state_label := Label.new()
-	state_label.name = "State"
-	state_label.text = _seat_state_text(player_view)
-	state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	state_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	state_label.clip_text = true
-	state_label.add_theme_font_size_override("font_size", 18)
-	content.add_child(state_label)
+	if not player_view.folded:
+		for index: int in range(displayed_hero_cards.size()):
+			var card := Label.new()
+			card.name = "HeroCard%d" % (index + 1)
+			card.custom_minimum_size = Vector2(54, 42)
+			card.text = _card_text(displayed_hero_cards[index])
+			card.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			card.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			card.add_theme_font_size_override("font_size", 29)
+			card.add_theme_color_override(
+				"font_color", _card_face_color(displayed_hero_cards[index])
+			)
+			card.add_theme_stylebox_override(
+				"normal", _style_box(Color("f5f0dc"), Color("d9b56d"), 2, 5)
+			)
+			cards.add_child(card)
+	if player_view.folded:
+		FoldedSeatStyleScript.apply(panel)
 	return panel
 
 
@@ -356,12 +409,12 @@ func _create_marker_label(player_view: PlayerView) -> Label:
 	var marker := Label.new()
 	marker.name = "Marker"
 	marker.text = _seat_marker_text(player_view)
-	marker.custom_minimum_size = Vector2(64, 28)
+	marker.custom_minimum_size = Vector2(48, 28)
 	marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	marker.autowrap_mode = TextServer.AUTOWRAP_OFF
 	marker.clip_text = true
-	marker.add_theme_font_size_override("font_size", 17)
+	marker.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	marker.add_theme_color_override("font_color", Color("172331"))
 	marker.add_theme_stylebox_override(
 		"normal", _compact_style_box(Color("e7d39b"), Color("f5f0dc"), 1, 5)
@@ -369,10 +422,34 @@ func _create_marker_label(player_view: PlayerView) -> Label:
 	return marker
 
 
+func _create_seat_identity(player_view: PlayerView, name_font_size: int) -> VBoxContainer:
+	var identity := VBoxContainer.new()
+	identity.name = "Identity"
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.add_theme_constant_override("separation", 0)
+	var name_label := Label.new()
+	name_label.name = "Name"
+	name_label.text = _seat_title(player_view)
+	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	name_label.clip_text = true
+	name_label.add_theme_font_size_override("font_size", name_font_size)
+	identity.add_child(name_label)
+	var stack_label := Label.new()
+	stack_label.name = "Stack"
+	stack_label.text = "%d chips" % player_view.stack
+	stack_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	stack_label.clip_text = true
+	stack_label.add_theme_font_size_override("font_size", OPPONENT_CHIP_FONT_SIZE)
+	identity.add_child(stack_label)
+	return identity
+
+
 func _create_opponent_hole_cards(player_view: PlayerView) -> HBoxContainer:
 	var cards := HBoxContainer.new()
 	cards.name = "HoleCards"
 	cards.add_theme_constant_override("separation", 3)
+	if player_view.folded:
+		return cards
 	var revealed_cards: Array = _bound_view.revealed_hole_cards.get(player_view.seat, [])
 	if revealed_cards.size() == 2:
 		for index: int in range(2):
@@ -382,6 +459,46 @@ func _create_opponent_hole_cards(player_view: PlayerView) -> HBoxContainer:
 	for index: int in range(2):
 		cards.add_child(_create_opponent_card_back(index + 1))
 	return cards
+
+
+func _create_seat_action_label(player_view: PlayerView) -> Label:
+	var action_label := Label.new()
+	action_label.name = "Seat%dAction" % player_view.seat
+	action_label.text = _latest_action_text(player_view.seat)
+	action_label.visible = not action_label.text.is_empty()
+	action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	action_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	action_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	action_label.clip_text = true
+	action_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	action_label.add_theme_color_override(
+		"font_color", Color("a6a6a6") if player_view.folded else Color("f5f0dc")
+	)
+	return action_label
+
+
+func _create_showdown_label(seat: int) -> Label:
+	var showdown_label := Label.new()
+	showdown_label.name = "Seat%dShowdown" % seat
+	showdown_label.text = _showdown_hand_text(seat)
+	showdown_label.visible = not showdown_label.text.is_empty()
+	showdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	showdown_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	showdown_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	showdown_label.clip_text = true
+	showdown_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	showdown_label.add_theme_color_override("font_color", Color("f5f0dc"))
+	showdown_label.add_theme_stylebox_override(
+		"normal", _compact_style_box(Color("102d21ed"), Color("d9b56d"), 1, 5)
+	)
+	return showdown_label
+
+
+func _showdown_hand_text(seat: int) -> String:
+	if _bound_view == null:
+		return ""
+	var showdown_result: ShowdownResult = _bound_view.showdown_results.get(seat)
+	return ShowdownHandFormatterScript.format(showdown_result)
 
 
 func _create_opponent_card_back(index: int) -> Label:
@@ -429,26 +546,35 @@ func _seat_marker_text(player_view: PlayerView) -> String:
 	return " ".join(markers)
 
 
-func _seat_state_text(player_view: PlayerView) -> String:
-	var state: String = "%d chips / %d wager" % [player_view.stack, player_view.bet_this_round]
-	if player_view.busted:
-		return "%s  •  ELIMINATED" % state
-	if player_view.folded:
-		return "%s  •  FOLDED" % state
-	if player_view.all_in:
-		return "%s  •  ALL-IN" % state
-	return state
-
-
-func _opponent_detail_text(player_view: PlayerView) -> String:
-	var detail: String = "%d chips" % player_view.stack
-	if player_view.busted:
-		return "%s  •  ELIMINATED" % detail
-	if player_view.folded:
-		detail += "  •  FOLDED"
-	elif player_view.all_in:
-		detail += "  •  ALL-IN"
-	return detail
+func _latest_action_text(seat: int) -> String:
+	if _bound_view == null:
+		return ""
+	var latest_record: PublicActionRecord = null
+	for record: PublicActionRecord in _bound_view.action_history:
+		if record.seat == seat:
+			latest_record = record
+	if latest_record == null:
+		return ""
+	var action_text: String = ""
+	if latest_record.record_kind == PublicActionRecord.Kind.SMALL_BLIND:
+		action_text = "Small blind %d" % latest_record.amount
+	elif latest_record.record_kind == PublicActionRecord.Kind.BIG_BLIND:
+		action_text = "Big blind %d" % latest_record.amount
+	else:
+		match latest_record.kind:
+			PlayerAction.Kind.FOLD:
+				action_text = "Fold"
+			PlayerAction.Kind.CHECK:
+				action_text = "Check"
+			PlayerAction.Kind.CALL:
+				action_text = "Call %d" % latest_record.amount
+			PlayerAction.Kind.BET:
+				action_text = "Bet %d" % latest_record.amount
+			PlayerAction.Kind.RAISE:
+				action_text = "Raise %d" % latest_record.amount
+			PlayerAction.Kind.ALL_IN:
+				action_text = "All-in %d" % latest_record.amount
+	return action_text
 
 
 func _pot_layer_text() -> String:
@@ -456,15 +582,6 @@ func _pot_layer_text() -> String:
 	if pots.size() <= 1:
 		return ""
 	return "  •  %d layers" % pots.size()
-
-
-func _card_collection_text(cards: Array[CardData], empty_text: String) -> String:
-	if cards.is_empty():
-		return empty_text
-	var rendered_cards: Array[String] = []
-	for card: CardData in cards:
-		rendered_cards.append(_card_text(card))
-	return "[ %s ]" % "  ".join(rendered_cards)
 
 
 func _card_text(card: CardData) -> String:
@@ -489,6 +606,21 @@ func _card_face_color(card: CardData) -> Color:
 	return Color("172331")
 
 
+func _enforce_minimum_gui_text_size() -> void:
+	_enforce_minimum_gui_text_size_for_node(self)
+
+
+func _enforce_minimum_gui_text_size_for_node(node: Node) -> void:
+	if node is Label or node is Button or node is LineEdit:
+		if node.get_theme_font_size("font_size") < GUI_MINIMUM_FONT_SIZE:
+			node.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	elif node is RichTextLabel:
+		if node.get_theme_font_size("normal_font_size") < GUI_MINIMUM_FONT_SIZE:
+			node.add_theme_font_size_override("normal_font_size", GUI_MINIMUM_FONT_SIZE)
+	for child: Node in node.get_children():
+		_enforce_minimum_gui_text_size_for_node(child)
+
+
 func _refresh_action_controls() -> void:
 	if _bound_view == null:
 		return
@@ -511,11 +643,12 @@ func _refresh_action_controls() -> void:
 	else:
 		_check_call_button.text = "Check / Call"
 	var wager_name: String = "Bet" if PlayerAction.Kind.BET in legal else "Raise"
-	_min_wager_button.text = "%s %d" % [wager_name, _bound_view.minimum_wager_total]
-	_half_wager_button.text = "%s %d" % [wager_name, _preset_wager_total()]
+	_min_wager_button.text = "Min %s %d" % [wager_name, _bound_view.minimum_wager_total]
+	_half_wager_button.text = "Preset %s %d" % [wager_name, _preset_wager_total()]
 	_wager_button.text = wager_name
+	_all_in_button.text = "All-in"
 	if is_human_turn:
-		_action_status.text = "Your turn — choose a legal action."
+		_action_status.text = "Your turn."
 	elif _bound_view.hand_complete:
 		_action_status.text = "Hand complete."
 	else:
@@ -578,35 +711,31 @@ func _render_events(events: Array[DomainEvent]) -> void:
 
 
 func _event_text(event: DomainEvent) -> String:
-	var player_name: String = "Player %d" % (event.seat + 1)
-	if _bound_view != null:
-		for player_view: PlayerView in _bound_view.seats:
-			if player_view.seat == event.seat:
-				player_name = player_view.display_name
-	var text: String = "Game event"
+	var player_name: String = "P%d" % (event.seat + 1)
+	var text: String = "Event"
 	match event.kind:
 		DomainEvent.Kind.HAND_STARTED:
-			text = "Hand started"
+			text = "Hand"
 		DomainEvent.Kind.BLIND_POSTED:
-			text = "%s posted %d" % [player_name, event.amount]
+			text = "%s blind %d" % [player_name, event.amount]
 		DomainEvent.Kind.CARDS_DEALT:
-			text = "Hole cards dealt"
+			text = "Deal"
 		DomainEvent.Kind.ACTION_APPLIED:
-			text = "%s wagered %d" % [player_name, event.amount]
+			text = "%s action %d" % [player_name, event.amount]
 		DomainEvent.Kind.ACTION_REJECTED:
-			text = "%s action rejected" % player_name
+			text = "%s rejected" % player_name
 		DomainEvent.Kind.STREET_CHANGED:
-			text = "Street changed"
+			text = "Street"
 		DomainEvent.Kind.COMMUNITY_CARDS_DEALT:
-			text = "Community cards dealt"
+			text = "Board"
 		DomainEvent.Kind.SHOWDOWN_STARTED:
 			text = "Showdown"
 		DomainEvent.Kind.POT_AWARDED:
-			text = "%s received %d" % [player_name, event.amount]
+			text = "%s wins %d" % [player_name, event.amount]
 		DomainEvent.Kind.HAND_COMPLETED:
-			text = "Hand complete"
+			text = "Complete"
 		DomainEvent.Kind.PLAYER_QUIT:
-			text = "Tournament ended by player quit"
+			text = "Player quit"
 	return text
 
 
@@ -616,7 +745,11 @@ func _layout_table() -> void:
 	var surface_size: Vector2 = _surface.size
 	if surface_size.x <= 0.0 or surface_size.y <= 0.0:
 		return
-	var center_size := Vector2(clampf(surface_size.x * 0.48, 230.0, 340.0), 184.0)
+	var center_minimum_size: Vector2 = _center_zone.get_combined_minimum_size()
+	var center_size := Vector2(
+		maxf(clampf(surface_size.x * 0.48, 230.0, 340.0), center_minimum_size.x),
+		maxf(184.0, center_minimum_size.y),
+	)
 	_center_zone.size = center_size
 	_center_zone.position = (surface_size - center_size) * 0.5
 	if _seat_widgets.is_empty():
@@ -650,6 +783,73 @@ func _layout_table() -> void:
 			clampf(intended_position.x, 0.0, surface_size.x - resolved_seat_size.x),
 			clampf(intended_position.y, 0.0, surface_size.y - resolved_seat_size.y),
 		)
+		_layout_seat_action_label(seat, panel, compact_layout)
+		_layout_seat_showdown_label(seat, panel, compact_layout)
+	_layout_human_adjacent_panels(surface_size, compact_layout)
+
+
+func _layout_seat_action_label(seat: int, panel: PanelContainer, compact_layout: bool) -> void:
+	var action_label: Label = _seat_action_widgets.get(seat)
+	if action_label == null:
+		return
+	var action_height: float = 20.0 if not compact_layout else 17.0
+	action_label.size = Vector2(panel.size.x, action_height)
+	action_label.position = Vector2(panel.position.x, panel.position.y + panel.size.y + 2.0)
+
+
+func _layout_seat_showdown_label(seat: int, panel: PanelContainer, compact_layout: bool) -> void:
+	var showdown_label: Label = _seat_showdown_widgets.get(seat)
+	if showdown_label == null or not showdown_label.visible:
+		return
+	var label_height: float = 22.0 if compact_layout else 24.0
+	showdown_label.size = Vector2(panel.size.x, label_height)
+	showdown_label.position = Vector2(
+		panel.position.x, maxf(0.0, panel.position.y - showdown_label.size.y - 2.0)
+	)
+
+
+func _layout_human_adjacent_panels(surface_size: Vector2, compact_layout: bool) -> void:
+	var hero_panel: PanelContainer = _seat_widgets.get(_bound_view.hero_seat)
+	if hero_panel == null:
+		return
+	if compact_layout:
+		_layout_compact_human_panels(surface_size, hero_panel)
+		return
+	var action_size := Vector2(clampf(surface_size.x * 0.32, 560.0, 640.0), 104.0)
+	action_size = Vector2(
+		maxf(action_size.x, _action_panel.get_combined_minimum_size().x),
+		maxf(action_size.y, _action_panel.get_combined_minimum_size().y),
+	)
+	var event_size := Vector2(clampf(surface_size.x * 0.22, 380.0, 440.0), 132.0)
+	event_size = Vector2(
+		maxf(event_size.x, _event_log.get_combined_minimum_size().x),
+		maxf(event_size.y, _event_log.get_combined_minimum_size().y),
+	)
+	var panel_y: float = minf(
+		hero_panel.position.y + hero_panel.size.y - action_size.y,
+		surface_size.y - action_size.y - 12.0,
+	)
+	_action_panel.size = action_size
+	_action_panel.position = Vector2(
+		minf(
+			surface_size.x - action_size.x - 12.0,
+			hero_panel.position.x + hero_panel.size.x + 14.0,
+		),
+		panel_y,
+	)
+	_event_log.size = event_size
+	_event_log.position = Vector2(
+		maxf(12.0, hero_panel.position.x - event_size.x - 14.0),
+		minf(panel_y, surface_size.y - event_size.y - 12.0),
+	)
+
+
+func _layout_compact_human_panels(surface_size: Vector2, hero_panel: PanelContainer) -> void:
+	var panel_width: float = surface_size.x - 24.0
+	_action_panel.size = Vector2(panel_width, 116.0)
+	_action_panel.position = Vector2(12.0, maxf(12.0, hero_panel.position.y - 124.0))
+	_event_log.size = Vector2(panel_width, 82.0)
+	_event_log.position = Vector2(12.0, maxf(12.0, _action_panel.position.y - 90.0))
 
 
 func _apply_compact_seat_typography(
@@ -664,10 +864,10 @@ func _apply_compact_seat_typography(
 		avatar.custom_minimum_size = OPPONENT_AVATAR_SIZE
 	var name_label := panel.find_child("Name", true, false) as Label
 	if name_label != null:
-		name_label.add_theme_font_size_override("font_size", 16)
+		name_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	var marker_label := panel.find_child("Marker", true, false) as Label
 	if marker_label != null:
-		marker_label.add_theme_font_size_override("font_size", 14)
+		marker_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 
 
 func _visual_slot_for_seat(seat: int, seat_count: int) -> int:

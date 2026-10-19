@@ -214,13 +214,22 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 		),
 		"Community cards"
 	)
-	assert_string_contains(
-		(
-			table
-			. get_node("TableMargin/Felt/TableSurface/CenterZone/BoardZone/BoardContent/BoardLabel")
-			. text
-		),
-		"A♣"
+	assert_eq(
+		table.find_child("CardSlot1", true, false).get_theme_color("font_color"), Color("172331")
+	)
+	assert_eq(
+		table.find_child("CardSlot2", true, false).get_theme_color("font_color"), Color("ad2636")
+	)
+	assert_eq(
+		table.find_child("CardSlot3", true, false).get_theme_color("font_color"), Color("ad2636")
+	)
+	assert_eq(
+		table.find_child("CardSlot1", true, false).get_theme_stylebox("normal").bg_color,
+		Color("f5f0dc")
+	)
+	assert_eq(
+		table.find_child("CardSlot4", true, false).get_theme_stylebox("normal").bg_color,
+		Color("173e58")
 	)
 	assert_eq(
 		table.get_node("TableMargin/Felt/TableSurface/CenterZone/WagerZone/WagerLabel").text,
@@ -238,6 +247,39 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	assert_not_null(avatar)
 	assert_not_null(avatar.texture)
 	assert_eq(avatar.texture_filter, CanvasItem.TEXTURE_FILTER_NEAREST)
+
+
+func test_center_zone_is_centered_from_its_resolved_bounds() -> void:
+	var table = PokerTableScene.instantiate()
+	table.hide()
+	add_child_autofree(table)
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(1920, 1080)
+	table.bind_view(_hero_table_view(6), _avatar_assignments(6))
+	table.show()
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var center_zone: Control = table.get_node("TableMargin/Felt/TableSurface/CenterZone")
+	assert_almost_eq(center_zone.get_rect().get_center().x, table.get_surface_size().x * 0.5, 0.01)
+	assert_almost_eq(center_zone.get_rect().get_center().y, table.get_surface_size().y * 0.5, 0.01)
+
+
+func test_player_facing_gui_text_never_falls_below_twenty_pixels() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	_assert_minimum_gui_font_size(main)
+
+	var table = PokerTableScene.instantiate()
+	table.hide()
+	add_child_autofree(table)
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(390, 780)
+	table.bind_view(_hero_table_view(6), _avatar_assignments(6))
+	table.show()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_assert_minimum_gui_font_size(table)
 
 
 func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
@@ -270,14 +312,14 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 	table.bind_view(view, _avatar_assignments(3))
 
 	var seat_prefix: String = "TableMargin/Felt/TableSurface/Seats/Seat%d/Content/"
-	assert_string_contains(table.find_child("BoardLabel", true, false).text, "A♣")
+	assert_eq(table.find_child("CardSlot1", true, false).text, "A♣")
 	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "D")
 	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "SB")
 	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "BB ACT")
-	assert_string_contains(table.get_node(seat_prefix % 0 + "State").text, "95 chips")
+	assert_eq(table.get_node(seat_prefix % 0 + "Header/Identity/Stack").text, "95 chips")
 	assert_eq(table.get_node(seat_prefix % 0 + "HeroCards/HeroCard1").text, "K♦")
 	assert_not_null(table.get_node(seat_prefix % 1 + "Footer/HoleCards/CardBack1"))
-	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Name").text, "Out")
+	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Identity/Name").text, "Out")
 
 	view._community_cards.append(CardData.new(2, CardData.Suit.DIAMONDS))
 	view.pot_amount = 65
@@ -286,8 +328,12 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 		PotLayer.new(25, 25, [0, 1], [0, 1]),
 	]
 	table.bind_view(view, _avatar_assignments(3))
+	await get_tree().process_frame
 
-	assert_string_contains(table.find_child("BoardLabel", true, false).text, "2♦")
+	var card_slots: HBoxContainer = table.get_node(
+		"TableMargin/Felt/TableSurface/CenterZone/BoardZone/BoardContent/CardSlots"
+	)
+	assert_eq((card_slots.get_child(2) as Label).text, "2♦")
 	assert_eq(table.find_child("PotLabel", true, false).text, "POT  •  65  •  2 layers")
 
 
@@ -299,9 +345,19 @@ func test_table_refreshes_from_a_recipient_safe_match_view() -> void:
 	table.bind_match(adapter.match_instance, 0, _avatar_assignments(6))
 
 	assert_eq(table.displayed_hero_cards.size(), 2)
+	var recipient_view: GameView = adapter.match_instance.get_view_for(0)
+	var active_opponent_seat: int = Table.NO_SEAT
+	for player_view: PlayerView in recipient_view.seats:
+		if player_view.seat != recipient_view.hero_seat and not player_view.folded:
+			active_opponent_seat = player_view.seat
+			break
+	assert_ne(active_opponent_seat, Table.NO_SEAT)
 	assert_not_null(
 		table.get_node(
-			"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Footer/HoleCards/CardBack1"
+			(
+				"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Footer/HoleCards/CardBack1"
+				% active_opponent_seat
+			)
 		)
 	)
 	table.refresh_from_match()
@@ -347,7 +403,7 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 		assert_not_null(hero_card.get_theme_stylebox("normal"))
 		for seat: int in range(1, player_count):
 			var name_label: Label = table.get_node(
-				"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Header/Name" % seat
+				"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Header/Identity/Name" % seat
 			)
 			assert_eq(name_label.text, "Player %d" % (seat + 1))
 
@@ -372,8 +428,8 @@ func test_live_seat_panels_show_stacks_positions_and_hidden_opponent_cards() -> 
 	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "SB")
 	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "ACT")
 	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "BB")
-	assert_string_contains(table.get_node(seat_prefix % 1 + "Footer/Detail").text, "990 chips")
-	var chip_detail: Label = table.get_node(seat_prefix % 1 + "Footer/Detail")
+	assert_eq(table.get_node(seat_prefix % 1 + "Header/Identity/Stack").text, "990 chips")
+	var chip_detail: Label = table.get_node(seat_prefix % 1 + "Header/Identity/Stack")
 	var avatar: TextureRect = table.get_node(seat_prefix % 1 + "Header/Avatar")
 	var card_back: Label = table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack1")
 	assert_eq(chip_detail.get_theme_font_size("font_size"), 22)
@@ -444,3 +500,12 @@ func _avatar_assignments(player_count: int) -> Dictionary[int, String]:
 	for seat: int in range(player_count):
 		assignments[seat] = paths[seat]
 	return assignments
+
+
+func _assert_minimum_gui_font_size(node: Node) -> void:
+	if node is Label or node is Button or node is LineEdit:
+		assert_gte(node.get_theme_font_size("font_size"), 20, str(node.get_path()))
+	elif node is RichTextLabel:
+		assert_gte(node.get_theme_font_size("normal_font_size"), 20, str(node.get_path()))
+	for child: Node in node.get_children():
+		_assert_minimum_gui_font_size(child)
