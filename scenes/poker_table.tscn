@@ -208,3 +208,24 @@ fit_content = false
 scroll_active = true
 mouse_filter = 2
 theme_override_font_sizes/normal_font_size = 20
+
+[node name="QuitButton" type="Button" parent="TableMargin/Felt/TableSurface"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -132.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = 58.0
+grow_horizontal = 0
+text = "Quit"
+theme_override_font_sizes/font_size = 21
+
+[node name="QuitConfirmation" type="ConfirmationDialog" parent="TableMargin/Felt/TableSurface"]
+unique_name_in_owner = true
+title = "Quit tournament"
+dialog_text = "Do you want to quit the tournament?"
+ok_button_text = "Quit"
+cancel_button_text = "Continue"

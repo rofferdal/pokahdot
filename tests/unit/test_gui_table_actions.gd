@@ -44,7 +44,7 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	table.submit_wager_total(view.minimum_wager_total)
 
 	assert_gt(match_instance.get_view_for(0).pot_amount, 15)
-	assert_true(table.get_event_texts().any(func(text: String) -> bool: return "action" in text))
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "action" in text))
 
 
 func test_gui_renders_an_action_before_its_configured_nonblocking_pause_advances_a_bot() -> void:
@@ -62,6 +62,24 @@ func test_gui_renders_an_action_before_its_configured_nonblocking_pause_advances
 
 	await get_tree().create_timer(0.15).timeout
 	assert_gte(match_instance.get_events().filter(_is_action_event).size(), 2)
+
+
+func test_community_card_reveal_uses_the_configured_nonblocking_action_pause() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var timing_config := GuiActionTimingConfigScript.new()
+	timing_config.default_pause_seconds = 0.1
+	timing_config.showdown_pause_seconds = 0.0
+	table.set_action_timing_config(timing_config)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	table.get_node("%CheckCallButton").emit_signal("pressed")
+	await get_tree().create_timer(0.25).timeout
+
+	assert_eq(match_instance.get_view_for(0).community_cards.size(), 3)
+	assert_true(table.is_action_advance_pending())
+	assert_eq(match_instance.get_events().filter(_is_action_event).size(), 2)
 
 
 func _is_action_event(event: DomainEvent) -> bool:
@@ -95,6 +113,25 @@ func test_tournament_winner_and_eliminated_seat_are_rendered_from_the_match_view
 		),
 		0
 	)
+	var eliminated_panel: PanelContainer = table.get_node(
+		"TableMargin/Felt/TableSurface/Seats/Seat1"
+	)
+	assert_true(eliminated_panel.material is ShaderMaterial)
+
+
+func test_eliminated_seat_is_greyscale_while_active_seat_retains_its_color_treatment() -> void:
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var view := _action_view(3)
+	view._seats[1].busted = true
+	table.bind_view(view, _empty_assignments())
+
+	var eliminated_panel: PanelContainer = table.get_node(
+		"TableMargin/Felt/TableSurface/Seats/Seat1"
+	)
+	var active_panel: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2")
+	assert_true(eliminated_panel.material is ShaderMaterial)
+	assert_null(active_panel.material)
 
 
 func test_rejected_free_wager_keeps_human_turn_and_displays_core_error() -> void:
@@ -110,7 +147,7 @@ func test_rejected_free_wager_keeps_human_turn_and_displays_core_error() -> void
 
 	assert_eq(match_instance.get_view_for(0).acting_seat, 0)
 	assert_false(table.get_node("%ActionStatus").text.is_empty())
-	assert_true(table.get_event_texts()[-1].contains("rejected"))
+	assert_true(_event_texts(table)[-1].contains("rejected"))
 
 
 func test_event_log_preserves_domain_event_order_and_fold_settlement() -> void:
@@ -121,7 +158,7 @@ func test_event_log_preserves_domain_event_order_and_fold_settlement() -> void:
 	table.bind_match(match_instance, 0, _empty_assignments())
 	table.get_node("%FoldButton").emit_signal("pressed")
 
-	var event_texts: Array[String] = table.get_event_texts()
+	var event_texts: Array[String] = _event_texts(table)
 	assert_eq(event_texts[0], "Hand")
 	assert_string_contains(event_texts[1], "blind")
 	assert_string_contains(event_texts[2], "blind")
@@ -131,7 +168,7 @@ func test_event_log_preserves_domain_event_order_and_fold_settlement() -> void:
 	assert_eq(match_instance.get_view_for(0).hand_winner_seat, 1)
 
 
-func test_gui_actions_complete_a_checked_down_showdown_and_render_its_events() -> void:
+func test_gui_renders_checked_down_actions_and_the_flop_transition() -> void:
 	var match_instance := _waiting_match(
 		[
 			PlayerAction.call_action(),
@@ -146,14 +183,93 @@ func test_gui_actions_complete_a_checked_down_showdown_and_render_its_events() -
 	table.bind_match(match_instance, 0, _empty_assignments())
 
 	table.get_node("%CheckCallButton").emit_signal("pressed")
-	for _street: int in range(3):
-		table.get_node("%CheckCallButton").emit_signal("pressed")
 
 	var view: GameView = match_instance.get_view_for(0)
-	assert_true(view.hand_complete)
-	assert_eq(view.community_cards.size(), 5)
-	assert_true(table.get_event_texts().has("Showdown"))
-	assert_eq(table.get_event_texts()[-1], "Complete")
+	assert_eq(view.community_cards.size(), 3)
+	assert_eq(_event_texts(table)[-1], "P2 action 0")
+
+
+func test_showdown_remains_visible_for_its_configured_pause_before_next_hand() -> void:
+	var match_instance := _waiting_match(
+		[
+			PlayerAction.call_action(),
+			PlayerAction.check_action(),
+			PlayerAction.check_action(),
+			PlayerAction.check_action(),
+		]
+	)
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var timing_config := GuiActionTimingConfigScript.new()
+	timing_config.default_pause_seconds = 0.0
+	timing_config.showdown_pause_seconds = 0.1
+	table.set_action_timing_config(timing_config)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	for _street: int in range(4):
+		table.get_node("%CheckCallButton").emit_signal("pressed")
+
+	assert_true(match_instance.get_view_for(0).hand_complete)
+	assert_true(table.is_action_advance_pending())
+	await get_tree().create_timer(0.15).timeout
+	assert_false(match_instance.get_view_for(0).hand_complete)
+
+
+func test_controller_starts_the_next_hand_and_updates_the_button_after_a_hand_boundary() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+	var first_view: GameView = match_instance.get_view_for(0)
+
+	table.get_node("%FoldButton").emit_signal("pressed")
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var next_view: GameView = match_instance.get_view_for(0)
+	assert_eq(next_view.hand_number, first_view.hand_number + 1)
+	assert_ne(next_view.button_seat, first_view.button_seat)
+	assert_false(next_view.hand_complete)
+	assert_true(_event_texts(table).has("Hand"))
+
+
+func test_quit_confirmation_can_cancel_or_finish_the_match_without_a_winner() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+	var quit_confirmation: ConfirmationDialog = table.get_node("%QuitConfirmation")
+
+	table.get_node("%QuitButton").emit_signal("pressed")
+	assert_true(quit_confirmation.visible)
+	quit_confirmation.emit_signal("canceled")
+	assert_eq(match_instance.state, TournamentMatch.State.RUNNING)
+
+	table.get_node("%QuitButton").emit_signal("pressed")
+	quit_confirmation.emit_signal("confirmed")
+	var view: GameView = match_instance.get_view_for(0)
+	assert_eq(match_instance.state, TournamentMatch.State.FINISHED)
+	assert_eq(view.end_reason, &"player_quit")
+	assert_eq(view.tournament_winner_seat, Table.NO_SEAT)
+	assert_eq(table.get_node("%ActionStatus").text, "Tournament ended: player quit.")
+
+
+func test_quit_after_a_finished_tournament_requests_a_return_to_startup_without_confirmation(
+) -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+	match_instance.request_quit()
+	table.refresh_from_match()
+	var returned_to_startup := [false]
+	table.return_to_startup_requested.connect(func() -> void: returned_to_startup[0] = true)
+
+	table.get_node("%QuitButton").emit_signal("pressed")
+
+	assert_true(returned_to_startup[0])
+	assert_false(table.get_node("%QuitConfirmation").visible)
 
 
 func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
@@ -168,8 +284,10 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 		await get_tree().process_frame
 		await get_tree().process_frame
 
-		var action_rect: Rect2 = table.get_action_panel_rect()
-		var event_rect: Rect2 = table.get_event_log_rect()
+		var action_rect: Rect2 = (
+			table.get_node("TableMargin/Felt/TableSurface/ActionPanel").get_rect()
+		)
+		var event_rect: Rect2 = table.get_node("%EventLog").get_rect()
 		var hero_rect: Rect2 = table.get_seat_rects()[0]
 		assert_gte(
 			action_rect.position.x,
@@ -325,6 +443,39 @@ func test_showdown_summaries_use_recipient_safe_results_above_revealed_seats() -
 	assert_lte(pair_label.position.y + pair_label.size.y, hero_panel.position.y)
 
 
+func test_showdown_renders_revealed_losing_opponent_hole_cards() -> void:
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	var view := _action_view(3)
+	view._revealed_hole_cards = {
+		1:
+		[
+			CardData.new(14, CardData.Suit.SPADES),
+			CardData.new(2, CardData.Suit.CLUBS),
+		],
+		2:
+		[
+			CardData.new(13, CardData.Suit.HEARTS),
+			CardData.new(3, CardData.Suit.DIAMONDS),
+		],
+	}
+	view._showdown_results = {
+		1: _showdown_result(1, HandRank.Category.ONE_PAIR, [14, 13, 12, 7]),
+		2: _showdown_result(2, HandRank.Category.HIGH_CARD, [13, 12, 11, 9, 7]),
+	}
+	view._pot_awards = [PotAward.new(0, 90, [1], {1: 90})]
+	table.bind_view(view, _empty_assignments())
+
+	var losing_card: Label = table.get_node(
+		"TableMargin/Felt/TableSurface/Seats/Seat2/Content/Footer/HoleCards/ShowdownCard1"
+	)
+	assert_eq(losing_card.text, "K♥")
+	assert_true(losing_card.visible)
+	assert_false(
+		table.has_node("TableMargin/Felt/TableSurface/Seats/Seat2/Content/Header/MainPotWinnerStar")
+	)
+
+
 func test_main_pot_showdown_winner_has_a_yellow_half_avatar_star_without_marking_side_pot_winners(
 ) -> void:
 	var table = PokerTableScene.instantiate()
@@ -395,11 +546,19 @@ func _waiting_match(bot_actions: Array[PlayerAction]) -> TournamentMatch:
 func _disable_action_pacing(table: PokerTableController) -> void:
 	var timing_config := GuiActionTimingConfigScript.new()
 	timing_config.default_pause_seconds = 0.0
+	timing_config.showdown_pause_seconds = 0.0
 	table.set_action_timing_config(timing_config)
 
 
 func _empty_assignments() -> Dictionary[int, String]:
 	return {}
+
+
+func _event_texts(table: PokerTableController) -> Array[String]:
+	var event_texts: Array[String] = []
+	for event_text: String in (table.get_node("%EventLog") as RichTextLabel).text.split("\n"):
+		event_texts.append(event_text)
+	return event_texts
 
 
 func _action_view(player_count: int) -> GameView:

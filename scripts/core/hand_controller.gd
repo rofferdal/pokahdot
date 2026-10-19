@@ -102,7 +102,7 @@ func advance_one_action() -> StepResult:
 			var transition_result: StepResult = _advance_after_betting_round()
 			if transition_result != null:
 				return transition_result
-			continue
+			return StepResult.new(StepResult.Status.YIELDED)
 		return _advance_current_action()
 	return StepResult.new(
 		StepResult.Status.ERROR, "The hand exceeded its automatic transition limit."

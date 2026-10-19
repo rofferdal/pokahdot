@@ -191,13 +191,18 @@ Complete each GUI phase in order. Each human test is a gate for the next phase: 
 
 - [x] In GUI mode, highlight the acting player's seat with a white frame three times thicker than the normal seat-frame line; retain the existing frame styling for every non-acting seat, and add adapter/layout regression coverage.
 - [x] In GUI mode, after rendering an active player's action, wait two seconds before advancing to the next player who must act; keep the UI responsive throughout the delay and add deterministic adapter coverage for the timing behavior.  The length of this pause should be configurable in some way in accordance with best godot code practice for configurability and documented in ARCHITECTURE.md. Update README.md with explanation about how to configure the timing pause for each bot player.
-- [ ] At showdown, also show hole cards of losing players in GUI.
-- [ ] Continue the GUI controller across hand boundaries and render button movement, eliminated seats, heads-up behavior, final stacks, and the tournament winner.
-- [ ] Add the always-available `Avslutt` control with confirmation and `player_quit` handling.
-- [ ] Add GUI adapter tests for next-hand progression, eliminated-seat skipping, winner rendering, quit-confirmation cancel/accept behavior, and clean `player_quit` termination.
-- [ ] **App increment:** the human can start with defaults or optional valid overrides and play the same complete tournament available in the CLI through the GUI, until one winner remains or the human quits, without duplicated rules.
-- [ ] **Human test:** use the short-stack configuration to finish a GUI tournament; verify hand transitions, button and blind movement, eliminations, heads-up behavior, final winner, total chips, distinct avatars, and the green table zones.
-- [ ] **Human test:** start another GUI tournament; verify quit confirmation cancels safely, then confirm quitting produces `player_quit`, no winner, and a clean return from the active table.
+- [x] At showdown, also show hole cards of losing players in GUI.
+- [x] Continue the GUI controller across hand boundaries and render button movement, eliminated seats, heads-up behavior, final stacks, and the tournament winner.
+- [x] Add the always-available `Quit` control with confirmation and `player_quit` handling.
+- [x] Add GUI adapter tests for next-hand progression, eliminated-seat skipping, winner rendering, quit-confirmation cancel/accept behavior, and clean `player_quit` termination.
+- [x] Eliminated players (0 chips when a new hand starts) in tournament should be greyed out.
+- [x] Add a 5 second pause when showdown is shown before progressing to next hand.
+- [x] Add a pause after community cards are turned (flop, turn, river) equal to bot player pause length.
+- [x] There is no need to pause for action from players that are all in (they should not have any action until showdown).
+- [x] **App increment:** the human can start with defaults or optional valid overrides and play the same complete tournament available in the CLI through the GUI, until one winner remains or the human quits, without duplicated rules.
+- [x] Quit after finishing Tournament should bring game screen back to startup. Startup screen should also have a quit button, which ends the program.
+- [x] **Human test:** use the short-stack configuration to finish a GUI tournament; verify hand transitions, button and blind movement, eliminations, heads-up behavior, final winner, total chips, distinct avatars, and the green table zones.
+- [x] **Human test:** start another GUI tournament; verify quit confirmation cancels safely, then confirm quitting produces `player_quit`, no winner, and a clean return from the active table.
 
 ### Milestone 4.6 — GUI information and visual polish
 

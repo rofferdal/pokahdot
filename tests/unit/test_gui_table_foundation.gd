@@ -100,7 +100,7 @@ func test_hidden_table_lays_out_seats_after_showing_at_desktop_and_mobile_sizes(
 		await get_tree().process_frame
 
 		var seat_rects: Dictionary[int, Rect2] = table.get_seat_rects()
-		var surface_rect := Rect2(Vector2.ZERO, table.get_surface_size())
+		var surface_rect := Rect2(Vector2.ZERO, _surface_size(table))
 		var distinct_positions: Dictionary[Vector2, bool] = {}
 		var placed_rects: Array[Rect2] = []
 		assert_eq(seat_rects.size(), player_count)
@@ -176,7 +176,7 @@ func test_three_to_seven_player_tables_mirror_seat_positions_left_to_right() -> 
 		await get_tree().process_frame
 
 		var seat_rects: Dictionary[int, Rect2] = table.get_seat_rects()
-		var surface_width: float = table.get_surface_size().x
+		var surface_width: float = _surface_size(table).x
 		for seat: int in range(1, (player_count + 1) / 2):
 			var mirrored_seat: int = player_count - seat
 			var seat_center: Vector2 = seat_rects[seat].get_center()
@@ -210,7 +210,7 @@ func test_position_markers_follow_clockwise_core_order_at_every_table_size() -> 
 			var dealer_center: Vector2 = seat_rects[button_seat].get_center()
 			var small_blind_center: Vector2 = seat_rects[view.small_blind_seat].get_center()
 			var big_blind_center: Vector2 = seat_rects[view.big_blind_seat].get_center()
-			var surface_center: Vector2 = table.get_surface_size() * 0.5
+			var surface_center: Vector2 = _surface_size(table) * 0.5
 			var context: String = "%d players, button seat %d" % [player_count, button_seat]
 
 			assert_eq(
@@ -218,7 +218,7 @@ func test_position_markers_follow_clockwise_core_order_at_every_table_size() -> 
 			)
 			assert_gt(
 				seat_rects[view.hero_seat].get_center().y,
-				table.get_surface_size().y * 0.75,
+				_surface_size(table).y * 0.75,
 				"%s must keep the human seat at the bottom" % context
 			)
 			if player_count == 2:
@@ -267,7 +267,7 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	assert_eq(table.board_card_count, 3)
 	assert_eq(table.wager_amounts, {0: 5, 1: 10})
 	assert_eq(table.displayed_pot_amount, 55)
-	assert_eq(table.get_card_slot_count(), 5)
+	assert_eq(table.get_node("%CardSlots").get_child_count(), 5)
 	assert_string_contains(
 		(
 			table
@@ -323,8 +323,8 @@ func test_center_zone_is_centered_from_its_resolved_bounds() -> void:
 	await get_tree().process_frame
 
 	var center_zone: Control = table.get_node("TableMargin/Felt/TableSurface/CenterZone")
-	assert_almost_eq(center_zone.get_rect().get_center().x, table.get_surface_size().x * 0.5, 0.01)
-	assert_almost_eq(center_zone.get_rect().get_center().y, table.get_surface_size().y * 0.5, 0.01)
+	assert_almost_eq(center_zone.get_rect().get_center().x, _surface_size(table).x * 0.5, 0.01)
+	assert_almost_eq(center_zone.get_rect().get_center().y, _surface_size(table).y * 0.5, 0.01)
 
 
 func test_player_facing_gui_text_never_falls_below_twenty_pixels() -> void:
@@ -459,7 +459,7 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 		var hero_panel: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0")
 		var hero_name: Label = hero_panel.find_child("Name", true, false)
 		var hero_card: Label = hero_panel.find_child("HeroCard1", true, false)
-		assert_gt(hero_panel.get_rect().get_center().y, table.get_surface_size().y * 0.75)
+		assert_gt(hero_panel.get_rect().get_center().y, _surface_size(table).y * 0.75)
 		assert_eq(hero_name.text, "Player 1 (you)")
 		assert_eq(hero_card.text, "A♥")
 		assert_not_null(hero_card.get_theme_stylebox("normal"))
@@ -562,6 +562,10 @@ func _avatar_assignments(player_count: int) -> Dictionary[int, String]:
 	for seat: int in range(player_count):
 		assignments[seat] = paths[seat]
 	return assignments
+
+
+func _surface_size(table: PokerTableController) -> Vector2:
+	return table.get_node("TableMargin/Felt/TableSurface").size
 
 
 func _assert_clockwise_after(from: Vector2, to: Vector2, center: Vector2, context: String) -> void:

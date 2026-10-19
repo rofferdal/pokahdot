@@ -1,7 +1,14 @@
 class_name PokerTableController
 extends Control
+signal tournament_quit_confirmed
+signal return_to_startup_requested
+
 const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
 const GuiActionPacerScript := preload("res://scripts/gui/gui_action_pacer.gd")
+const GuiMatchProgressInspectorScript := preload(
+	"res://scripts/gui/gui_match_progress_inspector.gd"
+)
+const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
 const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_formatter.gd")
 const TableSeatLayoutScript := preload("res://scripts/gui/table_seat_layout.gd")
 const TournamentStatusFormatterScript := preload("res://scripts/gui/tournament_status_formatter.gd")
@@ -56,6 +63,8 @@ var _action_pacer = GuiActionPacerScript.new()
 @onready var _wager_button: Button = %WagerButton
 @onready var _all_in_button: Button = %AllInButton
 @onready var _event_log: RichTextLabel = %EventLog
+@onready var _quit_button: Button = %QuitButton
+@onready var _quit_confirmation: ConfirmationDialog = %QuitConfirmation
 
 
 func _ready() -> void:
@@ -70,6 +79,8 @@ func _ready() -> void:
 	_half_wager_button.pressed.connect(_on_half_wager_pressed)
 	_wager_button.pressed.connect(_on_wager_pressed)
 	_all_in_button.pressed.connect(_on_all_in_pressed)
+	_quit_button.pressed.connect(_on_quit_pressed)
+	_quit_confirmation.confirmed.connect(_on_quit_confirmed)
 	_refresh_visuals()
 	_queue_layout()
 
@@ -123,32 +134,12 @@ func refresh_from_match() -> void:
 	_render_events(_match.get_events())
 
 
-func get_card_slot_count() -> int:
-	return _card_slots.get_child_count() if is_node_ready() else 0
-
-
 func get_seat_rects() -> Dictionary[int, Rect2]:
 	var seat_rects: Dictionary[int, Rect2] = {}
 	for seat: int in _seat_widgets:
 		var panel: PanelContainer = _seat_widgets[seat]
 		seat_rects[seat] = Rect2(panel.position, panel.size)
 	return seat_rects
-
-
-func get_surface_size() -> Vector2:
-	return _surface.size if is_node_ready() else Vector2.ZERO
-
-
-func get_action_panel_rect() -> Rect2:
-	return Rect2(_action_panel.position, _action_panel.size)
-
-
-func get_event_log_rect() -> Rect2:
-	return Rect2(_event_log.position, _event_log.size)
-
-
-func get_event_texts() -> Array[String]:
-	return _event_texts.duplicate()
 
 
 func is_action_advance_pending() -> bool:
@@ -178,21 +169,23 @@ func _refresh_visuals() -> void:
 
 
 func _apply_table_styles() -> void:
-	_felt.add_theme_stylebox_override("panel", _style_box(Color("075c35"), Color("d9b56d"), 3, 72))
+	_felt.add_theme_stylebox_override(
+		"panel", GuiTableStyleScript.box(Color("075c35"), Color("d9b56d"), 3, 72)
+	)
 	_board_zone.add_theme_stylebox_override(
-		"panel", _style_box(Color("062516e8"), Color("75c99a"), 1, 12)
+		"panel", GuiTableStyleScript.box(Color("062516e8"), Color("75c99a"), 1, 12)
 	)
 	_pot_zone.add_theme_stylebox_override(
-		"panel", _style_box(Color("102d21ed"), Color("d9b56d"), 1, 12)
+		"panel", GuiTableStyleScript.box(Color("102d21ed"), Color("d9b56d"), 1, 12)
 	)
 	_wager_zone.add_theme_stylebox_override(
-		"panel", _style_box(Color("062516d9"), Color("4fae7c"), 1, 12)
+		"panel", GuiTableStyleScript.box(Color("062516d9"), Color("4fae7c"), 1, 12)
 	)
 	_action_panel.add_theme_stylebox_override(
-		"panel", _style_box(Color("062516ed"), Color("d9b56d"), 1, 12)
+		"panel", GuiTableStyleScript.box(Color("062516ed"), Color("d9b56d"), 1, 12)
 	)
 	_event_log.add_theme_stylebox_override(
-		"normal", _style_box(Color("dedede"), Color("8e8e8e"), 1, 8)
+		"normal", GuiTableStyleScript.box(Color("dedede"), Color("8e8e8e"), 1, 8)
 	)
 	_event_log.add_theme_color_override("default_color", Color("111111"))
 	_apply_action_control_styles()
@@ -209,73 +202,28 @@ func _apply_action_control_styles() -> void:
 	]
 	for action_button: Button in action_buttons:
 		action_button.add_theme_stylebox_override(
-			"normal", _action_control_style_box(Color("102d21"), Color("75c99a"), 1)
+			"normal", GuiTableStyleScript.action_control_box(Color("102d21"), Color("75c99a"), 1)
 		)
 		action_button.add_theme_stylebox_override(
-			"hover", _action_control_style_box(Color("1b4933"), Color("e7d39b"), 2)
+			"hover", GuiTableStyleScript.action_control_box(Color("1b4933"), Color("e7d39b"), 2)
 		)
 		action_button.add_theme_stylebox_override(
-			"pressed", _action_control_style_box(Color("0b1d15"), Color("d9b56d"), 2)
+			"pressed", GuiTableStyleScript.action_control_box(Color("0b1d15"), Color("d9b56d"), 2)
 		)
 		action_button.add_theme_stylebox_override(
-			"disabled", _action_control_style_box(Color("0a1711"), Color("385443"), 1)
+			"disabled", GuiTableStyleScript.action_control_box(Color("0a1711"), Color("385443"), 1)
 		)
 		action_button.add_theme_color_override("font_disabled_color", Color("7e8a83"))
 	_wager_input.add_theme_stylebox_override(
-		"normal", _action_control_style_box(Color("102d21"), Color("75c99a"), 1)
+		"normal", GuiTableStyleScript.action_control_box(Color("102d21"), Color("75c99a"), 1)
 	)
 	_wager_input.add_theme_stylebox_override(
-		"focus", _action_control_style_box(Color("1b4933"), Color("e7d39b"), 2)
+		"focus", GuiTableStyleScript.action_control_box(Color("1b4933"), Color("e7d39b"), 2)
 	)
 	_wager_input.add_theme_stylebox_override(
-		"read_only", _action_control_style_box(Color("0a1711"), Color("385443"), 1)
+		"read_only", GuiTableStyleScript.action_control_box(Color("0a1711"), Color("385443"), 1)
 	)
 	_wager_input.add_theme_color_override("font_placeholder_color", Color("7e8a83"))
-
-
-func _style_box(
-	background_color: Color,
-	border_color: Color,
-	border_width: int,
-	corner_radius: int,
-) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = background_color
-	style.border_color = border_color
-	style.set_border_width_all(border_width)
-	style.set_corner_radius_all(corner_radius)
-	style.content_margin_left = 8.0
-	style.content_margin_top = 5.0
-	style.content_margin_right = 8.0
-	style.content_margin_bottom = 5.0
-	return style
-
-
-func _compact_style_box(
-	background_color: Color,
-	border_color: Color,
-	border_width: int,
-	corner_radius: int,
-) -> StyleBoxFlat:
-	var style := _style_box(background_color, border_color, border_width, corner_radius)
-	style.content_margin_left = 2.0
-	style.content_margin_top = 1.0
-	style.content_margin_right = 2.0
-	style.content_margin_bottom = 1.0
-	return style
-
-
-func _action_control_style_box(
-	background_color: Color,
-	border_color: Color,
-	border_width: int,
-) -> StyleBoxFlat:
-	var style := _style_box(background_color, border_color, border_width, 4)
-	style.content_margin_left = 5.0
-	style.content_margin_top = 2.0
-	style.content_margin_right = 5.0
-	style.content_margin_bottom = 2.0
-	return style
 
 
 func _count_wagers() -> int:
@@ -306,7 +254,9 @@ func _rebuild_card_slots() -> void:
 		var is_face_up: bool = index < cards.size()
 		slot.add_theme_stylebox_override(
 			"normal",
-			_style_box(Color("f5f0dc") if is_face_up else Color("173e58"), Color("e7d39b"), 2, 4)
+			GuiTableStyleScript.box(
+				Color("f5f0dc") if is_face_up else Color("173e58"), Color("e7d39b"), 2, 4
+			)
 		)
 		_card_slots.add_child(slot)
 
@@ -381,7 +331,7 @@ func _create_seat_widget(player_view: PlayerView) -> PanelContainer:
 	footer.add_theme_constant_override("separation", 4)
 	content.add_child(footer)
 	footer.add_child(_create_opponent_hole_cards(player_view))
-	if player_view.folded:
+	if player_view.folded or player_view.busted:
 		FoldedSeatStyleScript.apply(panel)
 	return panel
 
@@ -442,10 +392,10 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 				"font_color", _card_face_color(displayed_hero_cards[index])
 			)
 			card.add_theme_stylebox_override(
-				"normal", _style_box(Color("f5f0dc"), Color("d9b56d"), 2, 5)
+				"normal", GuiTableStyleScript.box(Color("f5f0dc"), Color("d9b56d"), 2, 5)
 			)
 			cards.add_child(card)
-	if player_view.folded:
+	if player_view.folded or player_view.busted:
 		FoldedSeatStyleScript.apply(panel)
 	return panel
 
@@ -459,7 +409,7 @@ func _seat_frame_style(
 	var is_acting: bool = player_view.seat == _bound_view.acting_seat
 	var border_color: Color = ACTING_SEAT_FRAME_COLOR if is_acting else normal_border_color
 	var border_width: int = normal_border_width * 3 if is_acting else normal_border_width
-	return _style_box(background_color, border_color, border_width, 10)
+	return GuiTableStyleScript.box(background_color, border_color, border_width, 10)
 
 
 func _create_marker_label(player_view: PlayerView) -> Label:
@@ -474,7 +424,7 @@ func _create_marker_label(player_view: PlayerView) -> Label:
 	marker.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	marker.add_theme_color_override("font_color", Color("172331"))
 	marker.add_theme_stylebox_override(
-		"normal", _compact_style_box(Color("e7d39b"), Color("f5f0dc"), 1, 5)
+		"normal", GuiTableStyleScript.compact_box(Color("e7d39b"), Color("f5f0dc"), 1, 5)
 	)
 	return marker
 
@@ -573,7 +523,7 @@ func _create_showdown_label(seat: int) -> Label:
 	showdown_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	showdown_label.add_theme_color_override("font_color", Color("f5f0dc"))
 	showdown_label.add_theme_stylebox_override(
-		"normal", _compact_style_box(Color("102d21ed"), Color("d9b56d"), 1, 5)
+		"normal", GuiTableStyleScript.compact_box(Color("102d21ed"), Color("d9b56d"), 1, 5)
 	)
 	return showdown_label
 
@@ -590,7 +540,7 @@ func _create_opponent_card_back(index: int) -> Label:
 	card_back.name = "CardBack%d" % index
 	card_back.custom_minimum_size = OPPONENT_CARD_SIZE
 	card_back.add_theme_stylebox_override(
-		"normal", _compact_style_box(Color("173e58"), Color("e7d39b"), 2, 3)
+		"normal", GuiTableStyleScript.compact_box(Color("173e58"), Color("e7d39b"), 2, 3)
 	)
 	return card_back
 
@@ -605,7 +555,7 @@ func _create_opponent_card_face(card_data: CardData, index: int) -> Label:
 	card_face.add_theme_font_size_override("font_size", 20)
 	card_face.add_theme_color_override("font_color", _card_face_color(card_data))
 	card_face.add_theme_stylebox_override(
-		"normal", _style_box(Color("f5f0dc"), Color("d9b56d"), 2, 3)
+		"normal", GuiTableStyleScript.box(Color("f5f0dc"), Color("d9b56d"), 2, 3)
 	)
 	return card_face
 
@@ -766,6 +716,27 @@ func _on_all_in_pressed() -> void:
 	_submit_action(PlayerAction.all_in_action())
 
 
+func _on_quit_pressed() -> void:
+	if _match == null:
+		return
+	if _match.state == TournamentMatch.State.FINISHED:
+		return_to_startup_requested.emit()
+	elif _match.state == TournamentMatch.State.RUNNING:
+		_quit_confirmation.popup_centered()
+
+
+func _on_quit_confirmed() -> void:
+	if _match == null:
+		return
+	_action_pacer.cancel()
+	var result: StepResult = _match.request_quit()
+	refresh_from_match()
+	if result.status == StepResult.Status.ERROR:
+		_action_status.text = result.message
+		return
+	tournament_quit_confirmed.emit()
+
+
 func _submit_action(action: PlayerAction) -> void:
 	if _match == null:
 		push_error("PokerTableController cannot submit without a TournamentMatch.")
@@ -794,14 +765,42 @@ func _schedule_next_action(actor_seat: int) -> void:
 func _advance_after_action_pause() -> void:
 	if _match == null:
 		return
+	var latest_action_seat: int = GuiMatchProgressInspectorScript.latest_action_seat(
+		_match.get_events()
+	)
+	var result: StepResult = _match.advance_one_action()
+	refresh_from_match()
+	if result.status == StepResult.Status.YIELDED:
+		if GuiMatchProgressInspectorScript.latest_event_is_community_cards_dealt(
+			_match.get_events()
+		):
+			_schedule_next_action(latest_action_seat)
+		else:
+			_schedule_after_latest_action()
+	elif result.status == StepResult.Status.HAND_COMPLETED:
+		_schedule_after_completed_hand()
+	elif result.status == StepResult.Status.ERROR:
+		_action_status.text = result.message
+
+
+func _advance_after_hand_boundary() -> void:
+	if _match == null or _match.state != TournamentMatch.State.RUNNING:
+		return
 	var result: StepResult = _match.advance_one_action()
 	refresh_from_match()
 	if result.status == StepResult.Status.YIELDED:
 		_schedule_after_latest_action()
 	elif result.status == StepResult.Status.HAND_COMPLETED:
-		call_deferred("_advance_after_action_pause")
+		_schedule_after_completed_hand()
 	elif result.status == StepResult.Status.ERROR:
 		_action_status.text = result.message
+
+
+func _schedule_after_completed_hand() -> void:
+	if GuiMatchProgressInspectorScript.contains_showdown(_match.get_events()):
+		_action_pacer.schedule_after_showdown(_advance_after_hand_boundary)
+	else:
+		call_deferred("_advance_after_hand_boundary")
 
 
 func _render_events(events: Array[DomainEvent]) -> void:

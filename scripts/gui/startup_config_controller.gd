@@ -19,6 +19,7 @@ var _avatar_assignment_service := AvatarAssignmentService.new()
 @onready var _form_status: Label = %FormStatus
 @onready var _startup_panel: CenterContainer = $Center
 @onready var _poker_table: Control = $PokerTable
+@onready var _quit_application_button: Button = %QuitApplicationButton
 
 
 func _ready() -> void:
@@ -27,6 +28,9 @@ func _ready() -> void:
 	)
 	_apply_defaults()
 	%StartButton.pressed.connect(_on_start_pressed)
+	_poker_table.tournament_quit_confirmed.connect(_on_tournament_quit_confirmed)
+	_poker_table.return_to_startup_requested.connect(_on_return_to_startup_requested)
+	_quit_application_button.pressed.connect(_on_quit_application_pressed)
 
 
 func _on_start_pressed() -> void:
@@ -61,6 +65,24 @@ func _on_start_pressed() -> void:
 		_poker_table.show()
 		return
 	_render_errors()
+
+
+func _on_tournament_quit_confirmed() -> void:
+	_return_to_startup("Tournament ended: player quit.")
+
+
+func _on_return_to_startup_requested() -> void:
+	_return_to_startup("Tournament complete.")
+
+
+func _return_to_startup(status_message: String) -> void:
+	_poker_table.hide()
+	_startup_panel.show()
+	_form_status.text = status_message
+
+
+func _on_quit_application_pressed() -> void:
+	get_tree().quit()
 
 
 func _apply_defaults() -> void:

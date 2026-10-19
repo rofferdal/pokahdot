@@ -72,7 +72,7 @@ godot --headless --path . -s addons/gut/gut_cmdln.gd
 
 ## GUI action pace
 
-The GUI waits two seconds after rendering each player action before advancing to the next automatic action. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, or add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`). Set a value to `0.0` for immediate progression during development.
+The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after showdown before starting the next hand. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.
 
 ## Mappestruktur
 
