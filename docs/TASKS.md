@@ -447,7 +447,7 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
 - [x] Add property-style seeded regressions that every action and wager
   returned by the model is legal for its `GameView`, leaving the existing
   HandController fallback as a safety net rather than normal behavior.
-- [ ] **Human verification:** play representative GUI and CLI hands covering
+- [x] **Human verification:** play representative GUI and CLI hands covering
   check, call, fold, bet, raise, and all-in situations; confirm bots make only
   visibly legal actions, wager amounts are valid totals, and normal play shows
   no fallback-warning behavior.
