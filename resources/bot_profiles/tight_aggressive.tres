@@ -5,7 +5,7 @@
 
 [sub_resource type="Resource" id="StrategyParameters_tight_aggressive"]
 script = ExtResource("2_parameters")
-tight_vs_loose = 30
+tight_vs_loose = 65
 passive_vs_aggressive = 75
 call_vs_bet = 70
 bluff_rate = 8

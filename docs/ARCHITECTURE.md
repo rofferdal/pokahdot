@@ -265,6 +265,40 @@ strategy milestones add public hand-potential estimation and wagering policy.
 The five immutable-at-runtime profile Resources are `nit_caller`,
 `tight_aggressive`, `loose_passive`, `loose_aggressive`, and `balanced`.
 
+`StrategyDecisionTrace` is a typed, test/simulation-only value object for
+explaining a parameterized model decision. `AgentFactory` supplies the
+profile ID to the model through an explicitly test-only hook, and
+`StrategyDecisionModel` records the selected baseline branch, legal
+alternatives, and requested action. `BotAgent` exposes a copied trace only
+through the matching test/simulation hook. Traces are never added to
+`GameView`, public events, CLI output, GUI state, or opponent-visible data.
+
+The initial action-policy phase keeps the free-check baseline, then applies a
+fold/continue threshold of `75 - 0.45 * tight_vs_loose` to the estimator's
+recipient-safe score. Call price and stack pressure increase the required
+strength, while later position supplies a bounded continuation credit. A
+missing estimate retains the safe check/call baseline. The eligible-bluff phase
+is separate: only a weak estimate with a legal bet or
+raise can consume one injected-RNG roll, with probability exactly
+`bluff_rate / 100`; `bluff_rate` is never used as a general aggression
+multiplier. Bluff wagers use the legal minimum target; ordinary aggressive
+continuation sizing is described below.
+When both passive and aggressive actions are
+legal, continuation consumes separate injected-RNG rolls: the first applies
+`passive_vs_aggressive` as pressure desire and the second applies
+`call_vs_bet` as style preference. If only one action class is legal, that
+class is selected without a roll. Aggressive continuation uses the estimator's
+stable bands for discrete target totals: minimum for weak hands, approximately
+half-pot for marginal hands, approximately one pot for strong hands, and the
+maximum legal total for premium hands. The loose profile Resources use a
+`tight_vs_loose` value of 100 so their continuation threshold reaches the
+widest calibrated range. The calibrated continuation order is Nit Caller 60,
+Tight Aggressive 65, Balanced 70, then both loose profiles at 100; the first
+two still fold marginal hands but now contest premium and strong suited
+broadway hands. Each target is clamped to the
+recipient-safe `GameView` minimum and maximum wager totals, and bet/raise
+requests always carry a target total rather than a chip delta.
+
 `HandPotentialEstimator` is a pure helper for the later policy stage. Its only
 inputs are the recipient's two hole cards, public board cards, and an explicit
 `HandPotentialContext` containing public scalar values: street, position

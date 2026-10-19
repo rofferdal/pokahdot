@@ -122,11 +122,11 @@ validated by simulation.
 
 | Profile ID | Display name | Tight/loose | Passive/aggressive | Call/bet | Bluff rate | Intended behavior |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| `nit_caller` | Nit Caller | 15 | 20 | 20 | 2 | Folds marginal hands and mostly check/calls strong ones. |
-| `tight_aggressive` | Tight Aggressive | 30 | 75 | 70 | 8 | Selective entry with frequent value betting and raises. |
-| `loose_passive` | Loose Passive | 75 | 25 | 15 | 5 | Enters widely but prefers checking and calling. |
-| `loose_aggressive` | Loose Aggressive | 80 | 85 | 85 | 22 | Applies frequent pressure with a materially wider range. |
-| `balanced` | Balanced | 50 | 55 | 50 | 12 | Neutral baseline for comparisons. |
+| `nit_caller` | Nit Caller | 60 | 20 | 20 | 2 | Folds marginal hands and mostly check/calls strong ones. |
+| `tight_aggressive` | Tight Aggressive | 65 | 75 | 70 | 8 | Selective entry with frequent value betting and raises. |
+| `loose_passive` | Loose Passive | 100 | 25 | 15 | 5 | Enters widely but prefers checking and calling. |
+| `loose_aggressive` | Loose Aggressive | 100 | 85 | 85 | 22 | Applies frequent pressure with a materially wider range. |
+| `balanced` | Balanced | 70 | 55 | 50 | 12 | Neutral baseline for comparisons. |
 
 Keep `RandomDecisionModel` as a smoke-test opponent. Keep the legacy
 `TightPassiveDecisionModel` and `LooseAggressiveDecisionModel` as the default

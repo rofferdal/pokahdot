@@ -34,4 +34,5 @@ func create_bot(profile: BotProfile, rng: RandomNumberGenerator) -> AgentCreatio
 	errors.append_array(model.configure(copied_parameters, rng))
 	if not errors.is_empty():
 		return AgentCreationResult.new(null, errors)
+	model.set_profile_id_for_testing(profile.profile_id)
 	return AgentCreationResult.new(BotAgent.new(model, profile))

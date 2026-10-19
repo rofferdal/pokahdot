@@ -20,5 +20,11 @@ func choose_action(view: GameView) -> PlayerAction:
 	return _model.choose_action(view)
 
 
+## Test/simulation-only hook. It is intentionally separate from GameView and
+## is never consumed by CLI or GUI rendering.
+func get_last_decision_trace_for_testing() -> RefCounted:
+	return _model.get_last_decision_trace_for_testing()
+
+
 func observe(record: PublicActionRecord) -> void:
 	_model.observe(record)

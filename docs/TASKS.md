@@ -427,24 +427,24 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
 
 ## Stratmilestone3 — Action policy and legal sizing
 
-- [ ] Implement a typed, test-only decision trace that records profile ID,
+- [x] Implement a typed, test-only decision trace that records profile ID,
   hand-potential band, selected branch, legal alternatives, and requested
   action without exposing private diagnostics to opponents or the regular UI.
-- [ ] Implement the documented fold/continue decision using
+- [x] Implement the documented fold/continue decision using
   `tight_vs_loose`, call price, position, stack pressure, and a check baseline
   when checking is free.
-- [ ] Implement eligible bluff selection using exactly `bluff_rate / 100` for
+- [x] Implement eligible bluff selection using exactly `bluff_rate / 100` for
   weak hands with a legal bet or raise; do not use bluff rate as a general
   aggression multiplier.
-- [ ] Implement passive-versus-aggressive continuation using both
+- [x] Implement passive-versus-aggressive continuation using both
   `passive_vs_aggressive` and `call_vs_bet`, with separate seeded rolls and
   documented behavior when only passive or only aggressive actions are legal.
-- [ ] Implement discrete legal wager sizing—minimum, approximately half-pot,
+- [x] Implement discrete legal wager sizing—minimum, approximately half-pot,
   approximately pot, and deliberately selected all-in—clamped to the view's
   wager bounds and emitted as total wager amounts.
-- [ ] Add action-policy tests for free checks, calls, folds, unavailable bets
+- [x] Add action-policy tests for free checks, calls, folds, unavailable bets
   or raises, short stacks, all-ins, and every legal-action combination.
-- [ ] Add property-style seeded regressions that every action and wager
+- [x] Add property-style seeded regressions that every action and wager
   returned by the model is legal for its `GameView`, leaving the existing
   HandController fallback as a safety net rather than normal behavior.
 - [ ] **Human verification:** play representative GUI and CLI hands covering
