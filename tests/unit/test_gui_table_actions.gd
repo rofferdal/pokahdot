@@ -381,12 +381,18 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 				is HBoxContainer
 			)
 		)
-		var primary_buttons := table.get_node(
-			"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"
-		) as HBoxContainer
-		var wager_controls := table.get_node(
-			"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"
-		) as HBoxContainer
+		var primary_buttons := (
+			table.get_node(
+				"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"
+			)
+			as HBoxContainer
+		)
+		var wager_controls := (
+			table.get_node(
+				"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"
+			)
+			as HBoxContainer
+		)
 		assert_eq(primary_buttons.get_theme_constant("separation"), 4)
 		assert_eq(wager_controls.get_theme_constant("separation"), 4)
 		assert_false(
