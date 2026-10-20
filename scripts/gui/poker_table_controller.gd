@@ -152,6 +152,48 @@ func get_seat_rects() -> Dictionary[int, Rect2]:
 	return seat_rects
 
 
+## Returns resolved table regions in TableSurface-local coordinates for GUI tests.
+func get_resolved_region_rects() -> Dictionary[StringName, Rect2]:
+	var regions: Dictionary[StringName, Rect2] = {
+		&"center": _surface_local_rect(_center_zone),
+		&"board": _surface_local_rect(_board_zone),
+		&"pot": _surface_local_rect(_pot_zone),
+		&"wager": _surface_local_rect(_wager_zone),
+		&"action": _surface_local_rect(_action_panel),
+		&"event": _surface_local_rect(_event_log),
+	}
+	if _bound_view != null and _seat_widgets.has(_bound_view.hero_seat):
+		regions[&"hero"] = _surface_local_rect(_seat_widgets[_bound_view.hero_seat])
+	for seat: int in _seat_widgets:
+		regions[StringName("seat_%d" % seat)] = _surface_local_rect(_seat_widgets[seat])
+		var action_label: Label = _seat_action_widgets[seat]
+		regions[StringName("action_%d" % seat)] = (
+			_surface_local_rect(action_label) if action_label.visible else Rect2()
+		)
+	return regions
+
+
+func get_action_control_rects() -> Dictionary[StringName, Rect2]:
+	var controls: Array[Control] = [
+		_fold_button,
+		_check_call_button,
+		_pot_raise_button,
+		_all_in_button,
+		_wager_input,
+		_wager_button,
+	]
+	var rects: Dictionary[StringName, Rect2] = {}
+	for control: Control in controls:
+		if control.visible:
+			rects[StringName(control.name)] = control.get_global_rect()
+	return rects
+
+
+func _surface_local_rect(control: Control) -> Rect2:
+	var global_rect: Rect2 = control.get_global_rect()
+	return Rect2(global_rect.position - _surface.global_position, global_rect.size)
+
+
 func is_action_advance_pending() -> bool:
 	return _action_pacer.is_waiting()
 
@@ -1012,6 +1054,14 @@ func _layout_table() -> void:
 		GuiMobileTableLayoutScript.layout_seat_action_label(
 			_seat_action_widgets.get(seat), panel, compact_layout, seat_visual_scale
 		)
+		var action_label: Label = _seat_action_widgets.get(seat)
+		if action_label != null and action_label.visible:
+			var action_overflow: float = action_label.get_rect().end.y - surface_size.y
+			if action_overflow > 0.0:
+				panel.position.y = maxf(0.0, panel.position.y - action_overflow - 2.0)
+				GuiMobileTableLayoutScript.layout_seat_action_label(
+					action_label, panel, compact_layout, seat_visual_scale
+				)
 		GuiMobileTableLayoutScript.layout_seat_showdown_label(
 			_seat_showdown_widgets.get(seat), panel, compact_layout, seat_visual_scale
 		)
@@ -1027,10 +1077,20 @@ func _layout_table() -> void:
 			_seat_widgets.size(),
 		)
 	)
-	var action_panel_top: float = _action_panel.get_global_rect().position.y
-	for action_label: Label in _seat_action_widgets.values():
-		if action_label.visible and action_label.get_global_rect().end.y > action_panel_top:
-			action_label.global_position.y = action_panel_top - action_label.size.y - 2.0
+	if not compact_layout:
+		# Containers can report a larger minimum after their children resolve.
+		# Re-apply the approved compact desktop height after layout so the
+		# reserved side regions remain deterministic.
+		var desktop_side_height: float = 180.0
+		var desktop_side_bottom: float = (
+			_seat_widgets[_bound_view.hero_seat].position.y
+			+ _seat_widgets[_bound_view.hero_seat].size.y
+		)
+		var desktop_side_y: float = desktop_side_bottom - desktop_side_height
+		_action_panel.size.y = desktop_side_height
+		_event_log.size.y = desktop_side_height
+		_action_panel.position.y = desktop_side_y
+		_event_log.position.y = desktop_side_y
 
 
 func _visual_slot_for_seat(seat: int, seat_count: int) -> int:

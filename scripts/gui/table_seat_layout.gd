@@ -27,9 +27,9 @@ static func symmetric_positions(seat_count: int) -> Array[Vector2]:
 			positions = [
 				Vector2(0.5, 0.08),
 				Vector2(0.88, 0.30),
-				Vector2(0.78, 0.72),
+				Vector2(0.78, 0.60),
 				Vector2(0.5, 0.91),
-				Vector2(0.22, 0.72),
+				Vector2(0.22, 0.60),
 				Vector2(0.12, 0.30)
 			]
 		7:

@@ -222,7 +222,7 @@ static func layout_seat_showdown_label(
 	if label == null or not label.visible:
 		return
 	label.size = Vector2(panel.size.x, (40.0 if compact_layout else 48.0) * scale)
-	label.position = Vector2(panel.position.x, maxf(0.0, panel.position.y - label.size.y - 2.0))
+	label.position = Vector2(panel.position.x, maxf(0.0, panel.position.y - label.size.y - 12.0))
 
 
 static func layout_human_adjacent_panels(
@@ -232,7 +232,7 @@ static func layout_human_adjacent_panels(
 	hero_panel: PanelContainer,
 	action_panel: PanelContainer,
 	event_log: RichTextLabel,
-	seat_count: int = 0,
+	_seat_count: int = 0,
 ) -> void:
 	if hero_panel == null:
 		return
@@ -242,6 +242,9 @@ static func layout_human_adjacent_panels(
 		)
 		return
 	hero_panel.size.y = maxf(hero_panel.size.y, action_panel.get_combined_minimum_size().y)
+	# Keep the human seat inside the same bottom safety margin used by the side
+	# panels. This makes bottom alignment possible without clipping the seat.
+	hero_panel.position.y = minf(hero_panel.position.y, surface_size.y - hero_panel.size.y - 12.0)
 	hero_panel.position.y = clampf(
 		hero_panel.position.y, 0.0, maxf(0.0, surface_size.y - hero_panel.size.y)
 	)
@@ -259,17 +262,26 @@ static func layout_human_adjacent_panels(
 		- 46.0
 	)
 	panel_width = minf(panel_width, maxf(0.0, available_side_width))
-	var panel_height: float = maxf(
-		132.0,
-		maxf(action_panel.get_combined_minimum_size().y, event_log.get_combined_minimum_size().y),
+	var panel_height: float = minf(
+		180.0,
+		maxf(
+			132.0,
+			maxf(
+				action_panel.get_combined_minimum_size().y, event_log.get_combined_minimum_size().y
+			),
+		),
 	)
+	if not compact_layout:
+		panel_height = 180.0
+	# Reserve a shared side-panel pair and align its bottom edge with the human
+	# seat. This keeps controls and history out of the lower seat row.
+	panel_height = minf(panel_height, maxf(132.0, hero_panel.position.y - 12.0))
+	# The human seat may grow after its container resolves its children. Match
+	# that resolved height so both side panels share the exact bottom edge.
+	panel_height = maxf(panel_height, hero_panel.size.y)
 	var panel_size := Vector2(panel_width, panel_height)
-	var desktop_panel_gap: float = 594.0 if seat_count >= 9 else 164.0
-	var panel_y: float = clampf(
-		hero_panel.position.y - panel_size.y - desktop_panel_gap,
-		12.0,
-		surface_size.y - panel_size.y - 12.0,
-	)
+	var panel_y: float = hero_panel.position.y + hero_panel.size.y - panel_size.y
+	panel_y = clampf(panel_y, 12.0, surface_size.y - panel_size.y - 12.0)
 	action_panel.size = panel_size
 	action_panel.position = Vector2(
 		minf(

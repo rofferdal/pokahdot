@@ -26,7 +26,14 @@ func test_desktop_seats_are_widened_and_non_overlapping_for_two_to_nine_players(
 			assert_true(surface_rect.encloses(seat_rect), context + " must remain in bounds")
 			for previous_rect: Rect2 in seat_rects:
 				assert_false(
-					seat_rect.intersects(previous_rect), context + " overlaps another seat"
+					seat_rect.intersects(previous_rect),
+					(
+						context
+						+ " overlaps another seat: "
+						+ str(seat_rect)
+						+ " / "
+						+ str(previous_rect)
+					),
 				)
 			seat_rects.append(seat_rect)
 
@@ -108,6 +115,126 @@ func test_desktop_player_facing_nodes_use_source_font_without_post_render_scalin
 		assert_eq(frame.border_width_left, frame.border_width_right, "seat %d border width" % seat)
 		assert_eq(frame.border_width_top, frame.border_width_bottom, "seat %d border width" % seat)
 		assert_gte(frame.border_width_left, 1, "seat %d border must remain visible" % seat)
+
+
+func test_desktop_regions_are_reserved_and_cannot_cover_the_center_or_side_panels() -> void:
+	for player_count: int in [2, 6]:
+		var table := _table_for(player_count)
+		await _settle_layout()
+		var surface := _surface(table)
+		var surface_rect := Rect2(Vector2.ZERO, surface.size)
+		var regions := table.get_resolved_region_rects()
+		for region_name: StringName in [
+			&"center", &"board", &"pot", &"wager", &"action", &"event", &"hero"
+		]:
+			assert_true(
+				surface_rect.encloses(regions[region_name]),
+				(
+					"%d-player %s region must remain in the table surface"
+					% [player_count, region_name]
+				),
+			)
+		assert_false(regions[&"center"].intersects(regions[&"action"]))
+		assert_false(regions[&"center"].intersects(regions[&"event"]))
+		assert_almost_eq(
+			regions[&"action"].end.y,
+			regions[&"hero"].end.y,
+			0.01,
+			"action panel must share the human seat bottom edge",
+		)
+		assert_almost_eq(
+			regions[&"event"].end.y,
+			regions[&"hero"].end.y,
+			0.01,
+			"event feed must share the human seat bottom edge",
+		)
+		for seat: int in range(player_count):
+			var seat_rect: Rect2 = regions[StringName("seat_%d" % seat)]
+			assert_true(surface_rect.encloses(seat_rect))
+			assert_false(
+				seat_rect.intersects(regions[&"action"]),
+				"%d seat %d action %s / %s" % [player_count, seat, seat_rect, regions[&"action"]]
+			)
+			assert_false(
+				seat_rect.intersects(regions[&"event"]),
+				"%d seat %d event %s / %s" % [player_count, seat, seat_rect, regions[&"event"]]
+			)
+			assert_false(
+				seat_rect.intersects(regions[&"center"]),
+				"%d seat %d center %s / %s" % [player_count, seat, seat_rect, regions[&"center"]]
+			)
+			var action_rect: Rect2 = regions[StringName("action_%d" % seat)]
+			if action_rect.size.y > 0.0:
+				assert_true(
+					surface_rect.encloses(action_rect),
+					(
+						"%d seat %d action label %s / %s"
+						% [player_count, seat, action_rect, surface_rect]
+					)
+				)
+				assert_false(action_rect.intersects(regions[&"center"]))
+
+
+func test_six_player_action_labels_are_owned_by_their_seats() -> void:
+	var view: GameView = _view(6)
+	view._action_history = [
+		PublicActionRecord.blind(1, 5, true),
+		PublicActionRecord.blind(5, 10, false),
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+		PublicActionRecord.new(3, PlayerAction.Kind.RAISE, 30),
+	]
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = DESKTOP_VIEWPORT
+	add_child_autofree(table)
+	table.bind_view(view, _avatar_assignments(6))
+	await _settle_layout()
+	for seat: int in range(6):
+		var label := table.find_child("Seat%dAction" % seat, true, false) as Label
+		if not label.visible:
+			continue
+		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
+		var label_rect := label.get_global_rect()
+		assert_eq(
+			label.text, ["", "Small blind 5", "Call 10", "Raise 30", "", "Big blind 10"][seat]
+		)
+		assert_almost_eq(label_rect.get_center().x, panel.get_global_rect().get_center().x, 0.01)
+		assert_gte(label_rect.position.y, panel.get_global_rect().end.y)
+
+
+func test_visible_action_controls_use_two_non_intersecting_rows() -> void:
+	var table := _table_for(6)
+	await _settle_layout()
+	var primary := (
+		table.get_node(
+			"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"
+		)
+		as HBoxContainer
+	)
+	var wager := (
+		table.get_node(
+			"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"
+		)
+		as HBoxContainer
+	)
+	assert_true(table.get_node("%MinWagerButton").visible == false)
+	assert_eq(primary.get_child_count(), 4)
+	assert_eq(wager.get_child_count(), 3)
+	assert_eq(primary.get_node("FoldButton").visible, true)
+	assert_eq(primary.get_node("CheckCallButton").visible, true)
+	assert_eq(primary.get_node("PotRaiseButton").visible, true)
+	var action_rect: Rect2 = (
+		table.get_node("TableMargin/Felt/TableSurface/ActionPanel").get_global_rect()
+	)
+	var controls := table.get_action_control_rects()
+	var placed: Array[Rect2] = []
+	for control_name: StringName in controls:
+		var control_rect: Rect2 = controls[control_name]
+		assert_true(action_rect.encloses(control_rect), str(control_name))
+		assert_gt(control_rect.size.x, 0.0, str(control_name))
+		for previous: Rect2 in placed:
+			assert_false(control_rect.intersects(previous), str(control_name))
+		placed.append(control_rect)
 
 
 func _table_for(player_count: int) -> PokerTableController:
