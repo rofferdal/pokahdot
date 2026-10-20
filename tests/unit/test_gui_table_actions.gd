@@ -45,6 +45,11 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_false(wager_input.virtual_keyboard_enabled)
 	assert_false(wager_input.virtual_keyboard_show_on_focus)
 	assert_eq(wager_input.virtual_keyboard_type, LineEdit.KEYBOARD_TYPE_NUMBER)
+	table.get_node("%MinWagerButton").emit_signal("pressed")
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Raise 20" in text))
+
+	# Rebind the unchanged initial view so the remaining input controls can be tested.
+	table.bind_view(match_instance.get_view_for(0), _empty_assignments())
 	table.show_wager_keypad()
 	assert_true(table.get_node("WagerKeypad").visible)
 	table.get_node("WagerKeypad/Content/Keys/Key2").emit_signal("pressed")

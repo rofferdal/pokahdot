@@ -217,7 +217,8 @@ func test_visible_action_controls_use_two_non_intersecting_rows() -> void:
 		)
 		as HBoxContainer
 	)
-	assert_true(table.get_node("%MinWagerButton").visible == false)
+	assert_true(table.get_node("%MinWagerButton").visible)
+	assert_eq(table.get_node("%MinWagerButton").text, "Min Raise 20")
 	assert_eq(primary.get_child_count(), 4)
 	assert_eq(wager.get_child_count(), 3)
 	assert_eq(primary.get_node("FoldButton").visible, true)
@@ -265,6 +266,8 @@ func _view(player_count: int) -> GameView:
 	view.big_blind_seat = player_count - 1
 	view.big_blind = 10
 	view.small_blind = 5
+	view.minimum_wager_total = 20
+	view.maximum_wager_total = 100
 	view.acting_seat = 0
 	for seat: int in range(player_count):
 		var agent: Agent = (
