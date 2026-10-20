@@ -34,9 +34,9 @@ func test_startup_and_table_fonts_are_scaled_by_one_point_eight() -> void:
 	assert_eq(table.find_child("PotLabel", true, false).get_theme_font_size("font_size"), 29)
 	assert_eq(table.find_child("WagerLabel", true, false).get_theme_font_size("font_size"), 29)
 	assert_eq(
-		table.get_node("%CardSlots/CardSlot1/Content/Rank").get_theme_font_size("font_size"), 29
+		table.get_node("%CardSlots/CardSlot1/Content/Rank").get_theme_font_size("font_size"), 58
 	)
-	assert_eq(table.find_child("Name", true, false).get_theme_font_size("font_size"), 23)
+	assert_eq(table.find_child("Name", true, false).get_theme_font_size("font_size"), 46)
 
 
 func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rotation() -> void:
@@ -48,19 +48,27 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 
 	var panel: PanelContainer = main.get_node("Center/Panel")
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 1612.8))
-	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 80)
+	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 128)
 	assert_eq(
-		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 46
+		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 64
 	)
 
 	main.size = Vector2(1920, 1080)
 	main._refresh_startup_layout()
 
 	assert_eq(panel.custom_minimum_size.x, 0.0)
-	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 50)
+	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 64)
 	assert_eq(
-		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 29
+		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 32
 	)
+	for input_path: NodePath in [
+		^"Center/Panel/Margin/Form/PlayerCountInput",
+		^"Center/Panel/Margin/Form/StartingStackInput",
+		^"Center/Panel/Margin/Form/SmallBlindInput",
+		^"Center/Panel/Margin/Form/BigBlindInput",
+		^"Center/Panel/Margin/Form/StartButton",
+	]:
+		assert_gte(main.get_node(input_path).custom_minimum_size.y, 64.0, str(input_path))
 
 
 func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_table() -> void:
@@ -194,7 +202,7 @@ func test_desktop_seats_are_equally_wide_for_every_supported_player_count() -> v
 			)
 			assert_almost_eq(
 				panel.size.x,
-				280.0,
+				424.0,
 				0.001,
 				(
 					"seat %d at %d players should use the shared wide desktop panel"
@@ -309,6 +317,11 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 		CardData.new(12, CardData.Suit.HEARTS),
 	]
 	view.pot_amount = 55
+	view.small_blind = 5
+	view.big_blind = 10
+	view.blind_level = 2
+	view.completed_hands_in_level = 3
+	view.hands_until_next_level = 9
 	view._seats = [_player_view(0, 5), _player_view(1, 10)]
 
 	var avatar_paths: PackedStringArray = GuiAvatarCatalogScript.default_avatar_paths()
@@ -351,7 +364,7 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	)
 	assert_eq(
 		table.get_node("TableMargin/Felt/TableSurface/CenterZone/PotZone/PotLabel").text,
-		"POT  •  55"
+		"POT 55 | SB 5 BB 10 | L2 3/9"
 	)
 	var name_label := table.find_child("Name", true, false) as Label
 	assert_not_null(name_label)
@@ -360,7 +373,7 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	var avatar := table.find_child("Avatar", true, false) as TextureRect
 	assert_not_null(avatar)
 	assert_not_null(avatar.texture)
-	assert_eq(avatar.texture_filter, CanvasItem.TEXTURE_FILTER_NEAREST)
+	assert_eq(avatar.texture_filter, CanvasItem.TEXTURE_FILTER_LINEAR)
 
 
 func test_center_zone_is_centered_from_its_resolved_bounds() -> void:
@@ -432,7 +445,7 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 		"res://assets/ui/club.svg"
 	)
 	assert_eq(
-		table.get_node("%CardSlots/CardSlot1/Content/Suit").custom_minimum_size, Vector2(26.1, 26.1)
+		table.get_node("%CardSlots/CardSlot1/Content/Suit").custom_minimum_size, Vector2(52.2, 52.2)
 	)
 	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "D")
 	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "SB")
@@ -448,6 +461,11 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 
 	view._community_cards.append(CardData.new(2, CardData.Suit.DIAMONDS))
 	view.pot_amount = 65
+	view.small_blind = 5
+	view.big_blind = 10
+	view.blind_level = 1
+	view.completed_hands_in_level = 0
+	view.hands_until_next_level = 10
 	view._pots = [
 		PotLayer.new(40, 15, [0, 1, 2], [0, 1, 2]),
 		PotLayer.new(25, 25, [0, 1], [0, 1]),
@@ -463,7 +481,10 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 	assert_eq(
 		third_card.get_node("Content/Suit").texture.resource_path, "res://assets/ui/diamond.svg"
 	)
-	assert_eq(table.find_child("PotLabel", true, false).text, "POT  •  65  •  2 layers")
+	assert_eq(
+		table.find_child("PotLabel", true, false).text,
+		"POT 65  •  2 layers | SB 5 BB 10 | L1 0/10",
+	)
 
 
 func test_table_refreshes_from_a_recipient_safe_match_view() -> void:
@@ -564,9 +585,9 @@ func test_live_seat_panels_show_stacks_positions_and_hidden_opponent_cards() -> 
 	var chip_detail: Label = table.get_node(seat_prefix % 1 + "Header/Identity/Stack")
 	var avatar: TextureRect = table.get_node(seat_prefix % 1 + "Header/Avatar")
 	var card_back: Label = table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack1")
-	assert_eq(chip_detail.get_theme_font_size("font_size"), 22)
-	assert_eq(avatar.custom_minimum_size, Vector2(56, 56))
-	assert_eq(card_back.custom_minimum_size, Vector2(30, 38))
+	assert_eq(chip_detail.get_theme_font_size("font_size"), 44)
+	assert_eq(avatar.custom_minimum_size, Vector2(112, 112))
+	assert_eq(card_back.custom_minimum_size, Vector2(60, 76))
 	assert_not_null(card_back)
 	assert_not_null(table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack2"))
 

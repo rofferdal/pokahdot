@@ -39,6 +39,15 @@ func active_player_count() -> int:
 	return active_seats().size()
 
 
+func set_blinds(small_blind_amount: int, big_blind_amount: int) -> void:
+	assert(small_blind_amount > 0, "The small blind must be positive.")
+	assert(
+		big_blind_amount >= small_blind_amount, "The big blind must be at least the small blind."
+	)
+	small_blind = small_blind_amount
+	big_blind = big_blind_amount
+
+
 func get_player(seat: int) -> Player:
 	if seat < 0 or seat >= _players.size():
 		return null

@@ -10,7 +10,7 @@ Pokahdot is a single-table No Limit Texas Hold'em tournament for one human playe
 
 This document defines module boundaries, state ownership, runtime flow, and the contracts that presentation layers and agents use. `docs/ProjectDescription.md` is normative; this document may refine implementation structure but must not add or change game rules.
 
-The v1 boundary is one single-table tournament with 2–9 participants, equal starting stacks, exactly one human, and bots in every other seat. Before each tournament starts, the human may optionally override the participant count, common starting stack, small blind, and big blind; omitted values use defaults, and the resolved values are then fixed for that tournament. V1 has no cash-game accounting, buy-ins, cash-out, rebuys, antes, rake, blind levels, action timer, network play, or prize payout. Normal play ends only when one participant has chips; a human-requested quit ends it without a winner. The project uses Godot 4, GDScript, and the Compatibility renderer, with no C# or platform-specific plugins.
+The v1 boundary is one single-table tournament with 2–9 participants, equal starting stacks, exactly one human, and bots in every other seat. Before each tournament starts, the human may optionally override the participant count, common starting stack, starting small blind, and starting big blind; omitted values use defaults. Blinds then follow the defined hand-based blind-level schedule. V1 has no cash-game accounting, buy-ins, cash-out, rebuys, antes, rake, action timer, network play, or prize payout. Normal play ends only when one participant has chips; a human-requested quit ends it without a winner. The project uses Godot 4, GDScript, and the Compatibility renderer, with no C# or platform-specific plugins.
 
 ## 2. Architectural drivers
 
@@ -70,6 +70,7 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 | Keep runtime state in core objects, not scenes or Resources | Scenes display state. Configuration and static card data may be Resources; mutable match state stays in dedicated runtime objects. |
 | Keep avatar selection in the GUI presentation layer | Avatar identity is visual-only and must not affect `Player`, `GameView`, tournament configuration, or core RNG streams. |
 | Keep GUI action pacing in a Resource | Per-seat visual pauses are configurable without putting timers or presentation policy in poker rules. |
+| Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
 | Share one in-canvas numeric keypad between startup and live-table inputs | Web and iPad number entry remains consistent, preserves the canvas viewport, and avoids browser keyboard behavior. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
@@ -118,12 +119,18 @@ Hand-specific state is reset by `HandController`; `busted` survives between hand
 
 ### 5.5 `table.gd`
 
-`Table` owns seat ordering, button position, blind sizes, and active-seat traversal.
+`Table` owns seat ordering, button position, current blind sizes for posting, and active-seat traversal. It receives the current blind values from the tournament's blind-level state; it does not decide when a level changes.
 
 - All traversal helpers skip busted seats.
 - The initial button is selected from active seats by injected RNG.
 - Later hands move the button clockwise to the next active seat.
 - Heads-up blind and action order are exposed as explicit helpers rather than scattered conditionals.
+
+### 5.5.1 Blind-level state
+
+`TournamentMatch` owns the mutable blind-level state (implemented as a core value/component), including the level number, current small and big blinds, completed hands in the level, the active-player count captured when the level began, and the computed hands until the next increase. The state uses an interval of `active_player_count_at_level_start * 2` for levels that began with at least five active players, otherwise 10; that interval remains unchanged until the next level begins.
+
+After a hand settles and zero-stack players are eliminated, `TournamentMatch` records the completed hand in the blind-level state. If the interval is reached, it calculates the next big blind as the smallest even integer greater than or equal to 125% of the current big blind and sets the small blind to exactly half of it. The current hand keeps its posted blinds, so an increase is applied only when the next hand is initialized. The new level then captures the current active-player count and starts its completion counter at zero.
 
 ### 5.6 `player_action.gd`
 
@@ -186,6 +193,8 @@ It must not inspect players, stacks, pots, or UI state.
 - community cards and pots, including each pot's amount and eligible seats;
 - each seat's name, human flag, stack, street contribution, folded/all-in/busted flags, and active/eliminated status;
 - `hero_seat` and only that recipient's `hero_hole_cards`;
+- current `small_blind` and `big_blind`;
+- current `blind_level`, `completed_hands_in_level`, `hands_until_next_level`, and the active-player count captured at level start;
 - legal actions, including call size and minimum/maximum bet or raise totals;
 - public action history and recipient-safe showdown results, including category, ordered tie-break values, and the selected five cards for each legitimately revealed hand;
 - hand number, tournament status, end reason, and optional winner.
@@ -193,6 +202,8 @@ It must not inspect players, stacks, pots, or UI state.
 Public action history contains only actions and public outcomes. Opponent hole cards appear only at showdown, or at `hand_end` when those cards were actually shown; folded or otherwise unrevealed cards never appear.
 
 Collections exposed in a view are duplicated so a bot or UI cannot mutate core state indirectly.
+
+GUI and CLI presentation layers render the blind values and progress fields from `GameView`. They never calculate level intervals, round blind values, advance levels, or mutate blind-level state; all such decisions belong to `TournamentMatch` and its core blind-level component.
 
 ### 5.11 `agents/agent.gd`
 
@@ -395,8 +406,8 @@ Implementation proceeds through the CLI first. Each runnable core increment is e
 
 1. Show a startup panel prefilled with 6 participants, 1000 chips, small blind 5, and big blind 10; starting immediately without editing is valid.
 2. Validate edits locally for immediate feedback, then create a fresh validated match configuration and construct `TournamentMatch`; do not create players, chips, or cards while the input is invalid.
-3. Call `start()` and render the returned human `GameView`: board, pots, stacks, selected fixed blinds, acting seat, hero cards, active/eliminated participants, and final winner when applicable. Opponent cards remain hidden unless the view explicitly reveals them.
-4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, and Bet/Raise with minimum, half-pot, pot, all-in, and free-entry amounts as applicable.
+3. Call `start()` and render the returned human `GameView`: board, pots, stacks, current blinds, level progress, acting seat, hero cards, active/eliminated participants, and final winner when applicable. Opponent cards remain hidden unless the view explicitly reveals them.
+4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, minimum Bet/Raise, a Pot raise target, All-in, and free-entry amounts as applicable. The Pot raise control sends the displayed pot amount through the ordinary wager-validation path and is disabled unless that target is a legal raise the hero can cover.
 5. On a button press, create `PlayerAction`, submit it, and render the next result.
 6. Keep `Quit` available at all times; confirm in the GUI and then call `request_quit()`.
 
@@ -407,6 +418,8 @@ The table view uses a green felt surface. Its layout has explicit, visually dist
 `GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls nonblocking GUI pacing. Its default action pause is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. The same pause is used after each community-card reveal, while `showdown_pause_seconds` defaults to five seconds before a new hand begins. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
 
 The default game viewport is 1920 by 1080, while the `Control` layout must reflow without overlap at supported desktop and mobile aspect ratios. The human recipient is visually anchored at the bottom; this is a presentation mapping only and must not alter core seat identities or poker positions. Desktop seat panels use equal wide dimensions across 2–9 seats, with mirrored left/right placement where applicable; compact layouts may change dimensions but retain readable names, stacks, markers, and cards. Tall mobile portrait surfaces are detected from their aspect ratio, not just logical canvas width, then scale seats, cards, table zones, event history, and action controls from the available surface so a high-DPI Web canvas does not retain desktop-sized controls inside unused felt.
+
+`resources/gui_theme.tres` uses Godot's built-in plain non-serif UI font for both the startup screen and the table. Startup labels, numeric inputs, validation feedback, and the on-canvas keypad inherit that face, as do table labels and controls; presentation code must not introduce a serif face. Desktop table typography and line-art are configured at their source sizes rather than post-render scaled.
 
 Each seat panel displays one distinct avatar sourced at 32 by 32 pixels and enlarged for readable presentation (currently 56 pixels for opponents and 64 pixels for the human). At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
 
@@ -479,7 +492,7 @@ Changing the template, overrides, or a returned collection after resolution cann
 
 Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be positive, and small blind must not exceed big blind. The adapters may perform the same checks for immediate feedback, but core validation of the fully resolved configuration remains authoritative.
 
-The resolved values are copied into a fresh configuration before `TournamentMatch` is constructed and cannot change after `start()`. Blinds remain constant for that tournament. The composition root builds the complete `seat_agents` map from `player_count`: seat 0 is the human and seats 1 through `player_count - 1` are bots. The default six-seat setup uses at least two of the three required concrete bot classes; smaller and larger tables use the same registered presets without changing poker rules.
+The resolved values are copied into a fresh configuration before `TournamentMatch` is constructed and cannot change after `start()`. The resolved blind values are the starting blinds for level 1; `TournamentMatch` owns subsequent hand-based blind progression. The composition root builds the complete `seat_agents` map from `player_count`: seat 0 is the human and seats 1 through `player_count - 1` are bots. The default six-seat setup uses at least two of the three required concrete bot classes; smaller and larger tables use the same registered presets without changing poker rules.
 
 Validate configuration before any chips or cards are created. Invalid configuration returns a descriptive startup error.
 
@@ -554,7 +567,7 @@ The core maintains these invariants:
 - During a non-aborted hand, total player stacks plus `PotManager`'s contribution ledger (the pot) equals the tournament's initial chip total.
 - After normal settlement, the pot is empty and all chips are in player stacks.
 - A busted player has stack 0 and is never dealt into a later hand.
-- The configured player count, `starting_stack`, `small_blind`, and `big_blind` equal the validated, default-resolved startup values and remain immutable; each live stack starts at `starting_stack` and then changes only through poker actions and pot awards.
+- The configured player count and `starting_stack` equal the validated, default-resolved startup values and remain immutable; the blind-level state starts with the validated startup blinds and changes only at the hand-completion boundary; each live stack starts at `starting_stack` and then changes only through poker actions and pot awards.
 - Exactly one seat acts at a time, or no seat acts while transitioning or finished.
 - A view never contains unrevealed opponent hole cards.
 - A finished tournament has exactly one end reason.
@@ -672,7 +685,7 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 - CLI and GUI startup adapters map omitted, partially overridden, and fully overridden input to equivalent resolved core configurations and keep invalid explicit input from constructing a match;
 - CLI snapshots render hero cards, community cards, and legitimately revealed showdown cards in the format defined by `docs/POKERCARDS_IN_CLI.md`, while unrevealed opponent cards remain absent;
 - CLI snapshots identify the human consistently as `(you)` before and after actions, across hands, and in final player summaries without marking any bot;
-- non-default startup selections produce the selected participant count, equal initial stacks, and fixed blind postings through both adapter-independent drivers;
+- non-default startup selections produce the selected participant count, equal initial stacks, and the selected starting blind postings through both adapter-independent drivers;
 - player elimination followed by a hand whose deal, button, and blinds skip the busted seat;
 - full tournament ending with the only chip-owning seat as winner;
 - two bots using the same model with different profiles and independent RNG streams;
@@ -690,7 +703,7 @@ The design intentionally allows later, post-v1 additions without changing poker 
 - new agents through `AgentFactory`;
 - new bot decision models through `DecisionModelRegistry`;
 - new parameterized behaviors through typed `DecisionModelParameters` and reusable `BotProfile` Resources;
-- blind schedules owned by tournament orchestration (v1 keeps blinds fixed);
+- alternate blind schedules owned by tournament orchestration (v1 uses the defined hand-based schedule);
 - replay or audit logs from domain events;
 - alternate presentation adapters;
 - network input as another human-agent adapter (networking remains excluded from v1);
@@ -703,6 +716,6 @@ Cash-game accounting, networking, persistence, payouts, antes, and rebuys are ou
 - A step-based controller is more explicit than a coroutine-heavy implementation, but it is easier to test and works consistently in GUI and headless modes.
 - Snapshot duplication allocates more data, but creates a strong privacy and mutation boundary. This cost is negligible for at most nine seats.
 - Domain events add a small amount of structure, but prevent presentation concerns from leaking into the rules engine and provide useful test evidence.
-- Fixed blinds can make tournaments long. Blind levels are deliberately deferred because the requirements define fixed blinds for v1.
+- Hand-based blind levels keep progression deterministic while adapting the interval to the active table size at each level boundary.
 - GUT and GDScript Toolkit reduce test and style boilerplate but add pinned development dependencies. Neither is part of the exported game or allowed to become a dependency of `scripts/core/`.
 - The model/profile split adds a few small types, but avoids a growing hierarchy of nearly identical bot agents and makes behavior tunable without modifying model code.

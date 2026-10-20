@@ -41,6 +41,7 @@ var _table: Table
 var _deck: Deck
 var _deck_rng: RandomNumberGenerator
 var _button_rng: RandomNumberGenerator
+var _blind_progression: BlindLevelProgression
 var _pots := PotManager.new()
 var _betting: BettingRound
 var _history: Array[PublicActionRecord] = []
@@ -58,12 +59,14 @@ func _init(
 	deck_rng: RandomNumberGenerator,
 	button_rng: RandomNumberGenerator,
 	current_hand_number: int = 1,
+	blind_progression: BlindLevelProgression = null,
 ) -> void:
 	_table = table
 	_deck = deck
 	_deck_rng = deck_rng
 	_button_rng = button_rng
 	hand_number = current_hand_number
+	_blind_progression = blind_progression.copy() if blind_progression != null else null
 
 
 func start(max_transitions: int = 32) -> StepResult:
@@ -180,6 +183,7 @@ func get_view_for(seat: int) -> GameView:
 			hand_number,
 			_pot_layers,
 			_showdown_results,
+			_blind_progression,
 		)
 	)
 	view.hand_complete = state == State.COMPLETE

@@ -52,6 +52,21 @@ The terminal interface supports a complete tournament with optional startup
 overrides, poker actions, `help`, `quit`, and `exit`. Game rules remain in
 `scripts/core/`, not in either presentation layer.
 
+## Blind levels and Pot raise
+
+The selected blinds are the first level's blinds. A level that begins with five
+or more active players lasts twice that starting player count in completed
+hands; a level that begins with fewer than five players lasts 10 completed
+hands. An increase applies to the next hand. The next big blind is 125% of the
+previous big blind, rounded upward to an even integer, and the small blind is
+half of it (for example, 5/10 becomes 7/14, then 9/18). The CLI and table show
+the current blinds, level, completed hands, and hands remaining in the level.
+
+When it is a legal raise and the hero can cover it, the GUI's **Pot raise**
+button submits the currently displayed pot amount through the normal wager
+validation path. It is disabled if that target is not a legal raise; **All-in**
+and the free wager entry remain separate controls.
+
 ### Experimental bot roster
 
 The production roster remains the default. To opt into the evaluated,

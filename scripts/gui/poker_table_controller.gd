@@ -1,5 +1,6 @@
 class_name PokerTableController
 extends Control
+# gdlint: disable=max-file-lines
 signal tournament_quit_confirmed
 signal return_to_startup_requested
 const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
@@ -15,11 +16,13 @@ const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_fo
 const TableSeatLayoutScript := preload("res://scripts/gui/table_seat_layout.gd")
 const TournamentStatusFormatterScript := preload("res://scripts/gui/tournament_status_formatter.gd")
 const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
-const OPPONENT_AVATAR_SIZE := Vector2(56, 56)
-const HERO_AVATAR_SIZE := Vector2(64, 64)
-const OPPONENT_CARD_SIZE := Vector2(30, 38)
+const OPPONENT_AVATAR_SIZE := Vector2(112, 112)
+const HERO_AVATAR_SIZE := Vector2(128, 128)
+const OPPONENT_CARD_SIZE := Vector2(60, 76)
 const GUI_MINIMUM_FONT_SIZE: int = 20
-const OPPONENT_CHIP_FONT_SIZE: int = 22
+const OPPONENT_CHIP_FONT_SIZE: int = 44
+const SEAT_TEXT_FONT_SIZE: int = 40
+const HERO_SEAT_TEXT_FONT_SIZE: int = 46
 const NORMAL_SEAT_FRAME_WIDTH: int = 1
 const HERO_SEAT_FRAME_WIDTH: int = 2
 const ACTING_SEAT_FRAME_COLOR := Color.WHITE
@@ -57,7 +60,7 @@ var _wager_keypad: WagerKeypad
 @onready var _fold_button: Button = %FoldButton
 @onready var _check_call_button: Button = %CheckCallButton
 @onready var _min_wager_button: Button = %MinWagerButton
-@onready var _half_wager_button: Button = %HalfWagerButton
+@onready var _pot_raise_button: Button = %PotRaiseButton
 @onready var _wager_input: LineEdit = %WagerInput
 @onready var _wager_button: Button = %WagerButton
 @onready var _all_in_button: Button = %AllInButton
@@ -72,9 +75,6 @@ func _ready() -> void:
 	_surface.resized.connect(_queue_layout)
 	visibility_changed.connect(_queue_layout)
 	_apply_table_styles()
-	# The custom keypad preserves the Web canvas and shows its entered value in-place.
-	# Do not request the browser keyboard here: on mobile it can resize the game and
-	# steal or discard numeric input before the presentation-owned keypad receives it.
 	_wager_input.virtual_keyboard_enabled = false
 	_wager_input.virtual_keyboard_show_on_focus = false
 	_wager_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
@@ -84,7 +84,7 @@ func _ready() -> void:
 	_fold_button.pressed.connect(_on_fold_pressed)
 	_check_call_button.pressed.connect(_on_check_call_pressed)
 	_min_wager_button.pressed.connect(_on_min_wager_pressed)
-	_half_wager_button.pressed.connect(_on_half_wager_pressed)
+	_pot_raise_button.pressed.connect(_on_pot_raise_pressed)
 	_wager_button.pressed.connect(_on_wager_pressed)
 	_all_in_button.pressed.connect(_on_all_in_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
@@ -195,11 +195,22 @@ func _refresh_visuals() -> void:
 		return
 	_board_label.text = "Community cards"
 	_wager_label.text = "Wagers  •  %d active" % _count_wagers()
-	_pot_label.text = "POT  •  %d%s" % [displayed_pot_amount, _pot_layer_text()]
+	_pot_label.text = (
+		"POT %d%s | SB %d BB %d | L%d %d/%d"
+		% [
+			displayed_pot_amount,
+			_pot_layer_text(),
+			_bound_view.small_blind,
+			_bound_view.big_blind,
+			_bound_view.blind_level,
+			_bound_view.completed_hands_in_level,
+			_bound_view.hands_until_next_level,
+		]
+	)
 	_rebuild_card_slots()
 	_rebuild_seats()
 	_refresh_action_controls()
-	_enforce_minimum_gui_text_size()
+	_enforce_minimum_gui_text_size_for_node(self)
 	_queue_layout()
 
 
@@ -231,7 +242,7 @@ func _apply_action_control_styles() -> void:
 		_fold_button,
 		_check_call_button,
 		_min_wager_button,
-		_half_wager_button,
+		_pot_raise_button,
 		_wager_button,
 		_all_in_button,
 	]
@@ -280,8 +291,8 @@ func _rebuild_card_slots() -> void:
 			. create_card_face(
 				cards[index] if is_face_up else null,
 				"CardSlot%d" % (index + 1),
-				Vector2(30, 38),
-				29,
+				Vector2(60, 76),
+				58,
 				Color("f5f0dc") if is_face_up else Color("173e58"),
 				Color("e7d39b"),
 			)
@@ -346,13 +357,17 @@ func _create_seat_widget(player_view: PlayerView) -> PanelContainer:
 	avatar.custom_minimum_size = OPPONENT_AVATAR_SIZE
 	avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	avatar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Avatars are authored at their display dimensions.  Linear filtering keeps
+	# their edges smooth on desktop HiDPI surfaces; scaling a low-resolution
+	# texture with nearest-neighbour filtering made the six-player layout look
+	# visibly pixelated.
+	avatar.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var avatar_path: String = _avatar_assignments.get(player_view.seat, "")
 	if not avatar_path.is_empty():
 		avatar.texture = load(avatar_path) as Texture2D
 	row.add_child(avatar)
 	_add_main_pot_winner_star(row, player_view.seat, OPPONENT_AVATAR_SIZE)
-	row.add_child(_create_seat_identity(player_view, 20))
+	row.add_child(_create_seat_identity(player_view, SEAT_TEXT_FONT_SIZE))
 	row.add_child(_create_marker_label(player_view))
 	var footer := HBoxContainer.new()
 	footer.name = "Footer"
@@ -395,13 +410,13 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 	avatar.custom_minimum_size = HERO_AVATAR_SIZE
 	avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	avatar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	avatar.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var avatar_path: String = _avatar_assignments.get(player_view.seat, "")
 	if not avatar_path.is_empty():
 		avatar.texture = load(avatar_path) as Texture2D
 	header.add_child(avatar)
 	_add_main_pot_winner_star(header, player_view.seat, HERO_AVATAR_SIZE)
-	header.add_child(_create_seat_identity(player_view, 23))
+	header.add_child(_create_seat_identity(player_view, HERO_SEAT_TEXT_FONT_SIZE))
 	header.add_child(_create_marker_label(player_view))
 	var cards := HBoxContainer.new()
 	cards.name = "HeroCards"
@@ -415,8 +430,8 @@ func _create_hero_seat_widget(player_view: PlayerView) -> PanelContainer:
 				. create_card_face(
 					displayed_hero_cards[index],
 					"HeroCard%d" % (index + 1),
-					Vector2(54, 42),
-					29,
+					Vector2(108, 84),
+					58,
 					Color("f5f0dc"),
 					Color("d9b56d"),
 				)
@@ -443,12 +458,12 @@ func _create_marker_label(player_view: PlayerView) -> Label:
 	var marker := Label.new()
 	marker.name = "Marker"
 	marker.text = _seat_marker_text(player_view)
-	marker.custom_minimum_size = Vector2(48, 28)
+	marker.custom_minimum_size = Vector2(96, 56)
 	marker.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	marker.autowrap_mode = TextServer.AUTOWRAP_OFF
 	marker.clip_text = true
-	marker.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	marker.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
 	marker.add_theme_color_override("font_color", Color("172331"))
 	marker.add_theme_stylebox_override(
 		"normal", GuiTableStyleScript.compact_box(Color("e7d39b"), Color("f5f0dc"), 1, 5)
@@ -523,7 +538,7 @@ func _create_seat_action_label(player_view: PlayerView) -> Label:
 	action_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	action_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	action_label.clip_text = true
-	action_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	action_label.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
 	action_label.add_theme_color_override(
 		"font_color", Color("a6a6a6") if player_view.folded else Color("f5f0dc")
 	)
@@ -539,7 +554,7 @@ func _create_showdown_label(seat: int) -> Label:
 	showdown_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	showdown_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	showdown_label.clip_text = true
-	showdown_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	showdown_label.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
 	showdown_label.add_theme_color_override("font_color", Color("f5f0dc"))
 	showdown_label.add_theme_stylebox_override(
 		"normal", GuiTableStyleScript.compact_box(Color("102d21ed"), Color("d9b56d"), 1, 5)
@@ -571,7 +586,7 @@ func _create_opponent_card_face(card_data: CardData, index: int) -> PanelContain
 			card_data,
 			"ShowdownCard%d" % index,
 			OPPONENT_CARD_SIZE,
-			20,
+			40,
 			Color("f5f0dc"),
 			Color("d9b56d"),
 		)
@@ -632,10 +647,6 @@ func _pot_layer_text() -> String:
 	return "" if _bound_view.pots.size() <= 1 else "  •  %d layers" % _bound_view.pots.size()
 
 
-func _enforce_minimum_gui_text_size() -> void:
-	_enforce_minimum_gui_text_size_for_node(self)
-
-
 func _enforce_minimum_gui_text_size_for_node(node: Node) -> void:
 	if node is Label or node is Button or node is LineEdit:
 		if node.get_theme_font_size("font_size") < GUI_MINIMUM_FONT_SIZE:
@@ -658,7 +669,7 @@ func _refresh_action_controls() -> void:
 		PlayerAction.Kind.CHECK in legal or PlayerAction.Kind.CALL in legal
 	)
 	_min_wager_button.disabled = not can_wager
-	_half_wager_button.disabled = not can_wager
+	_pot_raise_button.disabled = not _can_submit_pot_raise(legal, is_human_turn)
 	_wager_input.editable = can_wager
 	_wager_button.disabled = not can_wager
 	_all_in_button.disabled = not (PlayerAction.Kind.ALL_IN in legal)
@@ -670,7 +681,6 @@ func _refresh_action_controls() -> void:
 		_check_call_button.text = "Check / Call"
 	var wager_name: String = "Bet" if PlayerAction.Kind.BET in legal else "Raise"
 	_min_wager_button.text = "Min %s %d" % [wager_name, _bound_view.minimum_wager_total]
-	_half_wager_button.text = "Preset %s %d" % [wager_name, _preset_wager_total()]
 	_wager_button.text = wager_name
 	_all_in_button.text = "All-in"
 	if not can_wager and _wager_keypad != null:
@@ -691,10 +701,11 @@ func _refresh_action_controls() -> void:
 		)
 
 
-func _preset_wager_total() -> int:
-	var minimum: int = _bound_view.minimum_wager_total
-	var maximum: int = _bound_view.maximum_wager_total
-	return clampi(minimum + (maximum - minimum) / 2, minimum, maximum)
+func _can_submit_pot_raise(legal: Array, is_human_turn: bool) -> bool:
+	if not is_human_turn or PlayerAction.Kind.RAISE not in legal:
+		return false
+	var target: int = displayed_pot_amount
+	return target >= _bound_view.minimum_wager_total and target <= _bound_view.maximum_wager_total
 
 
 func _on_fold_pressed() -> void:
@@ -714,8 +725,14 @@ func _on_min_wager_pressed() -> void:
 	submit_wager_total(_bound_view.minimum_wager_total)
 
 
-func _on_half_wager_pressed() -> void:
-	submit_wager_total(_preset_wager_total())
+func _on_pot_raise_pressed() -> void:
+	if _bound_view == null:
+		return
+	if not _can_submit_pot_raise(
+		_bound_view.legal_actions, _bound_view.acting_seat == _bound_view.hero_seat
+	):
+		return
+	submit_wager_total(displayed_pot_amount)
 
 
 func _on_wager_pressed() -> void:
@@ -849,6 +866,17 @@ func _layout_table() -> void:
 		return
 	var mobile_portrait_layout: bool = GuiMobileTableLayoutScript.is_mobile_portrait(surface_size)
 	var mobile_content_scale: float = GuiMobileTableLayoutScript.content_scale(surface_size)
+	var seat_content_scale: float = GuiMobileTableLayoutScript.seat_scale(surface_size)
+	# Desktop controls use source dimensions directly.  The previous 0.75
+	# post-render correction scaled fonts, card faces, avatars, and border
+	# geometry together, producing blurry text and uneven line weights at normal
+	# MacBook display scaling.  The desktop source sizes are now the approved
+	# display sizes; mobile retains its responsive content scale below.
+	# Keep normal full-HD desktops at their authored sizes, while smaller desktop
+	# surfaces reflow their geometry from the available space. Typography remains
+	# at its integer source size through `desktop_source_sizes`; this is layout,
+	# not a post-render transform.
+	var seat_visual_scale: float = seat_content_scale
 	(
 		GuiMobileTableLayoutScript
 		. apply_scale(
@@ -864,7 +892,7 @@ func _layout_table() -> void:
 				_fold_button,
 				_check_call_button,
 				_min_wager_button,
-				_half_wager_button,
+				_pot_raise_button,
 				_wager_input,
 				_wager_button,
 				_all_in_button,
@@ -873,6 +901,8 @@ func _layout_table() -> void:
 			_seat_widgets,
 			_seat_action_widgets,
 			_seat_showdown_widgets,
+			seat_content_scale,
+			seat_visual_scale,
 		)
 	)
 	var center_minimum_size: Vector2 = _center_zone.get_combined_minimum_size()
@@ -897,51 +927,78 @@ func _layout_table() -> void:
 	var seat_width: float = (
 		clampf(
 			surface_size.x * 0.32,
-			104.0 * mobile_content_scale,
-			280.0 * mobile_content_scale,
+			104.0 * seat_content_scale,
+			280.0 * seat_content_scale,
 		)
 		if mobile_portrait_layout
 		else (
-			clampf(surface_size.x * 0.27, 104.0, 140.0)
+			clampf(surface_size.x * 0.27, 104.0 * seat_content_scale, 140.0 * seat_content_scale)
 			if compact_layout
-			else clampf(surface_size.x * 0.23, 250.0, 280.0)
+			else maxf(
+				360.0 * seat_content_scale,
+				clampf(
+					surface_size.x * 0.23, 250.0 * seat_content_scale, 360.0 * seat_content_scale
+				),
+			)
 		)
 	)
+	# The avatar is the dominant visual element in a seat. Reserve roughly half
+	# of its displayed width as additional horizontal breathing room so names,
+	# stacks, markers, and card backs do not crowd the avatar at desktop sizes.
+	if not mobile_portrait_layout:
+		seat_width += maxf(OPPONENT_AVATAR_SIZE.x, HERO_AVATAR_SIZE.x) * 0.5 * seat_visual_scale
 	var seat_count: int = _seat_widgets.size()
 	for seat: int in _seat_widgets:
 		var is_hero: bool = seat == _bound_view.hero_seat
+		var hero_minimum_height: float = maxf(
+			96.0 * seat_visual_scale, _action_panel.get_combined_minimum_size().y
+		)
 		var seat_size := (
-			Vector2(seat_width, 96.0 * mobile_content_scale)
+			Vector2(seat_width, hero_minimum_height)
 			if is_hero
-			else Vector2(seat_width, 70.0 * mobile_content_scale)
+			else Vector2(seat_width, 70.0 * seat_visual_scale)
 		)
 		if compact_layout and is_hero:
 			seat_size = Vector2(
 				clampf(
 					surface_size.x * (0.76 if mobile_portrait_layout else 0.56),
-					190.0 * mobile_content_scale,
-					440.0 * mobile_content_scale,
+					190.0 * seat_visual_scale,
+					440.0 * seat_visual_scale,
 				),
-				80.0 * mobile_content_scale,
+				80.0 * seat_visual_scale,
 			)
-		var normalized_position: Vector2 = _normalized_seat_position(
-			_visual_slot_for_seat(seat, seat_count), seat_count, is_hero
+		var visual_slot: int = _visual_slot_for_seat(seat, seat_count)
+		var normalized_position: Vector2 = (
+			Vector2(0.5, 0.91)
+			if is_hero
+			else (
+				TableSeatLayoutScript.compact_desktop_positions(seat_count)[visual_slot]
+				if not mobile_portrait_layout and surface_size.x < 1200.0
+				else TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
+			)
 		)
 		normalized_position = (
 			GuiMobileTableLayoutScript
 			. opponent_position(
 				normalized_position,
-				mobile_portrait_layout and mobile_content_scale > 1.0 and not is_hero,
+				mobile_portrait_layout and not is_hero,
+				seat_content_scale,
 			)
 		)
 		var panel: PanelContainer = _seat_widgets[seat]
 		GuiMobileTableLayoutScript.apply_seat_typography(
-			panel, mobile_portrait_layout, mobile_content_scale, is_hero
+			panel, seat_visual_scale, is_hero, 1.0, not mobile_portrait_layout
 		)
 		var minimum_size: Vector2 = panel.get_combined_minimum_size()
 		var resolved_seat_size := Vector2(
 			maxf(seat_size.x, minimum_size.x), maxf(seat_size.y, minimum_size.y)
 		)
+		if not mobile_portrait_layout and surface_size.x < 1200.0 and not is_hero:
+			# Short desktop surfaces cannot fit nine full-height source panels in
+			# the regular ring. Keep the panel footprint compact; its content is
+			# still laid out by the same presentation controls and remains clipped
+			# to the seat boundary instead of colliding with neighboring seats.
+			resolved_seat_size.y = minf(resolved_seat_size.y, 170.0)
 		panel.size = resolved_seat_size
 		var intended_position: Vector2 = (
 			normalized_position * surface_size - resolved_seat_size * 0.5
@@ -951,10 +1008,10 @@ func _layout_table() -> void:
 			clampf(intended_position.y, 0.0, surface_size.y - resolved_seat_size.y),
 		)
 		GuiMobileTableLayoutScript.layout_seat_action_label(
-			_seat_action_widgets.get(seat), panel, compact_layout, mobile_content_scale
+			_seat_action_widgets.get(seat), panel, compact_layout, seat_visual_scale
 		)
 		GuiMobileTableLayoutScript.layout_seat_showdown_label(
-			_seat_showdown_widgets.get(seat), panel, compact_layout, mobile_content_scale
+			_seat_showdown_widgets.get(seat), panel, compact_layout, seat_visual_scale
 		)
 	(
 		GuiMobileTableLayoutScript
@@ -973,16 +1030,6 @@ func _visual_slot_for_seat(seat: int, seat_count: int) -> int:
 	var bottom_slot: int = seat_count / 2
 	var relative_seat: int = posmod(seat - _bound_view.hero_seat, seat_count)
 	return posmod(bottom_slot + relative_seat, seat_count)
-
-
-func _normalized_seat_position(
-	visual_slot: int,
-	seat_count: int,
-	is_hero: bool,
-) -> Vector2:
-	if is_hero:
-		return Vector2(0.5, 0.91)
-	return TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
 
 
 func _queue_layout() -> void:

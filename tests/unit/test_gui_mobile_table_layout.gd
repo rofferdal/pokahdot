@@ -28,8 +28,8 @@ func test_high_resolution_mobile_portrait_uses_the_available_table_surface() -> 
 	assert_gte(opponent_avatar.custom_minimum_size.x, 100.0)
 	assert_gte(opponent_name.get_theme_font_size("font_size"), 38)
 	assert_gte(board_card.custom_minimum_size.x, 55.0)
-	assert_gte(action_panel.size.y, 280.0)
-	assert_gte(event_log.size.y, 150.0)
+	assert_gte(action_panel.size.y, 260.0)
+	assert_gte(event_log.size.y, 110.0)
 	assert_true(
 		action_panel.get_global_rect().encloses(table.get_node("%FoldButton").get_global_rect())
 	)
@@ -46,9 +46,9 @@ func test_high_resolution_mobile_portrait_uses_the_available_table_surface() -> 
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	assert_eq(opponent_avatar.custom_minimum_size, Vector2(56, 56))
-	assert_eq(opponent_name.get_theme_font_size("font_size"), 20)
-	assert_eq(board_card.custom_minimum_size, Vector2(30, 38))
+	assert_eq(opponent_avatar.custom_minimum_size, Vector2(112, 112))
+	assert_eq(opponent_name.get_theme_font_size("font_size"), 30)
+	assert_eq(board_card.custom_minimum_size, Vector2(60, 76))
 
 
 func _hero_table_view(player_count: int) -> GameView:

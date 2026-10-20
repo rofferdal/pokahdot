@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 extends "res://tests/support/poker_gut_test.gd"
 
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
@@ -37,7 +38,7 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_false(table.get_node("%WagerButton").disabled)
 	assert_false(table.get_node("%AllInButton").disabled)
 	assert_string_contains(table.get_node("%MinWagerButton").text, "Min Raise")
-	assert_string_contains(table.get_node("%HalfWagerButton").text, "Preset Raise")
+	assert_eq(table.get_node("%PotRaiseButton").text, "Pot raise")
 	assert_eq(table.get_node("%WagerButton").text, "Raise")
 	assert_eq(table.get_node("%AllInButton").text, "All-in")
 	var wager_input: LineEdit = table.get_node("%WagerInput")
@@ -53,6 +54,41 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 
 	assert_gt(match_instance.get_view_for(0).pot_amount, 15)
 	assert_true(_event_texts(table).any(func(text: String) -> bool: return "action" in text))
+
+
+func test_pot_raise_uses_displayed_pot_and_respects_minimum_and_stack_bounds() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+	assert_eq(table.get_node("%PotRaiseButton").text, "Pot raise")
+	assert_true(table.get_node("%PotRaiseButton").disabled)
+
+	var view: GameView = match_instance.get_view_for(0)
+	view.pot_amount = 25
+	view.minimum_wager_total = 20
+	view.maximum_wager_total = 100
+	view._legal_actions = [
+		PlayerAction.Kind.FOLD,
+		PlayerAction.Kind.CALL,
+		PlayerAction.Kind.RAISE,
+		PlayerAction.Kind.ALL_IN,
+	]
+	table.bind_view(view, _empty_assignments())
+	assert_eq(table.displayed_pot_amount, 25)
+	assert_false(table.get_node("%PotRaiseButton").disabled)
+	table.get_node("%PotRaiseButton").emit_signal("pressed")
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Raise 25" in text))
+
+	view.pot_amount = 120
+	table.bind_view(view, _empty_assignments())
+	assert_true(table.get_node("%PotRaiseButton").disabled)
+	assert_eq(table.get_node("%WagerInput").text, "")
+	view.pot_amount = 10
+	view.minimum_wager_total = 20
+	table.bind_view(view, _empty_assignments())
+	assert_true(table.get_node("%PotRaiseButton").disabled)
 
 
 func test_gui_renders_an_action_before_its_configured_nonblocking_pause_advances_a_bot() -> void:
@@ -291,30 +327,29 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 		table.show()
 		await get_tree().process_frame
 		await get_tree().process_frame
+		await get_tree().process_frame
 
 		var action_rect: Rect2 = (
 			table.get_node("TableMargin/Felt/TableSurface/ActionPanel").get_rect()
 		)
 		var event_rect: Rect2 = table.get_node("%EventLog").get_rect()
 		var hero_rect: Rect2 = table.get_seat_rects()[0]
-		assert_gte(
-			action_rect.position.x,
-			hero_rect.end.x + 12.0,
-			"%d-player action position" % player_count
-		)
 		assert_lte(
-			event_rect.end.x, hero_rect.position.x - 12.0, "%d-player event position" % player_count
+			action_rect.size.y,
+			hero_rect.size.y,
+			"%d-player action panel must not exceed the human seat height" % player_count,
 		)
+		assert_eq(action_rect.size, event_rect.size, "%d-player side-panel size" % player_count)
 		assert_almost_eq(
-			event_rect.end.y,
-			hero_rect.end.y,
+			event_rect.position.y,
+			action_rect.position.y,
 			0.001,
-			"%d-player event log and human seat bottoms must align" % player_count,
+			"%d-player side panels must align vertically" % player_count,
 		)
-		assert_lte(action_rect.size.y, 140.0, "%d-player two-row action height" % player_count)
+		assert_lte(action_rect.size.y, 180.0, "%d-player two-row action height" % player_count)
 		assert_gte(event_rect.size.x, 380.0, "%d-player event width" % player_count)
 		assert_lte(event_rect.size.y, 140.0, "%d-player event height" % player_count)
-		assert_eq(table.get_node("%FoldButton").get_theme_font_size("font_size"), 21)
+		assert_eq(table.get_node("%FoldButton").get_theme_font_size("font_size"), 32)
 		assert_eq(table.get_node("%FoldButton").get_theme_stylebox("normal").border_width_left, 1)
 		assert_eq(table.get_node("%FoldButton").get_theme_stylebox("hover").border_width_left, 2)
 		assert_eq(table.get_node("%WagerInput").get_theme_stylebox("normal").border_width_left, 1)
@@ -332,7 +367,7 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 						"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"
 					)
 				)
-				is FlowContainer
+				is HBoxContainer
 			)
 		)
 		assert_true(
@@ -343,14 +378,26 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 						"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"
 					)
 				)
-				is FlowContainer
+				is HBoxContainer
 			)
 		)
+		var primary_buttons := table.get_node(
+			"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/PrimaryButtons"
+		) as HBoxContainer
+		var wager_controls := table.get_node(
+			"TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/ActionRows/WagerControls"
+		) as HBoxContainer
+		assert_eq(primary_buttons.get_theme_constant("separation"), 4)
+		assert_eq(wager_controls.get_theme_constant("separation"), 4)
 		assert_false(
 			action_rect.intersects(event_rect),
 			"%d-player action/event panels %s / %s" % [player_count, action_rect, event_rect]
 		)
-		for seat_rect: Rect2 in table.get_seat_rects().values():
+		for seat: int in range(player_count):
+			var seat_rect: Rect2 = (
+				(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control)
+				. get_global_rect()
+			)
 			assert_false(
 				action_rect.intersects(seat_rect),
 				"%d-player action panel %s / %s" % [player_count, action_rect, seat_rect]
@@ -390,7 +437,7 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 			table.get_node("%FoldButton"),
 			table.get_node("%CheckCallButton"),
 			table.get_node("%MinWagerButton"),
-			table.get_node("%HalfWagerButton"),
+			table.get_node("%PotRaiseButton"),
 			table.get_node("%AllInButton"),
 			table.get_node("%WagerInput"),
 			table.get_node("%WagerButton"),
@@ -466,7 +513,7 @@ func test_seat_identity_keeps_stack_below_name_and_all_in_outside_the_panel() ->
 	assert_eq(stack_label.text, "100 chips")
 	assert_false(stack_label.text.contains("ALL-IN"))
 	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action").text, "All-in 100")
-	assert_eq(marker.custom_minimum_size.x, 48.0)
+	assert_eq(marker.custom_minimum_size.x, 96.0)
 
 
 func test_showdown_summaries_use_recipient_safe_results_above_revealed_seats() -> void:
@@ -552,7 +599,7 @@ func test_main_pot_showdown_winner_has_a_yellow_half_avatar_star_without_marking
 		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/MainPotWinnerStar"
 	)
 	assert_eq(winner_star.texture.resource_path, "res://assets/ui/winner_star.svg")
-	assert_eq(winner_star.custom_minimum_size, Vector2(28, 28))
+	assert_eq(winner_star.custom_minimum_size, Vector2(56, 56))
 	assert_eq(winner_star.get_parent().name, "Header")
 	assert_false(
 		table.has_node("TableMargin/Felt/TableSurface/Seats/Seat0/Content/Header/MainPotWinnerStar")

@@ -20,6 +20,21 @@ func render_hand(view: GameView) -> void:
 		_io
 		. write_line(
 			(
+				"Blinds: %d/%d - Level %d (%d hands completed, %d until next level)"
+				% [
+					view.small_blind,
+					view.big_blind,
+					view.blind_level,
+					view.completed_hands_in_level,
+					view.hands_until_next_level,
+				]
+			)
+		)
+	)
+	(
+		_io
+		. write_line(
+			(
 				"Button: %d  SB: %d  BB: %d  Acting: %s"
 				% [
 					view.button_seat,

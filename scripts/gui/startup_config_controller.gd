@@ -3,13 +3,17 @@ extends Control
 
 const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_config_adapter.gd")
 const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_layout.gd")
+const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
 const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
+const STARTUP_CHECKBOX_UNCHECKED := preload("res://assets/ui/checkbox_unchecked.svg")
+const STARTUP_CHECKBOX_CHECKED := preload("res://assets/ui/checkbox_checked.svg")
 
 const PORTRAIT_ASPECT_RATIO_THRESHOLD := 1.15
 const PORTRAIT_FORM_WIDTH_RATIO := 0.84
-const PORTRAIT_FONT_SCALE := 1.6
-const DEFAULT_FORM_FONT_SIZE := 29
-const DEFAULT_TITLE_FONT_SIZE := 50
+const PORTRAIT_FONT_SCALE := 2.0
+const DEFAULT_FORM_FONT_SIZE := 32
+const DEFAULT_TITLE_FONT_SIZE := 64
+const STARTUP_TOUCH_TARGET_HEIGHT := 64.0
 
 ## Binds the startup controls to the GUI configuration adapter.
 
@@ -39,6 +43,7 @@ func _ready() -> void:
 		load("res://resources/default_tournament_config.tres") as TournamentConfig
 	)
 	_configure_numeric_inputs_for_mobile()
+	_configure_startup_control_visuals()
 	_number_keypad = WagerKeypadScript.new()
 	_number_keypad.name = "StartupNumberKeypad"
 	add_child(_number_keypad)
@@ -127,6 +132,8 @@ func _set_startup_form_font_sizes(scale_factor: float) -> void:
 		if control.name == &"Title":
 			default_font_size = DEFAULT_TITLE_FONT_SIZE
 		control.add_theme_font_size_override(&"font_size", roundi(default_font_size * scale_factor))
+		if control is LineEdit or control is Button or control is CheckBox:
+			control.custom_minimum_size.y = STARTUP_TOUCH_TARGET_HEIGHT * scale_factor
 
 
 func _configure_numeric_inputs_for_mobile() -> void:
@@ -141,6 +148,35 @@ func _configure_numeric_inputs_for_mobile() -> void:
 		input.virtual_keyboard_show_on_focus = false
 		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 		input.gui_input.connect(_on_numeric_input_gui_input.bind(input))
+
+
+func _configure_startup_control_visuals() -> void:
+	for input: LineEdit in [
+		_player_count_input,
+		_starting_stack_input,
+		_small_blind_input,
+		_big_blind_input,
+	]:
+		input.add_theme_stylebox_override(
+			"normal", GuiTableStyleScript.box(Color("102d21"), Color("75c99a"), 2, 6)
+		)
+		input.add_theme_stylebox_override(
+			"focus", GuiTableStyleScript.box(Color("1b4933"), Color("e7d39b"), 3, 6)
+		)
+		input.add_theme_stylebox_override(
+			"read_only", GuiTableStyleScript.box(Color("0a1711"), Color("557665"), 2, 6)
+		)
+	_allow_experimental_models_checkbox.add_theme_icon_override(
+		"unchecked", STARTUP_CHECKBOX_UNCHECKED
+	)
+	_allow_experimental_models_checkbox.add_theme_icon_override("checked", STARTUP_CHECKBOX_CHECKED)
+	_allow_experimental_models_checkbox.add_theme_icon_override(
+		"unchecked_disabled", STARTUP_CHECKBOX_UNCHECKED
+	)
+	_allow_experimental_models_checkbox.add_theme_icon_override(
+		"checked_disabled", STARTUP_CHECKBOX_CHECKED
+	)
+	_allow_experimental_models_checkbox.add_theme_constant_override("h_separation", 12)
 
 
 func show_numeric_keypad(input: LineEdit) -> void:
@@ -177,6 +213,7 @@ func _clear_errors() -> void:
 	_small_blind_error.text = ""
 	_big_blind_error.text = ""
 	_form_status.text = ""
+	_set_error_visibility()
 
 
 func _render_errors() -> void:
@@ -185,3 +222,14 @@ func _render_errors() -> void:
 	_small_blind_error.text = startup_adapter.error_for(&"small_blind")
 	_big_blind_error.text = startup_adapter.error_for(&"big_blind")
 	_form_status.text = startup_adapter.error_for(&"form")
+	_set_error_visibility()
+
+
+func _set_error_visibility() -> void:
+	for error_label: Label in [
+		_player_count_error,
+		_starting_stack_error,
+		_small_blind_error,
+		_big_blind_error,
+	]:
+		error_label.visible = not error_label.text.is_empty()

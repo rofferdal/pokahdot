@@ -42,8 +42,8 @@ static func action_control_box(
 	border_width: int,
 ) -> StyleBoxFlat:
 	var style := box(background_color, border_color, border_width, 4)
-	style.content_margin_left = 5.0
+	style.content_margin_left = 2.0
 	style.content_margin_top = 2.0
-	style.content_margin_right = 5.0
+	style.content_margin_right = 2.0
 	style.content_margin_bottom = 2.0
 	return style

@@ -9,6 +9,12 @@ var hero_seat: int
 var button_seat: int
 var small_blind_seat: int
 var big_blind_seat: int
+var small_blind: int
+var big_blind: int
+var blind_level: int = 1
+var completed_hands_in_level: int
+var hands_until_next_level: int
+var active_player_count_at_level_start: int
 var acting_seat: int
 var pot_amount: int
 var call_amount: int
@@ -102,6 +108,7 @@ static func for_hand(
 	current_hand_number: int = 1,
 	settled_pots: Array[PotLayer] = [],
 	revealed_results: Dictionary[int, ShowdownResult] = {},
+	blind_progression: BlindLevelProgression = null,
 ) -> GameView:
 	assert(table != null, "A game view requires a table.")
 	assert(table.get_player(recipient_seat) != null, "The recipient seat must exist.")
@@ -112,6 +119,23 @@ static func for_hand(
 	view.button_seat = table.button_seat
 	view.small_blind_seat = table.small_blind_seat()
 	view.big_blind_seat = table.big_blind_seat()
+	view.small_blind = table.small_blind
+	view.big_blind = table.big_blind
+	if blind_progression != null:
+		view.small_blind = blind_progression.small_blind
+		view.big_blind = blind_progression.big_blind
+		view.blind_level = blind_progression.blind_level
+		view.completed_hands_in_level = blind_progression.completed_hands_in_level
+		view.hands_until_next_level = blind_progression.hands_until_next_level
+		view.active_player_count_at_level_start = (
+			blind_progression.active_player_count_at_level_start
+		)
+	else:
+		view.completed_hands_in_level = 0
+		view.hands_until_next_level = (
+			table.active_player_count() * 2 if table.active_player_count() >= 5 else 10
+		)
+		view.active_player_count_at_level_start = table.active_player_count()
 	view.acting_seat = betting_round.acting_seat if betting_round != null else Table.NO_SEAT
 	view.pot_amount = pot_manager.total_amount if pot_manager != null else 0
 	view._community_cards = board.duplicate()

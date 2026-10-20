@@ -17,6 +17,7 @@ var _agents: Dictionary[int, Agent]
 var _streams: RngStreams
 var _table: Table
 var _hand: HandController
+var _blind_progression: BlindLevelProgression
 var _configuration_error: String
 var _awaiting_next_hand: bool = false
 
@@ -27,6 +28,14 @@ func _init(config: ResolvedTournamentConfig, seat_agents: Dictionary[int, Agent]
 	_configuration_error = _validate_configuration()
 	if _configuration_error.is_empty():
 		_streams = RngStreamFactory.new().create(config)
+		_blind_progression = (
+			BlindLevelProgression
+			. new(
+				config.small_blind,
+				config.big_blind,
+				config.player_count,
+			)
+		)
 
 
 func start(max_transitions: int = 32) -> StepResult:
@@ -134,6 +143,7 @@ func _handle_hand_result(result: StepResult) -> StepResult:
 
 func _finish_hand_or_start_next() -> StepResult:
 	_mark_eliminated_players()
+	_blind_progression.record_completed_hand(_table.active_player_count())
 	if _table.active_player_count() == 1:
 		winner_seat = _table.active_seats()[0]
 		end_reason = &"winner"
@@ -145,6 +155,7 @@ func _finish_hand_or_start_next() -> StepResult:
 func _start_next_hand(max_transitions: int = 32) -> StepResult:
 	if _hand != null:
 		_table.advance_button()
+	_table.set_blinds(_blind_progression.small_blind, _blind_progression.big_blind)
 	_awaiting_next_hand = false
 	hand_number += 1
 	_hand = (
@@ -155,6 +166,7 @@ func _start_next_hand(max_transitions: int = 32) -> StepResult:
 			_streams.get_deck_rng(),
 			_streams.get_initial_button_rng(),
 			hand_number,
+			_blind_progression,
 		)
 	)
 	return _handle_hand_result(_hand.start(max_transitions))
