@@ -232,6 +232,7 @@ static func layout_human_adjacent_panels(
 	hero_panel: PanelContainer,
 	action_panel: PanelContainer,
 	event_log: RichTextLabel,
+	seat_count: int = 0,
 ) -> void:
 	if hero_panel == null:
 		return
@@ -263,8 +264,10 @@ static func layout_human_adjacent_panels(
 		maxf(action_panel.get_combined_minimum_size().y, event_log.get_combined_minimum_size().y),
 	)
 	var panel_size := Vector2(panel_width, panel_height)
-	var panel_y: float = minf(
-		hero_panel.position.y + hero_panel.size.y - panel_size.y,
+	var desktop_panel_gap: float = 594.0 if seat_count >= 9 else 164.0
+	var panel_y: float = clampf(
+		hero_panel.position.y - panel_size.y - desktop_panel_gap,
+		12.0,
 		surface_size.y - panel_size.y - 12.0,
 	)
 	action_panel.size = panel_size

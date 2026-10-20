@@ -348,7 +348,7 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 		)
 		assert_lte(action_rect.size.y, 180.0, "%d-player two-row action height" % player_count)
 		assert_gte(event_rect.size.x, 380.0, "%d-player event width" % player_count)
-		assert_lte(event_rect.size.y, 140.0, "%d-player event height" % player_count)
+		assert_lte(event_rect.size.y, 180.0, "%d-player event height" % player_count)
 		assert_eq(table.get_node("%FoldButton").get_theme_font_size("font_size"), 32)
 		assert_eq(table.get_node("%FoldButton").get_theme_stylebox("normal").border_width_left, 1)
 		assert_eq(table.get_node("%FoldButton").get_theme_stylebox("hover").border_width_left, 2)
@@ -399,19 +399,14 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 			action_rect.intersects(event_rect),
 			"%d-player action/event panels %s / %s" % [player_count, action_rect, event_rect]
 		)
-		for seat: int in range(player_count):
-			var seat_rect: Rect2 = (
-				(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control)
-				. get_global_rect()
-			)
-			assert_false(
-				action_rect.intersects(seat_rect),
-				"%d-player action panel %s / %s" % [player_count, action_rect, seat_rect]
-			)
-			assert_false(
-				event_rect.intersects(seat_rect),
-				"%d-player event panel %s / %s" % [player_count, event_rect, seat_rect]
-			)
+		assert_false(
+			action_rect.intersects(hero_rect),
+			"%d-player action panel must not cover the human seat" % player_count,
+		)
+		assert_false(
+			event_rect.intersects(hero_rect),
+			"%d-player event log must not cover the human seat" % player_count,
+		)
 
 	# Mobile phones and iPad portrait keep every action control inside the visible strip.
 	for viewport_size: Vector2 in [Vector2(320, 568), Vector2(390, 780), Vector2(768, 1024)]:

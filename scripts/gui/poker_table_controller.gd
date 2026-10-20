@@ -70,6 +70,8 @@ var _wager_keypad: WagerKeypad
 
 
 func _ready() -> void:
+	if theme != null and theme.default_font == null:
+		theme.default_font = ThemeDB.fallback_font
 	_action_pacer.configure(get_tree(), action_timing_config)
 	resized.connect(_queue_layout)
 	_surface.resized.connect(_queue_layout)
@@ -1022,8 +1024,13 @@ func _layout_table() -> void:
 			_seat_widgets.get(_bound_view.hero_seat),
 			_action_panel,
 			_event_log,
+			_seat_widgets.size(),
 		)
 	)
+	var action_panel_top: float = _action_panel.get_global_rect().position.y
+	for action_label: Label in _seat_action_widgets.values():
+		if action_label.visible and action_label.get_global_rect().end.y > action_panel_top:
+			action_label.global_position.y = action_panel_top - action_label.size.y - 2.0
 
 
 func _visual_slot_for_seat(seat: int, seat_count: int) -> int:

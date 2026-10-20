@@ -80,7 +80,7 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
 
 ## 7. Final verification and release documentation
 
-- [ ] Run the complete headless GUT suite, GDScript linting, formatting checks, and GUI regression suite; resolve any failures with focused regression coverage.
+- [x] Run the complete headless GUT suite, GDScript linting, formatting checks, and GUI regression suite; resolve any failures with focused regression coverage. (2026-10-20: `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check` passed: 299 GUT tests, 4,757 assertions; `gdlint` and `gdformat --check` clean.)
 - [ ] **human** Manually verify a nine-player desktop table and a representative Android phone in portrait and landscape: seats, avatars, text, startup fields, keypad, action controls, and `Pot raise` must be readable and reliably touchable.
   1. On desktop, launch the GUI as described in `README.md`, start a nine-player tournament, and verify readable, non-overlapping seats, avatars, cards, labels, startup inputs, numeric keypad, action controls, and **Pot raise**. Exercise **Pot raise** once when it is enabled and confirm it is disabled when the displayed pot target is not a legal, coverable raise.
   2. Export and serve the current Web build using the procedure in `docs/WEB_SETUP.md`, then open it in current Chrome on a physical Android phone. Test both portrait and landscape, with the browser address bar both expanded and collapsed.
