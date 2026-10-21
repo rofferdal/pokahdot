@@ -27,6 +27,8 @@ const NORMAL_SEAT_FRAME_WIDTH: int = 1
 const HERO_SEAT_FRAME_WIDTH: int = 2
 const ACTING_SEAT_FRAME_COLOR := Color.WHITE
 const DESKTOP_CENTER_ZONE_MAX_WIDTH: float = 520.0
+const CENTER_ZONE_SEPARATION: float = 8.0
+const CENTER_BOARD_MINIMUM_HEIGHT: float = 74.0
 @export var action_timing_config: Resource
 
 var board_card_count: int = 0
@@ -42,6 +44,8 @@ var _seat_action_widgets: Dictionary[int, Label] = {}
 var _seat_showdown_widgets: Dictionary[int, Label] = {}
 var _layout_queued: bool = false
 var _layout_generation: int = 0
+var _resolved_center_size: Vector2 = Vector2.ZERO
+var _resolved_center_position: Vector2 = Vector2.ZERO
 var _event_texts: Array[String] = []
 var _active_round_latest_actions: Dictionary[int, PublicActionRecord] = {}
 var _action_pacer = GuiActionPacerScript.new()
@@ -49,8 +53,10 @@ var _wager_keypad: WagerKeypad
 
 @onready var _felt: Panel = $TableMargin/Felt
 @onready var _surface: Control = $TableMargin/Felt/TableSurface
-@onready var _center_zone: VBoxContainer = $TableMargin/Felt/TableSurface/CenterZone
-@onready var _board_zone: PanelContainer = $TableMargin/Felt/TableSurface/CenterZone/BoardZone
+@onready var _center_zone: Control = $TableMargin/Felt/TableSurface/CenterZone
+@onready var _board_zone: Panel = $TableMargin/Felt/TableSurface/CenterZone/BoardZone
+@onready
+var _board_content: VBoxContainer = $TableMargin/Felt/TableSurface/CenterZone/BoardZone/BoardContent
 @onready var _pot_zone: Panel = $TableMargin/Felt/TableSurface/CenterZone/PotZone
 @onready var _wager_zone: Panel = $TableMargin/Felt/TableSurface/CenterZone/WagerZone
 @onready var _board_label: Label = %BoardLabel
@@ -352,10 +358,11 @@ func _rebuild_card_slots() -> void:
 			. create_card_face(
 				cards[index] if is_face_up else null,
 				"CardSlot%d" % (index + 1),
-				Vector2(60, 76),
-				58,
+				Vector2(68, 76),
+				CardFaceFactoryScript.COMMUNITY_CARD_RANK_FONT_SIZE,
 				Color("f5f0dc") if is_face_up else Color("173e58"),
 				Color("e7d39b"),
+				true,
 			)
 		)
 		slot.modulate.a = 1.0 if index < board_card_count else 0.48
@@ -595,9 +602,12 @@ func _create_seat_action_label(player_view: PlayerView) -> Label:
 	action_label.name = "Seat%dAction" % player_view.seat
 	action_label.text = _latest_action_text(player_view.seat)
 	action_label.visible = not action_label.text.is_empty()
+	# Latest actions are seat-owned foreground annotations. Keep their approved
+	# plain-text presentation while drawing them above nearby compact panels.
+	action_label.z_index = 100
 	action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	action_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	action_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	action_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	action_label.clip_text = true
 	action_label.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
 	action_label.add_theme_color_override(
@@ -919,21 +929,20 @@ func _render_events(events: Array[DomainEvent]) -> void:
 	var action_index: int = 0
 	var street_transition_index: int = 0
 	for event: DomainEvent in events:
-		var action_record: PublicActionRecord = null
+		var action_record: PublicActionRecord = _action_record_for_event(
+			event, action_records, action_index
+		)
+		if action_record != null:
+			for record_index: int in range(action_index, action_records.size()):
+				if action_records[record_index] == action_record:
+					action_index = record_index + 1
+					break
 		if (
 			event.kind == DomainEvent.Kind.HAND_STARTED
 			or event.kind == DomainEvent.Kind.STREET_CHANGED
 		):
 			_active_round_latest_actions.clear()
-		if (
-			(
-				event.kind == DomainEvent.Kind.ACTION_APPLIED
-				or event.kind == DomainEvent.Kind.BLIND_POSTED
-			)
-			and action_index < action_records.size()
-		):
-			action_record = action_records[action_index]
-			action_index += 1
+		if action_record != null:
 			_active_round_latest_actions[action_record.seat] = action_record
 		if event.kind == DomainEvent.Kind.STREET_CHANGED:
 			_event_texts.append(
@@ -946,6 +955,28 @@ func _render_events(events: Array[DomainEvent]) -> void:
 			)
 	_event_log.text = "\n".join(_event_texts)
 	_refresh_seat_action_labels()
+
+
+func _action_record_for_event(
+	event: DomainEvent,
+	records: Array[PublicActionRecord],
+	start_index: int,
+) -> PublicActionRecord:
+	if (
+		event.kind != DomainEvent.Kind.ACTION_APPLIED
+		and event.kind != DomainEvent.Kind.BLIND_POSTED
+	):
+		return null
+	for record_index: int in range(start_index, records.size()):
+		var record: PublicActionRecord = records[record_index]
+		if record.seat != event.seat or record.amount != event.amount:
+			continue
+		if event.kind == DomainEvent.Kind.ACTION_APPLIED:
+			if record.record_kind == PublicActionRecord.Kind.ACTION:
+				return record
+		elif record.record_kind != PublicActionRecord.Kind.ACTION:
+			return record
+	return null
 
 
 func _layout_table() -> void:
@@ -1015,7 +1046,7 @@ func _layout_table() -> void:
 		]:
 			control.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		for card: Control in _card_slots.get_children():
-			GuiMobileTableLayoutScript._scale_card_face(card, Vector2(45.0, 57.0), 22)
+			GuiMobileTableLayoutScript._scale_card_face(card, Vector2(56.0, 57.0), 22)
 	_reserve_status_zone_height()
 	var center_width: float = clampf(
 		surface_size.x * (0.56 if mobile_portrait_layout else 0.48),
@@ -1026,7 +1057,18 @@ func _layout_table() -> void:
 			else (680.0 if mobile_portrait_layout else DESKTOP_CENTER_ZONE_MAX_WIDTH)
 		),
 	)
-	var center_minimum_height: float = _center_zone.get_combined_minimum_size().y
+	var board_style: StyleBox = _board_zone.get_theme_stylebox("panel")
+	var board_style_height: float = board_style.get_minimum_size().y if board_style != null else 0.0
+	var board_height: float = maxf(
+		CENTER_BOARD_MINIMUM_HEIGHT,
+		_board_content.get_combined_minimum_size().y + board_style_height,
+	)
+	var center_content_height: float = (
+		board_height
+		+ _pot_zone.custom_minimum_size.y
+		+ _wager_zone.custom_minimum_size.y
+		+ CENTER_ZONE_SEPARATION * 2.0
+	)
 	var center_size := Vector2(
 		center_width,
 		maxf(
@@ -1035,12 +1077,16 @@ func _layout_table() -> void:
 				if small_desktop_layout
 				else (184.0 * mobile_content_scale if mobile_portrait_layout else 184.0)
 			),
-			center_minimum_height if not small_desktop_layout else 184.0,
+			center_content_height,
 		),
 	)
 	var center_position: Vector2 = (surface_size - center_size) * 0.5
 	if small_desktop_layout:
-		center_position.y = 8.0
+		# Use the top safety edge so the compact side panels can begin directly
+		# after the central stack without entering its bounds.
+		center_position.y = 0.0
+	_resolved_center_size = center_size
+	_resolved_center_position = center_position
 	# CenterZone is a manually positioned presentation region. Apply one
 	# resolved width after rebuilding all children and never defer an older
 	# bounds value past a newer layout pass. Child minimum sizes are deliberately
@@ -1253,14 +1299,26 @@ func _apply_queued_layout() -> void:
 func _apply_center_zone_bounds(resolved_size: Vector2, resolved_position: Vector2) -> void:
 	if not is_instance_valid(_center_zone):
 		return
-	_center_zone.custom_minimum_size = Vector2(resolved_size.x, 0.0)
-	_center_zone.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_resolved_center_size = resolved_size
+	_resolved_center_position = resolved_position
+	_center_zone.custom_minimum_size = Vector2.ZERO
 	_center_zone.size = resolved_size
 	_center_zone.position = resolved_position
-	for child: Control in [_board_zone, _pot_zone, _wager_zone]:
-		child.custom_minimum_size.x = 0.0
-		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		child.size.x = resolved_size.x
+	var pot_height: float = _pot_zone.custom_minimum_size.y
+	var wager_height: float = _wager_zone.custom_minimum_size.y
+	var board_height: float = maxf(
+		CENTER_BOARD_MINIMUM_HEIGHT,
+		resolved_size.y - pot_height - wager_height - CENTER_ZONE_SEPARATION * 2.0,
+	)
+	_board_zone.position = Vector2.ZERO
+	_board_zone.size = Vector2(resolved_size.x, board_height)
+	_pot_zone.position = Vector2(0.0, board_height + CENTER_ZONE_SEPARATION)
+	_pot_zone.size = Vector2(resolved_size.x, pot_height)
+	_wager_zone.position = Vector2(
+		0.0,
+		board_height + CENTER_ZONE_SEPARATION + pot_height + CENTER_ZONE_SEPARATION,
+	)
+	_wager_zone.size = Vector2(resolved_size.x, wager_height)
 	_configure_status_label(_pot_label)
 	_configure_status_label(_wager_label)
 
@@ -1273,12 +1331,11 @@ func _configure_status_label(label: Label) -> void:
 	label.add_theme_color_override("font_color", Color("f5f0dc"))
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	# Status text is essential game state.  Do not clip its draw call: the
-	# compact-layout change in e5c1a11 made the populated labels render blank.
-	# Their fixed parent width still prevents them from changing table geometry.
-	label.clip_text = false
+	# Keep long status strings inside the resolved central footprint. Ellipsis is
+	# preferable to painting over seats, side panels, or community cards.
+	label.clip_text = true
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.custom_minimum_size = Vector2(0.0, float(label.get_theme_font_size("font_size")))
 	# clip_text removes the text-driven minimum width.  The status labels must
 	# explicitly fill their PanelContainer, otherwise the panels render while

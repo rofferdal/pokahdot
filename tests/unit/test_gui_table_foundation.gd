@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 extends "res://tests/support/poker_gut_test.gd"
 
 const AvatarAssignmentServiceScript := preload("res://scripts/gui/avatar_assignment_service.gd")
@@ -34,7 +35,7 @@ func test_startup_and_table_fonts_are_scaled_by_one_point_eight() -> void:
 	assert_eq(table.find_child("PotLabel", true, false).get_theme_font_size("font_size"), 29)
 	assert_eq(table.find_child("WagerLabel", true, false).get_theme_font_size("font_size"), 29)
 	assert_eq(
-		table.get_node("%CardSlots/CardSlot1/Content/Rank").get_theme_font_size("font_size"), 58
+		table.get_node("%CardSlots/CardSlot1/Content/Rank").get_theme_font_size("font_size"), 32
 	)
 	assert_eq(table.find_child("Name", true, false).get_theme_font_size("font_size"), 46)
 
@@ -392,6 +393,73 @@ func test_center_zone_is_centered_from_its_resolved_bounds() -> void:
 	assert_almost_eq(center_zone.get_rect().get_center().y, _surface_size(table).y * 0.5, 0.01)
 
 
+func test_community_cards_keep_fixed_equal_bounds_when_wide_ranks_are_revealed() -> void:
+	for viewport_size: Vector2 in [Vector2(950, 532), Vector2(1920, 1080)]:
+		var table = PokerTableScene.instantiate()
+		table.hide()
+		add_child_autofree(table)
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = viewport_size
+		var view := _hero_table_view(6)
+		table.bind_view(view, _avatar_assignments(6))
+		table.show()
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		var card_slots: HBoxContainer = table.get_node("%CardSlots")
+		var preflop_size: Vector2 = card_slots.size
+		view._community_cards = [
+			CardData.new(10, CardData.Suit.HEARTS),
+			CardData.new(12, CardData.Suit.CLUBS),
+			CardData.new(3, CardData.Suit.HEARTS),
+			CardData.new(6, CardData.Suit.DIAMONDS),
+			CardData.new(14, CardData.Suit.SPADES),
+		]
+		table.bind_view(view, _avatar_assignments(6))
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		assert_eq(card_slots.size, preflop_size, str(viewport_size))
+		var expected_card_size := Vector2(56, 57) if viewport_size.x < 1200.0 else Vector2(68, 76)
+		var board_zone: Panel = table.get_node("TableMargin/Felt/TableSurface/CenterZone/BoardZone")
+		var board_rect := board_zone.get_global_rect()
+		for card: Control in card_slots.get_children():
+			assert_eq(card.size, expected_card_size, "%s %s" % [viewport_size, card.name])
+			assert_true(
+				board_rect.encloses(card.get_global_rect()),
+				"%s must enclose %s" % [viewport_size, card.name],
+			)
+			var rank: Label = card.get_node("Content/Rank")
+			var suit: TextureRect = card.get_node("Content/Suit")
+			assert_true(card.get_global_rect().encloses(rank.get_global_rect()))
+			assert_true(card.get_global_rect().encloses(suit.get_global_rect()))
+			assert_lte(
+				rank.get_global_rect().end.x,
+				suit.get_global_rect().position.x,
+				"%s rank and suit must use separate columns" % viewport_size,
+			)
+			var rank_text_width: float = (
+				rank
+				. get_theme_font("font")
+				. get_string_size(
+					rank.text,
+					HORIZONTAL_ALIGNMENT_LEFT,
+					-1.0,
+					rank.get_theme_font_size("font_size"),
+				)
+				. x
+			)
+			assert_lte(
+				rank_text_width, rank.size.x, "%s %s rank must fit" % [viewport_size, rank.text]
+			)
+			var minimum_suit_width: float = 20.0 if viewport_size.x < 1200.0 else 26.0
+			assert_gte(
+				suit.size.x,
+				minimum_suit_width,
+				"%s %s suit must remain distinguishable" % [viewport_size, card.name],
+			)
+
+
 func test_player_facing_gui_text_never_falls_below_twenty_pixels() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)
@@ -444,9 +512,7 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 		table.get_node("%CardSlots/CardSlot1/Content/Suit").texture.resource_path,
 		"res://assets/ui/club.svg"
 	)
-	assert_eq(
-		table.get_node("%CardSlots/CardSlot1/Content/Suit").custom_minimum_size, Vector2(52.2, 52.2)
-	)
+	assert_eq(table.get_node("%CardSlots/CardSlot1/Content/Suit").custom_minimum_size, Vector2.ZERO)
 	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "D")
 	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "SB")
 	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "BB ACT")

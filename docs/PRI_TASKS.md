@@ -200,11 +200,12 @@ state or event-history behavior.
   action assignment, clearing, street changes, bot actions, and showdown. Assert
   that the rectangle remains unchanged unless the viewport/layout mode itself
   changes.
-- [ ] **Human task:** repeat the seven-player tournament in an iPad browser in
+- [x] **Human task:** repeat the seven-player tournament in an iPad browser in
   landscape orientation during normal play and showdown. Confirm Player 2/7
   details and latest-action text are visible, Player 4/5 showdown summaries do
   not overlap player names, and the Player 1 seat remains fixed when latest-action
   text appears or disappears. Record device, viewport, browser, and result here.
+  Done. It failed.
 
 ## Central community/pot/wager width regression follow-up
 
@@ -219,7 +220,7 @@ labels/cards whose minimum sizes can change as status text and card content chan
 coverage checks equal widths and an upper bound only at the iPad landscape viewport; it does
 not prove stability at the reported desktop viewport or across repeated deferred refreshes.
 
-- [ ] **Agent task — capture the width-change reproduction:** add temporary or test-only
+- [x] **Agent task — capture the width-change reproduction:** add temporary or test-only
   geometry tracing around `_layout_table()`, `_apply_center_zone_bounds()`, and the next
   settled frame. Reproduce the screenshot at its actual table-surface size and record the
   surface, center, board, pot, and wager rectangles before and after `bind_view()`, bot-action
@@ -227,31 +228,123 @@ not prove stability at the reported desktop viewport or across repeated deferred
   bounds call, container minimum-size negotiation, or viewport resize is the final writer of
   the unexpectedly wide rectangle, then remove diagnostic-only logging after the cause is
   established.
-- [ ] **Agent task — make one layout owner authoritative:** revise the central-zone layout so
+- [x] **Agent task — make one layout owner authoritative:** revise the central-zone layout so
   one resolved width is applied after all child rebuilds and remains authoritative for the
   `CenterZone` and all three child panels. Do not let a later `VBoxContainer` minimum-size
   negotiation or an older deferred callback replace the current width. If deferred layout is
   required, coalesce callbacks or associate them with the latest surface/layout generation.
   Keep the central stack centered and preserve the minimum width needed for five community
   card slots.
-- [ ] **Agent task — isolate status text from geometry:** ensure pot, blind, layer,
+- [x] **Agent task — isolate status text from geometry:** ensure pot, blind, layer,
   blind-progress, and wager-status labels cannot enlarge the central stack's minimum width.
   Preserve readable player-facing text through constrained wrapping, clipping/ellipsis, or a
   presentation subregion, while keeping board/pot/wager panels equal in width and respecting
   the 20 px minimum text requirement. Verify that changing only these strings does not change
   the resolved central rectangle.
-- [ ] **Agent task — add the reported desktop regression:** at the actual viewport/surface
+- [x] **Agent task — add the reported desktop regression:** at the actual viewport/surface
   size represented by `localtest_strange_wide_fields.jpg` and at nearby 950x532 and 1920x1080
   surfaces, render six- and seven-player views with five board cards, short and maximally long
   status strings, repeated deferred refreshes, automatic bot actions, and street changes.
   Assert after each settled frame that center/board/pot/wager widths are equal, the width is
   stable for unchanged available space, the stack remains centered and in bounds, and no stale
   rectangle is observed after a refresh.
-- [ ] **Human task:** rerun the local desktop scenario that produced
+- [x] **Human task:** rerun the local desktop scenario that produced
   `localtmp/localtest_strange_wide_fields.jpg`, including preflop, flop/turn/river updates,
   bot actions, and a long pot/layer status. Confirm that the community-card, pot, and wager
   fields do not suddenly widen or shrink, remain one centered equal-width stack, and retain
   readable cards and status text. Record the viewport, browser/runtime, and result here.
+  Tested. It still fails.
+
+### Second remediation after failed human verification
+
+- [x] **Agent task — remove competing center-stack layout owners:** replace the manually sized
+  `VBoxContainer` root and its container-managed direct children with a plain presentation
+  `Control` whose board, pot, and wager rectangles are all assigned by one controller method.
+  Child minimum-size changes must not be able to resize or reposition the central stack.
+- [x] **Agent task — resolve and apply final center geometry atomically:** calculate the board
+  height after card and typography scaling, add the fixed status-zone heights and separations,
+  then apply the final center size, centered position, and all three equal child widths in one
+  operation. Preserve the compact-layout vertical placement where explicitly required.
+- [x] **Agent task — cover late minimum-size negotiation and centering:** add a regression that
+  changes child text/minimum sizes and waits through multiple deferred frames at the reported
+  desktop, full-HD, and iPad landscape surfaces. Assert on every frame that the center width is
+  unchanged, all child widths equal it, and its horizontal midpoint equals the table surface's
+  horizontal midpoint.
+- [x] **Human task — repeat central-stack verification:** reproduce preflop through river on the
+  desktop browser and iPad landscape browser. Confirm the board, pot, and wager stack never
+  changes width or horizontal center. Record the runtime, CSS viewport, internal Godot surface
+  size, and result here; do not mark complete from automated evidence.
+
+## Desktop browser betting-action visibility follow-up
+
+Desktop browser testing reports that players' latest public actions are not visibly rendered
+during an active betting round. The event history may contain the action, but the seat-level
+label must also be visible while the hand is waiting for the next legal action.
+
+- [x] **Agent task — restore visible desktop betting actions:** add a deterministic
+  browser-sized GUI regression covering blind posts, bot actions, and a human action across
+  pre-flop and post-flop betting. Assert that each latest-action label is visible, readable,
+  positioned directly below its owning seat, and remains visible after deferred view refreshes
+  without being covered by the center, event feed, or human action panel. Preserve the full
+  event log and current-round latest-action behavior. Include the actual desktop browser viewport
+  in the fixture and record any required human verification details in the follow-up task.
+  Follow-up correction: restore the plain-text presentation from
+  `localtmp/ipad_action_log_player_overlap.jpg`, retain each seat's latest action during the
+  current betting round, and clear the seat labels on each street transition and new hand.
+
+## Fixed-size community-card rendering follow-up
+
+The screenshot [`localtmp/cards_do_not_fit.jpg`](../localtmp/cards_do_not_fit.jpg) shows that
+revealed community cards can overflow the board frame. The card root requested a 60x76 minimum,
+but its horizontal rank-and-suit content imposed a larger combined minimum. Wide ranks such as
+`10` therefore changed the five-card row width after the flop, while `BoardZone` clipped the
+overflow.
+
+- [x] **Agent task — make community-card bounds authoritative:** give community cards a fixed
+  presentation rectangle whose child content cannot enlarge the card. Keep hero and opponent
+  card layouts unchanged.
+- [x] **Agent task — fit rank and suit inside each community card:** stack the rank and suit in
+  separate clipped regions and use responsive font sizing for standard and small-desktop card
+  dimensions.
+- [x] **Agent task — add reveal-width regressions:** compare preflop placeholders with a
+  five-card revealed board containing rank `10` at 950x532 and 1920x1080. Assert unchanged row
+  dimensions, equal card rectangles, enclosed content, and complete containment by the board
+  frame.
+- [x] **Human task:** repeat the reported scenario through flop, turn, and river. Confirm that
+  every rank and suit is readable, all five cards remain inside the community-card frame, and
+  revealing rank `10` does not widen or shift the row.
+  Tested. The cards fit, but the vertically stacked rank and suit are less readable than the
+  bot-card presentation.
+
+### Readability revision after human verification
+
+- [x] **Agent task — restore the bot-card visual direction:** present each fixed-size community
+  card with its rank and suit side by side while retaining a non-expanding card root.
+- [x] **Agent task — allow slightly wider community cards:** increase the standard card width
+  from 60 to 64 pixels and the small-desktop width from 45 to 48 pixels. Keep all five cards
+  inside the existing central board at the reported desktop sizes.
+- [x] **Agent task — protect readable rank geometry:** verify rank `10` fits its assigned region,
+  rank and suit occupy separate columns, revealed cards remain equal to placeholders, and the
+  complete row retains its preflop dimensions at 950x532 and 1920x1080.
+- [x] **Human task:** repeat the reported scenario and compare the community cards with revealed
+  bot cards. Confirm the side-by-side rank/suit treatment is readable and all five community
+  cards remain inside the frame through flop, turn, and river.
+  Tested. Rank and suit placement is improved, but the suit symbols are too small to distinguish
+  clubs from spades reliably.
+
+### Suit-symbol readability revision
+
+- [x] **Agent task — enlarge the community-card suit region:** reserve approximately 42 percent
+  of each card's usable width for the suit while preserving enough rank width for `10`.
+- [x] **Agent task — widen desktop community cards again:** use 68x76 cards at standard desktop
+  sizes and 56x57 cards in the reported compact desktop layout. Keep portrait scaling bounded
+  to its prior base width.
+- [x] **Agent task — protect suit readability with geometry coverage:** assert minimum suit
+  widths of 26 pixels at standard desktop size and 20 pixels at compact desktop size, while
+  retaining the rank-fit, fixed-row, equal-card, and board-containment checks.
+- [x] **Human task:** repeat the reported showdown and confirm clubs and spades are immediately
+  distinguishable on every community card without the row leaving or resizing its frame.
+  Tested. It is OK, but I would like them even larger.
 
 ## Small desktop viewport table collision remediation
 

@@ -1,7 +1,7 @@
 # Pokahdot Architecture
 
 Status: Implemented through GUI Milestone 4.6 and automated Stratmilestone2; final human release and strategy verification remain
-Last updated: 2026-10-19
+Last updated: 2026-10-22
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -73,6 +73,7 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 | Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
 | Use responsive Control layout guidance | `canvas_items` with `expand`, containers, anchors, and responsive margins govern layout adaptation; font and texture crispness is not assumed from stretch mode alone. |
+| Give manually positioned GUI regions one layout owner | The central board/pot/wager stack uses a plain `Control`; `PokerTableController` atomically assigns its centered bounds and its three child panel rectangles. A Godot `Container` must not compete with those explicit rectangles or resize the stack from late child minimum-size notifications. |
 | Preserve mobile usability targets | Interactive controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows. |
 | Share one in-canvas numeric keypad between startup and live-table inputs | Web and iPad number entry remains consistent, preserves the canvas viewport, and avoids browser keyboard behavior. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |

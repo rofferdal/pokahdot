@@ -85,7 +85,7 @@ func test_pot_and_wager_status_fields_remain_visible_after_layout() -> void:
 			var zone := label.get_parent() as Control
 			var context := "%s at %s" % [label.name, viewport]
 			assert_true(label.is_visible_in_tree(), context)
-			assert_false(label.clip_text, context + " must paint essential game state")
+			assert_true(label.clip_text, context + " must stay inside the central footprint")
 			assert_gt(label.get_theme_color("font_color").a, 0.0, context)
 			assert_true(zone.get_global_rect().encloses(label_rect), context)
 			# PanelContainer styling reserves an inner margin, but clipped text must
@@ -242,6 +242,82 @@ func test_seven_player_ipad_central_zone_has_stable_bounded_equal_widths() -> vo
 		assert_false(regions[&"center"].intersects(regions[&"action"]))
 		for seat: int in range(7):
 			assert_false(regions[StringName("seat_%d" % seat)].intersects(regions[&"center"]))
+
+
+func test_reported_desktop_center_width_is_stable_after_repeated_refreshes() -> void:
+	for viewport: Vector2 in [Vector2(950, 532), Vector2(1024, 600), DESKTOP_VIEWPORT]:
+		var table := PokerTableScene.instantiate() as PokerTableController
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = viewport
+		add_child_autofree(table)
+		table.bind_view(_view(6), _avatar_assignments(6))
+		await _settle_layout()
+		var initial := table.get_resolved_region_rects()
+		assert_almost_eq(
+			initial[&"center"].get_center().x,
+			_surface(table).size.x * 0.5,
+			0.01,
+			"initial center midpoint at %s" % viewport,
+		)
+		for status_text: String in [
+			"Pot: 15 | SB 5 BB 10 | L1",
+			"Pot: 999999999 | SB 123456 BB 246912 | L12 with long progress text",
+		]:
+			(table.get_node("%PotLabel") as Label).text = status_text
+			var long_wager_status := "Wagers • 999999 active players with a long status"
+			(table.get_node("%WagerLabel") as Label).text = long_wager_status
+			for refresh: int in range(3):
+				table._queue_layout()
+				await _settle_layout()
+			var regions := table.get_resolved_region_rects()
+			assert_almost_eq(regions[&"center"].size.x, initial[&"center"].size.x, 0.01)
+			assert_almost_eq(regions[&"board"].size.x, regions[&"pot"].size.x, 0.01)
+			assert_almost_eq(regions[&"pot"].size.x, regions[&"wager"].size.x, 0.01)
+			assert_almost_eq(
+				regions[&"center"].get_center().x,
+				_surface(table).size.x * 0.5,
+				0.01,
+				"settled center midpoint at %s" % viewport,
+			)
+			assert_true(Rect2(Vector2.ZERO, _surface(table).size).encloses(regions[&"center"]))
+			assert_false(regions[&"center"].intersects(regions[&"event"]))
+			assert_false(regions[&"center"].intersects(regions[&"action"]))
+
+
+func test_center_stack_has_one_owner_and_ignores_late_child_minimum_width() -> void:
+	for viewport: Vector2 in [Vector2(950, 532), DESKTOP_VIEWPORT, IPAD_LANDSCAPE_VIEWPORT]:
+		var table := PokerTableScene.instantiate() as PokerTableController
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = viewport
+		add_child_autofree(table)
+		table.bind_view(_view(7), _avatar_assignments(7))
+		await _settle_layout()
+		var center := table.get_node("TableMargin/Felt/TableSurface/CenterZone") as Control
+		assert_false(center is Container, "the manually sized center must not be a Container")
+		var initial := table.get_resolved_region_rects()
+		(table.get_node("%BoardLabel") as Label).custom_minimum_size.x = (
+			initial[&"center"].size.x * 2.0
+		)
+		(table.get_node("%PotLabel") as Label).text = "Pot status " + "1234567890 ".repeat(20)
+		(table.get_node("%WagerLabel") as Label).text = "Wager status " + "active ".repeat(20)
+		for frame: int in range(4):
+			await get_tree().process_frame
+			var regions := table.get_resolved_region_rects()
+			assert_almost_eq(
+				regions[&"center"].size.x,
+				initial[&"center"].size.x,
+				0.01,
+				"center width frame %d at %s" % [frame, viewport],
+			)
+			assert_almost_eq(regions[&"board"].size.x, regions[&"center"].size.x, 0.01)
+			assert_almost_eq(regions[&"pot"].size.x, regions[&"center"].size.x, 0.01)
+			assert_almost_eq(regions[&"wager"].size.x, regions[&"center"].size.x, 0.01)
+			assert_almost_eq(
+				regions[&"center"].get_center().x,
+				_surface(table).size.x * 0.5,
+				0.01,
+				"center midpoint frame %d at %s" % [frame, viewport],
+			)
 
 
 func test_event_log_and_action_panel_have_equal_size_and_symmetric_desktop_placement() -> void:
@@ -426,7 +502,12 @@ func test_small_desktop_seven_player_regions_do_not_occlude_each_other() -> void
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	table.size = SMALL_DESKTOP_VIEWPORT
 	add_child_autofree(table)
-	table.bind_view(_view(7), _avatar_assignments(7))
+	var view := _view(7)
+	view._showdown_results = {
+		3: _showdown_result(3, HandRank.Category.ONE_PAIR, [14, 13, 12, 9]),
+		4: _showdown_result(4, HandRank.Category.FULL_HOUSE, [13, 10]),
+	}
+	table.bind_view(view, _avatar_assignments(7))
 	await _settle_layout()
 	var surface := _surface(table)
 	var surface_rect := Rect2(Vector2.ZERO, surface.size)
@@ -439,6 +520,155 @@ func test_small_desktop_seven_player_regions_do_not_occlude_each_other() -> void
 		assert_false(seat_rect.intersects(regions[&"center"]), "seat %d center" % seat)
 		assert_false(seat_rect.intersects(regions[&"action"]), "seat %d action" % seat)
 		assert_false(seat_rect.intersects(regions[&"event"]), "seat %d event" % seat)
+		for auxiliary_name: StringName in [
+			StringName("action_%d" % seat), StringName("showdown_%d" % seat)
+		]:
+			var auxiliary_rect: Rect2 = regions[auxiliary_name]
+			if auxiliary_rect.size.y <= 0.0:
+				continue
+			assert_true(surface_rect.encloses(auxiliary_rect), str(auxiliary_name))
+			assert_false(auxiliary_rect.intersects(regions[&"center"]), str(auxiliary_name))
+			assert_false(auxiliary_rect.intersects(regions[&"action"]), str(auxiliary_name))
+			assert_false(auxiliary_rect.intersects(regions[&"event"]), str(auxiliary_name))
+	assert_false(regions[&"center"].intersects(regions[&"action"]))
+	assert_false(regions[&"center"].intersects(regions[&"event"]))
+
+
+func test_desktop_browser_keeps_active_betting_actions_visible_after_refresh() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = SMALL_DESKTOP_VIEWPORT
+	add_child_autofree(table)
+	var view := _view(6)
+	view._action_history = [
+		PublicActionRecord.blind(1, 5, true),
+		PublicActionRecord.blind(5, 10, false),
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+	]
+	table.bind_view(view, _avatar_assignments(6))
+	await _settle_layout()
+	for refresh: int in range(3):
+		table._queue_layout()
+		await _settle_layout()
+	var regions := table.get_resolved_region_rects()
+	var surface_rect := Rect2(Vector2.ZERO, _surface(table).size)
+	var expected_text: Dictionary[int, String] = {
+		1: "Small blind 5",
+		2: "Call 10",
+		5: "Big blind 10",
+	}
+	for seat: int in [1, 2, 5]:
+		var label := (
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dAction" % seat) as Label
+		)
+		var label_rect := label.get_global_rect()
+		assert_true(label.visible, "seat %d action must be visible" % seat)
+		assert_eq(label.text, expected_text[seat], "seat %d action text" % seat)
+		assert_gte(label.z_index, 100, "seat %d action must render in the foreground" % seat)
+		assert_false(
+			label.has_theme_stylebox_override("normal"),
+			"seat actions must remain plain text like the approved iPad reference",
+		)
+		assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_OFF)
+		assert_true(surface_rect.encloses(regions[StringName("action_%d" % seat)]))
+		assert_true(
+			(
+				label_rect.position.y
+				>= (
+					(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control)
+					. get_global_rect()
+					. end
+					. y
+				)
+			)
+		)
+		assert_false(
+			label_rect.intersects((table.get_node("%EventLog") as Control).get_global_rect())
+		)
+		assert_false(
+			label_rect.intersects(
+				(
+					(table.get_node("TableMargin/Felt/TableSurface/ActionPanel") as Control)
+					. get_global_rect()
+				)
+			)
+		)
+
+
+func test_real_match_binding_keeps_blind_action_visible_after_table_show() -> void:
+	var config := ResolvedTournamentConfig.new(
+		2, 100, 5, 10, 7123, &"single_table", {0: &"human", 1: &"scripted"}
+	)
+	var match_instance := (
+		TournamentMatch
+		. new(
+			config,
+			{0: HumanAgent.new(), 1: ScriptedAgent.new([])},
+		)
+	)
+	assert_eq(match_instance.start(1).status, StepResult.Status.YIELDED)
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = SMALL_DESKTOP_VIEWPORT
+	table.hide()
+	add_child_autofree(table)
+	table.bind_match(match_instance, 0, _avatar_assignments(2))
+	table.show()
+	await _settle_layout()
+	var big_blind_label := (
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label
+	)
+	assert_false(big_blind_label.text.is_empty())
+	assert_true(big_blind_label.visible)
+	assert_gte(big_blind_label.z_index, 100)
+
+
+func test_event_action_matching_keeps_latest_action_on_its_owning_seat() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var view := _view(6)
+	view._action_history = [
+		PublicActionRecord.blind(1, 5, true),
+		PublicActionRecord.blind(5, 10, false),
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+	]
+	table.bind_view(view, _avatar_assignments(6))
+	(
+		table
+		. _render_events(
+			[
+				DomainEvent.new(DomainEvent.Kind.HAND_STARTED),
+				DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 2, 10),
+			]
+		)
+	)
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).text,
+		"Call 10",
+	)
+	assert_true(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).visible
+	)
+
+
+func test_action_labels_are_rebuilt_from_recipient_history_during_refresh() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var view := _view(6)
+	view._action_history = [
+		PublicActionRecord.blind(1, 5, true),
+		PublicActionRecord.blind(5, 10, false),
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+	]
+	table.bind_view(view, _avatar_assignments(6))
+	table._refresh_seat_action_labels()
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).text,
+		"Call 10",
+	)
+	assert_true(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).visible
+	)
 
 
 func _table_for(player_count: int) -> PokerTableController:

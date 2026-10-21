@@ -148,20 +148,9 @@ func test_seat_action_labels_reset_at_each_new_betting_round_without_clearing_hi
 	table.get_node("%CheckCallButton").emit_signal("pressed")
 	var flop_view: GameView = match_instance.get_view_for(0)
 	assert_eq(flop_view.street, &"flop")
-	for seat: int in range(2):
-		assert_false(
-			(
-				seat == 0
-				and (
-					(
-						table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dAction" % seat)
-						as Label
-					)
-					. visible
-				)
-			),
-			"human seat must have no stale preflop label on the flop",
-		)
+	assert_false(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Action") as Label).visible
+	)
 	assert_eq(
 		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label).text, "Check"
 	)
@@ -570,6 +559,25 @@ func test_each_seat_displays_its_latest_public_action_below_its_panel() -> void:
 		),
 		"100 chips"
 	)
+
+
+func test_new_hand_view_clears_previous_hand_action_labels() -> void:
+	var table = PokerTableScene.instantiate()
+	add_child_autofree(table)
+	var first_hand_view := _action_view(3)
+	first_hand_view._action_history = [
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+	]
+	table.bind_view(first_hand_view, _empty_assignments())
+	var action_label := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label
+	assert_eq(action_label.text, "Call 10")
+	assert_true(action_label.visible)
+
+	var next_hand_view := _action_view(3)
+	table.bind_view(next_hand_view, _empty_assignments())
+	action_label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label
+	assert_eq(action_label.text, "")
+	assert_false(action_label.visible)
 
 
 func test_folded_seat_stays_visible_grayscale_and_hides_hole_cards() -> void:

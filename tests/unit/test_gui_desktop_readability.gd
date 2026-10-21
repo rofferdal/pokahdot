@@ -79,13 +79,11 @@ func test_desktop_action_and_quit_fonts_match_community_cards_without_resizing_b
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	var community_zone: PanelContainer = table.get_node(
-		"TableMargin/Felt/TableSurface/CenterZone/BoardZone"
-	)
+	var community_zone: Panel = table.get_node("TableMargin/Felt/TableSurface/CenterZone/BoardZone")
 	var community_label: Label = table.get_node("%BoardLabel")
 	var community_font_size: int = community_label.get_theme_font_size("font_size")
 	assert_eq(community_font_size, 32)
-	assert_eq(community_zone.size, Vector2(520, 147))
+	assert_eq(community_zone.size, Vector2(520, 134))
 
 	for control_path: NodePath in [
 		^"%FoldButton",

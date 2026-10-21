@@ -3,6 +3,7 @@ extends RefCounted
 
 ## Applies presentation-only sizing for tall Web and mobile table surfaces.
 
+const CardFaceFactoryScript := preload("res://scripts/gui/card_face_factory.gd")
 const OPPONENT_AVATAR_SIZE := Vector2(112, 112)
 const HERO_AVATAR_SIZE := Vector2(128, 128)
 const OPPONENT_CARD_SIZE := Vector2(60, 76)
@@ -166,7 +167,12 @@ static func apply_scale(
 			MOBILE_TOUCH_TARGET_HEIGHT * scale if mobile_portrait else 0.0,
 		)
 	for card: Control in card_slots.get_children():
-		_scale_card_face(card, Vector2(60.0, 76.0) * scale, 58 * scale)
+		var card_width: float = 64.0 * scale if mobile_portrait else 68.0
+		_scale_card_face(
+			card,
+			Vector2(card_width, 76.0 * scale),
+			roundi(CardFaceFactoryScript.COMMUNITY_CARD_RANK_FONT_SIZE * scale),
+		)
 	for seat: int in seat_widgets:
 		var panel: PanelContainer = seat_widgets[seat]
 		for card: Control in panel.find_children("*", "Control", true, false):
@@ -359,8 +365,9 @@ static func _layout_small_desktop_human_panels(
 	var bottom_margin: float = 8.0
 	hero_panel.position.y = surface_size.y - hero_panel.size.y - bottom_margin
 	var side_width: float = clampf((surface_size.x - hero_panel.size.x - 72.0) * 0.5, 210.0, 300.0)
-	var side_height: float = 112.0 * minf(content_scale, 1.0)
-	var panel_y: float = maxf(8.0, surface_size.y * 0.42)
+	var side_height: float = 96.0 * minf(content_scale, 1.0)
+	# Keep side panels between the central stack and the lower seat row.
+	var panel_y: float = maxf(8.0, surface_size.y * 0.46)
 	var panel_size := Vector2(side_width, side_height)
 	action_panel.size = panel_size
 	action_panel.position = Vector2(
@@ -400,4 +407,7 @@ static func _scale_card_face(card: Control, size: Vector2, rank_font_size: int) 
 		rank_label.add_theme_font_size_override("font_size", rank_font_size)
 	var suit := card.find_child("Suit", true, false) as TextureRect
 	if suit != null:
-		suit.custom_minimum_size = Vector2(rank_font_size * 0.9, rank_font_size * 0.9)
+		if card.get_meta(CardFaceFactoryScript.FIXED_LAYOUT_META, false):
+			suit.custom_minimum_size = Vector2.ZERO
+		else:
+			suit.custom_minimum_size = Vector2(rank_font_size * 0.9, rank_font_size * 0.9)

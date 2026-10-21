@@ -48,7 +48,7 @@ func test_high_resolution_mobile_portrait_uses_the_available_table_surface() -> 
 
 	assert_eq(opponent_avatar.custom_minimum_size, Vector2(112, 112))
 	assert_eq(opponent_name.get_theme_font_size("font_size"), 30)
-	assert_eq(board_card.custom_minimum_size, Vector2(60, 76))
+	assert_eq(board_card.custom_minimum_size, Vector2(68, 76))
 
 
 func _hero_table_view(player_count: int) -> GameView:

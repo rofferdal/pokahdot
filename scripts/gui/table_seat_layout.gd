@@ -110,12 +110,12 @@ static func small_desktop_positions(seat_count: int) -> Array[Vector2]:
 		# Short desktop surfaces need the upper pair and side seats outside the
 		# fixed central zone while leaving the bottom center for the human seat.
 		return [
-			Vector2(0.82, 0.08),
-			Vector2(0.94, 0.08),
-			Vector2(0.88, 0.83),
+			Vector2(0.82, 0.24),
+			Vector2(0.94, 0.24),
+			Vector2(0.88, 0.90),
 			Vector2(0.5, 0.96),
-			Vector2(0.12, 0.83),
-			Vector2(0.06, 0.08),
-			Vector2(0.18, 0.08),
+			Vector2(0.12, 0.90),
+			Vector2(0.06, 0.24),
+			Vector2(0.18, 0.24),
 		]
 	return compact_desktop_positions(seat_count)
