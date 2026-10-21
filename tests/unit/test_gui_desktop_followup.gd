@@ -73,10 +73,12 @@ func test_pot_and_wager_status_fields_remain_visible_after_layout() -> void:
 		await _settle_layout()
 		var pot_label := table.get_node("%PotLabel") as Label
 		var wager_label := table.get_node("%WagerLabel") as Label
-		assert_string_contains(pot_label.text, "POT")
+		assert_string_contains(pot_label.text, "Pot:")
 		assert_string_contains(pot_label.text, "SB")
 		assert_string_contains(pot_label.text, "BB")
 		assert_string_contains(pot_label.text, "L")
+		assert_false("layers" in pot_label.text)
+		assert_false("/" in pot_label.text)
 		assert_string_contains(wager_label.text, "Wagers")
 		for label: Label in [pot_label, wager_label]:
 			var label_rect: Rect2 = label.get_global_rect()
@@ -144,6 +146,78 @@ func test_seven_player_ipad_landscape_reserves_action_and_showdown_clearance() -
 		)
 		assert_true(surface_rect.encloses(Rect2(panel.position, panel.size)))
 		assert_true(surface_rect.encloses(Rect2(label.position, label.size)))
+
+
+func test_seven_player_ipad_details_remain_visible_with_or_without_latest_actions() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = IPAD_LANDSCAPE_VIEWPORT
+	add_child_autofree(table)
+	var without_actions := _view(7)
+	without_actions._action_history.clear()
+	table.bind_view(without_actions, _avatar_assignments(7))
+	await _settle_layout()
+	var player_one_rect: Rect2 = table.get_seat_rects()[0]
+	var empty_action_rect: Rect2 = table.get_resolved_region_rects()[&"action_1"]
+	assert_gt(empty_action_rect.size.y, 0.0)
+	assert_gt(table.get_resolved_region_rects()[&"action_6"].size.y, 0.0)
+
+	var with_actions := _view(7)
+	with_actions._action_history = [
+		PublicActionRecord.new(1, PlayerAction.Kind.CALL, 44),
+		PublicActionRecord.new(6, PlayerAction.Kind.RAISE, 88),
+	]
+	table.bind_view(with_actions, _avatar_assignments(7))
+	await _settle_layout()
+	var regions := table.get_resolved_region_rects()
+	var surface_rect := Rect2(Vector2.ZERO, _surface(table).size)
+	for seat: int in [1, 6]:
+		var seat_rect: Rect2 = regions[StringName("seat_%d" % seat)]
+		var action_rect: Rect2 = regions[StringName("action_%d" % seat)]
+		assert_true(surface_rect.encloses(seat_rect))
+		assert_true(surface_rect.encloses(action_rect))
+		assert_gte(action_rect.position.y, seat_rect.end.y)
+		assert_false(action_rect.intersects(regions[&"event"]))
+		assert_false(action_rect.intersects(regions[&"action"]))
+	assert_eq(player_one_rect, table.get_seat_rects()[0])
+
+	var player_two_action := (
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label
+	)
+	player_two_action.text = "Raise 999999 • long status text remains in its reserved line"
+	table._queue_layout()
+	await _settle_layout()
+	assert_true(surface_rect.encloses(player_two_action.get_global_rect()))
+	assert_false(player_two_action.get_global_rect().intersects(regions[&"event"]))
+	assert_eq(player_one_rect, table.get_seat_rects()[0])
+
+
+func test_seven_player_ipad_showdown_summaries_have_dedicated_clearance() -> void:
+	var view := _view(7)
+	view._showdown_results = {
+		3: _showdown_result(3, HandRank.Category.ONE_PAIR, [14, 13, 12, 9]),
+		4: _showdown_result(4, HandRank.Category.FULL_HOUSE, [13, 10]),
+	}
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = IPAD_LANDSCAPE_VIEWPORT
+	add_child_autofree(table)
+	table.bind_view(view, _avatar_assignments(7))
+	await _settle_layout()
+	var surface_rect := Rect2(Vector2.ZERO, _surface(table).size)
+	var regions := table.get_resolved_region_rects()
+	for seat: int in [3, 4]:
+		var panel_rect: Rect2 = regions[StringName("seat_%d" % seat)]
+		var summary_rect: Rect2 = regions[StringName("showdown_%d" % seat)]
+		assert_true(surface_rect.encloses(summary_rect))
+		assert_lte(summary_rect.end.y, panel_rect.position.y)
+		assert_false(summary_rect.intersects(regions[&"center"]))
+		assert_false(summary_rect.intersects(regions[&"event"]))
+		assert_false(summary_rect.intersects(regions[&"action"]))
+	var player_one_rect: Rect2 = regions[&"seat_0"]
+	table._queue_layout()
+	await _settle_layout()
+	assert_eq(player_one_rect, table.get_seat_rects()[0])
 
 
 func test_seven_player_ipad_central_zone_has_stable_bounded_equal_widths() -> void:

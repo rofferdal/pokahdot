@@ -91,16 +91,16 @@ static func compact_desktop_positions(seat_count: int) -> Array[Vector2]:
 
 static func landscape_tablet_positions(seat_count: int) -> Array[Vector2]:
 	if seat_count == 7:
-		# Keep the two lower side seats above the side panels' action/event text
-		# and leave a top safety margin for showdown summaries.
+		# Keep the side seats outside the event/action columns. The upper pair
+		# also has a dedicated summary band above it for showdown text.
 		return [
-			Vector2(0.70, 0.14),
-			Vector2(0.88, 0.34),
-			Vector2(0.78, 0.60),
+			Vector2(0.70, 0.20),
+			Vector2(0.88, 0.38),
+			Vector2(0.78, 0.64),
 			Vector2(0.5, 0.91),
-			Vector2(0.22, 0.60),
-			Vector2(0.12, 0.34),
-			Vector2(0.30, 0.14),
+			Vector2(0.22, 0.64),
+			Vector2(0.12, 0.38),
+			Vector2(0.30, 0.20),
 		]
 	return symmetric_positions(seat_count)
 

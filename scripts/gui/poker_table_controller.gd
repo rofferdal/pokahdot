@@ -173,12 +173,20 @@ func get_resolved_region_rects() -> Dictionary[StringName, Rect2]:
 	for seat: int in _seat_widgets:
 		regions[StringName("seat_%d" % seat)] = _surface_local_rect(_seat_widgets[seat])
 		var action_label: Label = _seat_action_widgets[seat]
+		var reserve_tablet_auxiliary_bounds: bool = (
+			_seat_widgets.size() == 7
+			and GuiMobileTableLayoutScript.is_landscape_tablet(_surface.size)
+		)
 		regions[StringName("action_%d" % seat)] = (
-			_surface_local_rect(action_label) if action_label.visible else Rect2()
+			_surface_local_rect(action_label)
+			if action_label.visible or reserve_tablet_auxiliary_bounds
+			else Rect2()
 		)
 		var showdown_label: Label = _seat_showdown_widgets[seat]
 		regions[StringName("showdown_%d" % seat)] = (
-			_surface_local_rect(showdown_label) if showdown_label.visible else Rect2()
+			_surface_local_rect(showdown_label)
+			if showdown_label.visible or reserve_tablet_auxiliary_bounds
+			else Rect2()
 		)
 	return regions
 
@@ -250,15 +258,12 @@ func _refresh_visuals() -> void:
 	_board_label.text = "Community cards"
 	_wager_label.text = "Wagers  •  %d active" % _count_wagers()
 	_pot_label.text = (
-		"POT %d%s | SB %d BB %d | L%d %d/%d"
+		"Pot: %d | SB %d BB %d | L%d"
 		% [
 			displayed_pot_amount,
-			_pot_layer_text(),
 			_bound_view.small_blind,
 			_bound_view.big_blind,
 			_bound_view.blind_level,
-			_bound_view.completed_hands_in_level,
-			_bound_view.hands_until_next_level,
 		]
 	)
 	_configure_status_label(_pot_label)
@@ -592,7 +597,7 @@ func _create_seat_action_label(player_view: PlayerView) -> Label:
 	action_label.visible = not action_label.text.is_empty()
 	action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	action_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	action_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	action_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	action_label.clip_text = true
 	action_label.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
 	action_label.add_theme_color_override(
@@ -608,7 +613,7 @@ func _create_showdown_label(seat: int) -> Label:
 	showdown_label.visible = not showdown_label.text.is_empty()
 	showdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	showdown_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	showdown_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	showdown_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	showdown_label.clip_text = true
 	showdown_label.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
 	showdown_label.add_theme_color_override("font_color", Color("f5f0dc"))
@@ -701,10 +706,6 @@ func _refresh_seat_action_labels() -> void:
 		var action_label: Label = _seat_action_widgets[seat]
 		action_label.text = _latest_action_text(seat)
 		action_label.visible = not action_label.text.is_empty()
-
-
-func _pot_layer_text() -> String:
-	return "" if _bound_view.pots.size() <= 1 else "  •  %d layers" % _bound_view.pots.size()
 
 
 func _enforce_minimum_gui_text_size_for_node(node: Node) -> void:
@@ -1139,6 +1140,11 @@ func _layout_table() -> void:
 		var resolved_seat_size := Vector2(
 			maxf(seat_size.x, minimum_size.x), maxf(seat_size.y, minimum_size.y)
 		)
+		if landscape_tablet_layout and seat_count == 7:
+			# Reserve one stable footprint for every seat. This prevents a
+			# showdown card/summary refresh or optional action text from changing
+			# the seat's rectangle and moving neighboring presentation regions.
+			resolved_seat_size.y = maxf(resolved_seat_size.y, 220.0 * seat_visual_scale)
 		if not mobile_portrait_layout and surface_size.x < 1200.0 and not is_hero:
 			# Short desktop surfaces cannot fit nine full-height source panels in
 			# the regular ring. Keep the panel footprint compact; its content is
@@ -1153,17 +1159,22 @@ func _layout_table() -> void:
 			clampf(intended_position.x, 0.0, surface_size.x - resolved_seat_size.x),
 			clampf(intended_position.y, 0.0, surface_size.y - resolved_seat_size.y),
 		)
-		(
-			GuiMobileTableLayoutScript
-			. layout_seat_action_label(
-				_seat_action_widgets.get(seat),
-				panel,
-				compact_layout,
-				1.0 if small_desktop_layout else seat_visual_scale,
+		if landscape_tablet_layout and seat_count == 7:
+			GuiMobileTableLayoutScript.layout_landscape_tablet_action_label(
+				_seat_action_widgets.get(seat), panel, seat_visual_scale
 			)
-		)
+		else:
+			(
+				GuiMobileTableLayoutScript
+				. layout_seat_action_label(
+					_seat_action_widgets.get(seat),
+					panel,
+					compact_layout,
+					1.0 if small_desktop_layout else seat_visual_scale,
+				)
+			)
 		var action_label: Label = _seat_action_widgets.get(seat)
-		if action_label != null and action_label.visible:
+		if action_label != null and action_label.visible and not landscape_tablet_layout:
 			var action_overflow: float = action_label.get_rect().end.y - surface_size.y
 			if action_overflow > 0.0:
 				panel.position.y = maxf(0.0, panel.position.y - action_overflow - 2.0)
@@ -1176,15 +1187,20 @@ func _layout_table() -> void:
 						1.0 if small_desktop_layout else seat_visual_scale,
 					)
 				)
-		(
-			GuiMobileTableLayoutScript
-			. layout_seat_showdown_label(
-				_seat_showdown_widgets.get(seat),
-				panel,
-				compact_layout,
-				1.0 if small_desktop_layout else seat_visual_scale,
+		if landscape_tablet_layout and seat_count == 7:
+			GuiMobileTableLayoutScript.layout_landscape_tablet_showdown_label(
+				_seat_showdown_widgets.get(seat), panel, seat_visual_scale
 			)
-		)
+		else:
+			(
+				GuiMobileTableLayoutScript
+				. layout_seat_showdown_label(
+					_seat_showdown_widgets.get(seat),
+					panel,
+					compact_layout,
+					1.0 if small_desktop_layout else seat_visual_scale,
+				)
+			)
 	(
 		GuiMobileTableLayoutScript
 		. layout_human_adjacent_panels(

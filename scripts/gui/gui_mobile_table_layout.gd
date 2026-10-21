@@ -12,6 +12,8 @@ const SEAT_TEXT_FONT_SIZE: int = 40
 const HERO_SEAT_TEXT_FONT_SIZE: int = 46
 const TABLE_TEXT_FONT_SIZE: int = 32
 const ACTION_TEXT_FONT_SIZE: int = 21
+const LANDSCAPE_TABLET_ACTION_LABEL_HEIGHT: float = 48.0
+const LANDSCAPE_TABLET_SHOWDOWN_LABEL_HEIGHT: float = 64.0
 const MOBILE_PORTRAIT_ASPECT_RATIO: float = 1.2
 const LANDSCAPE_TABLET_MIN_WIDTH: float = 1600.0
 const LANDSCAPE_TABLET_MIN_HEIGHT: float = 1200.0
@@ -228,6 +230,34 @@ static func layout_seat_action_label(
 		return
 	label.size = Vector2(panel.size.x, (40.0 if not compact_layout else 32.0) * scale)
 	label.position = Vector2(panel.position.x, panel.position.y + panel.size.y + 2.0)
+
+
+static func layout_landscape_tablet_action_label(
+	label: Label,
+	panel: PanelContainer,
+	scale: float,
+) -> void:
+	if label == null:
+		return
+	label.size = Vector2(panel.size.x, LANDSCAPE_TABLET_ACTION_LABEL_HEIGHT * scale)
+	label.position = Vector2(
+		panel.position.x,
+		panel.position.y + panel.size.y + 6.0 * scale,
+	)
+
+
+static func layout_landscape_tablet_showdown_label(
+	label: Label,
+	panel: PanelContainer,
+	scale: float,
+) -> void:
+	if label == null:
+		return
+	label.size = Vector2(panel.size.x, LANDSCAPE_TABLET_SHOWDOWN_LABEL_HEIGHT * scale)
+	label.position = Vector2(
+		panel.position.x,
+		panel.position.y - label.size.y - 10.0 * scale,
+	)
 
 
 static func layout_seat_showdown_label(

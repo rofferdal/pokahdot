@@ -364,7 +364,7 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 	)
 	assert_eq(
 		table.get_node("TableMargin/Felt/TableSurface/CenterZone/PotZone/PotLabel").text,
-		"POT 55 | SB 5 BB 10 | L2 3/9"
+		"Pot: 55 | SB 5 BB 10 | L2"
 	)
 	var name_label := table.find_child("Name", true, false) as Label
 	assert_not_null(name_label)
@@ -483,7 +483,7 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 	)
 	assert_eq(
 		table.find_child("PotLabel", true, false).text,
-		"POT 65  •  2 layers | SB 5 BB 10 | L1 0/10",
+		"Pot: 65 | SB 5 BB 10 | L1",
 	)
 
 

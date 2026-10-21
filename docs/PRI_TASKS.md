@@ -49,7 +49,7 @@ advance automatically to the next street or showdown.
   it continues through the remaining board streets to showdown/hand completion, with the
   action controls disabled only while automatic progression is pending and the event log
   retaining the short blind-post amount.
-- [ ] **human task:** run a seeded late-tournament GUI game in the iPad browser until a
+- [x] **human task:** run a seeded late-tournament GUI game in the iPad browser until a
   remaining big blind has fewer chips than the posted big blind. Confirm the short amount is
   shown as the big-blind post, the player is visibly all-in, the flop/turn/river runout
   continues without an action prompt, and the next hand or tournament result appears. Record
@@ -82,7 +82,7 @@ cleared as part of this presentation reset.
   bot actions advance automatically, when a human action resumes the match after a GUI
   pacing delay, and when a street begins with no actionable players during an all-in
   runout. No stale label may reappear after deferred view refreshes.
-- [ ] **Human task:** run a GUI hand through all four betting rounds on desktop and iPad
+- [x] **Human task:** run a GUI hand through all four betting rounds on desktop and iPad
   sizes. Confirm that seat-level action text disappears at each new round, new actions are
   shown only for that round, and the event log still retains the complete public sequence.
 
@@ -162,10 +162,49 @@ state and `GameView` semantics must remain unchanged.
   the central-zone width remains within its configured bound, its board/pot/
   wager panels have equal widths, and none of those regions intersects a seat,
   event feed, or action panel after repeated deferred view refreshes.
-- [ ] **Human task:** verify the seven-player tournament in an iPad browser in
+- [x] **Human task:** verify the seven-player tournament in an iPad browser in
   landscape orientation during normal play and showdown; confirm Player 2/7
   details and latest-action text remain visible, and Player 4/5 showdown
   summaries are fully readable.
+
+### Seven-player iPad verification follow-up
+
+The first human verification found three remaining presentation defects: Player 2
+and Player 7 details, especially their latest-action text, are not visible;
+Player 4 and Player 5 showdown summaries are visible but overlap their player
+names; and the Player 1 seat area moves vertically depending on whether a latest
+action is present. These are GUI layout defects only and must not change poker
+state or event-history behavior.
+
+- [x] **Agent task — preserve Player 2/7 detail visibility:** inspect the settled
+  seven-player iPad landscape layout and reserve explicit, non-overlapping bounds
+  for the Player 2 and Player 7 seat panels, detail text, and latest-action lines.
+  Ensure the event feed and human action panel cannot cover those bounds during
+  normal play, after deferred refreshes, or when the latest-action text is absent.
+- [x] **Agent task — separate Player 4/5 showdown summaries:** allocate a
+  dedicated above-seat summary region for Player 4 and Player 5 with enough
+  clearance from the seat panel and player-name labels. Keep the summaries
+  readable at the supported iPad landscape viewport and prevent long hand/result
+  text from overlapping names or neighboring seats.
+- [x] **Agent task — make seat geometry independent of optional text:** give every
+  seat a stable layout rectangle and reserve the latest-action line even when it
+  is empty. Updating, clearing, or restoring a latest action must not move the
+  Player 1 seat or any other seat vertically; only the text content should change.
+- [x] **Agent task — add seven-player layout regressions for the observed states:**
+  cover normal play with and without latest actions, long Player 2/7 detail text,
+  and showdown summaries for Player 4/5. After deferred layout and view refreshes,
+  assert visibility, in-bounds placement, required clearance, and no intersection
+  between seat panels, auxiliary text, event feed, or action panel.
+- [x] **Agent task — verify stable geometry across state transitions:** add a
+  regression that records the Player 1 seat rectangle before and after latest
+  action assignment, clearing, street changes, bot actions, and showdown. Assert
+  that the rectangle remains unchanged unless the viewport/layout mode itself
+  changes.
+- [ ] **Human task:** repeat the seven-player tournament in an iPad browser in
+  landscape orientation during normal play and showdown. Confirm Player 2/7
+  details and latest-action text are visible, Player 4/5 showdown summaries do
+  not overlap player names, and the Player 1 seat remains fixed when latest-action
+  text appears or disappears. Record device, viewport, browser, and result here.
 
 ## Central community/pot/wager width regression follow-up
 
