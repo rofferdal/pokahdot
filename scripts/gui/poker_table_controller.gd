@@ -26,6 +26,7 @@ const HERO_SEAT_TEXT_FONT_SIZE: int = 46
 const NORMAL_SEAT_FRAME_WIDTH: int = 1
 const HERO_SEAT_FRAME_WIDTH: int = 2
 const ACTING_SEAT_FRAME_COLOR := Color.WHITE
+const DESKTOP_CENTER_ZONE_MAX_WIDTH: float = 520.0
 @export var action_timing_config: Resource
 
 var board_card_count: int = 0
@@ -40,7 +41,9 @@ var _seat_widgets: Dictionary[int, PanelContainer] = {}
 var _seat_action_widgets: Dictionary[int, Label] = {}
 var _seat_showdown_widgets: Dictionary[int, Label] = {}
 var _layout_queued: bool = false
+var _layout_generation: int = 0
 var _event_texts: Array[String] = []
+var _active_round_latest_actions: Dictionary[int, PublicActionRecord] = {}
 var _action_pacer = GuiActionPacerScript.new()
 var _wager_keypad: WagerKeypad
 
@@ -48,8 +51,8 @@ var _wager_keypad: WagerKeypad
 @onready var _surface: Control = $TableMargin/Felt/TableSurface
 @onready var _center_zone: VBoxContainer = $TableMargin/Felt/TableSurface/CenterZone
 @onready var _board_zone: PanelContainer = $TableMargin/Felt/TableSurface/CenterZone/BoardZone
-@onready var _pot_zone: PanelContainer = $TableMargin/Felt/TableSurface/CenterZone/PotZone
-@onready var _wager_zone: PanelContainer = $TableMargin/Felt/TableSurface/CenterZone/WagerZone
+@onready var _pot_zone: Panel = $TableMargin/Felt/TableSurface/CenterZone/PotZone
+@onready var _wager_zone: Panel = $TableMargin/Felt/TableSurface/CenterZone/WagerZone
 @onready var _board_label: Label = %BoardLabel
 @onready var _wager_label: Label = %WagerLabel
 @onready var _pot_label: Label = %PotLabel
@@ -106,6 +109,9 @@ func bind_view(view: GameView, avatar_assignments: Dictionary[int, String]) -> v
 	displayed_pot_amount = view.pot_amount
 	displayed_hero_cards = view.hero_hole_cards
 	wager_amounts.clear()
+	_active_round_latest_actions.clear()
+	for record: PublicActionRecord in view.action_history:
+		_active_round_latest_actions[record.seat] = record
 	for player_view: PlayerView in view.seats:
 		wager_amounts[player_view.seat] = player_view.bet_this_round
 	_refresh_visuals()
@@ -169,6 +175,10 @@ func get_resolved_region_rects() -> Dictionary[StringName, Rect2]:
 		var action_label: Label = _seat_action_widgets[seat]
 		regions[StringName("action_%d" % seat)] = (
 			_surface_local_rect(action_label) if action_label.visible else Rect2()
+		)
+		var showdown_label: Label = _seat_showdown_widgets[seat]
+		regions[StringName("showdown_%d" % seat)] = (
+			_surface_local_rect(showdown_label) if showdown_label.visible else Rect2()
 		)
 	return regions
 
@@ -251,6 +261,14 @@ func _refresh_visuals() -> void:
 			_bound_view.hands_until_next_level,
 		]
 	)
+	# Keep changing status text from widening the central table footprint. The
+	# board, pot, and wager panels share the fixed resolved width below.
+	_pot_label.clip_text = true
+	_pot_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_pot_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_wager_label.clip_text = true
+	_wager_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_wager_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_rebuild_card_slots()
 	_rebuild_seats()
 	_refresh_action_controls()
@@ -347,11 +365,11 @@ func _rebuild_card_slots() -> void:
 
 func _rebuild_seats() -> void:
 	for seat_widget: PanelContainer in _seat_widgets.values():
-		seat_widget.queue_free()
+		seat_widget.free()
 	for action_widget: Label in _seat_action_widgets.values():
-		action_widget.queue_free()
+		action_widget.free()
 	for showdown_widget: Label in _seat_showdown_widgets.values():
-		showdown_widget.queue_free()
+		showdown_widget.free()
 	_seat_widgets.clear()
 	_seat_action_widgets.clear()
 	_seat_showdown_widgets.clear()
@@ -659,10 +677,7 @@ func _seat_marker_text(player_view: PlayerView) -> String:
 func _latest_action_text(seat: int) -> String:
 	if _bound_view == null:
 		return ""
-	var latest_record: PublicActionRecord = null
-	for record: PublicActionRecord in _bound_view.action_history:
-		if record.seat == seat:
-			latest_record = record
+	var latest_record: PublicActionRecord = _active_round_latest_actions.get(seat)
 	if latest_record == null:
 		return ""
 	var action_text: String = ""
@@ -685,6 +700,13 @@ func _latest_action_text(seat: int) -> String:
 			PlayerAction.Kind.ALL_IN:
 				action_text = "All-in %d" % latest_record.amount
 	return action_text
+
+
+func _refresh_seat_action_labels() -> void:
+	for seat: int in _seat_action_widgets:
+		var action_label: Label = _seat_action_widgets[seat]
+		action_label.text = _latest_action_text(seat)
+		action_label.visible = not action_label.text.is_empty()
 
 
 func _pot_layer_text() -> String:
@@ -826,10 +848,26 @@ func _submit_action(action: PlayerAction) -> void:
 func _schedule_after_latest_action() -> void:
 	if _match == null:
 		return
-	var events: Array[DomainEvent] = _match.get_events()
-	if events.is_empty() or events[-1].kind != DomainEvent.Kind.ACTION_APPLIED:
+	var view: GameView = _match.get_view_for(_recipient_seat)
+	if view == null:
 		return
-	_schedule_next_action(events[-1].seat)
+	if view.hand_complete:
+		_schedule_after_completed_hand()
+		return
+	var events: Array[DomainEvent] = _match.get_events()
+	if not events.is_empty() and events[-1].kind == DomainEvent.Kind.ACTION_APPLIED:
+		_schedule_next_action(events[-1].seat)
+		return
+	if view.acting_seat == Table.NO_SEAT and view.legal_actions.is_empty():
+		# A short blind or an all-in runout can complete a betting round without
+		# an action event. Continue from the resolved view state rather than
+		# leaving the table displaying a fictitious waiting player.
+		if not events.is_empty() and events[-1].kind == DomainEvent.Kind.COMMUNITY_CARDS_DEALT:
+			_schedule_next_action(Table.NO_SEAT)
+		else:
+			call_deferred("_advance_after_action_pause")
+		return
+	return
 
 
 func _schedule_next_action(actor_seat: int) -> void:
@@ -879,17 +917,29 @@ func _schedule_after_completed_hand() -> void:
 
 func _render_events(events: Array[DomainEvent]) -> void:
 	_event_texts.clear()
+	_active_round_latest_actions.clear()
 	var action_records: Array[PublicActionRecord] = []
 	for record: PublicActionRecord in _bound_view.action_history:
-		if record.record_kind == PublicActionRecord.Kind.ACTION:
-			action_records.append(record)
+		action_records.append(record)
 	var action_index: int = 0
 	var street_transition_index: int = 0
 	for event: DomainEvent in events:
 		var action_record: PublicActionRecord = null
-		if event.kind == DomainEvent.Kind.ACTION_APPLIED and action_index < action_records.size():
+		if (
+			event.kind == DomainEvent.Kind.HAND_STARTED
+			or event.kind == DomainEvent.Kind.STREET_CHANGED
+		):
+			_active_round_latest_actions.clear()
+		if (
+			(
+				event.kind == DomainEvent.Kind.ACTION_APPLIED
+				or event.kind == DomainEvent.Kind.BLIND_POSTED
+			)
+			and action_index < action_records.size()
+		):
 			action_record = action_records[action_index]
 			action_index += 1
+			_active_round_latest_actions[action_record.seat] = action_record
 		if event.kind == DomainEvent.Kind.STREET_CHANGED:
 			_event_texts.append(
 				GuiEventFormatterScript.street_transition_text(street_transition_index)
@@ -900,6 +950,7 @@ func _render_events(events: Array[DomainEvent]) -> void:
 				GuiEventFormatterScript.format_event(event, _bound_view, action_record)
 			)
 	_event_log.text = "\n".join(_event_texts)
+	_refresh_seat_action_labels()
 
 
 func _layout_table() -> void:
@@ -910,6 +961,7 @@ func _layout_table() -> void:
 		return
 	var mobile_portrait_layout: bool = GuiMobileTableLayoutScript.is_mobile_portrait(surface_size)
 	var landscape_tablet_layout: bool = GuiMobileTableLayoutScript.is_landscape_tablet(surface_size)
+	var small_desktop_layout: bool = GuiMobileTableLayoutScript.is_small_desktop(surface_size)
 	var mobile_content_scale: float = GuiMobileTableLayoutScript.content_scale(surface_size)
 	var seat_content_scale: float = GuiMobileTableLayoutScript.seat_scale(surface_size)
 	# Desktop controls use source dimensions directly.  The previous 0.75
@@ -950,25 +1002,65 @@ func _layout_table() -> void:
 			seat_visual_scale,
 		)
 	)
-	var center_minimum_size: Vector2 = _center_zone.get_combined_minimum_size()
-	var center_size := Vector2(
-		maxf(
-			clampf(
-				surface_size.x * (0.56 if mobile_portrait_layout else 0.48),
-				230.0,
-				680.0 if mobile_portrait_layout else 340.0,
-			),
-			center_minimum_size.x,
-		),
-		maxf(
-			184.0 * mobile_content_scale if mobile_portrait_layout else 184.0, center_minimum_size.y
+	if small_desktop_layout:
+		_board_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+		_pot_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+		_wager_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+		_action_status.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+		_action_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_action_status.clip_text = true
+		for control: Control in [
+			_fold_button,
+			_check_call_button,
+			_min_wager_button,
+			_pot_raise_button,
+			_wager_input,
+			_wager_button,
+			_all_in_button,
+		]:
+			control.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+		for card: Control in _card_slots.get_children():
+			GuiMobileTableLayoutScript._scale_card_face(card, Vector2(45.0, 57.0), 22)
+	var center_width: float = clampf(
+		surface_size.x * (0.56 if mobile_portrait_layout else 0.48),
+		230.0,
+		(
+			360.0
+			if small_desktop_layout
+			else (680.0 if mobile_portrait_layout else DESKTOP_CENTER_ZONE_MAX_WIDTH)
 		),
 	)
-	_center_zone.size = center_size
-	_center_zone.position = (surface_size - center_size) * 0.5
+	var center_minimum_height: float = _center_zone.get_combined_minimum_size().y
+	var center_size := Vector2(
+		center_width,
+		maxf(
+			(
+				184.0
+				if small_desktop_layout
+				else (184.0 * mobile_content_scale if mobile_portrait_layout else 184.0)
+			),
+			center_minimum_height if not small_desktop_layout else 184.0,
+		),
+	)
+	var center_position: Vector2 = (surface_size - center_size) * 0.5
+	if small_desktop_layout:
+		center_position.y = 8.0
+	# CenterZone is a manually positioned presentation region. Apply one
+	# resolved width after rebuilding all children and never defer an older
+	# bounds value past a newer layout pass. Child minimum sizes are deliberately
+	# cleared in the same operation so status text cannot widen the stack.
+	_apply_center_zone_bounds(center_size, center_position)
+	call_deferred(
+		"_apply_center_zone_bounds_if_current",
+		center_size,
+		center_position,
+		_layout_generation,
+	)
 	if _seat_widgets.is_empty():
 		return
-	var compact_layout: bool = surface_size.x < 600.0 or mobile_portrait_layout
+	var compact_layout: bool = (
+		surface_size.x < 600.0 or mobile_portrait_layout or small_desktop_layout
+	)
 	var seat_width: float = (
 		clampf(
 			surface_size.x * 0.32,
@@ -1020,7 +1112,13 @@ func _layout_table() -> void:
 				TableSeatLayoutScript.landscape_tablet_positions(seat_count)[visual_slot]
 				if landscape_tablet_layout
 				else (
-					TableSeatLayoutScript.compact_desktop_positions(seat_count)[visual_slot]
+					(
+						TableSeatLayoutScript.small_desktop_positions(seat_count)[visual_slot]
+						if small_desktop_layout
+						else (
+							TableSeatLayoutScript.compact_desktop_positions(seat_count)[visual_slot]
+						)
+					)
 					if not mobile_portrait_layout and surface_size.x < 1200.0
 					else TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
 				)
@@ -1036,7 +1134,11 @@ func _layout_table() -> void:
 		)
 		var panel: PanelContainer = _seat_widgets[seat]
 		GuiMobileTableLayoutScript.apply_seat_typography(
-			panel, seat_visual_scale, is_hero, 1.0, not mobile_portrait_layout
+			panel,
+			seat_visual_scale,
+			is_hero,
+			1.0,
+			not mobile_portrait_layout and not small_desktop_layout
 		)
 		var minimum_size: Vector2 = panel.get_combined_minimum_size()
 		var resolved_seat_size := Vector2(
@@ -1056,19 +1158,37 @@ func _layout_table() -> void:
 			clampf(intended_position.x, 0.0, surface_size.x - resolved_seat_size.x),
 			clampf(intended_position.y, 0.0, surface_size.y - resolved_seat_size.y),
 		)
-		GuiMobileTableLayoutScript.layout_seat_action_label(
-			_seat_action_widgets.get(seat), panel, compact_layout, seat_visual_scale
+		(
+			GuiMobileTableLayoutScript
+			. layout_seat_action_label(
+				_seat_action_widgets.get(seat),
+				panel,
+				compact_layout,
+				1.0 if small_desktop_layout else seat_visual_scale,
+			)
 		)
 		var action_label: Label = _seat_action_widgets.get(seat)
 		if action_label != null and action_label.visible:
 			var action_overflow: float = action_label.get_rect().end.y - surface_size.y
 			if action_overflow > 0.0:
 				panel.position.y = maxf(0.0, panel.position.y - action_overflow - 2.0)
-				GuiMobileTableLayoutScript.layout_seat_action_label(
-					action_label, panel, compact_layout, seat_visual_scale
+				(
+					GuiMobileTableLayoutScript
+					. layout_seat_action_label(
+						action_label,
+						panel,
+						compact_layout,
+						1.0 if small_desktop_layout else seat_visual_scale,
+					)
 				)
-		GuiMobileTableLayoutScript.layout_seat_showdown_label(
-			_seat_showdown_widgets.get(seat), panel, compact_layout, seat_visual_scale
+		(
+			GuiMobileTableLayoutScript
+			. layout_seat_showdown_label(
+				_seat_showdown_widgets.get(seat),
+				panel,
+				compact_layout,
+				1.0 if small_desktop_layout else seat_visual_scale,
+			)
 		)
 	(
 		GuiMobileTableLayoutScript
@@ -1082,6 +1202,8 @@ func _layout_table() -> void:
 			_seat_widgets.size(),
 		)
 	)
+	if small_desktop_layout:
+		_resolve_small_desktop_auxiliary_clearance(surface_size)
 	if not compact_layout:
 		# Containers can report a larger minimum after their children resolve.
 		# Re-apply the approved compact desktop height after layout so the
@@ -1108,9 +1230,97 @@ func _queue_layout() -> void:
 	if not is_node_ready() or _layout_queued:
 		return
 	_layout_queued = true
+	_layout_generation += 1
 	call_deferred("_apply_queued_layout")
 
 
 func _apply_queued_layout() -> void:
 	_layout_queued = false
 	_layout_table()
+
+
+func _apply_center_zone_bounds(resolved_size: Vector2, resolved_position: Vector2) -> void:
+	if not is_instance_valid(_center_zone):
+		return
+	_center_zone.custom_minimum_size = Vector2(resolved_size.x, 0.0)
+	_center_zone.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_center_zone.size = resolved_size
+	_center_zone.position = resolved_position
+	for child: Control in [_board_zone, _pot_zone, _wager_zone]:
+		child.custom_minimum_size.x = 0.0
+		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		child.size.x = resolved_size.x
+
+
+func _apply_center_zone_bounds_if_current(
+	resolved_size: Vector2,
+	resolved_position: Vector2,
+	generation: int,
+) -> void:
+	if generation != _layout_generation:
+		return
+	_apply_center_zone_bounds(resolved_size, resolved_position)
+
+
+func _resolve_small_desktop_auxiliary_clearance(surface_size: Vector2) -> void:
+	var obstacles: Array[Rect2] = [
+		_surface_local_rect(_center_zone),
+		_surface_local_rect(_event_log),
+		_surface_local_rect(_action_panel),
+	]
+	for seat: int in _seat_widgets:
+		var panel: PanelContainer = _seat_widgets[seat]
+		var action_label: Label = _seat_action_widgets[seat]
+		var showdown_label: Label = _seat_showdown_widgets[seat]
+		for attempt: int in range(3):
+			var auxiliary_rects: Array[Rect2] = []
+			if action_label.visible:
+				auxiliary_rects.append(_surface_local_rect(action_label))
+			if showdown_label.visible:
+				auxiliary_rects.append(_surface_local_rect(showdown_label))
+			var has_collision: bool = false
+			for auxiliary_rect: Rect2 in auxiliary_rects:
+				if auxiliary_rect.position.y < 0.0 or auxiliary_rect.end.y > surface_size.y:
+					has_collision = true
+					break
+				for obstacle: Rect2 in obstacles:
+					if auxiliary_rect.intersects(obstacle):
+						has_collision = true
+						break
+				if has_collision:
+					break
+			if not has_collision:
+				break
+			var shift_up: float = 0.0
+			var shift_down: float = 0.0
+			for auxiliary_rect: Rect2 in auxiliary_rects:
+				if auxiliary_rect.end.y > surface_size.y:
+					shift_up = maxf(shift_up, auxiliary_rect.end.y - surface_size.y + 4.0)
+				if auxiliary_rect.position.y < 0.0:
+					shift_down = maxf(shift_down, -auxiliary_rect.position.y + 4.0)
+				for obstacle: Rect2 in obstacles:
+					if auxiliary_rect.intersects(obstacle):
+						if auxiliary_rect == _surface_local_rect(showdown_label):
+							if obstacle.end.y <= panel.position.y:
+								shift_down = maxf(
+									shift_down, obstacle.end.y - auxiliary_rect.position.y + 4.0
+								)
+							else:
+								shift_up = maxf(
+									shift_up, auxiliary_rect.end.y - obstacle.position.y + 4.0
+								)
+						else:
+							shift_up = maxf(
+								shift_up, auxiliary_rect.end.y - obstacle.position.y + 4.0
+							)
+			if shift_up <= 0.0 and shift_down <= 0.0:
+				break
+			panel.position.y = clampf(
+				panel.position.y - shift_up + shift_down,
+				0.0,
+				surface_size.y - panel.size.y,
+			)
+			GuiMobileTableLayoutScript.layout_seat_action_label(action_label, panel, true, 1.0)
+			GuiMobileTableLayoutScript.layout_seat_showdown_label(showdown_label, panel, true, 1.0)
+		# Keep the resolved panel in the surface after any auxiliary-label shift.
+		panel.position.y = clampf(panel.position.y, 0.0, surface_size.y - panel.size.y)

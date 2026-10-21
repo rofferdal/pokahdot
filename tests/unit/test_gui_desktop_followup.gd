@@ -5,6 +5,7 @@ const PokerTableScene := preload("res://scenes/poker_table.tscn")
 
 const DESKTOP_VIEWPORT := Vector2(1920, 1080)
 const IPAD_LANDSCAPE_VIEWPORT := Vector2(2388, 1450)
+const SMALL_DESKTOP_VIEWPORT := Vector2(950, 532)
 const MIN_WIDENED_SEAT_WIDTH: float = 416.0
 
 
@@ -114,6 +115,30 @@ func test_seven_player_ipad_landscape_reserves_action_and_showdown_clearance() -
 		)
 		assert_true(surface_rect.encloses(Rect2(panel.position, panel.size)))
 		assert_true(surface_rect.encloses(Rect2(label.position, label.size)))
+
+
+func test_seven_player_ipad_central_zone_has_stable_bounded_equal_widths() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = IPAD_LANDSCAPE_VIEWPORT
+	add_child_autofree(table)
+	table.bind_view(_view(7), _avatar_assignments(7))
+	await _settle_layout()
+	for status_text: String in [
+		"POT 15\nSB 5 BB 10 • L1 0/12",
+		"POT 999999 • 4 layers\nSB 123456 BB 246912 • L12 99/120",
+	]:
+		(table.get_node("%PotLabel") as Label).text = status_text
+		table._queue_layout()
+		await _settle_layout()
+		var regions := table.get_resolved_region_rects()
+		assert_lte(regions[&"center"].size.x, 520.0)
+		assert_almost_eq(regions[&"board"].size.x, regions[&"pot"].size.x, 0.01)
+		assert_almost_eq(regions[&"pot"].size.x, regions[&"wager"].size.x, 0.01)
+		assert_false(regions[&"center"].intersects(regions[&"event"]))
+		assert_false(regions[&"center"].intersects(regions[&"action"]))
+		for seat: int in range(7):
+			assert_false(regions[StringName("seat_%d" % seat)].intersects(regions[&"center"]))
 
 
 func test_event_log_and_action_panel_have_equal_size_and_symmetric_desktop_placement() -> void:
@@ -291,6 +316,26 @@ func test_visible_action_controls_use_two_non_intersecting_rows() -> void:
 		for previous: Rect2 in placed:
 			assert_false(control_rect.intersects(previous), str(control_name))
 		placed.append(control_rect)
+
+
+func test_small_desktop_seven_player_regions_do_not_occlude_each_other() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = SMALL_DESKTOP_VIEWPORT
+	add_child_autofree(table)
+	table.bind_view(_view(7), _avatar_assignments(7))
+	await _settle_layout()
+	var surface := _surface(table)
+	var surface_rect := Rect2(Vector2.ZERO, surface.size)
+	var regions := table.get_resolved_region_rects()
+	for region_name: StringName in [&"center", &"action", &"event", &"hero"]:
+		assert_true(surface_rect.encloses(regions[region_name]), str(region_name))
+	for seat: int in range(7):
+		var seat_rect: Rect2 = regions[StringName("seat_%d" % seat)]
+		assert_true(surface_rect.encloses(seat_rect), "seat %d" % seat)
+		assert_false(seat_rect.intersects(regions[&"center"]), "seat %d center" % seat)
+		assert_false(seat_rect.intersects(regions[&"action"]), "seat %d action" % seat)
+		assert_false(seat_rect.intersects(regions[&"event"]), "seat %d event" % seat)
 
 
 func _table_for(player_count: int) -> PokerTableController:

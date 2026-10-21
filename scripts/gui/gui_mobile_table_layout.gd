@@ -39,6 +39,12 @@ static func is_landscape_tablet(surface_size: Vector2) -> bool:
 	return surface_size.x / surface_size.y < LANDSCAPE_TABLET_MAX_ASPECT_RATIO
 
 
+static func is_small_desktop(surface_size: Vector2) -> bool:
+	return (
+		not is_mobile_portrait(surface_size) and surface_size.x < 1200.0 and surface_size.y < 760.0
+	)
+
+
 static func content_scale(surface_size: Vector2) -> float:
 	return clampf(
 		minf(surface_size.x / 480.0, surface_size.y / 1200.0), 1.0, MOBILE_MAX_CONTENT_SCALE
@@ -248,6 +254,11 @@ static func layout_human_adjacent_panels(
 	if hero_panel == null:
 		return
 	if compact_layout:
+		if surface_size.x >= 700.0 and surface_size.y < 760.0:
+			_layout_small_desktop_human_panels(
+				surface_size, hero_panel, content_scale, action_panel, event_log
+			)
+			return
 		_layout_compact_human_panels(
 			surface_size, hero_panel, content_scale, action_panel, event_log
 		)
@@ -306,6 +317,28 @@ static func layout_human_adjacent_panels(
 		maxf(12.0, hero_panel.position.x - panel_size.x - 46.0),
 		panel_y,
 	)
+
+
+static func _layout_small_desktop_human_panels(
+	surface_size: Vector2,
+	hero_panel: PanelContainer,
+	content_scale: float,
+	action_panel: PanelContainer,
+	event_log: RichTextLabel,
+) -> void:
+	var bottom_margin: float = 8.0
+	hero_panel.position.y = surface_size.y - hero_panel.size.y - bottom_margin
+	var side_width: float = clampf((surface_size.x - hero_panel.size.x - 72.0) * 0.5, 210.0, 300.0)
+	var side_height: float = 112.0 * minf(content_scale, 1.0)
+	var panel_y: float = maxf(8.0, surface_size.y * 0.42)
+	var panel_size := Vector2(side_width, side_height)
+	action_panel.size = panel_size
+	action_panel.position = Vector2(
+		surface_size.x - action_panel.size.x - 12.0,
+		panel_y,
+	)
+	event_log.size = panel_size
+	event_log.position = Vector2(12.0, panel_y)
 
 
 static func _layout_compact_human_panels(

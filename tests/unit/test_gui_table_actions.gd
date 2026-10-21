@@ -131,6 +131,96 @@ func test_community_card_reveal_uses_the_configured_nonblocking_action_pause() -
 	assert_eq(match_instance.get_events().filter(_is_action_event).size(), 2)
 
 
+func test_seat_action_labels_reset_at_each_new_betting_round_without_clearing_history() -> void:
+	var match_instance := _waiting_match(
+		[
+			PlayerAction.call_action(),
+			PlayerAction.check_action(),
+			PlayerAction.check_action(),
+			PlayerAction.check_action(),
+		]
+	)
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	table.get_node("%CheckCallButton").emit_signal("pressed")
+	var flop_view: GameView = match_instance.get_view_for(0)
+	assert_eq(flop_view.street, &"flop")
+	for seat: int in range(2):
+		assert_false(
+			(
+				seat == 0
+				and (
+					(
+						table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dAction" % seat)
+						as Label
+					)
+					. visible
+				)
+			),
+			"human seat must have no stale preflop label on the flop",
+		)
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label).text, "Check"
+	)
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Call" in text))
+
+	table.get_node("%CheckCallButton").emit_signal("pressed")
+	var turn_view: GameView = match_instance.get_view_for(0)
+	assert_eq(turn_view.street, &"turn")
+	assert_false(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Action") as Label).visible
+	)
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label).text, "Check"
+	)
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Flop begins" in text))
+
+	table.get_node("%CheckCallButton").emit_signal("pressed")
+	var river_view: GameView = match_instance.get_view_for(0)
+	assert_eq(river_view.street, &"river")
+	assert_false(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Action") as Label).visible
+	)
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label).text, "Check"
+	)
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Turn begins" in text))
+
+
+func test_gui_advances_a_complete_startup_round_without_waiting_for_a_player() -> void:
+	var config := ResolvedTournamentConfig.new(
+		2, 631, 660, 1000, 7123, &"short_start", {0: &"human", 1: &"scripted"}
+	)
+	var match_instance := (
+		TournamentMatch
+		. new(
+			config,
+			{0: HumanAgent.new(), 1: ScriptedAgent.new([])},
+		)
+	)
+	assert_eq(match_instance.start(1).status, StepResult.Status.YIELDED)
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var timing_config := GuiActionTimingConfigScript.new()
+	timing_config.default_pause_seconds = 0.05
+	timing_config.showdown_pause_seconds = 0.0
+	table.set_action_timing_config(timing_config)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	var view := match_instance.get_view_for(0)
+	assert_eq(view.acting_seat, Table.NO_SEAT)
+	assert_true(view.legal_actions.is_empty())
+	assert_true(table.is_action_advance_pending())
+	assert_false((table.get_node("%ActionStatus") as Label).text.contains("Waiting for Player 1"))
+
+	await get_tree().create_timer(0.35).timeout
+	assert_ne(match_instance.state, TournamentMatch.State.NOT_STARTED)
+	assert_false((table.get_node("%ActionStatus") as Label).text.contains("Waiting for Player 1"))
+
+
 func _is_action_event(event: DomainEvent) -> bool:
 	return event.kind == DomainEvent.Kind.ACTION_APPLIED
 

@@ -27,9 +27,9 @@ static func symmetric_positions(seat_count: int) -> Array[Vector2]:
 			positions = [
 				Vector2(0.5, 0.08),
 				Vector2(0.88, 0.30),
-				Vector2(0.78, 0.60),
+				Vector2(0.80, 0.60),
 				Vector2(0.5, 0.91),
-				Vector2(0.22, 0.60),
+				Vector2(0.20, 0.60),
 				Vector2(0.12, 0.30)
 			]
 		7:
@@ -103,3 +103,19 @@ static func landscape_tablet_positions(seat_count: int) -> Array[Vector2]:
 			Vector2(0.30, 0.14),
 		]
 	return symmetric_positions(seat_count)
+
+
+static func small_desktop_positions(seat_count: int) -> Array[Vector2]:
+	if seat_count == 7:
+		# Short desktop surfaces need the upper pair and side seats outside the
+		# fixed central zone while leaving the bottom center for the human seat.
+		return [
+			Vector2(0.82, 0.08),
+			Vector2(0.94, 0.08),
+			Vector2(0.88, 0.83),
+			Vector2(0.5, 0.96),
+			Vector2(0.12, 0.83),
+			Vector2(0.06, 0.08),
+			Vector2(0.18, 0.08),
+		]
+	return compact_desktop_positions(seat_count)

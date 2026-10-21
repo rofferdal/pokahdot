@@ -137,6 +137,34 @@ func test_all_in_preflop_runs_out_board_and_completes_automatically() -> void:
 	assert_chip_total([players[0].stack, players[1].stack, players[2].stack], 60)
 
 
+func test_short_big_blind_post_commits_actual_stack_and_runs_out_without_action() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 900, HumanAgent.new()),
+		Player.new(&"short_bb", "Short BB", 1, 631, ScriptedAgent.new([])),
+	]
+	var table := Table.new(players, 660, 1000)
+	table.button_seat = 0
+	var controller := _controller(table)
+
+	var result: StepResult = controller.start(1)
+
+	assert_eq(result.status, StepResult.Status.YIELDED)
+	var history: Array[PublicActionRecord] = controller.get_view_for(0).action_history
+	assert_eq(history[0].amount, 660)
+	assert_eq(history[1].amount, 631)
+	assert_true(players[1].all_in)
+	assert_eq(history.size(), 2)
+	while controller.state != HandController.State.COMPLETE:
+		var view: GameView = controller.get_view_for(0)
+		assert_eq(view.acting_seat, Table.NO_SEAT)
+		assert_true(view.legal_actions.is_empty())
+		var transition: StepResult = controller.advance_one_action()
+		assert_ne(transition.status, StepResult.Status.ERROR)
+	assert_eq(controller.community_cards.size(), 5)
+	assert_eq(controller.events[-1].kind, DomainEvent.Kind.HAND_COMPLETED)
+	assert_chip_total([players[0].stack, players[1].stack], 1531)
+
+
 func _players_with_agents() -> Array[Player]:
 	return [
 		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),

@@ -23,26 +23,26 @@ dealt, `Wagers • 0 active`, no enabled human action, and `Waiting for Player 0
 This is a progression defect, not a layout defect: a street with no actionable players must
 advance automatically to the next street or showdown.
 
-- [ ] **Agent task — add a core short-blind-post regression:** construct a deterministic
+- [x] **Agent task — add a core short-blind-post regression:** construct a deterministic
   heads-up hand with a human small blind who has more chips than the blind amount and a big
   blind whose remaining stack is below the configured big blind (for example, 660 versus
   631). Assert that the blind post commits the actual 631 chips, marks the big blind
   `all_in`, preserves the contribution ledger, and does not require a synthetic player
   action to represent the short post.
-- [ ] **Agent task — verify automatic no-action street progression:** extend the regression
+- [x] **Agent task — verify automatic no-action street progression:** extend the regression
   through flop, turn, and river. After every automatic transition, assert that the view has
   no legal actions, no actionable acting seat, and never returns `WAITING_FOR_HUMAN`; then
   assert that the hand reaches showdown/hand completion and conserves all chips. Include the
   same case through `TournamentMatch` after the other seats have been eliminated, because
   busted-seat traversal and heads-up blind order are part of the failure conditions.
-- [ ] **Agent task — fix bounded GUI advancement after a complete street:** update the GUI
+- [x] **Agent task — fix bounded GUI advancement after a complete street:** update the GUI
   progression path used with `TournamentMatch.start(1)` so that a newly created betting
   round which is already complete is automatically drained. Continuation must be triggered
   by the resulting state (`acting_seat == Table.NO_SEAT`, empty legal actions, or hand
   completion), not only by the latest event being `ACTION_APPLIED`. Preserve nonblocking
   action pacing and do not create a fake check/call or expose disabled controls as an
   available action.
-- [ ] **Agent task — add a GUI lock regression:** bind the table to a deterministic
+- [x] **Agent task — add a GUI lock regression:** bind the table to a deterministic
   short-big-blind heads-up match using the same one-transition startup path as the GUI.
   Advance deferred frames/timers and assert that the table never displays `Waiting for
   Player 0` while the bound view has zero active wagers and no legal actions. Assert that
@@ -64,21 +64,21 @@ active betting round: they are cleared at the start of pre-flop and whenever the
 to flop, turn, or river. The event log remains the complete public history and must not be
 cleared as part of this presentation reset.
 
-- [ ] **Agent task — scope seat action labels to the active betting round:** update the GUI
+- [x] **Agent task — scope seat action labels to the active betting round:** update the GUI
   controller and its presentation state so that the per-seat action text is reset when a
   new hand starts pre-flop and when a street/betting-round transition occurs. Keep the
   current round's latest action visible below the owning seat, and do not alter core
   `GameView` action history or the event log.
-- [ ] **Agent task — preserve event-history behavior:** ensure the action-label reset does
+- [x] **Agent task — preserve event-history behavior:** ensure the action-label reset does
   not remove blind posts, prior-street actions, or other public events from the scrollable
   event log. The event log may continue to show the full hand while seat labels show only
   the current betting round.
-- [ ] **Agent task — add GUI transition regressions:** add deterministic GUI tests covering
+- [x] **Agent task — add GUI transition regressions:** add deterministic GUI tests covering
   pre-flop, flop, turn, and river. After actions exist on one street, assert that every
   seat's old action label is absent immediately after the next street begins, then assert
   that new actions appear only under their owning seats. Also assert that the event log
   still contains the prior-street action entries.
-- [ ] **Agent task — cover automatic and delayed transitions:** verify the same reset when
+- [x] **Agent task — cover automatic and delayed transitions:** verify the same reset when
   bot actions advance automatically, when a human action resumes the match after a GUI
   pacing delay, and when a street begins with no actionable players during an all-in
   runout. No stale label may reappear after deferred view refreshes.
@@ -94,7 +94,7 @@ seats, the central board zone obscured by action text, and the human action
 controls colliding. These tasks address presentation-layer defects only; poker
 state and `GameView` semantics must remain unchanged.
 
-- [ ] **Agent task — reserve non-overlapping table regions:** define resolved
+- [x] **Agent task — reserve non-overlapping table regions:** define resolved
   desktop bounds for the central community-card/pot/wager zone, the event feed,
   the human seat, the action panel, and every seat panel. Add GUI regression
   coverage at the default 6-player layout and at 2- and 9-player layouts that
@@ -147,17 +147,17 @@ state and `GameView` semantics must remain unchanged.
 - [x] **Agent task — preserve showdown-summary space:** reserve visible space
   above Player 4 and Player 5 for their showdown result text, including a top
   safety margin at the iPad landscape viewport.
-- [ ] **Agent task — bound the central table zone:** make the community-card,
+- [x] **Agent task — bound the central table zone:** make the community-card,
   pot, and wager stack use an explicit width derived from the available table
   surface, rather than allowing `get_combined_minimum_size()` from changing
   status text to widen the stack. Preserve enough width for all five community
   card slots and keep the stack centered and inside the table surface.
-- [ ] **Agent task — stabilize central status presentation:** prevent changing
+- [x] **Agent task — stabilize central status presentation:** prevent changing
   pot, blind, layer, and blind-progress text from changing the central-zone
   footprint. Split or constrain the status presentation as needed, while
   keeping all player-facing information readable and respecting the 20 px text
   minimum.
-- [ ] **Agent task — add central-zone width regressions:** at the seven-player
+- [x] **Agent task — add central-zone width regressions:** at the seven-player
   iPad landscape viewport, render short and long status strings and assert that
   the central-zone width remains within its configured bound, its board/pot/
   wager panels have equal widths, and none of those regions intersects a seat,
@@ -166,6 +166,53 @@ state and `GameView` semantics must remain unchanged.
   landscape orientation during normal play and showdown; confirm Player 2/7
   details and latest-action text remain visible, and Player 4/5 showdown
   summaries are fully readable.
+
+## Central community/pot/wager width regression follow-up
+
+The screenshot [`localtmp/localtest_strange_wide_fields.jpg`](../localtmp/localtest_strange_wide_fields.jpg)
+shows the central fields rendered as an unexpectedly wide stack during a normal six-player
+desktop hand. The community-card, pot, and wager panels appear to fill a much larger column
+than the five cards require, and the central footprint is not stable when the view refreshes.
+The current implementation computes `center_width` in `PokerTableController._layout_table()`,
+then applies it later with `call_deferred("_apply_center_zone_bounds", ...)` to a
+`VBoxContainer`. The same layout pass also calls `get_combined_minimum_size()` and rebuilds
+labels/cards whose minimum sizes can change as status text and card content change. Existing
+coverage checks equal widths and an upper bound only at the iPad landscape viewport; it does
+not prove stability at the reported desktop viewport or across repeated deferred refreshes.
+
+- [ ] **Agent task — capture the width-change reproduction:** add temporary or test-only
+  geometry tracing around `_layout_table()`, `_apply_center_zone_bounds()`, and the next
+  settled frame. Reproduce the screenshot at its actual table-surface size and record the
+  surface, center, board, pot, and wager rectangles before and after `bind_view()`, bot-action
+  refreshes, street changes, and long/short status text. Identify whether a stale deferred
+  bounds call, container minimum-size negotiation, or viewport resize is the final writer of
+  the unexpectedly wide rectangle, then remove diagnostic-only logging after the cause is
+  established.
+- [ ] **Agent task — make one layout owner authoritative:** revise the central-zone layout so
+  one resolved width is applied after all child rebuilds and remains authoritative for the
+  `CenterZone` and all three child panels. Do not let a later `VBoxContainer` minimum-size
+  negotiation or an older deferred callback replace the current width. If deferred layout is
+  required, coalesce callbacks or associate them with the latest surface/layout generation.
+  Keep the central stack centered and preserve the minimum width needed for five community
+  card slots.
+- [ ] **Agent task — isolate status text from geometry:** ensure pot, blind, layer,
+  blind-progress, and wager-status labels cannot enlarge the central stack's minimum width.
+  Preserve readable player-facing text through constrained wrapping, clipping/ellipsis, or a
+  presentation subregion, while keeping board/pot/wager panels equal in width and respecting
+  the 20 px minimum text requirement. Verify that changing only these strings does not change
+  the resolved central rectangle.
+- [ ] **Agent task — add the reported desktop regression:** at the actual viewport/surface
+  size represented by `localtest_strange_wide_fields.jpg` and at nearby 950x532 and 1920x1080
+  surfaces, render six- and seven-player views with five board cards, short and maximally long
+  status strings, repeated deferred refreshes, automatic bot actions, and street changes.
+  Assert after each settled frame that center/board/pot/wager widths are equal, the width is
+  stable for unchanged available space, the stack remains centered and in bounds, and no stale
+  rectangle is observed after a refresh.
+- [ ] **Human task:** rerun the local desktop scenario that produced
+  `localtmp/localtest_strange_wide_fields.jpg`, including preflop, flop/turn/river updates,
+  bot actions, and a long pot/layer status. Confirm that the community-card, pot, and wager
+  fields do not suddenly widen or shrink, remain one centered equal-width stack, and retain
+  readable cards and status text. Record the viewport, browser/runtime, and result here.
 
 ## Small desktop viewport table collision remediation
 
@@ -176,7 +223,7 @@ their required clearance. The screenshot shows the lower seats and their latest
 action area compressed against the event/action panels, while the top seats have
 little or no room above them for showdown summaries.
 
-- [ ] **Agent task — add a small-desktop layout mode:** detect short desktop
+- [x] **Agent task — add a small-desktop layout mode:** detect short desktop
   surfaces independently from mobile portrait and iPad landscape modes, and
   use a compact seven-seat arrangement that remains readable at the reference
   developer viewport and nearby sizes.
