@@ -63,6 +63,35 @@ func test_six_player_lowest_bot_action_label_is_visible_above_action_panel() -> 
 	)
 
 
+func test_pot_and_wager_status_fields_remain_visible_after_layout() -> void:
+	for viewport: Vector2 in [DESKTOP_VIEWPORT, SMALL_DESKTOP_VIEWPORT, IPAD_LANDSCAPE_VIEWPORT]:
+		var table := PokerTableScene.instantiate() as PokerTableController
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = viewport
+		add_child_autofree(table)
+		table.bind_view(_view(6), _avatar_assignments(6))
+		await _settle_layout()
+		var pot_label := table.get_node("%PotLabel") as Label
+		var wager_label := table.get_node("%WagerLabel") as Label
+		assert_string_contains(pot_label.text, "POT")
+		assert_string_contains(pot_label.text, "SB")
+		assert_string_contains(pot_label.text, "BB")
+		assert_string_contains(pot_label.text, "L")
+		assert_string_contains(wager_label.text, "Wagers")
+		for label: Label in [pot_label, wager_label]:
+			var label_rect: Rect2 = label.get_global_rect()
+			var zone := label.get_parent() as Control
+			var context := "%s at %s" % [label.name, viewport]
+			assert_true(label.is_visible_in_tree(), context)
+			assert_false(label.clip_text, context + " must paint essential game state")
+			assert_gt(label.get_theme_color("font_color").a, 0.0, context)
+			assert_true(zone.get_global_rect().encloses(label_rect), context)
+			# PanelContainer styling reserves an inner margin, but clipped text must
+			# still receive almost all usable panel width rather than a zero-width box.
+			assert_gte(label_rect.size.x, zone.get_global_rect().size.x * 0.9, context)
+			assert_gte(label_rect.size.y, float(label.get_theme_font_size("font_size")), context)
+
+
 func test_seven_player_ipad_landscape_reserves_action_and_showdown_clearance() -> void:
 	var view: GameView = _view(7)
 	view._action_history = [

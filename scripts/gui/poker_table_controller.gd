@@ -261,14 +261,8 @@ func _refresh_visuals() -> void:
 			_bound_view.hands_until_next_level,
 		]
 	)
-	# Keep changing status text from widening the central table footprint. The
-	# board, pot, and wager panels share the fixed resolved width below.
-	_pot_label.clip_text = true
-	_pot_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_pot_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_wager_label.clip_text = true
-	_wager_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_wager_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_configure_status_label(_pot_label)
+	_configure_status_label(_wager_label)
 	_rebuild_card_slots()
 	_rebuild_seats()
 	_refresh_action_controls()
@@ -1021,6 +1015,7 @@ func _layout_table() -> void:
 			control.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		for card: Control in _card_slots.get_children():
 			GuiMobileTableLayoutScript._scale_card_face(card, Vector2(45.0, 57.0), 22)
+	_reserve_status_zone_height()
 	var center_width: float = clampf(
 		surface_size.x * (0.56 if mobile_portrait_layout else 0.48),
 		230.0,
@@ -1250,6 +1245,49 @@ func _apply_center_zone_bounds(resolved_size: Vector2, resolved_position: Vector
 		child.custom_minimum_size.x = 0.0
 		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		child.size.x = resolved_size.x
+	_configure_status_label(_pot_label)
+	_configure_status_label(_wager_label)
+
+
+func _configure_status_label(label: Label) -> void:
+	if label == null:
+		return
+	label.visible = true
+	label.modulate = Color.WHITE
+	label.add_theme_color_override("font_color", Color("f5f0dc"))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	# Status text is essential game state.  Do not clip its draw call: the
+	# compact-layout change in e5c1a11 made the populated labels render blank.
+	# Their fixed parent width still prevents them from changing table geometry.
+	label.clip_text = false
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	label.custom_minimum_size = Vector2(0.0, float(label.get_theme_font_size("font_size")))
+	# clip_text removes the text-driven minimum width.  The status labels must
+	# explicitly fill their PanelContainer, otherwise the panels render while
+	# their labels are allocated a zero-width content rectangle.
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+
+func _reserve_status_zone_height() -> void:
+	_configure_status_label(_pot_label)
+	_configure_status_label(_wager_label)
+	var status_height: float = maxf(
+		52.0,
+		(
+			float(
+				maxi(
+					_pot_label.get_theme_font_size("font_size"),
+					_wager_label.get_theme_font_size("font_size"),
+				)
+			)
+			+ 16.0
+		),
+	)
+	_pot_zone.custom_minimum_size = Vector2(0.0, status_height)
+	_wager_zone.custom_minimum_size = Vector2(0.0, status_height)
 
 
 func _apply_center_zone_bounds_if_current(
