@@ -221,7 +221,7 @@ Andres hullkort kun når `street == showdown` eller hånden er over og kortene f
 
 ### 7.1 GUI
 
-- Control-noder. Skalerbart (`canvas_items`).
+- Control-noder. Skalerbart med `canvas_items`-stretch og `expand`-aspect; dette skalerer 2D-layouten, men garanterer ikke alene skarp tekst eller grafikk.
 - Før turneringen opprettes, vis en oppstartsvisning der mennesket kan velge antall deltakere, startstack, small blind og big blind. Feltene er forhåndsutfylt med standardverdiene, og turneringen kan startes direkte uten at feltene redigeres.
 - Ugyldige oppstartsverdier skal forklares i GUI, og første hånd kan ikke starte før alle verdier er gyldige.
 - Vis: board, potter, stacks, blinds, whose turn, egne kort, aktive/eliminert-spillere og turneringsvinner når turneringen er ferdig.
@@ -237,6 +237,9 @@ Andres hullkort kun når `street == showdown` eller hånden er over og kortene f
 - Handlingskontroller vises som tydelige, kompakte to-raders kontroller ved menneskets sete. Hendelsesloggen er rullbar, høy-kontrast og må ikke skjule seter. Ved showdown vises hver avslørte spillers beste hånd over det tilhørende setet.
 - All player-facing GUI text must be at least 20 px, matching the desktop opponent-name text size. Compact layouts may reflow controls but must not reduce this minimum.
 - All player-facing GUI text must use Godot's built-in plain non-serif UI font. This applies equally to the startup screen (labels, inputs, validation feedback, and on-canvas keypad) and the live table; serif faces are not permitted.
+- Use containers, anchors, and responsive margins instead of fixed pixel positioning. Interactive mobile controls should provide touch targets of at least 48 × 48 px; horizontal text buttons should target approximately 160 × 50 px where space allows.
+- GUI font sizing may adapt to the viewport through the shared theme, but player-facing text must never be reduced below 20 px. Compact layouts must reflow or simplify content instead.
+- Consider using the advice in the file `gui_scaling_best_practice.md` when GUI problems arise.
 
 ### 7.2 CLI (headless)
 

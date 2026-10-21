@@ -8,3 +8,6 @@
 
 # macOS
 .DS_Store
+
+# Local only files
+/localtmp/

@@ -21,7 +21,7 @@ seats, the central board zone obscured by action text, and the human action
 controls colliding. These tasks address presentation-layer defects only; poker
 state and `GameView` semantics must remain unchanged.
 
-- [~] **Agent task — reserve non-overlapping table regions:** define resolved
+- [ ] **Agent task — reserve non-overlapping table regions:** define resolved
   desktop bounds for the central community-card/pot/wager zone, the event feed,
   the human seat, the action panel, and every seat panel. Add GUI regression
   coverage at the default 6-player layout and at 2- and 9-player layouts that
@@ -62,23 +62,4 @@ state and `GameView` semantics must remain unchanged.
   full GUT tests, `gdlint`, and `gdformat --check`; update this milestone with
   the commands and results. Do not mark the human task complete based only on
   automated geometry assertions.
-- [ ] **human** Perform a six-player MacBook desktop verification after the
-  fixes at normal display scaling. Start a 5/10 tournament and inspect the
-  first human preflop turn. Confirm that no seat, latest-action label, event
-  entry, community-card placeholder, pot/wager zone, or action control overlaps
-  another; confirm Player 6 visibly says `Big blind 10`; confirm the event feed
-  and action panel have equal size and bottom alignment with the human seat;
-  exercise `Call`, `Raise`, `Pot raise`, `All-in`, and `Fold` where legal; and
-  record the MacBook model, macOS version, display scaling, Godot version,
-  viewport, screenshot, and pass/fail result here. Leave this task unchecked
-  and record reproduction steps if any observation fails.
 
-Automated verification recorded 2026-10-20:
-
-- `test_gui_desktop_followup.gd`: 7/7 tests, 553 assertions.
-- `test_gui_table_actions.gd`: 21/21 tests, 172 assertions.
-- `test_gui_desktop_readability.gd`: 4/4 tests, 322 assertions.
-- `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check`: 302/302
-  GUT tests, 4,861 assertions; `gdlint` clean; `gdformat --check` clean.
-- The remaining `[~]` region task requires one additional 9-player assertion
-  for every seat against the side-panel bounds before it can be marked complete.

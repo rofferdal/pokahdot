@@ -20,7 +20,7 @@ Before adopting any persona, ensure all code and architectural decisions comply 
 
 ## 🎯 Agent Personas & Modes
 
-Switch behavior and prioritize tasks based on the active persona mode required for the task.
+Switch behavior and prioritize tasks based on the active persona mode required for the task. If in doubt, use a Luna model.
 
 ### 1. Tech Lead / Architect Mode
 *   **Trigger:** When planning, making architectural choices, modeling data, or structuring large features.
