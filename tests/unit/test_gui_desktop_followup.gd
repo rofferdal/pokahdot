@@ -4,6 +4,7 @@ const GuiAvatarCatalogScript := preload("res://scripts/gui/gui_avatar_catalog.gd
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
 
 const DESKTOP_VIEWPORT := Vector2(1920, 1080)
+const IPAD_LANDSCAPE_VIEWPORT := Vector2(2388, 1450)
 const MIN_WIDENED_SEAT_WIDTH: float = 416.0
 
 
@@ -59,6 +60,60 @@ func test_six_player_lowest_bot_action_label_is_visible_above_action_panel() -> 
 		action_label_rect.end.y <= action_panel.get_global_rect().position.y,
 		"Player 6 latest action must remain above the action area",
 	)
+
+
+func test_seven_player_ipad_landscape_reserves_action_and_showdown_clearance() -> void:
+	var view: GameView = _view(7)
+	view._action_history = [
+		PublicActionRecord.new(1, PlayerAction.Kind.FOLD, 0),
+		PublicActionRecord.new(6, PlayerAction.Kind.CALL, 44),
+	]
+	view._showdown_results = {
+		3: _showdown_result(3, HandRank.Category.ONE_PAIR, [14, 13, 12, 9]),
+		4: _showdown_result(4, HandRank.Category.FULL_HOUSE, [13, 10]),
+	}
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = IPAD_LANDSCAPE_VIEWPORT
+	add_child_autofree(table)
+	table.bind_view(view, _avatar_assignments(7))
+	await _settle_layout()
+
+	var surface_rect := Rect2(Vector2.ZERO, _surface(table).size)
+	var event_rect := (table.get_node("%EventLog") as Control).get_global_rect()
+	var action_rect := (
+		(table.get_node("TableMargin/Felt/TableSurface/ActionPanel") as Control).get_global_rect()
+	)
+	for seat: int in [1, 6]:
+		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
+		var label := (
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dAction" % seat) as Label
+		)
+		assert_true(label.visible)
+		assert_true(surface_rect.encloses(Rect2(panel.position, panel.size)))
+		assert_false(panel.get_global_rect().intersects(event_rect))
+		assert_false(panel.get_global_rect().intersects(action_rect))
+		assert_gte(
+			label.get_global_rect().position.y,
+			panel.get_global_rect().end.y,
+			"Player %d action must be below its seat" % (seat + 1),
+		)
+		assert_false(label.get_global_rect().intersects(event_rect))
+		assert_false(label.get_global_rect().intersects(action_rect))
+
+	for seat: int in [3, 4]:
+		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
+		var label := (
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dShowdown" % seat) as Label
+		)
+		assert_true(label.visible)
+		assert_lte(
+			label.get_global_rect().end.y,
+			panel.get_global_rect().position.y,
+			"Player %d showdown result must be above its seat" % (seat + 1),
+		)
+		assert_true(surface_rect.encloses(Rect2(panel.position, panel.size)))
+		assert_true(surface_rect.encloses(Rect2(label.position, label.size)))
 
 
 func test_event_log_and_action_panel_have_equal_size_and_symmetric_desktop_placement() -> void:
@@ -286,3 +341,19 @@ func _avatar_assignments(player_count: int) -> Dictionary[int, String]:
 	for seat: int in range(player_count):
 		assignments[seat] = paths[seat]
 	return assignments
+
+
+func _showdown_result(
+	seat: int,
+	category: HandRank.Category,
+	tie_break_values: Array[int],
+) -> ShowdownResult:
+	var cards: Array[CardData] = [
+		CardData.new(14, CardData.Suit.SPADES),
+		CardData.new(13, CardData.Suit.HEARTS),
+		CardData.new(12, CardData.Suit.DIAMONDS),
+		CardData.new(11, CardData.Suit.CLUBS),
+		CardData.new(10, CardData.Suit.SPADES),
+	]
+	var rank := HandRank.new(category, tie_break_values, cards)
+	return ShowdownResult.new(seat, [cards[0], cards[1]], rank)

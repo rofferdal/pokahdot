@@ -909,6 +909,7 @@ func _layout_table() -> void:
 	if surface_size.x <= 0.0 or surface_size.y <= 0.0:
 		return
 	var mobile_portrait_layout: bool = GuiMobileTableLayoutScript.is_mobile_portrait(surface_size)
+	var landscape_tablet_layout: bool = GuiMobileTableLayoutScript.is_landscape_tablet(surface_size)
 	var mobile_content_scale: float = GuiMobileTableLayoutScript.content_scale(surface_size)
 	var seat_content_scale: float = GuiMobileTableLayoutScript.seat_scale(surface_size)
 	# Desktop controls use source dimensions directly.  The previous 0.75
@@ -1016,9 +1017,13 @@ func _layout_table() -> void:
 			Vector2(0.5, 0.91)
 			if is_hero
 			else (
-				TableSeatLayoutScript.compact_desktop_positions(seat_count)[visual_slot]
-				if not mobile_portrait_layout and surface_size.x < 1200.0
-				else TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
+				TableSeatLayoutScript.landscape_tablet_positions(seat_count)[visual_slot]
+				if landscape_tablet_layout
+				else (
+					TableSeatLayoutScript.compact_desktop_positions(seat_count)[visual_slot]
+					if not mobile_portrait_layout and surface_size.x < 1200.0
+					else TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
+				)
 			)
 		)
 		normalized_position = (

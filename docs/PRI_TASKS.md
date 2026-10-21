@@ -13,6 +13,79 @@ Status markers:
 
 `**human**` marks a task that requires hands-on verification and cannot be completed by automated tests. Follow its steps and record the requested evidence before changing its status.
 
+## Short big-blind all-in progression deadlock
+
+The reference failure is [`localtmp/ipad_game_lock_no_progress.jpg`](../localtmp/ipad_game_lock_no_progress.jpg).
+Near the end of a tournament, only the human small blind and the big blind remained. The
+small blind posted 660, while the big blind had only 631 chips and posted that amount. The
+big blind is therefore all-in before postflop action begins. The screenshot shows the flop
+dealt, `Wagers • 0 active`, no enabled human action, and `Waiting for Player 0 — Flop.`
+This is a progression defect, not a layout defect: a street with no actionable players must
+advance automatically to the next street or showdown.
+
+- [ ] **Agent task — add a core short-blind-post regression:** construct a deterministic
+  heads-up hand with a human small blind who has more chips than the blind amount and a big
+  blind whose remaining stack is below the configured big blind (for example, 660 versus
+  631). Assert that the blind post commits the actual 631 chips, marks the big blind
+  `all_in`, preserves the contribution ledger, and does not require a synthetic player
+  action to represent the short post.
+- [ ] **Agent task — verify automatic no-action street progression:** extend the regression
+  through flop, turn, and river. After every automatic transition, assert that the view has
+  no legal actions, no actionable acting seat, and never returns `WAITING_FOR_HUMAN`; then
+  assert that the hand reaches showdown/hand completion and conserves all chips. Include the
+  same case through `TournamentMatch` after the other seats have been eliminated, because
+  busted-seat traversal and heads-up blind order are part of the failure conditions.
+- [ ] **Agent task — fix bounded GUI advancement after a complete street:** update the GUI
+  progression path used with `TournamentMatch.start(1)` so that a newly created betting
+  round which is already complete is automatically drained. Continuation must be triggered
+  by the resulting state (`acting_seat == Table.NO_SEAT`, empty legal actions, or hand
+  completion), not only by the latest event being `ACTION_APPLIED`. Preserve nonblocking
+  action pacing and do not create a fake check/call or expose disabled controls as an
+  available action.
+- [ ] **Agent task — add a GUI lock regression:** bind the table to a deterministic
+  short-big-blind heads-up match using the same one-transition startup path as the GUI.
+  Advance deferred frames/timers and assert that the table never displays `Waiting for
+  Player 0` while the bound view has zero active wagers and no legal actions. Assert that
+  it continues through the remaining board streets to showdown/hand completion, with the
+  action controls disabled only while automatic progression is pending and the event log
+  retaining the short blind-post amount.
+- [ ] **human task:** run a seeded late-tournament GUI game in the iPad browser until a
+  remaining big blind has fewer chips than the posted big blind. Confirm the short amount is
+  shown as the big-blind post, the player is visibly all-in, the flop/turn/river runout
+  continues without an action prompt, and the next hand or tournament result appears. Record
+  the device, viewport, browser, seed/configuration, and result here before marking this
+  task complete.
+
+## Betting-round action-label lifecycle
+
+The GUI currently renders each seat's latest public action below that seat, but the
+requirements do not yet define the label's lifetime. Action labels must describe only the
+active betting round: they are cleared at the start of pre-flop and whenever the hand moves
+to flop, turn, or river. The event log remains the complete public history and must not be
+cleared as part of this presentation reset.
+
+- [ ] **Agent task — scope seat action labels to the active betting round:** update the GUI
+  controller and its presentation state so that the per-seat action text is reset when a
+  new hand starts pre-flop and when a street/betting-round transition occurs. Keep the
+  current round's latest action visible below the owning seat, and do not alter core
+  `GameView` action history or the event log.
+- [ ] **Agent task — preserve event-history behavior:** ensure the action-label reset does
+  not remove blind posts, prior-street actions, or other public events from the scrollable
+  event log. The event log may continue to show the full hand while seat labels show only
+  the current betting round.
+- [ ] **Agent task — add GUI transition regressions:** add deterministic GUI tests covering
+  pre-flop, flop, turn, and river. After actions exist on one street, assert that every
+  seat's old action label is absent immediately after the next street begins, then assert
+  that new actions appear only under their owning seats. Also assert that the event log
+  still contains the prior-street action entries.
+- [ ] **Agent task — cover automatic and delayed transitions:** verify the same reset when
+  bot actions advance automatically, when a human action resumes the match after a GUI
+  pacing delay, and when a street begins with no actionable players during an all-in
+  runout. No stale label may reappear after deferred view refreshes.
+- [ ] **Human task:** run a GUI hand through all four betting rounds on desktop and iPad
+  sizes. Confirm that seat-level action text disappears at each new round, new actions are
+  shown only for that round, and the event log still retains the complete public sequence.
+
 ## Six-player desktop table collision remediation
 
 The reference failure is a six-player desktop table at the first preflop human
@@ -63,3 +136,71 @@ state and `GameView` semantics must remain unchanged.
   the commands and results. Do not mark the human task complete based only on
   automated geometry assertions.
 
+## Seven-player iPad landscape table collision remediation
+
+- [x] **Agent task — reserve iPad landscape seat clearance:** use a dedicated
+  landscape-tablet seat arrangement for seven players so the side event feed
+  and action panel cannot obscure Player 2 or Player 7.
+- [x] **Agent task — preserve latest-action space:** reserve visible space below
+  every seat for its latest public action, with explicit regression coverage for
+  Player 2 and Player 7 beside the side panels.
+- [x] **Agent task — preserve showdown-summary space:** reserve visible space
+  above Player 4 and Player 5 for their showdown result text, including a top
+  safety margin at the iPad landscape viewport.
+- [ ] **Agent task — bound the central table zone:** make the community-card,
+  pot, and wager stack use an explicit width derived from the available table
+  surface, rather than allowing `get_combined_minimum_size()` from changing
+  status text to widen the stack. Preserve enough width for all five community
+  card slots and keep the stack centered and inside the table surface.
+- [ ] **Agent task — stabilize central status presentation:** prevent changing
+  pot, blind, layer, and blind-progress text from changing the central-zone
+  footprint. Split or constrain the status presentation as needed, while
+  keeping all player-facing information readable and respecting the 20 px text
+  minimum.
+- [ ] **Agent task — add central-zone width regressions:** at the seven-player
+  iPad landscape viewport, render short and long status strings and assert that
+  the central-zone width remains within its configured bound, its board/pot/
+  wager panels have equal widths, and none of those regions intersects a seat,
+  event feed, or action panel after repeated deferred view refreshes.
+- [ ] **Human task:** verify the seven-player tournament in an iPad browser in
+  landscape orientation during normal play and showdown; confirm Player 2/7
+  details and latest-action text remain visible, and Player 4/5 showdown
+  summaries are fully readable.
+
+## Small desktop viewport table collision remediation
+
+The developer-machine reference screenshot is a roughly 950x532 table surface.
+It is currently treated as a non-mobile desktop layout even though the authored
+seat panels, auxiliary labels, event feed, and action panel cannot all fit with
+their required clearance. The screenshot shows the lower seats and their latest
+action area compressed against the event/action panels, while the top seats have
+little or no room above them for showdown summaries.
+
+- [ ] **Agent task — add a small-desktop layout mode:** detect short desktop
+  surfaces independently from mobile portrait and iPad landscape modes, and
+  use a compact seven-seat arrangement that remains readable at the reference
+  developer viewport and nearby sizes.
+- [ ] **Agent task — reserve all auxiliary-text clearance:** include each seat's
+  below-seat latest-action label and above-seat showdown-summary label in the
+  layout bounds before placing seats. Player 2 and Player 7 must retain space
+  below their panels; Player 4 and Player 5 must retain space above their panels.
+- [ ] **Agent task — prevent side-panel occlusion:** ensure the event feed and
+  human action panel do not intersect any seat panel, latest-action label, or
+  showdown-summary label at small desktop sizes. If the full panels cannot fit,
+  reflow or reduce their presentation-only footprint while preserving access to
+  all events and controls.
+- [ ] **Agent task — preserve central-zone visibility:** keep the community-card,
+  pot, and wager zones fully visible and separated from seats, auxiliary labels,
+  the event feed, and action controls at the reference viewport.
+- [ ] **Agent task — preserve readable controls and touch targets:** prevent
+  action-button text and wager input text from wrapping or clipping in the
+  compact layout, while retaining distinct controls and the minimum supported
+  interaction target size.
+- [ ] **Agent task — add small-desktop regression coverage:** test at the
+  reference viewport and representative nearby sizes for 2–9 players, checking
+  bounds, non-intersection, label clearance, central-zone visibility, and
+  readable action controls. Include both preflop and showdown states.
+- [ ] **Human task:** run `godot --path .` on the developer machine and inspect
+  6- and 7-player tables through preflop, street changes, and showdown. Confirm
+  that no player details, latest actions, showdown results, event entries, or
+  action controls are obscured.

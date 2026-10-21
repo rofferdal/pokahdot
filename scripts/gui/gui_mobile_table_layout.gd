@@ -13,6 +13,9 @@ const HERO_SEAT_TEXT_FONT_SIZE: int = 46
 const TABLE_TEXT_FONT_SIZE: int = 32
 const ACTION_TEXT_FONT_SIZE: int = 21
 const MOBILE_PORTRAIT_ASPECT_RATIO: float = 1.2
+const LANDSCAPE_TABLET_MIN_WIDTH: float = 1600.0
+const LANDSCAPE_TABLET_MIN_HEIGHT: float = 1200.0
+const LANDSCAPE_TABLET_MAX_ASPECT_RATIO: float = 1.8
 const MOBILE_MAX_CONTENT_SCALE: float = 2.0
 const MOBILE_TOUCH_TARGET_HEIGHT: float = 48.0
 # Desktop source sizes.  These are authored at their final display point size;
@@ -26,6 +29,14 @@ const DESKTOP_HERO_CARD_RANK_FONT_SIZE: int = 44
 
 static func is_mobile_portrait(surface_size: Vector2) -> bool:
 	return surface_size.y / surface_size.x >= MOBILE_PORTRAIT_ASPECT_RATIO
+
+
+static func is_landscape_tablet(surface_size: Vector2) -> bool:
+	if surface_size.x < LANDSCAPE_TABLET_MIN_WIDTH:
+		return false
+	if surface_size.y < LANDSCAPE_TABLET_MIN_HEIGHT:
+		return false
+	return surface_size.x / surface_size.y < LANDSCAPE_TABLET_MAX_ASPECT_RATIO
 
 
 static func content_scale(surface_size: Vector2) -> float:
