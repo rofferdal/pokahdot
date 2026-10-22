@@ -31,34 +31,34 @@ simulation may use zero humans only through its dedicated composition path.
 
 ## Milestone 2 — Deterministic batch evaluation and observability
 
-- [ ] Implement a deterministic batch runner that evaluates supplied fixed
+- [x] Implement a deterministic batch runner that evaluates supplied fixed
   profile snapshots over explicit tournament indexes without changing the
   poker engine or the profiles during a tournament.
-- [ ] Implement round-robin matchup scheduling and cyclic seat rotation so a
+- [x] Implement round-robin matchup scheduling and cyclic seat rotation so a
   profile is evaluated across every applicable seat. Derive rotation from the
   zero-based occurrence count of the selected matchup, not the global
   tournament index. Test interleaved matchups, full balanced rotations,
   deterministic seeds, and shards that filter rather than replan indexes.
-- [ ] Implement structural-regime support for the approved tournament settings
+- [x] Implement structural-regime support for the approved tournament settings
   (heads-up, 6-max, full-ring, stack depths, and starting blind values).
   Simulation v1 may vary only player count, starting stack, starting small
   blind, and starting big blind; every regime uses the normative fixed
   hand-based blind progression. Validate every regime using ordinary
   tournament configuration rules.
-- [ ] Capture event-derived per-hand and per-tournament metrics: winner/end
+- [x] Capture event-derived per-hand and per-tournament metrics: winner/end
   reason, tournament win rate, average finishing position, top-third rate,
   chip differential, hands survived and survival ratio, documented
   blind-normalized chip change per 100 observed hands, VPIP, PFR, aggression
   factor, invalid-action fallbacks, and sample counts/denominators.
-- [ ] Add bounded strategy-decision and hand-outcome tracing built on
+- [x] Add bounded strategy-decision and hand-outcome tracing built on
   `strategy_decision_trace.gd`. It must be optional, deterministic when
   sampled, and ordinary reports and every trace mode must never contain
   unrevealed opponent hole cards, including after tournament completion.
-- [ ] Define aggregate calculations and uncertainty reporting for profile,
+- [x] Define aggregate calculations and uncertainty reporting for profile,
   matchup, seat, and regime groups. Do not rank candidates from a sample too
   small to report its uncertainty. Normalize every fitness component to
   `[0, 1]` using the documented formula before combining mixed regimes.
-- [ ] Test metric definitions with hand-crafted event sequences and test that
+- [x] Test metric definitions with hand-crafted event sequences and test that
   two identical seeded batches produce identical outcomes, mappings, metrics,
   and sampled traces.
 

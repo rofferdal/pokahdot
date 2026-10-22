@@ -6,6 +6,7 @@ extends Agent
 var profile_id: StringName
 var model_id: StringName
 var _model: DecisionModel
+var _decision_history: Array[Dictionary] = []
 
 
 func _init(model: DecisionModel, profile: BotProfile) -> void:
@@ -17,13 +18,26 @@ func _init(model: DecisionModel, profile: BotProfile) -> void:
 
 
 func choose_action(view: GameView) -> PlayerAction:
-	return _model.choose_action(view)
+	var action := _model.choose_action(view)
+	var trace := _model.get_last_decision_trace_for_testing()
+	if trace != null:
+		_decision_history.append({
+			"trace": trace.copy(),
+			"street": view.street if view != null else &"unknown",
+			"action": action,
+		})
+	return action
 
 
 ## Test/simulation-only hook. It is intentionally separate from GameView and
 ## is never consumed by CLI or GUI rendering.
 func get_last_decision_trace_for_testing() -> RefCounted:
 	return _model.get_last_decision_trace_for_testing()
+
+
+## Simulation-only history used to correlate rejected and applied decisions.
+func get_decision_history_for_simulation() -> Array[Dictionary]:
+	return _decision_history.duplicate()
 
 
 func observe(record: PublicActionRecord) -> void:

@@ -51,6 +51,8 @@ var _pot_awards: Array[PotAward] = []
 var _pot_layers: Array[PotLayer] = []
 var _showdown_hands: Dictionary[int, Array] = {}
 var _showdown_results: Dictionary[int, ShowdownResult] = {}
+var _starting_stacks: Dictionary[int, int] = {}
+var _active_seats_at_start: Array[int] = []
 
 
 func _init(
@@ -74,6 +76,10 @@ func start(max_transitions: int = 32) -> StepResult:
 		return StepResult.new(StepResult.Status.ERROR, "The hand has already started.")
 	if _table.button_seat == Table.NO_SEAT:
 		_table.choose_initial_button(_button_rng)
+	_starting_stacks.clear()
+	_active_seats_at_start = _table.active_seats()
+	for seat: int in _active_seats_at_start:
+		_starting_stacks[seat] = _table.get_player(seat).stack
 	for player: Player in _table.players:
 		player.reset_for_hand()
 	_pots.clear()
@@ -182,9 +188,11 @@ func get_view_for(seat: int) -> GameView:
 			_showdown_hands,
 			hand_number,
 			_pot_layers,
-			_showdown_results,
-			_blind_progression,
-		)
+		_showdown_results,
+		_blind_progression,
+		_starting_stacks,
+		_active_seats_at_start,
+	)
 	)
 	view.hand_complete = state == State.COMPLETE
 	view.hand_winner_seat = winner_seat

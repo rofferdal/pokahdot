@@ -68,6 +68,40 @@ the match without rendering or stdin. It treats a human wait state as a
 simulation error. Typed batch input and outcome contracts build on this root
 without entering the game core.
 
+`SimulationBatchRunner` executes a caller-supplied ordered collection of
+`SimulationTournamentInput` values. It does not schedule indexes, select
+matchups, or mutate profile snapshots; it reconstructs the resolved
+configuration with each input's effective seed and returns a typed outcome for
+every input, including structured validation, construction, and execution
+failures. This makes a future shard a filter of the same global plan rather
+than a separately seeded local batch.
+
+`SimulationBatchPlanner` converts explicit global indexes into inputs using
+`seed_start + index`, ordered round-robin matchup selection, and cyclic seat
+rotation. Each matchup maintains its own zero-based occurrence count, so a
+rotation is `occurrence % player_count` even when matchups are interleaved.
+Its shard helper filters those already-planned inputs by global index and never
+renumbers or replans them. `SimulationRegime` owns the only permitted v1
+structural variations (player count, common stack, and starting blinds) and
+validates them through the normal `ConfigResolver`; all regimes therefore use
+the existing single-table and hand-based blind-progression rules.
+
+`SimulationTournamentMetrics` observes only recipient-safe completed-hand
+snapshots, public action records, and domain events. `HandController` records
+the starting active seats and stacks for that hand in its safe `GameView`, so
+the simulation adapter can calculate survival, blind-normalized chip change,
+VPIP/PFR/aggression, and invalid-action fallbacks without retaining cards or
+mutable core state. Completed outcomes contain the resulting per-seat metric
+values alongside their existing identity and completion data.
+
+`SimulationTraceConfig` restricts tracing to none, errors, or a bounded
+deterministically sampled mode. `SimulationTraceEntry` contains strategy
+branch/action metadata and hand outcomes only; it deliberately contains no
+hole cards or deck data. `SimulationAggregateCalculator` groups completed
+seat observations by profile, matchup, seat, and regime, reports 95% normal
+half-width estimates, marks groups below the requested sample threshold as
+non-reportable, and applies the documented normalized fitness formula.
+
 `RngStreamFactory` derives every random stream from the effective tournament
 seed and a stable name. In addition to deck, initial-button, and per-seat bot
 streams, simulations receive `tournament_construction`,

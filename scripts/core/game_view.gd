@@ -27,6 +27,8 @@ var hand_winner_seat: int = Table.NO_SEAT
 var hand_complete: bool
 var active_seats: Array[int] = []
 var eliminated_seats: Array[int] = []
+var hand_start_stacks: Dictionary[int, int] = {}
+var active_seats_at_hand_start: Array[int] = []
 
 var seats: Array[PlayerView]:
 	get:
@@ -109,6 +111,8 @@ static func for_hand(
 	settled_pots: Array[PotLayer] = [],
 	revealed_results: Dictionary[int, ShowdownResult] = {},
 	blind_progression: BlindLevelProgression = null,
+	starting_stacks: Dictionary[int, int] = {},
+	starting_active_seats: Array[int] = [],
 ) -> GameView:
 	assert(table != null, "A game view requires a table.")
 	assert(table.get_player(recipient_seat) != null, "The recipient seat must exist.")
@@ -139,6 +143,8 @@ static func for_hand(
 	view.acting_seat = betting_round.acting_seat if betting_round != null else Table.NO_SEAT
 	view.pot_amount = pot_manager.total_amount if pot_manager != null else 0
 	view._community_cards = board.duplicate()
+	view.hand_start_stacks = starting_stacks.duplicate()
+	view.active_seats_at_hand_start = starting_active_seats.duplicate()
 	view._pots = settled_pots.duplicate()
 	if view._pots.is_empty() and pot_manager != null:
 		view._pots = pot_manager.derive_pots(table.players)

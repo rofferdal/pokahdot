@@ -129,6 +129,11 @@ func get_events() -> Array[DomainEvent]:
 	return [] if _hand == null else _hand.events
 
 
+## Simulation-only access to the private agent adapter for recipient-safe traces.
+func get_agent_for_simulation(seat: int) -> Agent:
+	return _agents.get(seat)
+
+
 func _validate_configuration() -> String:
 	if _config == null:
 		return "A resolved tournament configuration is required."

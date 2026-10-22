@@ -6,9 +6,12 @@ extends RefCounted
 var tournament_index: int
 var effective_seed: int
 var matchup_id: StringName
+var regime_id: StringName = &""
 var final_seat_mapping: Dictionary[int, StringName]
 var completion: SimulationCompletionResult
 var diagnostics: Array[SimulationDiagnostic]
+var metrics: Dictionary
+var traces: Array[SimulationTraceEntry]
 
 
 func _init(
@@ -18,6 +21,9 @@ func _init(
 	seat_mapping: Dictionary[int, StringName],
 	completion_result: SimulationCompletionResult,
 	outcome_diagnostics: Array[SimulationDiagnostic] = [],
+	outcome_metrics: Dictionary = {},
+	outcome_traces: Array[SimulationTraceEntry] = [],
+	outcome_regime_id: StringName = &"",
 ) -> void:
 	tournament_index = index
 	effective_seed = seed
@@ -25,6 +31,10 @@ func _init(
 	final_seat_mapping = seat_mapping.duplicate()
 	completion = completion_result
 	diagnostics = outcome_diagnostics.duplicate()
+	metrics = outcome_metrics.duplicate()
+	regime_id = outcome_regime_id
+	for trace: SimulationTraceEntry in outcome_traces:
+		traces.append(trace.copy())
 
 
 func is_success() -> bool:
