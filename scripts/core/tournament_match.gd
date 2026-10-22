@@ -14,6 +14,7 @@ var hand_number: int = 0
 
 var _config: ResolvedTournamentConfig
 var _agents: Dictionary[int, Agent]
+var _construction_contract: TournamentConstructionContract
 var _streams: RngStreams
 var _table: Table
 var _hand: HandController
@@ -22,12 +23,22 @@ var _configuration_error: String
 var _awaiting_next_hand: bool = false
 
 
-func _init(config: ResolvedTournamentConfig, seat_agents: Dictionary[int, Agent]) -> void:
+func _init(
+	config: ResolvedTournamentConfig,
+	seat_agents: Dictionary[int, Agent],
+	construction_contract: TournamentConstructionContract = null,
+	rng_streams: RngStreams = null,
+) -> void:
 	_config = config
 	_agents = seat_agents.duplicate()
+	_construction_contract = (
+		TournamentConstructionContract.product()
+		if construction_contract == null
+		else construction_contract
+	)
 	_configuration_error = _validate_configuration()
 	if _configuration_error.is_empty():
-		_streams = RngStreamFactory.new().create(config)
+		_streams = RngStreamFactory.new().create(config) if rng_streams == null else rng_streams
 		_blind_progression = (
 			BlindLevelProgression
 			. new(
@@ -123,15 +134,9 @@ func _validate_configuration() -> String:
 		return "A resolved tournament configuration is required."
 	if _agents.size() != _config.player_count:
 		return "Every configured seat must have an agent."
-	var human_count: int = 0
-	for seat: int in range(_config.player_count):
-		if not _agents.has(seat) or _agents[seat] == null:
-			return "Seat %d has no agent." % seat
-		if _agents[seat] is HumanAgent:
-			human_count += 1
-	if human_count != 1:
-		return "A tournament requires exactly one human agent."
-	return ""
+	if _construction_contract == null:
+		return "A tournament construction contract is required."
+	return _construction_contract.validate_agents(_agents, _config.player_count)
 
 
 func _handle_hand_result(result: StepResult) -> StepResult:

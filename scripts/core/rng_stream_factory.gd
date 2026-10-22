@@ -4,6 +4,11 @@ extends RefCounted
 const HASH_MODULUS: int = 2147483647
 const HASH_MULTIPLIER: int = 31
 const HUMAN_AGENT_ID: StringName = &"human"
+const TOURNAMENT_CONSTRUCTION_STREAM_ID := "tournament_construction"
+const SEAT_PROFILE_ASSIGNMENT_STREAM_ID := "seat_profile_assignment"
+const DECK_STREAM_ID := "deck"
+const INITIAL_BUTTON_STREAM_ID := "initial_button"
+const TRACE_SAMPLING_STREAM_ID := "trace_sampling"
 
 var _time_seed_provider: Callable
 
@@ -16,16 +21,36 @@ func create(config: ResolvedTournamentConfig) -> RngStreams:
 	assert(config != null, "A resolved tournament configuration is required.")
 
 	var effective_seed := _resolve_effective_seed(config.rng_seed)
-	var deck_rng := _create_stream(effective_seed, "deck")
-	var initial_button_rng := _create_stream(effective_seed, "initial_button")
-	var bot_rngs: Dictionary[int, RandomNumberGenerator] = {}
+	var stream_ids: PackedStringArray = [
+		TOURNAMENT_CONSTRUCTION_STREAM_ID,
+		SEAT_PROFILE_ASSIGNMENT_STREAM_ID,
+		DECK_STREAM_ID,
+		INITIAL_BUTTON_STREAM_ID,
+		TRACE_SAMPLING_STREAM_ID,
+	]
 	var seat_agents: Dictionary[int, StringName] = config.seat_agents
 
 	for seat: int in range(config.player_count):
 		if seat_agents[seat] != HUMAN_AGENT_ID:
-			bot_rngs[seat] = _create_stream(effective_seed, "bot:%d" % seat)
+			stream_ids.append(bot_stream_id(seat))
 
-	return RngStreams.new(effective_seed, deck_rng, initial_button_rng, bot_rngs)
+	return create_named(effective_seed, stream_ids)
+
+
+func create_named(effective_seed: int, stream_ids: PackedStringArray) -> RngStreams:
+	var streams: Dictionary[String, RandomNumberGenerator] = {}
+	var stream_seeds: Dictionary[String, int] = {}
+	for stream_id: String in stream_ids:
+		if stream_id.is_empty() or streams.has(stream_id):
+			continue
+		var derived_seed := _derive_seed(effective_seed, stream_id)
+		streams[stream_id] = _create_stream_from_seed(derived_seed)
+		stream_seeds[stream_id] = derived_seed
+	return RngStreams.new(effective_seed, streams, stream_seeds)
+
+
+static func bot_stream_id(seat: int) -> String:
+	return "bot:%d" % seat
 
 
 func _resolve_effective_seed(configured_seed: int) -> int:
@@ -44,9 +69,9 @@ func _resolve_effective_seed(configured_seed: int) -> int:
 	return time_seed
 
 
-func _create_stream(effective_seed: int, stream_id: String) -> RandomNumberGenerator:
+func _create_stream_from_seed(derived_seed: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = _derive_seed(effective_seed, stream_id)
+	rng.seed = derived_seed
 	return rng
 
 

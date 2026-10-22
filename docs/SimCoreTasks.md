@@ -12,20 +12,20 @@ simulation may use zero humans only through its dedicated composition path.
 
 ## Milestone 1 — Simulation foundation
 
-- [ ] Define a simulation-only tournament construction contract that permits
+- [x] Define a simulation-only tournament construction contract that permits
   all-bot seats while preserving the normal GUI and interactive CLI
   exactly-one-human validation contract.
-- [ ] Build a headless simulation composition root outside `scripts/core/` and
+- [x] Build a headless simulation composition root outside `scripts/core/` and
   the product GUI/CLI startup paths. It must create bot agents from immutable
   profile snapshots and advance a tournament without rendering or stdin.
-- [ ] Reuse `rng_stream_factory.gd` to create deterministic, named RNG streams
+- [x] Reuse `rng_stream_factory.gd` to create deterministic, named RNG streams
   for tournament construction, seat/profile assignment, bot decisions, and
   any trace sampling. Record enough seed identity to reproduce each stream.
-- [ ] Define typed, core-independent simulation input and outcome values:
+- [x] Define typed, core-independent simulation input and outcome values:
   tournament index, effective seed, matchup, final seat mapping, completion
   result, and failure diagnostics. Keep serialization and command-line
   concerns out of the game core.
-- [ ] Add unit and integration tests proving that an all-bot tournament
+- [x] Add unit and integration tests proving that an all-bot tournament
   completes with legal actions and that normal product construction still
   rejects zero-human configurations.
 

@@ -53,6 +53,38 @@ Dependencies point inward. `scripts/core/` may use Godot base types such as `Ref
 
 There are three composition roots. GUI and interactive CLI each construct exactly one human plus bots. The non-interactive simulation root may construct all-bot tournaments. No other composition path may bypass the exactly-one-human product invariant. Each root creates validated configuration, players, agents, named RNG streams, and `TournamentMatch`, then drives the same public API.
 
+`TournamentConstructionContract` makes the composition distinction explicit at
+the match boundary. `TournamentMatch` defaults to the product contract and
+therefore requires exactly one `HumanAgent`; the dedicated simulation root must
+pass `TournamentConstructionContract.simulation()`, which instead requires
+zero human agents. This contract is separate from the editor-facing product
+configuration, so `ConfigResolver`, GUI startup, and interactive CLI startup
+retain their existing exactly-one-human validation.
+
+`SimulationMatchFactory` is the simulation-owned, headless composition root.
+It deep-copies the supplied `BotProfile` Resources before constructing one
+fresh `BotAgent` per seat, uses the all-bot construction contract, and advances
+the match without rendering or stdin. It treats a human wait state as a
+simulation error. Typed batch input and outcome contracts build on this root
+without entering the game core.
+
+`RngStreamFactory` derives every random stream from the effective tournament
+seed and a stable name. In addition to deck, initial-button, and per-seat bot
+streams, simulations receive `tournament_construction`,
+`seat_profile_assignment`, and `trace_sampling` streams. `RngStreams` records
+the derived seed for every name; `SimulationMatchCreationResult` preserves the
+effective seed and copied stream-seed map for subsequent outcome reporting.
+The simulation factory passes the same stream collection to the agents and
+`TournamentMatch`, so bot decisions and poker progression cannot accidentally
+draw from separate copies of a stream.
+
+Simulation adapter values are explicit `RefCounted` snapshots: a
+`SimulationTournamentInput` identifies the tournament index, resolved seed,
+matchup, and assigned immutable profile snapshots; a
+`SimulationTournamentOutcome` carries copied identity, final seat-to-profile
+mapping, completion summary, and structured diagnostics. Neither retains live
+core state, rendering data, command-line arguments, or serialization details.
+
 ## 4. Key decisions
 
 | Decision | Rationale |

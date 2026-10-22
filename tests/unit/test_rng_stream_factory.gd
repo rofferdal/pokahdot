@@ -35,6 +35,28 @@ func test_named_streams_are_distinct_instances_and_sequences() -> void:
 	assert_ne(_capture_sequence(deck_rng), _capture_sequence(button_rng))
 	assert_ne(_capture_sequence(deck_rng), _capture_sequence(bot_rng))
 	assert_ne(_capture_sequence(button_rng), _capture_sequence(bot_rng))
+	assert_ne(streams.get_tournament_construction_rng(), streams.get_seat_profile_assignment_rng())
+	assert_ne(streams.get_seat_profile_assignment_rng(), streams.get_trace_sampling_rng())
+
+
+func test_named_stream_seed_identities_are_complete_and_reproducible() -> void:
+	var first: RngStreams = _create_streams(123456, 4)
+	var second: RngStreams = _create_streams(123456, 4)
+	var identities: Dictionary[String, int] = first.get_stream_seeds()
+
+	for stream_id: String in [
+		RngStreamFactory.TOURNAMENT_CONSTRUCTION_STREAM_ID,
+		RngStreamFactory.SEAT_PROFILE_ASSIGNMENT_STREAM_ID,
+		RngStreamFactory.DECK_STREAM_ID,
+		RngStreamFactory.INITIAL_BUTTON_STREAM_ID,
+		RngStreamFactory.TRACE_SAMPLING_STREAM_ID,
+		RngStreamFactory.bot_stream_id(1),
+		RngStreamFactory.bot_stream_id(2),
+		RngStreamFactory.bot_stream_id(3),
+	]:
+		assert_true(identities.has(stream_id), stream_id)
+		assert_eq(identities[stream_id], second.get_stream_seed(stream_id), stream_id)
+		assert_ne(identities[stream_id], 0, stream_id)
 
 
 func test_heavy_deck_consumption_does_not_change_bot_streams() -> void:

@@ -32,7 +32,7 @@ func create(config: ResolvedTournamentConfig) -> TournamentMatch:
 			agents[seat] = HumanAgent.new()
 		else:
 			agents[seat] = _create_bot(agent_id, streams.get_bot_rng(seat))
-	return TournamentMatch.new(config, agents)
+	return TournamentMatch.new(config, agents, null, streams)
 
 
 func _agent_id_for(config: ResolvedTournamentConfig, seat: int) -> StringName:

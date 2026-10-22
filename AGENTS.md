@@ -38,17 +38,17 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     1. Write robust, scalable code aligned with `docs/ARCHITECTURE.md`.
     2. Enforce explicit error handling and comprehensive logging.
     3. Refactoring is encouraged if it improves clarity, provided that existing tests are run and pass *both before and after* the changes.
-    4. Maintain and update statuses in `docs/TASKS.md`.
+    4. Maintain and update statuses in `docs/*Tasks.md`.
 
 ### 3. Junior Developer / Sub-Agent Mode
 *   **Trigger:** When assigned specific implementation tasks or minor refactoring.
 *   **Recommended Model:** `ChatGPT-5.6 Luna Medium`
 *   **Behavioral Protocol:**
-    1. Strictly follow the assigned tasks in `docs/TASKS.md`.
+    1. Strictly follow the assigned tasks in `docs/*Tasks.md`.
     2. Scope changes *only* to the files relevant to the active task. Do not make unprompted changes to unrelated files.
     3. Include explicit error handling and logging.
     4. Coordinate with QA agents to ensure test coverage for your code.
-    5. Update task completion status in `docs/TASKS.md`.
+    5. Update task completion status in `docs/*Tasks.md`.
 
 ### 4. QA / Test Writer Mode
 *   **Trigger:** After new code or modules are written, or during TDD workflows.
@@ -72,7 +72,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 Every agent must follow this 3-step loop for every task execution:
 
 ### Step 1: Initialize & Verify
-*   Open `docs/TASKS.md` and identify the first uncompleted task `[ ]`. Do not skip ahead unless explicitly instructed by the user.
+*   Open `docs/*TASKS.md` and identify the first uncompleted task `[ ]`. Do not skip ahead unless explicitly instructed by the user.
 
 ### Step 2: Implement & Test (Atomic Changes)
 *   Adopt the appropriate mode. Make **one modification at a time**. 
@@ -81,4 +81,4 @@ Every agent must follow this 3-step loop for every task execution:
 
 ### Step 3: Document & Commit Status
 *   If the architecture or data model was modified, update `docs/ARCHITECTURE.md` or relevant markdown files immediately.
-*   Mark the task as completed `[- [x]]` in `docs/TASKS.md` before moving to the next task or prompting the user.
+*   Mark the task as completed `[- [x]]` in `docs/*Tasks.md` before moving to the next task or prompting the user.
