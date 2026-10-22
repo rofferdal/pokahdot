@@ -1,5 +1,10 @@
 # Priority Tasks
 
+> **Archived / superseded.** This file preserves completed priority-task
+> history and is not an active backlog. Current GUI and device work is in
+> [`GuiTasks.md`](../GuiTasks.md); shared work is in
+> [`CoreTasks.md`](../CoreTasks.md).
+
 The tasks in this document comes from prompts to improve on observed errors and weaknesses. If they contradict ProjectDescription.md or ARCHITECTURE.md, these documents should be updated.
 
 When executing these tasks, verification of the actual result is very important. You are allowed to iterate if the verification shows requirements are not met. Add human verification tasks if something can not be verified properly by agent driven tests. Stop execution if a human test is needed.
@@ -15,7 +20,7 @@ Status markers:
 
 ## Short big-blind all-in progression deadlock
 
-The reference failure is [`localtmp/ipad_game_lock_no_progress.jpg`](../localtmp/ipad_game_lock_no_progress.jpg).
+The reference failure is [`localtmp/ipad_game_lock_no_progress.jpg`](../../localtmp/ipad_game_lock_no_progress.jpg).
 Near the end of a tournament, only the human small blind and the big blind remained. The
 small blind posted 660, while the big blind had only 631 chips and posted that amount. The
 big blind is therefore all-in before postflop action begins. The screenshot shows the flop
@@ -140,12 +145,12 @@ state and `GameView` semantics must remain unchanged.
 
 - [x] **Agent task — reserve iPad landscape seat clearance:** use a dedicated
   landscape-tablet seat arrangement for seven players so the side event feed
-  and action panel cannot obscure Player 2 or Player 7.
+  and action panel cannot obscure the left-middle or right-middle layout seat.
 - [x] **Agent task — preserve latest-action space:** reserve visible space below
   every seat for its latest public action, with explicit regression coverage for
-  Player 2 and Player 7 beside the side panels.
+  the left-middle and right-middle layout seats beside the side panels.
 - [x] **Agent task — preserve showdown-summary space:** reserve visible space
-  above Player 4 and Player 5 for their showdown result text, including a top
+  above the upper-left and upper-right layout seats for their showdown result text, including a top
   safety margin at the iPad landscape viewport.
 - [x] **Agent task — bound the central table zone:** make the community-card,
   pot, and wager stack use an explicit width derived from the available table
@@ -163,53 +168,53 @@ state and `GameView` semantics must remain unchanged.
   wager panels have equal widths, and none of those regions intersects a seat,
   event feed, or action panel after repeated deferred view refreshes.
 - [x] **Human task:** verify the seven-player tournament in an iPad browser in
-  landscape orientation during normal play and showdown; confirm Player 2/7
-  details and latest-action text remain visible, and Player 4/5 showdown
+  landscape orientation during normal play and showdown; confirm the two
+  middle-side seats' details and latest-action text remain visible, and the two upper-seat showdown
   summaries are fully readable.
 
 ### Seven-player iPad verification follow-up
 
-The first human verification found three remaining presentation defects: Player 2
-and Player 7 details, especially their latest-action text, are not visible;
-Player 4 and Player 5 showdown summaries are visible but overlap their player
-names; and the Player 1 seat area moves vertically depending on whether a latest
+The first human verification found three remaining presentation defects: the
+left-middle and right-middle seat details, especially their latest-action text,
+are not visible; the upper-left and upper-right showdown summaries are visible
+but overlap their player names; and the bottom human-seat area moves vertically depending on whether a latest
 action is present. These are GUI layout defects only and must not change poker
 state or event-history behavior.
 
-- [x] **Agent task — preserve Player 2/7 detail visibility:** inspect the settled
+- [x] **Agent task — preserve middle-side detail visibility:** inspect the settled
   seven-player iPad landscape layout and reserve explicit, non-overlapping bounds
-  for the Player 2 and Player 7 seat panels, detail text, and latest-action lines.
+  for the left-middle and right-middle seat panels, detail text, and latest-action lines.
   Ensure the event feed and human action panel cannot cover those bounds during
   normal play, after deferred refreshes, or when the latest-action text is absent.
-- [x] **Agent task — separate Player 4/5 showdown summaries:** allocate a
-  dedicated above-seat summary region for Player 4 and Player 5 with enough
+- [x] **Agent task — separate upper-seat showdown summaries:** allocate a
+  dedicated above-seat summary region for the upper-left and upper-right seats with enough
   clearance from the seat panel and player-name labels. Keep the summaries
   readable at the supported iPad landscape viewport and prevent long hand/result
   text from overlapping names or neighboring seats.
 - [x] **Agent task — make seat geometry independent of optional text:** give every
   seat a stable layout rectangle and reserve the latest-action line even when it
   is empty. Updating, clearing, or restoring a latest action must not move the
-  Player 1 seat or any other seat vertically; only the text content should change.
+  bottom human seat or any other seat vertically; only the text content should change.
 - [x] **Agent task — add seven-player layout regressions for the observed states:**
-  cover normal play with and without latest actions, long Player 2/7 detail text,
-  and showdown summaries for Player 4/5. After deferred layout and view refreshes,
+  cover normal play with and without latest actions, long middle-side detail text,
+  and showdown summaries for the upper seats. After deferred layout and view refreshes,
   assert visibility, in-bounds placement, required clearance, and no intersection
   between seat panels, auxiliary text, event feed, or action panel.
 - [x] **Agent task — verify stable geometry across state transitions:** add a
-  regression that records the Player 1 seat rectangle before and after latest
+  regression that records the bottom human-seat rectangle before and after latest
   action assignment, clearing, street changes, bot actions, and showdown. Assert
   that the rectangle remains unchanged unless the viewport/layout mode itself
   changes.
 - [x] **Human task:** repeat the seven-player tournament in an iPad browser in
-  landscape orientation during normal play and showdown. Confirm Player 2/7
-  details and latest-action text are visible, Player 4/5 showdown summaries do
-  not overlap player names, and the Player 1 seat remains fixed when latest-action
+  landscape orientation during normal play and showdown. Confirm the middle-side
+  details and latest-action text are visible, upper-seat showdown summaries do
+  not overlap player names, and the bottom human seat remains fixed when latest-action
   text appears or disappears. Record device, viewport, browser, and result here.
   Done. It failed.
 
 ## Central community/pot/wager width regression follow-up
 
-The screenshot [`localtmp/localtest_strange_wide_fields.jpg`](../localtmp/localtest_strange_wide_fields.jpg)
+The screenshot [`localtmp/localtest_strange_wide_fields.jpg`](../../localtmp/localtest_strange_wide_fields.jpg)
 shows the central fields rendered as an unexpectedly wide stack during a normal six-player
 desktop hand. The community-card, pot, and wager panels appear to fill a much larger column
 than the five cards require, and the central footprint is not stable when the view refreshes.
@@ -294,7 +299,7 @@ label must also be visible while the hand is waiting for the next legal action.
 
 ## Fixed-size community-card rendering follow-up
 
-The screenshot [`localtmp/cards_do_not_fit.jpg`](../localtmp/cards_do_not_fit.jpg) shows that
+The screenshot [`localtmp/cards_do_not_fit.jpg`](../../localtmp/cards_do_not_fit.jpg) shows that
 revealed community cards can overflow the board frame. The card root requested a 60x76 minimum,
 but its horizontal rank-and-suit content imposed a larger combined minimum. Wide ranks such as
 `10` therefore changed the five-card row width after the flop, while `BoardZone` clipped the
@@ -359,27 +364,3 @@ little or no room above them for showdown summaries.
   surfaces independently from mobile portrait and iPad landscape modes, and
   use a compact seven-seat arrangement that remains readable at the reference
   developer viewport and nearby sizes.
-- [ ] **Agent task — reserve all auxiliary-text clearance:** include each seat's
-  below-seat latest-action label and above-seat showdown-summary label in the
-  layout bounds before placing seats. Player 2 and Player 7 must retain space
-  below their panels; Player 4 and Player 5 must retain space above their panels.
-- [ ] **Agent task — prevent side-panel occlusion:** ensure the event feed and
-  human action panel do not intersect any seat panel, latest-action label, or
-  showdown-summary label at small desktop sizes. If the full panels cannot fit,
-  reflow or reduce their presentation-only footprint while preserving access to
-  all events and controls.
-- [ ] **Agent task — preserve central-zone visibility:** keep the community-card,
-  pot, and wager zones fully visible and separated from seats, auxiliary labels,
-  the event feed, and action controls at the reference viewport.
-- [ ] **Agent task — preserve readable controls and touch targets:** prevent
-  action-button text and wager input text from wrapping or clipping in the
-  compact layout, while retaining distinct controls and the minimum supported
-  interaction target size.
-- [ ] **Agent task — add small-desktop regression coverage:** test at the
-  reference viewport and representative nearby sizes for 2–9 players, checking
-  bounds, non-intersection, label clearance, central-zone visibility, and
-  readable action controls. Include both preflop and showdown states.
-- [ ] **Human task:** run `godot --path .` on the developer machine and inspect
-  6- and 7-player tables through preflop, street changes, and showdown. Confirm
-  that no player details, latest actions, showdown results, event entries, or
-  action controls are obscured.

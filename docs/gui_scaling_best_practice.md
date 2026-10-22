@@ -18,10 +18,21 @@ To prevent Godot from simply squishing or uniformly shrinking your UI into unrea
 
 ## 2. Layouts, Anchors & Touch Targets
 
-### Avoid Absolute Positioning
-Never position UI elements using hardcoded pixel coordinates. Use Godot’s Control node ecosystem:
-* **Containers:** Rely on `VBoxContainer`, `HBoxContainer`, `GridContainer`, `MarginContainer`, and `PanelContainer` to structure layouts automatically.
-* **Anchors & Margins:** Use Preset Anchors (e.g., `Full Rect`, `Center`, `Bottom Wide`) so elements reposition relative to the screen bounds when screen dimensions change.
+### Prefer containers and anchors; allow one explicit layout owner
+
+Use Godot's `Control` layout system by default:
+
+* **Containers:** Rely on `VBoxContainer`, `HBoxContainer`, `GridContainer`,
+  `MarginContainer`, and `PanelContainer` for ordinary structure.
+* **Anchors and offsets:** Use anchor presets such as `Full Rect`, `Center`,
+  and `Bottom Wide` so regions respond to viewport bounds.
+
+Specialized table regions may require calculated rectangles. In that case,
+document one layout owner that atomically assigns the parent region and all
+child rectangles from the current viewport. Do not place those children under
+a `Container` or let a second controller assign their bounds. Pokahdot's
+central community-card/pot/wager region follows this exception; it is not a
+general license for scattered hardcoded coordinates.
 
 ### Touch Target Minimums
 Fingers on a mobile touchscreen require significantly larger touch targets than mouse cursors.
@@ -70,27 +81,29 @@ All player-facing text must remain at least 20 px at every supported viewport si
 
 ## 4. Device Form-Factor Detection
 
-To conditionally tweak layouts or switch UI modes, combine viewport checks with OS feature flags:
+Choose layout modes primarily from the visible viewport size and aspect ratio.
+OS feature flags may supplement input or platform behavior, but must not be
+the only mobile-layout signal: desktop windows can be phone-sized, and Web
+canvases on mobile devices may expose large logical dimensions.
 
 ```gdscript
 enum DeviceType { PHONE, TABLET, DESKTOP }
 
 func get_device_type() -> DeviceType:
-    var size = get_viewport().get_visible_rect().size
-    var min_dim = min(size.x, size.y)
-    var max_dim = max(size.x, size.y)
-    
-    if OS.has_feature("mobile"):
-        # On iOS / Android
-        return DeviceType.PHONE if min_dim < 600 else DeviceType.TABLET
-    else:
-        # Desktop environment
-        if max_dim < 900:
-            return DeviceType.PHONE
-        elif max_dim < 1300 and min_dim < 900:
-            return DeviceType.TABLET
-        return DeviceType.DESKTOP
+    var size: Vector2 = get_viewport().get_visible_rect().size
+    var min_dim: float = min(size.x, size.y)
+    var max_dim: float = max(size.x, size.y)
+    var aspect: float = max_dim / max(min_dim, 1.0)
+
+    if min_dim < 600.0 and aspect >= 1.5:
+        return DeviceType.PHONE
+    if min_dim < 900.0 or max_dim < 1300.0:
+        return DeviceType.TABLET
+    return DeviceType.DESKTOP
 ```
+
+Use `OS.has_feature("mobile")` separately only when a platform-specific input
+or browser workaround is required. It does not override viewport classification.
 
 ---
 

@@ -1,5 +1,12 @@
 # Bot Strategy Improvement Plan
 
+> **Archived / superseded.** This document preserves the plan used for the
+> completed parameterized-strategy milestones. Current simulation and
+> profile-evolution design is in
+> [`Simulation_And_Evolutionary_Bot_Strategy.md`](../Simulation_And_Evolutionary_Bot_Strategy.md),
+> with unfinished work in [`SimCoreTasks.md`](../SimCoreTasks.md) and
+> [`SimCliTasks.md`](../SimCliTasks.md).
+
 ## Purpose and scope
 
 This plan replaces the current deliberately simple tight-passive and
@@ -151,9 +158,9 @@ distinct bot styles.
    freeze the selected value with the startup configuration, select the
    appropriate roster in both composition roots, and display the selection in
    diagnostics.
-5. Update `docs/ARCHITECTURE.md` only when the new model, experimental-startup
+5. Update [`ARCHITECTURE.md`](../ARCHITECTURE.md) only when the new model, experimental-startup
    option, and simulation interfaces are implemented; then add the concrete
-   implementation tasks to `docs/TASKS.md` in dependency order.
+   implementation tasks to the appropriate current backlog in dependency order.
 
 ### Phase 2 — Explainable strength and policy
 
@@ -251,5 +258,6 @@ or persist opponent-specific memories in the first implementation.
   startup checkbox only enables the documented experimental roster.
 
 These should be selected from evidence produced by the simulation plan, then
-documented in `ARCHITECTURE.md` and scheduled in `TASKS.md` when implementation
-begins.
+documented in [`ARCHITECTURE.md`](../ARCHITECTURE.md) and scheduled in
+[`SimCoreTasks.md`](../SimCoreTasks.md) or
+[`SimCliTasks.md`](../SimCliTasks.md) when implementation begins.

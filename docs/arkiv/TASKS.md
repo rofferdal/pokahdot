@@ -1,6 +1,13 @@
 # Pokahdot Tasks
 
-This backlog follows `docs/ARCHITECTURE.md` and is ordered as vertical, runnable increments. Complete tasks in order unless a dependency explicitly allows parallel work.
+> **Archived / superseded.** This file preserves completed implementation
+> history and is not an active backlog. Current unfinished work is split among
+> [`CoreTasks.md`](../CoreTasks.md), [`CliTasks.md`](../CliTasks.md),
+> [`GuiTasks.md`](../GuiTasks.md), [`SimCoreTasks.md`](../SimCoreTasks.md), and
+> [`SimCliTasks.md`](../SimCliTasks.md).
+
+This historical backlog followed [`ARCHITECTURE.md`](../ARCHITECTURE.md) and
+was ordered as vertical, runnable increments.
 
 The CLI is the first acceptance surface. Add CLI behavior as soon as a core capability can be exercised by a person. Do not start GUI implementation until the CLI supports a complete, playable single-table tournament and the CLI completion gate is checked.
 
@@ -293,59 +300,17 @@ evidence on a person's behalf.
 - [x] **Human task — hosted-build readiness evidence:** on the intended test
   device, open the stable URL in a private/incognito window. Wait for the
   startup screen, inspect the browser console for errors.
-- [ ] **Human task — desktop Chrome or Edge matrix:** on current Windows or
-  macOS Chrome/Edge, execute the representative flow in both 2-player and
-  9-player default tournaments at 1920×1080 and 1280×720. Capture every
-  required state and readability/bounds result specified in `docs/WEB_SETUP.md`.
-- [-] (Firefox not available) **Human task — desktop Firefox matrix:** repeat 
-  the desktop matrix in current Firefox at both sizes. Explicitly record font 
-  rendering, suit colours, scrollable event history, and the event-log/human-seat 
-  bottom alignment compared with the approved reference screenshots.
-- [ ] **Human task — physical iPad Safari matrix:** use a physical supported
-  iPad in Safari in portrait and landscape, testing 2-player and 9-player
-  games. Rotate during startup and live play; record screenshots and any
-  scrolling, clipping, overlap, readability, stale-layout, or touch defect.
-- [-] (no available iPhone for testing) **Human task — physical iPhone Safari matrix:**
-  use a physical supported iPhone in Safari in both orientations with a 9-player
-  game. Verify wrapped controls, event-history scrolling, Fold/Call/Raise/All-in
-  taps, and one mid-play rotation; save before/after screenshots.
-- [ ] **Human task — physical Android Chrome matrix:** use a physical supported
-  Android phone in current Chrome and repeat the iPhone flow with the browser
-  address bar both expanded and collapsed. Record every touch, clipping,
-  contrast, text-size, and orientation result with screenshots.
-- [ ] **Agent task — defect remediation:** for each human-reported defect,
-  reproduce it from the supplied evidence where possible, fix only the
-  appropriate presentation/deployment layer, add or update a regression test,
-  run the full automated suite, and prepare a new deployment candidate.
-- [ ] **Human task — evidence sign-off:** verify that every required browser
-  and physical-device record is attached to one immutable commit and stable
-  HTTPS URL. Confirm reruns after every defect fix, then mark the corresponding
-  Milestone 4.6c pre-human checks complete.
 
 Milestone 4.6c Human testing with preparations
 
 - [x] Pre-human testing: document hosted-build checks by browser and device so testers do not need local repository access.
-  - [ ] **Pre-human test — hosted build readiness:** publish the Web export at a stable HTTPS URL. On the test device, open that URL in a private/incognito window, wait for the startup screen without browser-console errors, and record the URL, build version/commit, device model, OS version, browser version, orientation, and viewport size with screenshots.
-  - [ ] **Pre-human test — desktop Chrome/Edge:** on a current Windows or macOS desktop browser at 1920×1080 and a resized 1280×720 window, start both 2-player and 9-player default tournaments. Confirm all seats, event history, action controls, cards, board, pot, markers, and Quit confirmation are visible, readable, in bounds, and non-overlapping. Play through a fold, normal betting, all-in runout, showdown, elimination, tournament winner, and player quit; attach screenshots for each state.
-  - [ ] **Pre-human test — desktop Firefox:** on a current Windows or macOS Firefox browser at 1920×1080 and 1280×720, repeat the desktop Chrome/Edge flow. Specifically confirm font rendering, card-suit colours, scrollable event history, and the event-log bottom alignment with the human seat match the reference screenshots.
-  - [ ] **Pre-human test — iPad Safari:** on a physical iPad running a supported iPadOS version, open the hosted URL in Safari in both portrait and landscape. Test 2-player and 9-player games, rotate during startup and live play, and complete the representative flow. Confirm no horizontal page scroll, clipped controls, overlap, unreadable text, stale layout, or lost touch input after rotation; capture a screenshot per orientation and state defect.
-  - [ ] **Pre-human test — iPhone Safari:** on a physical supported iPhone, open the hosted URL in Safari in portrait and landscape. Start a 9-player game, verify wrapped action controls remain fully tappable, scroll event history, submit Fold/Call/Raise/All-in, rotate once during play, and verify all required table states remain legible without zooming. Capture screenshots before and after rotation.
-  - [ ] **Pre-human test — Android Chrome:** on a physical supported Android phone, repeat the iPhone Safari flow in current Chrome. Include browser address-bar expanded and collapsed states, because both change the effective viewport height. Record any touch, clipping, contrast, text-size, or orientation issue with a screenshot and the device/browser details.
-- [ ] **Human test:** play representative GUI hands through normal betting, all-in runout, showdown, elimination, tournament completion, and `player_quit`; record and correct any missing, ambiguous, clipped, overlapping, low-contrast, or aesthetically inconsistent information before release verification.
-
-## Release verification
-
-- [ ] Run all headless tests and resolve warnings or invariant failures.
-- [ ] Verify GUI and CLI produce equivalent core outcomes for the same seed and scripted actions.
-- [ ] Verify both GUI and CLI expose the optional startup overrides and produce identical validated core configuration from equivalent omissions and selections.
-- [ ] Verify development addons and tests are excluded from release exports.
-- [ ] Verify Compatibility rendering on target desktop platforms and basic mobile resizing.
-- [ ] Review all user-facing text and documentation for consistency with the implemented game.
 
 
 # Strategy Plan Tasks
 
-This backlog follows `docs/StratPlan.md` and is ordered as vertical, runnable increments. Complete tasks in order unless a dependency explicitly allows parallel work.
+This historical section followed the superseded bot-strategy plan. Current
+simulation and profile-evolution design is in
+[`Simulation_And_Evolutionary_Bot_Strategy.md`](../Simulation_And_Evolutionary_Bot_Strategy.md).
 
 Status markers:
 - `[ ]` Not started
@@ -372,7 +337,8 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
   composition root without adding registry access to poker-rule modules.
 - [x] Add the `nit_caller`, `tight_aggressive`, `loose_passive`,
   `loose_aggressive`, and `balanced` `BotProfile` Resources with the initial
-  parameter values from `docs/StratPlan.md`.
+  parameter values recorded by the archived strategy plan and now described
+  in [`ARCHITECTURE.md`](../ARCHITECTURE.md).
 - [x] Add an immutable, disabled-by-default `allow_experimental_models` startup
   option to the resolved configuration and startup diagnostics. Preserve it
   across match creation without adding strategy-selection logic to poker-rule
@@ -451,80 +417,3 @@ Use milestones named `Stratmilestone<number>` and subtasks to organize the work.
   check, call, fold, bet, raise, and all-in situations; confirm bots make only
   visibly legal actions, wager amounts are valid totals, and normal play shows
   no fallback-warning behavior.
-
-## Stratmilestone4 — Headless bot-only simulation harness
-
-- [ ] Add a simulation-only composition root outside `scripts/core`, GUI, and
-  CLI that can create a `TournamentMatch` with all seats assigned to
-  `BotAgent`s without weakening the product's one-human default contract.
-- [ ] Implement deterministic simulation batches over declared seed ranges,
-  named profile sets, rotated seat assignments, and normal, shallow, and
-  short-stack blind/stack regimes.
-- [ ] Implement metrics per profile: tournament wins, chip EV, BB/100, VPIP,
-  preflop raise rate, aggression factor, fold-to-bet rate, call-versus-raise
-  split, bluff attempts/successes, mean wager size, bust order, hands played,
-  and invalid-action fallbacks.
-- [ ] Produce a machine-readable and human-readable batch report that records
-  seed range, profile IDs and exact parameter values, engine revision, table
-  regime, and aggregate results.
-- [ ] Add harness tests for same-seed reproducibility, seat rotation, metric
-  accounting, complete no-human tournaments, and the absence of GUI, CLI,
-  stdin, or scene dependencies.
-- [ ] Run and retain a small deterministic smoke batch as a fast automated
-  regression; keep the 1,000-tournament acceptance batches opt-in so the
-  normal test suite remains practical.
-- [ ] **Human verification:** run a documented small simulation batch and
-  inspect its report; confirm the requested profiles, seed range, rotated
-  seats, table regime, metric totals, and engine revision are present and that
-  the batch finishes without GUI, CLI, or input interaction.
-
-## Stratmilestone5 — Evidence-based calibration and rollout
-
-- [ ] Run fixed-seed mirrored and mixed-table baseline batches comparing the
-  legacy tight-passive/loose-aggressive models, random bots, and every new
-  parameterized profile; rotate seat positions across seeds.
-- [ ] Run at least 1,000 complete tournaments per acceptance matchup and
-  report win-rate and BB/100 confidence or bootstrap intervals, not only
-  means.
-- [ ] Verify the expected ordered statistics: tight profiles have lower VPIP
-  than loose profiles; aggressive profiles have higher bet/raise rates than
-  passive profiles; increasing `call_vs_bet` increases aggressive
-  continuations; and increasing `bluff_rate` increases eligible bluffs.
-- [ ] Calibrate initial thresholds, sizing fractions, and profile values only
-  from recorded simulation evidence; retain the report and seed range with the
-  change.
-- [ ] Version any changed published profile ID or document the versioned
-  Resource so historical results remain interpretable.
-- [ ] Migrate the default seat-agent configuration from legacy strategies only
-  after the candidate profiles meet the behavior and quality gates; retain
-  `RandomDecisionModel` for smoke testing and preserve a visibly mixed default
-  table. Until this migration, `allow_experimental_models` remains opt-in and
-  disabled by default in both interfaces.
-- [ ] Re-run the full GUT suite, `gdlint`, and `gdformat --check`; confirm no
-  representative simulation decision requires the invalid-action fallback.
-- [ ] **App increment:** the normal tournament uses the approved mixture of
-  parameterized strategy profiles without changing poker rules, UI behavior,
-  determinism, or card-information privacy.
-- [ ] **Human verification:** run the recorded acceptance batch, then play one
-  seeded GUI tournament and one seeded CLI tournament using the approved
-  profiles; confirm the documented profile mix, deterministic outcomes for
-  repeated seeds, legal actions, opponent-card privacy, and unchanged
-  tournament flow.
-
-## Stratmilestone6 — Deferred advanced strategy research
-
-- [ ] **Deferred:** evaluate an `EquitySamplingDecisionModel` only after the
-  heuristic model is stable and simulation evidence identifies a concrete
-  limitation.
-- [ ] **Deferred:** if approved, design deterministic Monte-Carlo unknown-card
-  sampling with a separate injected or derived RNG stream, explicit Web/
-  headless performance limits, and tests proving no access to real unrevealed
-  cards.
-- [ ] **Deferred:** do not add online learning, opponent-specific persistent
-  memory, mid-tournament profile switching, solver-grade play, or GUI profile
-  selection without a new architecture decision and evidence-backed tasks.
-- [ ] **Human verification (only if this milestone is approved):** run the
-  documented equity-sampling benchmark and a seeded headless batch; confirm it
-  meets the approved performance budget, remains reproducible, produces legal
-  actions, and reveals no real unrevealed cards or sampling diagnostics in the
-  player UI.

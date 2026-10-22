@@ -3,7 +3,7 @@
 This runbook explains how to turn the Godot project into a Web build that can
 be tested from a stable HTTPS URL. It is written for a developer who is new to
 Godot and should be followed before the Milestone 4.6 pre-human tests in
-`docs/TASKS.md` are checked off.
+[`GuiTasks.md`](GuiTasks.md) are checked off.
 
 The outcome is deliberately reproducible:
 
@@ -52,10 +52,12 @@ Official background:
 - [Godot: Exporting projects and `export_presets.cfg`](https://docs.godotengine.org/en/stable/tutorials/export/exporting_projects.html)
 - [Godot: command-line exports](https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html)
 
-## 2. Create and commit the Web export preset
+## 2. Verify or recreate the committed Web export preset
 
-Perform this once in the Godot editor. The result is a project configuration,
-not a machine-local secret, so it belongs in version control.
+The repository contains `export_presets.cfg` with a `Web` preset. Verify it
+before a release. Use the following editor procedure only when recreating or
+deliberately changing the preset. The result is project configuration, not a
+machine-local secret, so it belongs in version control.
 
 1. Open the repository root in Godot 4.7.2.
 2. Select **Project > Export**.
@@ -129,12 +131,13 @@ Open `http://localhost:8080`, start a tournament, then stop the local server.
 If the page or developer console reports loading failures, fix those before
 deploying.
 
-## 4. Deploy to a stable HTTPS URL with GitHub Pages
+## 4. Deploy to the configured stable HTTPS host
 
-This repository does not currently contain a hosting configuration. GitHub
-Pages is a suitable default because it provides HTTPS and a predictable URL
-without adding a runtime server. For a public GitHub.com repository the normal[text](https://github.com/rofferdal/pokahdot/commits/main/)
-address is:
+This repository contains `.github/workflows/deploy-web.yml`, which builds the
+release and deploys it to GitHub Pages. Treat the successful workflow's
+`page_url` output as authoritative; do not infer deployment status or claim a
+live host from the repository name alone. The configured Pages URL normally
+has this shape:
 
 ```text
 https://<owner>.github.io/<repository>/
@@ -145,14 +148,14 @@ policy, obtain approval for the hosting provider and access policy before
 publishing. Do not expose the game to a wider audience than the test plan
 allows.
 
-### One-time GitHub Pages setup
+### GitHub Pages configuration and workflow verification
 
 1. Push the committed Web preset to the repository's protected release branch
    (normally `main`).
 2. In GitHub, open **Settings > Pages**.
 3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-4. Add a workflow at `.github/workflows/deploy-web.yml`. It must do all of the
-   following on every approved push to `main`:
+4. Review the existing `.github/workflows/deploy-web.yml`. It must continue to
+   do all of the following on every approved push to `main`:
    - check out that commit;
    - install Godot **4.7.2** and its matching export templates;
    - run the three checks in section 3;
@@ -298,7 +301,8 @@ the following are true:
   errors;
 - the evidence record identifies the URL, exact commit, browser/device/OS
   versions, viewport/orientation, screenshots, and any fixed defects; and
-- every desktop and physical-device scenario in `docs/TASKS.md` has a recorded
+- every environment in the authoritative matrix in
+  [`GuiTasks.md`](GuiTasks.md) has a recorded
   passing result.
 
 Only then is the final Milestone 4.6 human test ready to begin.

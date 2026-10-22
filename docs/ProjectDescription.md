@@ -1,302 +1,496 @@
-# Pokahdot — prosjektbeskrivelse
+# Pokahdot — Product Specification
 
-Dette dokumentet er kilde for hva som skal bygges. Implementer etter det som står her, ikke etter vanlige pokervarianter som ikke er nevnt. Ved motstrid vinner denne filen over `README.md`.
+This document is the normative source for what Pokahdot must build. Implement
+the rules stated here rather than assumptions from poker variants that are not
+specified. If this document conflicts with `README.md`, this document wins.
 
-## 1. Mål
+## 1. Goal
 
-Pokahdot er et **Texas Hold’em No Limit**-spill i Godot 4 (GDScript, Compatibility-renderer). Én spiller er menneskelig. De øvrige er automatiske agenter med **utskiftbar beslutningskode**.
+Pokahdot is a **No Limit Texas Hold'em** game built with Godot 4, GDScript, and
+the Compatibility renderer. One player is human and the remaining players are
+automated agents with replaceable decision logic.
 
-Samme spillkjerne skal drive:
+The same game core drives:
 
-- grafisk UI (`scenes/`, `scripts/gui/`)
-- terminal-UI / headless (`scripts/cli/`)
+- the graphical interface (`scenes/`, `scripts/gui/`);
+- the interactive terminal interface (`scripts/cli/`); and
+- non-interactive, all-bot simulation (`scripts/simulation/`).
 
-Kjernen (`scripts/core/`) skal ikke kjenne til Control-noder, scener, stdin eller stdout.
+The core (`scripts/core/`) must not know about `Control` nodes, scenes, stdin,
+or stdout. Only the dedicated simulation composition path may create an
+all-bot tournament; normal GUI and interactive CLI play require exactly one
+human.
 
-## 2. Første versjon: ett-bords turnering
+## 2. Version 1: single-table tournament
 
-Første versjon er en **ett-bords Texas Hold’em No Limit-turnering**, ikke et cash game. Alle deltakere starter med samme antall sjetonger, og spillet fortsetter hånd for hånd til bare én deltaker har sjetonger igjen. Sjetongene er kun spilltilstand; det finnes ingen penge- eller premieoppgjør i v1.
+Version 1 is a **single-table No Limit Texas Hold'em tournament**, not a cash
+game. Every participant starts with the same number of chips, and play
+continues hand by hand until only one participant has chips. Chips are game
+state only: v1 has no money, buy-in, cash-out, prize payout, monetary return,
+or rebuy.
 
-- Ved oppstart kan mennesket velge antall deltakere, felles startstack og start-small/start-big blind. Alle feltene har standardverdier og er valgfrie; turneringen kan startes uten at noen verdier oppgis. Deltakere og startstack er faste gjennom turneringen, mens blinds følger blindnivåplanen under.
-- Det er ingen kjøp, cash-out eller rebuys.
-- En deltaker som mister alle sjetongene elimineres permanent fra turneringen.
-- Blinds øker etter en fast blindnivåplan; det er ingen tidsstyrte blindtimer.
-- Siste deltaker med sjetonger kåres til vinner.
-- Den menneskelige spilleren kan avslutte spillet når som helst. Da avsluttes turneringen uten at noen kåres til vinner.
+- At startup, the human may choose the participant count, common starting
+  stack, starting small blind, and starting big blind. Every field has a
+  default and is optional, so a tournament can start without user-supplied
+  values. Participant count and starting stack remain fixed; blinds follow
+  the hand-based progression in section 4.1.
+- A participant who loses all chips is permanently eliminated.
+- Blinds increase according to the fixed hand-based blind-level schedule;
+  there is no timed blind clock.
+- The last participant with chips wins.
+- The human may quit at any time. The tournament then ends without a winner.
 
-## 3. Ikke-mål (første versjon)
+## 3. Version 1 non-goals
 
-- Ikke Omaha, Short Deck, Stud eller Limit/Pot Limit.
-- Ikke rebuy, straddle, ante eller bomber pot.
-- Ikke nettverk, flerspiller over nett eller ekte penger.
-- Ikke rake.
-- Ikke timer på trekk (mennesket venter til input; boter svarer synkront).
+- Omaha, Short Deck, Stud, Limit, and Pot Limit.
+- Rebuys, straddles, antes, and bomb pots.
+- Networking, online multiplayer, real money, and prize payouts.
+- Rake.
+- Action timers. Human input may wait indefinitely; bots respond
+  synchronously.
+- Alternate blind schedules. Simulation may vary starting blinds, but uses
+  the same fixed progression as product play.
 
-## 4. Spillregler (normativt)
+## 4. Poker rules (normative)
 
-### 4.1 Bord og stacks
+### 4.1 Table, stacks, and blind progression
 
-- Ved oppstart kan mennesket velge **2–9 turneringsdeltakere**. Hvis verdien ikke oppgis, brukes standarden **6 seter** (1 menneske + 5 boter).
-- Sjetonger er **heltall**. Ingen desimaler.
-- Ved oppstart kan mennesket velge positive heltall for **start-small blind** og **start-big blind**, der small blind ikke kan være større enn big blind. Verdier som ikke oppgis bruker standardene **small blind = 5** og **big blind = 10**. Disse verdiene brukes i første blindnivå.
-- Ved oppstart kan mennesket velge en positiv heltallsverdi for startstack. Hvis verdien ikke oppgis, brukes standarden **1000** (100 BB). Samme ferdig utfylte verdi brukes som initial stack for hver deltaker; deretter endres de aktive stackene bare gjennom vanlig spill.
-- Ingen kjøp, cash-out eller rebuys. Går stacken til 0, er spilleren eliminert og markeres som `busted`; hen deltar ikke i senere hender.
-- Turneringen avsluttes når én spiller har sjetonger igjen. Denne spilleren vinner turneringen.
+- Startup accepts **2–9 tournament participants**. The default is **6 seats**
+  (1 human and 5 bots).
+- Chips are integers; fractional chips are not permitted.
+- Startup accepts positive integer starting small and big blinds, with the
+  small blind no greater than the big blind. Defaults are **small blind = 5**
+  and **big blind = 10**. They define the first blind level.
+- Startup accepts a positive integer starting stack. The default is **1000**
+  (100 starting big blinds). The resolved value is applied equally to every
+  participant; stacks then change only through ordinary play.
+- A player whose stack reaches 0 is marked `busted` and takes no part in later
+  hands.
+- The tournament ends when one player has chips; that player wins.
 
-Blind-level state is owned by the game core and is updated after a hand completes, settlement and elimination have occurred, and before the next hand starts. The hand just played retains its blinds; an increase applies from the next hand. At the start of each level, `active_player_count_at_level_start` is captured. Levels that begin with five or more active players increase after `active_player_count_at_level_start * 2` completed hands; levels that begin with fewer than five active players increase after 10 completed hands. The interval remains fixed throughout its level even if the active-player count changes; the next level captures a new count.
+Blind-level state is owned by the game core and updates after a hand has
+completed, settlement and elimination have occurred, and before the next hand
+starts. The completed hand retains its blinds; an increase applies to the next
+hand. At the beginning of each level,
+`active_player_count_at_level_start` is captured. A level that begins with
+five or more active players lasts
+`active_player_count_at_level_start * 2` completed hands. A level that begins
+with fewer than five active players lasts 10 completed hands. The interval is
+fixed for the entire level even if the active-player count changes; the next
+level captures a new count.
 
-At each increase, the new big blind is the smallest even integer greater than or equal to `current_big_blind * 1.25` (125%, always rounded up to the nearest even value). The new small blind is exactly half the new big blind. Examples: 5/10 becomes 7/14 (`10 * 1.25 = 12.5`, up to 14), and 7/14 becomes 9/18 (`14 * 1.25 = 17.5`, up to 18).
+At each increase, the new big blind is the smallest even integer greater than
+or equal to `current_big_blind * 1.25` (125%, rounded upward to the nearest
+even integer). The new small blind is exactly half the new big blind. Examples:
+5/10 becomes 7/14 (`10 * 1.25 = 12.5`, rounded up to 14), and 7/14 becomes
+9/18 (`14 * 1.25 = 17.5`, rounded up to 18).
 
-### 4.2 Kort
+### 4.2 Cards
 
-- Én kortstokk, 52 kort, ingen jokere.
-- Farger: clubs, diamonds, hearts, spades.
-- Ranger: 2–9, T, J, Q, K, A. A er høyest, unntatt i hjulet A-2-3-4-5.
-- Ingen burn-kort. Stokken stokkes før hver hånd, deretter deles det direkte.
-- Hver spiller får **to hullkort**, skjult.
-- Community: flop 3, turn 1, river 1. Alle synlige for alle.
+- One 52-card deck; no jokers.
+- Suits: clubs, diamonds, hearts, and spades.
+- Ranks: 2–9, T, J, Q, K, A. Ace is high except in the A-2-3-4-5 wheel.
+- No burn cards. Shuffle before each hand, then deal directly.
+- Each player receives two private hole cards.
+- Community cards are a three-card flop, one-card turn, and one-card river,
+  all visible to every player.
 
-### 4.3 Posisjoner
+### 4.3 Positions
 
-- Button (`dealer`) flyttes ett sete med klokken etter hver hånd, hopp over eliminerte (`busted`) spillere.
-- SB er venstre for button. BB er venstre for SB.
-- Heads-up: button poster SB og handler **først preflop**, og **sist** postflop.
+- The button (`dealer`) moves one active seat clockwise after every hand,
+  skipping `busted` players.
+- The small blind is left of the button; the big blind is left of the small
+  blind.
+- Heads-up, the button posts the small blind and acts **first preflop** and
+  **last postflop**.
 
-### 4.4 Håndforløp
+### 4.4 Hand flow
 
-1. Flytt button (ikke første hånd: trekk tilfeldig første button blant aktive deltakere).
-2. Nullstill pott, community og hullkort.
-3. Stokk stokken.
-4. Poster SB og BB (all-in om stack < blind; rest inn i pott).
-5. Del to hullkort til hver aktive spiller, med klokken fra SB.
-6. Preflop betting.
-7. Hvis mer enn én spiller ikke har foldet: flop, betting.
-8. Tilsvarende turn og river.
-9. Hvis bettingrunden slutter med én gjenstående: vedkommende vinner potten uten showdown.
-10. Ellers showdown. Beste hånd vinner. Lik hånd deler potten (oddetallssjetong til første gjenstående spiller med klokken fra button).
+1. Select a random initial button from active participants; on later hands,
+   move it clockwise to the next active seat.
+2. Reset the pot, community cards, and hole cards.
+3. Shuffle the deck.
+4. Post small and big blinds. A player with less than the blind posts the
+   remaining stack and is all-in.
+5. Deal two hole cards to each active player, clockwise from the small blind.
+6. Run preflop betting.
+7. If more than one player has not folded, deal the flop and run betting.
+8. Repeat for the turn and river.
+9. If a betting round leaves one player, that player wins the pot without a
+   showdown.
+10. Otherwise run showdown. The best hand wins. Equal hands split the pot;
+    an odd chip goes to the first remaining player clockwise from the button.
 
-Etter utbetaling markeres alle spillere med stack 0 som eliminerte. Hvis bare én spiller har sjetonger igjen, avsluttes turneringen og spilleren kåres til vinner. Ellers starter neste hånd.
+After settlement, mark every zero-stack player as eliminated. If only one
+player has chips, finish the tournament and declare that player the winner;
+otherwise begin the next hand.
 
-Den menneskelige spilleren kan når som helst be om å avslutte. Da stoppes pågående handling eller hånd umiddelbart, turneringen markeres som avsluttet av spilleren, og det utbetales eller kåres ingen vinner.
+The human may request to quit at any time. Stop the current action or hand
+immediately, mark the tournament as quit by the player, and do not settle the
+pot or declare a winner.
 
-En bettingrunde droppes hvis alle gjenstående er all-in eller det bare er én som kan handle.
+Skip a betting round when every remaining player is all-in or only one player
+can act.
 
-### 4.5 Handlinger (No Limit)
+### 4.5 Actions (No Limit)
 
-Gyldige trekk avhenger av `current_bet` (største innsats denne runden, inkludert blinds preflop) og spillerens `bet_this_round` og `stack`.
+Legal actions depend on `current_bet`, the largest wager on the current street
+(including preflop blinds), plus the player's `bet_this_round` and `stack`.
 
-| Trekk | Når |
+| Action | When legal |
 | --- | --- |
-| `fold` | Alltid når det er spillerens tur og hen ikke er ferdig i hånden. |
-| `check` | Når `bet_this_round == current_bet` (ingen mer å matche). |
-| `call` | Når `current_bet > bet_this_round`. Call = `min(stack, current_bet - bet_this_round)`. Call av hele stacken er all-in. |
-| `bet` | Når `current_bet == 0` postflop (ingen har satset). Min bet = BB. Maks = hele stacken. |
-| `raise` | Når `current_bet > 0`. Min **full raise** = `current_bet + BB`, uavhengig av størrelsen på tidligere full raises denne runden. Første raise preflop er derfor minst 2 BB når `current_bet` er BB. Maks = all-in. |
+| `fold` | Whenever it is the player's turn and the player has not finished the hand. |
+| `check` | When `bet_this_round == current_bet`. |
+| `call` | When `current_bet > bet_this_round`. The call is `min(stack, current_bet - bet_this_round)`; committing the full stack is all-in. |
+| `bet` | Postflop when `current_bet == 0`. Minimum is one big blind; maximum is the full stack. |
+| `raise` | When `current_bet > 0`. A minimum **full raise** reaches `current_bet + big_blind`, regardless of previous full-raise sizes on that street. The first preflop raise is therefore at least 2 BB when `current_bet` is 1 BB. Maximum is all-in. |
 
-All-in som er **mindre enn min full raise** er tillatt, men **åpner ikke** ny action for spillere som allerede har handlet og matchet forrige full raise. Spillere som ennå ikke har handlet, må fortsatt folde/calle/raise.
+An all-in raise below the minimum full raise is legal, but does **not** reopen
+raising for players who already acted and matched the previous full raise.
+Players who have not yet acted must still fold, call, or raise.
 
-Bettingrunden er ferdig når:
+A betting round is complete when:
 
-- alle gjenstående har handlet minst én gang etter siste **full** bet/raise, og
-- alle gjenstående som ikke er all-in har like mye inne denne runden (`bet_this_round` lik `current_bet`, eller all-in).
+- every remaining player has acted at least once after the latest full bet or
+  raise; and
+- every remaining player who is not all-in has matched `current_bet`.
 
-### 4.6 Potter og sidepotter
+### 4.6 Pots and side pots
 
-Når minst én spiller er all-in for mindre enn andre, skal `PotManager` lage **sidepotter**. En spiller kan bare vinne potter hen er med i. Foldede spillere kan ikke vinne, men chipsene deres blir i potten. Umatchet overskytende bidrag returneres til bidragsyteren, ikke som en énspiller-pott, og tilstøtende lag med samme vinnerberettigelse slås sammen til én kanonisk pott.
+When at least one player is all-in for less than another contribution,
+`PotManager` creates side pots. A player may win only pots for which that
+player is eligible. Folded players cannot win, but their chips remain in the
+pot. Unmatched excess is returned to its contributor rather than represented
+as a one-player pot. Adjacent layers with identical eligible winners merge
+into one canonical pot.
 
-### 4.7 Håndvurdering
+### 4.7 Hand evaluation
 
-Hver spiller bruker nøyaktig **fem** kort, valgt som beste kombinasjon av opptil syv (2 hull + 5 board). Ranger, høyest først:
+Each player uses exactly five cards: the best five-card combination from up to
+seven cards (2 hole cards plus 5 community cards). Categories, highest first:
 
-1. Straight flush (inkl. royal)
+1. Straight flush, including royal flush
 2. Four of a kind
 3. Full house
 4. Flush
-5. Straight (hjulet A-2-3-4-5 teller som 5-høy)
+5. Straight; A-2-3-4-5 is five-high
 6. Three of a kind
 7. Two pair
 8. One pair
 9. High card
 
-Sammenligning bruker standard kickere. Farge har **ingen** verdi utover flush. Evaluatoren skal være deterministisk og tesbar, uten UI.
+Comparison uses standard kickers. Suit has no value except for making a flush.
+The evaluator must be deterministic, testable, and independent of UI.
 
-## 5. Aktører
+## 5. Participants and agents
 
-### 5.1 Menneske
+### 5.1 Human
 
-- Nøyaktig **én** `HumanAgent` ved bordet i standardspill.
-- Får kun **egen** hullkort + offentlig tilstand.
-- GUI og CLI oversetter klikk/kommando til `PlayerAction` og sender den til kjernen.
-- Kjernen blokkerer hånden til gyldig handling er mottatt (ingen timeout i v1).
+- Standard GUI and interactive CLI play has exactly one `HumanAgent`.
+- The human receives only their own hole cards and public state.
+- GUI and CLI translate clicks or commands to `PlayerAction` and submit it to
+  the core.
+- The core pauses hand progress until it receives a legal action; v1 has no
+  timeout.
 
-### 5.2 Simulerte spillere
+### 5.2 Bots
 
-- Alle andre seter har en `BotAgent` som implementerer samme grensesnitt som mennesket.
-- Agentkode skal ligge **utenfor** regelmotoren: `scripts/core/agents/`.
-- Hver bot får et **informasjonsbegrenset** syn (`GameView`): egne hullkort, board, potter, stacks, posisjoner, gyldige trekk — **ikke** andres hullkort (unntatt ved showdown).
-- Det skal være lett å bytte strategi per sete uten å røre `Deck`, `Pot` eller bettingregler.
+- Every other product-game seat has a `BotAgent` implementing the same agent
+  contract as the human.
+- Agent code lives outside the rules engine under `scripts/core/agents/`.
+- Each bot receives an information-limited `GameView`: its own hole cards,
+  board, pots, stacks, positions, and legal actions, but no opponent hole
+  cards unless legitimately revealed at showdown.
+- A seat's strategy can change without modifying deck, pot, or betting rules.
 
-Minst tre medfølgende strategier i v1 (egne filer):
+Version 1 includes at least three strategies in separate files:
 
-1. `RandomAgent` — tilfeldig gyldig trekk (for røyk-test).
-2. `TightPassiveAgent` — folde svake hender, ellers check/call; sjelden raise.
-3. `LooseAggressiveAgent` — oftere bet/raise med bredere range.
+1. `RandomAgent` — chooses a random legal action for smoke testing.
+2. `TightPassiveAgent` — folds weak hands, otherwise checks or calls, and
+   rarely raises.
+3. `LooseAggressiveAgent` — bets or raises more often with a wider range.
 
-Strategiene kan være enkle heuristikker (f.eks. Chen-lignende score preflop + board-tekstur postflop). De skal **ikke** jukse.
+Strategies may use simple heuristics, such as a Chen-like preflop score and
+postflop board texture. They must not cheat.
 
-Standardbord: sete 0 = menneske, seter 1–5 = ulike boter (minst to ulike klasser i bruk).
+The default table uses seat 0 for the human and seats 1–5 for bots, with at
+least two different bot classes represented.
 
-## 6. Arkitektur
+### 5.3 Simulation-only composition
 
-### 6.1 Prinsipper
+Simulation v1 may create 2–9 all-bot participants only through the dedicated
+non-interactive simulation composition root. It may vary player count,
+starting stack, starting small blind, and starting big blind per explicit
+regime. It must use the fixed blind progression from section 4.1; alternate
+blind schedules are deferred. Simulation does not relax card privacy or any
+poker rule.
 
-- Ett ansvar per modul: kortstokk, kort, spiller, sjetonger/pott, betting, evaluering, agenter, UI.
-- Spilltilstand eies av kjernen. UI speiler tilstand; UI muterer ikke stacks/kort direkte.
-- Bruk sterkt typet GDScript. Kort- og regeldata som Custom Resources der det passer (`CardData`).
-- Ingen C# eller plattformspesifikke plugins.
+## 6. Architecture
 
-### 6.2 Mapper og klasser (skal opprettes)
+### 6.1 Principles
 
-```
+- One responsibility per module: deck, card, player, chips/pots, betting,
+  evaluation, agents, and presentation.
+- The core owns game state. A UI reflects state and never mutates stacks or
+  cards directly.
+- Use strongly typed GDScript. Use Custom Resources for card and rule data
+  where appropriate, including `CardData`.
+- Do not use C# or platform-specific plugins.
+
+### 6.2 Directories and principal classes
+
+```text
 scripts/core/
-  card_data.gd          # Resource: rank, suit, id
-  deck.gd               # 52 kort, shuffle, draw, reset
-  chip_stack.gd         # stack for én spiller; trekk/legg til; aldri negativ
-  pot_manager.gd        # main + side pots; contribute; award
-  player.gd             # sete, navn, stack, hole_cards, folded, all_in, busted
-  player_action.gd      # enum + amount
-  game_view.gd          # readonly snapshot til agenter/UI
-  hand_evaluator.gd     # 7 → beste 5, sammenligning
-  betting_round.gd      # gyldige trekk, min raise, action-reopen
-  table.gd              # seter, button, blinds
-  match.gd              # én turnering: flere hender til vinner eller frivillig avslutning
-  hand_controller.gd    # én hånd: deal, gater, showdown
+  card_data.gd          # Resource: rank, suit, ID
+  deck.gd               # 52 cards; shuffle, draw, reset
+  chip_stack.gd         # one player's stack; debit/credit; never negative
+  pot_manager.gd        # main and side pots; contribute, award
+  player.gd             # seat, name, stack, hole cards, state flags
+  player_action.gd      # action enum and amount
+  game_view.gd          # read-only snapshot for agents and adapters
+  hand_evaluator.gd     # best five of seven; comparison
+  betting_round.gd      # legal actions, minimum raise, action reopening
+  table.gd              # seats, button, blinds
+  match.gd              # tournament lifecycle
+  hand_controller.gd    # one hand: deal, streets, showdown
   agents/
-    agent.gd            # interface: choose_action(view) -> PlayerAction
-    human_agent.gd      # venter på innkommende handling
+    agent.gd
+    human_agent.gd
     random_agent.gd
     tight_passive_agent.gd
     loose_aggressive_agent.gd
-scripts/gui/            # kun visning og input til HumanAgent
-scripts/cli/            # tekstvisning og kommandoer til HumanAgent
-resources/              # .tres for CardData, evt. table-config
-scenes/                 # Control-basert bord
+scripts/gui/            # rendering and input to HumanAgent only
+scripts/cli/            # interactive text UI and input to HumanAgent only
+scripts/simulation/     # non-interactive all-bot batch adapter
+resources/              # CardData and configuration Resources
+scenes/                 # Control-based table
 ```
 
-`Deck` kjenner ikke spillere. `ChipStack` kjenner ikke kort. `HandEvaluator` kjenner ikke potter. `Agent` kjenner ikke intern mutasjon, bare `GameView`.
+`Deck` does not know players. `ChipStack` does not know cards.
+`HandEvaluator` does not know pots. `Agent` receives `GameView`, not mutable
+internal state.
 
-`match.gd` eier turneringens livssyklus og skal støtte både normal avslutning med vinner og frivillig avslutning med sluttårsak `player_quit`. Frivillig avslutning er en kontrollkommando, ikke et poker-handlingstrekk i `PlayerAction`.
+`match.gd` owns the tournament lifecycle and supports normal completion with a
+winner and voluntary termination with `end_reason = player_quit`. Voluntary
+termination is a control command, not a poker action in `PlayerAction`.
 
-### 6.3 Handlingsobjekt
+### 6.3 Action object
 
-```
+```gdscript
 enum ActionKind { FOLD, CHECK, CALL, BET, RAISE }
 class PlayerAction:
-  var kind: ActionKind
-  var amount: int   # 0 for fold/check/call; totalt innsatsbeløp denne handlingen for bet/raise
+    var kind: ActionKind
+    var amount: int # 0 for fold/check/call; target street total for bet/raise
 ```
 
-Ugyldig handling fra UI eller bot skal avvises av `betting_round.gd`. Bot som returnerer ugyldig trekk: fall tilbake til `fold` hvis fold er mulig, ellers `check`/`call`. Logg advarsel.
+`betting_round.gd` rejects invalid UI or bot actions. If a bot returns an
+invalid action, log a warning and fall back to `fold` when legal, otherwise
+`check` or `call`.
 
-### 6.4 `GameView` (offentlig kontrakt)
+### 6.4 `GameView` public contract
 
-Inneholder minst:
+It contains at least:
 
-- `street`: preflop | flop | turn | river | showdown | hand_end
-- `button_seat`, `acting_seat`, `sb_seat`, `bb_seat`
-- `community_cards`
-- `pots` (beløp og hvilke seter som er med)
-- per sete: stack, bet_this_round, folded, all_in, busted, navn, om det er menneske
-- `hero_seat`, `hero_hole_cards` (kun for den agenten viewet er bygd for)
-- `legal_actions` med min/maks amount for bet/raise og call-størrelse
-- offentlig handlingshistorikk og recipient-safe showdown-resultater for kort som legitimt vises, inkludert kategori, tie-break-verdier og valgt femkortshånd
-- `hand_number`
-- turneringsstatus: `running` eller `finished`
-- `end_reason`: `none`, `winner` eller `player_quit`
-- aktive seter, eliminerte seter og eventuell vinner
+- `street`: `preflop`, `flop`, `turn`, `river`, `showdown`, or `hand_end`;
+- `button_seat`, `acting_seat`, `sb_seat`, and `bb_seat`;
+- community cards;
+- pots with amounts and eligible seats;
+- for every seat: stack, street wager, folded/all-in/busted state, name, and
+  human flag;
+- `hero_seat` and only that recipient's `hero_hole_cards`;
+- legal actions with call size and bet/raise minimum and maximum;
+- public action history and recipient-safe showdown results for cards that
+  were legitimately revealed, including category, tie-break values, and the
+  selected five-card hand;
+- hand number;
+- tournament status (`running` or `finished`);
+- end reason (`none`, `winner`, or `player_quit`); and
+- active seats, eliminated seats, and optional winner.
 
-Andres hullkort kun når `street == showdown` eller hånden er over og kortene faktisk ble vist.
+Opponent hole cards appear only at showdown, or after the hand when those
+cards were actually shown.
 
-## 7. Brukergrensesnitt
+## 7. User interfaces
 
 ### 7.1 GUI
 
-- Control-noder. Skalerbart med `canvas_items`-stretch og `expand`-aspect; dette skalerer 2D-layouten, men garanterer ikke alene skarp tekst eller grafikk.
-- Før turneringen opprettes, vis en oppstartsvisning der mennesket kan velge antall deltakere, startstack, small blind og big blind. Feltene er forhåndsutfylt med standardverdiene, og turneringen kan startes direkte uten at feltene redigeres.
-- Ugyldige oppstartsverdier skal forklares i GUI, og første hånd kan ikke starte før alle verdier er gyldige.
-- Vis: board, potter, stacks, blinds, whose turn, egne kort, aktive/eliminert-spillere og turneringsvinner når turneringen er ferdig.
-- Motstanderes kort skjult til showdown.
-- Knapper: Fold, Check/Call, Bet/Raise (beløp: min, Pot raise, all-in, fri input). `Pot raise` uses the displayed pot total through the ordinary wager-validation path and is disabled whenever that target is not a legal raise the human player can cover.
-- En tydelig `Avslutt`-knapp som kan brukes når som helst. Den skal be om bekreftelse før spillet avsluttes.
-- Én hovedscene for bordet.
-- Standardvinduet er 1920 × 1080. Bordet må fortsatt reflowe uten overlapp ved representative desktop- og mobile-aspektforhold.
-- Spillerne skal ha 16 ulike avatarressurser med 32 × 32 piksler som kildestørrelse. De tildeles uten gjentakelse per turnering og kan vises forstørret når lesbarheten krever det.
-- Det skal vises et grønt bord som illustrerer spillet med tydelig sone for felleskortene og plasser for bud og pott.
-- Menneskets sete vises nederst uten å endre kjernens seteidentitet eller pokerposisjoner. Motstandere viser to tydelige kortbaksider til showdown; folded/outbid-seter forblir synlige i gråtoner, men uten hullkort.
-- Seat panels must have readable names, the stack directly below the name, position markers, and the latest public action from the **active betting round** on a separate line. When a new betting round starts — pre-flop, after the flop, after the turn, and after the river — previous action text below every seat must be removed before actions from the new round are shown. The event log must retain the complete public action history. The community-card, wager, and pot zones are centered as one group.
-- Handlingskontroller vises som tydelige, kompakte to-raders kontroller ved menneskets sete. Hendelsesloggen er rullbar, høy-kontrast og må ikke skjule seter. Ved showdown vises hver avslørte spillers beste hånd over det tilhørende setet.
-- All player-facing GUI text must be at least 20 px, matching the desktop opponent-name text size. Compact layouts may reflow controls but must not reduce this minimum.
-- All player-facing GUI text must use Godot's built-in plain non-serif UI font. This applies equally to the startup screen (labels, inputs, validation feedback, and on-canvas keypad) and the live table; serif faces are not permitted.
-- Use containers, anchors, and responsive margins instead of fixed pixel positioning. Interactive mobile controls should provide touch targets of at least 48 × 48 px; horizontal text buttons should target approximately 160 × 50 px where space allows.
-- GUI font sizing may adapt to the viewport through the shared theme, but player-facing text must never be reduced below 20 px. Compact layouts must reflow or simplify content instead.
-- Consider using the advice in the file `gui_scaling_best_practice.md` when GUI problems arise.
+- Use `Control` nodes with `canvas_items` stretch and `expand` aspect. This
+  scales the 2D layout but does not alone guarantee sharp text or graphics.
+- Before constructing a tournament, show participant count, starting stack,
+  small blind, and big blind, prefilled with defaults. Starting without edits
+  is valid. Explain invalid input and do not begin a hand until all values are
+  valid.
+- Show board, pots, stacks, blinds, acting player, the human's cards,
+  active/eliminated players, and the tournament winner.
+- Hide opponent cards until legitimately revealed at showdown.
+- Provide Fold, Check/Call, and Bet/Raise controls with minimum, Pot raise,
+  all-in, and free-entry amounts. `Pot raise` uses the displayed pot total
+  through ordinary wager validation and is disabled when that target is not a
+  legal raise the human can cover.
+- Provide a clearly visible `Quit` control at all times and request
+  confirmation before quitting.
+- Use one main table scene. The default window is 1920 × 1080, and the table
+  must reflow without overlap at representative desktop and mobile aspect
+  ratios.
+- Provide 16 distinct avatar resources with 32 × 32 source pixels. Assign
+  avatars without replacement per tournament and enlarge them when needed for
+  readability.
+- Render a green table with distinct community-card, wager, and pot zones.
+- Present the human seat at the bottom without changing the core seat identity
+  or poker position. Opponents show two card backs until showdown. Folded or
+  eliminated seats remain visible in grayscale without hole cards.
+- Seat panels show readable names, stack immediately below the name, position
+  markers, and the latest public action from the **active betting round** on a
+  separate line. Clear all prior seat action text at the start of preflop and
+  each transition to flop, turn, and river; retain the complete public history
+  in the event log. Center community cards, wagers, and pots as one group.
+- Place compact, explicit two-row action controls beside the human seat. The
+  event log is scrollable, high contrast, and cannot cover seats. At showdown,
+  show each revealed player's best hand above that player's seat.
+- All player-facing text is at least 20 px and uses Godot's built-in plain
+  non-serif UI font. Compact layouts reflow or simplify rather than shrinking
+  below the minimum.
+- Containers, anchors, and responsive margins are the default layout tools.
+  A documented single layout owner may assign explicit rectangles to a
+  specialized region, provided no `Container` competes for those child
+  rectangles. Mobile touch targets are at least 48 × 48 px; horizontal text
+  buttons target approximately 160 × 50 px where space permits.
+- Prefer viewport dimensions and aspect ratio for responsive layout decisions;
+  OS feature flags may supplement but must not replace viewport detection.
+- Follow [`gui_scaling_best_practice.md`](gui_scaling_best_practice.md) when
+  resolving GUI scaling issues.
 
-### 7.2 CLI (headless)
+#### GUI display-name contract
 
-Start: `godot --headless --path . --script res://scripts/cli/cli_app.gd`
+- Store exactly **50 unique first names** with broad international
+  representation. Each name consists only of Unicode letters and contains no
+  more than **eight Unicode code points**. Length is measured by code points,
+  not bytes or rendered glyph width.
+- Assign bot names without replacement for one tournament. Keep the mapping
+  stable until that tournament ends.
+- The GUI human label is exactly `Human`. The GUI never renders a generated
+  name or the interactive CLI suffix for the human.
+- Name assignment uses a separately named, presentation-only `gui_names` RNG
+  stream. Avatar assignment uses a distinct `gui_avatars` stream. Consuming
+  either stream cannot perturb the other or any deck, button, bot-decision, or
+  simulation RNG stream.
+- GUI names are presentation-only and do not alter `Player`, `GameView`,
+  agents, game configuration, domain events, simulation artifacts, or CLI
+  labels.
 
-- Før turneringen opprettes, vis standardverdiene og tilby å starte direkte med alle standardene uten at noen verdi oppgis. Hvis mennesket velger å tilpasse, kan hvert av feltene antall deltakere, startstack, small blind og big blind overstyres separat; tom verdi beholder standarden for feltet.
-- Ugyldige oppstartsverdier skal gi en tydelig feilmelding og nytt spørsmål; ingen hånd starter med ugyldig konfigurasjon.
-- Skriv lesbar tilstand til stdout.
-- I hver CLI-visning som lister spillere, skal den menneskelige spilleren merkes tydelig med det bokstavelige suffikset `(you)` rett etter visningsnavnet, for eksempel `Player 1 (you)`. Nøyaktig én spiller skal ha markøren; botspillere skal ikke ha den. Identifikasjonen skal komme fra spillerens menneske-flagg i `GameView`, ikke utledes fra navn, sete, turstatus eller hvilke kort som vises.
-- Alle synlige kort i CLI skal følge [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md). Ett kort vises som rank etterfulgt direkte av Unicode-symbolet for fargen, for eksempel `A♠` eller `10♥`. Flere kort vises i hakeparenteser med skilletegnet ` | `, for eksempel `[ A♠ | 10♥ | K♦ ]`. Dette gjelder egne hullkort, board og kort som legitimt vises ved showdown. Interne kort-ID-er eller numeriske rank/suit-par skal aldri vises til brukeren.
-- CLI-kortvisningen forutsetter UTF-8 og må håndtere at `10` er bredere enn andre ranker uten hardkodet tegnbredde eller padding.
-- Les kommandoer fra stdin, f.eks. `fold`, `check`, `call`, `bet 50`, `raise 100`, `allin`, `quit` eller `exit`.
-- Ugyldig kommando: feilmelding, spør igjen. Ikke krasj.
-- Boter handler uten å vente på stdin.
-- `quit`/`exit` avslutter turneringen umiddelbart når kommandoen kommer fra mennesket.
+### 7.2 Interactive CLI (headless)
 
-## 8. Konfigurasjon
+Start with:
 
-En Resource eller konstant config brukes som standarder og som validert input til kjernen:
+```bash
+godot --headless --path . --script res://scripts/cli/cli_app.gd
+```
 
-- `player_count` (2–9, default 6)
-- `small_blind`, `big_blind`
-- `starting_stack`
-- `rng_seed` (0 = tidsbasert; ellers deterministisk, påkrevd for tester)
-- `seat_agents`: sete → agent-id
-- `tournament_mode`: skal være `single_table` i v1
+- Before constructing a tournament, display defaults and allow immediate
+  startup without supplied values. In configuration mode, each field may be
+  overridden independently; blank input retains that field's default.
+- Explain invalid startup values and prompt again. No hand starts from invalid
+  configuration.
+- Write readable game state to stdout.
+- In every player list, append the literal suffix `(you)` immediately after
+  the human's display name, for example `Player 1 (you)`. Exactly one player
+  has the suffix and no bot does. Use the `GameView` human flag, not name,
+  seat, acting status, or card visibility. This existing CLI labeling is not
+  changed by the GUI naming contract.
+- Format visible cards according to
+  [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md). A card is rank followed by
+  its Unicode suit, such as `A♠` or `10♥`; collections use
+  `[ A♠ | 10♥ | K♦ ]`. Never render internal card IDs or numeric rank/suit
+  pairs.
+- Assume UTF-8 and handle rank `10` without fixed-width padding assumptions.
+- Read `fold`, `check`, `call`, `bet 50`, `raise 100`, `allin`, `quit`, and
+  `exit` from stdin.
+- For an invalid command, show an error and prompt again without crashing.
+- Bots act without waiting for stdin.
+- Human `quit` or `exit` ends the tournament immediately.
 
-GUI og CLI skal tilby valgfrie overstyringer av `player_count`, `starting_stack`, `small_blind` og `big_blind` før hver turnering starter og før `TournamentMatch` opprettes. Standardverdiene er 6, 1000, 5 og 10. Ingen av overstyringene er obligatoriske, og hver manglende verdi fylles inn separat fra standardkonfigurasjonen. Den ferdig utfylte konfigurasjonen valideres, kopieres og fryses når turneringen starter. En ny turnering kan velge nye verdier. Antall botseter er `player_count - 1`; sete 0 er mennesket.
+## 8. Configuration
+
+A Resource or constant configuration supplies defaults and validated core
+input:
+
+- `player_count`: 2–9, default 6;
+- `small_blind` and `big_blind`;
+- `starting_stack`;
+- `rng_seed`: 0 selects a time-based seed; any other value is deterministic
+  and tests require a nonzero value;
+- `seat_agents`: seat to agent ID;
+- `tournament_mode`: `single_table` in v1.
+
+Before constructing each product tournament, GUI and interactive CLI may
+independently override `player_count`, `starting_stack`, `small_blind`, and
+`big_blind`. Defaults are 6, 1000, 5, and 10. Omitted values are resolved
+individually from defaults. Validate, copy, and freeze the resolved
+configuration when the tournament starts. A later tournament may choose new
+values. Product play has `player_count - 1` bot seats and one human at seat 0.
+
+A simulation manifest specifies one or more explicit regimes using the same
+four configurable values and ordinary validation. Every regime uses the
+normative fixed blind progression. Simulation profile parameters for
+`StrategyDecisionModel` are integer percentages in the inclusive range
+0–100.
 
 ## 9. Testing
 
-Automatiserbare Godot-tester eller rene GDScript-asserts mot kjernen og adapterne, minst:
+Automated Godot tests or pure GDScript assertions cover at least:
 
-- Stokk har 52 unike kort etter `reset` + `shuffle`.
-- Hjul-straight slår K-høy, taper for 6-høy straight.
-- Sidepot: A all-in 40, B 100, C 100; A kan bare vinne 120 totalt fra den potten (40×3), B vs C om resten.
-- Min raise preflop fra BB-størrelse.
-- Short all-in raise åpner ikke action på nytt for den som allerede har called.
-- Agent får ikke motstanderes hullkort i `GameView` før showdown.
-- Spiller med stack 0 elimineres og deltar ikke i neste hånd.
-- Button og blinds hopper over eliminerte spillere.
-- Turneringen avsluttes med korrekt vinner når bare ett sete har sjetonger.
-- Mennesket kan avslutte under en hånd eller mellom hender, og turneringen får sluttårsak `player_quit` uten vinner.
-- Oppstart uten oppgitte verdier bruker alle standardene. Delvise, gyldige overstyringer bruker standarden for hvert utelatt felt. Gyldige, ikke-standard valg gir riktig antall deltakere, lik initial stack og de valgte startblindsene; blindnivåplanen øker deretter blindsene som spesifisert. Ugyldige, eksplisitte verdier avvises før første hånd.
-- Hver CLI-spillerliste merker nøyaktig den menneskelige spilleren med `(you)` etter visningsnavnet, også etter ny rendering og gjennom senere hender; ingen bot får markøren.
-- CLI formaterer hvert synlig kort og hver kortsamling nøyaktig etter `docs/POKERCARDS_IN_CLI.md`, inkludert Unicode-farger, rank `10`, skilletegn og hakeparenteser, uten å vise interne kortkoder.
+- A deck contains 52 unique cards after reset and shuffle.
+- A five-high wheel beats king-high and loses to a six-high straight.
+- Side pot: A all-in for 40, B for 100, C for 100; A is eligible for only the
+  120-chip main pot, and B and C contest the remainder.
+- Minimum preflop raise from a big-blind wager.
+- A short all-in raise does not reopen action for a player who already called.
+- An agent does not receive opponent hole cards before showdown.
+- A zero-stack player is eliminated and omitted from the next hand.
+- Button and blinds skip eliminated players.
+- The tournament ends with the correct winner when one seat has chips.
+- Human quit during or between hands produces `player_quit` and no winner.
+- Full omission uses defaults; valid partial overrides preserve defaults for
+  omitted fields; valid non-default values control player count, equal initial
+  stacks, and starting blinds; invalid explicit values fail before the first
+  hand; blind progression remains normative.
+- Every CLI player list marks exactly the human with `(you)` across rerenders
+  and later hands.
+- CLI card output follows `POKERCARDS_IN_CLI.md`, including suits, rank `10`,
+  separators, brackets, and absence of internal codes.
+- The GUI name catalog has exactly 50 unique entries, each made only of
+  Unicode letters and no longer than eight Unicode code points; assignments
+  cover every bot seat without replacement and never alter avatar or game RNG
+  results.
+- Normal GUI and interactive CLI construction reject zero-human tables, while
+  simulation-only construction permits all-bot tables.
 
-## 10. Akseptansekriterier for første spillbare versjon
+## 10. Acceptance criteria for the first playable version
 
-1. En ett-bords Texas Hold’em No Limit-turnering kan spilles ferdig i CLI med 1 menneske og minst 2 boter.
-2. Samme kjerne kan kobles til GUI uten duplisert regelkode.
-3. Byte av bot-klasse på et sete krever bare config/konstruksjon, ikke endring i `Deck`/`PotManager`/`HandEvaluator`.
-4. Sjetonger stemmer etter hver hånd (sum spillerstacker + pott er konstant gjennom hånden; etter utbetaling er potten 0 og summen av alle spillerstacker lik turneringens starttotal).
-5. Eliminerte spillere får ikke delta i nye hender, og turneringen stopper når én spiller står igjen.
-6. Mennesket kan avslutte når som helst i GUI eller CLI; spillet stopper uten vinner og rapporterer sluttårsak `player_quit`.
-7. Mennesket ser aldri motstanderes hullkort før showdown, verken i GUI eller CLI.
-8. Før hver turnering i både GUI og CLI kan mennesket valgfritt overstyre antall deltakere, felles startstack og start-small/start-big blinds. Turneringen kan startes uten å oppgi verdier og bruker da standardene 6, 1000 og 5/10; delvise overstyringer beholder standarden for utelatte felt. Den ferdig utfylte startkonfigurasjonen vises i spillet, og blindnivåplanen kan ikke endres før turneringen avsluttes.
-9. Alle kort som er synlige i CLI, vises med rank og Unicode-farge og alle kortsamlinger vises med hakeparenteser og ` | ` som definert i `docs/POKERCARDS_IN_CLI.md`; interne kort-ID-er vises aldri.
-10. Hver spilleroversikt i CLI identifiserer nøyaktig den menneskelige spilleren med `(you)` rett etter visningsnavnet; botspillere merkes ikke som menneskelige.
-11. In the GUI, action text below seats is shown only for the active betting round. It is cleared when pre-flop starts and at each transition to flop, turn, and river; the scrollable event log retains the complete public history for the hand.
+1. A single-table No Limit Texas Hold'em tournament can be completed in the
+   interactive CLI with one human and at least two bots.
+2. The same core connects to GUI without duplicated poker rules.
+3. Changing the bot class at a seat requires only configuration/construction,
+   not changes to `Deck`, `PotManager`, or `HandEvaluator`.
+4. Chips balance after every normal hand: player stacks plus pot remain
+   constant during the hand; after settlement the pot is zero and all stacks
+   total the tournament's initial chips.
+5. Eliminated players do not enter later hands, and the tournament stops with
+   one remaining player.
+6. The human can quit at any time in GUI or interactive CLI; play stops with
+   no winner and `end_reason = player_quit`.
+7. The human never sees unrevealed opponent hole cards in GUI or CLI.
+8. Before every product tournament, GUI and CLI may optionally override the
+   participant count, common starting stack, and starting blinds. Full
+   omission uses 6, 1000, and 5/10; partial omission preserves per-field
+   defaults. The resolved configuration is displayed, and the fixed blind
+   progression cannot change during the tournament.
+9. Every visible CLI card uses rank plus Unicode suit and every collection
+   uses brackets and ` | ` as defined in `POKERCARDS_IN_CLI.md`.
+10. Every CLI player overview marks exactly the human with `(you)` and no bot.
+11. GUI seat action text contains only the active betting round and clears at
+    preflop and each street transition; the event log retains full public hand
+    history.
+12. GUI bots use the validated 50-name catalog without replacement; the human
+    is labeled exactly `Human`; name selection cannot perturb avatars or game
+    randomness.

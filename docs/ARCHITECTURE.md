@@ -1,12 +1,12 @@
 # Pokahdot Architecture
 
-Status: Implemented through GUI Milestone 4.6 and automated Stratmilestone2; final human release and strategy verification remain
+Status: Core and interactive CLI tournament play, GUI work through archived Milestone 4.6b, and strategy work through archived Stratmilestone3 are implemented. GUI naming, remaining device/small-viewport verification, and all simulation/profile-evolution backlogs remain unfinished.
 Last updated: 2026-10-22
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
 
-Pokahdot is a single-table No Limit Texas Hold'em tournament for one human player and automated opponents. The same deterministic game core must support both a Godot `Control`-based GUI and a headless terminal interface.
+Pokahdot is a single-table No Limit Texas Hold'em tournament for one human player and automated opponents. The same deterministic game core supports a Godot `Control`-based GUI, a headless interactive terminal interface, and a dedicated non-interactive all-bot simulation adapter.
 
 This document defines module boundaries, state ownership, runtime flow, and the contracts that presentation layers and agents use. `docs/ProjectDescription.md` is normative; this document may refine implementation structure but must not add or change game rules.
 
@@ -14,7 +14,7 @@ The v1 boundary is one single-table tournament with 2–9 participants, equal st
 
 ## 2. Architectural drivers
 
-- One rules implementation for GUI and CLI.
+- One rules implementation for GUI, interactive CLI, and simulation.
 - Correct betting, all-in, side-pot, showdown, and tournament elimination behavior.
 - No hidden-card leakage to agents or presentation layers.
 - Replaceable bot strategies without changes to poker rules.
@@ -30,29 +30,28 @@ The v1 boundary is one single-table tournament with 2–9 participants, equal st
 Use a small layered architecture with explicit ports between the game core and its adapters.
 
 ```text
-GUI scenes and controllers       CLI parser and renderer
-            \                         /
-             \                       /
-              Presentation adapters
-                       |
-               TournamentMatch API
-                       |
-     HandController -> BettingRound -> PotManager
-            |                 |              |
-          Table             Player      HandEvaluator
-            \                 |              /
-             Deck -------- domain data -----
-                       |
-                 Agent interface
-                /               \
-          HumanAgent          BotAgent
-                                  |
-                         DecisionModel + BotProfile
+GUI composition root   Interactive CLI root   Simulation CLI root
+        |                       |                     |
+        +----------- adapters and construction ------+
+                                |
+                        TournamentMatch API
+                                |
+              HandController -> BettingRound -> PotManager
+                     |                 |              |
+                   Table             Player      HandEvaluator
+                     \                 |              /
+                      Deck -------- domain data -----
+                                |
+                          Agent interface
+                         /               \
+                   HumanAgent          BotAgent
+                                           |
+                                  DecisionModel + BotProfile
 ```
 
 Dependencies point inward. `scripts/core/` may use Godot base types such as `RefCounted`, `Resource`, `RandomNumberGenerator`, and typed signals or value containers, but it must not depend on `Control`, scenes, GUI nodes, stdin, or stdout.
 
-The GUI and CLI are composition roots: each creates the configuration, players, agents, RNG streams, and `TournamentMatch`, then drives the same public API.
+There are three composition roots. GUI and interactive CLI each construct exactly one human plus bots. The non-interactive simulation root may construct all-bot tournaments. No other composition path may bypass the exactly-one-human product invariant. Each root creates validated configuration, players, agents, named RNG streams, and `TournamentMatch`, then drives the same public API.
 
 ## 4. Key decisions
 
@@ -69,6 +68,8 @@ The GUI and CLI are composition roots: each creates the configuration, players, 
 | Compose bots from agent, decision model, and profile | New decision algorithms and per-seat behavior can be added without changing poker rules or duplicating input/error handling. |
 | Keep runtime state in core objects, not scenes or Resources | Scenes display state. Configuration and static card data may be Resources; mutable match state stays in dedicated runtime objects. |
 | Keep avatar selection in the GUI presentation layer | Avatar identity is visual-only and must not affect `Player`, `GameView`, tournament configuration, or core RNG streams. |
+| Keep GUI display names in the GUI presentation layer | A validated 50-name catalog and tournament-local assignment map affect rendering only; the GUI human label is `Human`, while interactive CLI labeling remains unchanged. |
+| Separate presentation RNG streams | GUI name selection uses `gui_names` and avatar selection uses `gui_avatars`; neither may perturb the other or any game RNG stream. |
 | Keep GUI action pacing in a Resource | Per-seat visual pauses are configurable without putting timers or presentation policy in poker rules. |
 | Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
@@ -274,8 +275,8 @@ contains inclusive integer percentages for `tight_vs_loose`,
 `passive_vs_aggressive`, `call_vs_bet`, and `bluff_rate`. The model receives
 only its per-seat injected RNG and recipient-safe `GameView`; it has no access
 to opponents' hole cards, the deck, or mutable poker state. Its initial
-foundation uses a conservative legal check/call/fold baseline while later
-strategy milestones add public hand-potential estimation and wagering policy.
+foundation, public hand-potential estimator, and legal wagering policy are
+implemented and covered by the archived strategy milestones.
 The five immutable-at-runtime profile Resources are `nit_caller`,
 `tight_aggressive`, `loose_passive`, `loose_aggressive`, and `balanced`.
 
@@ -403,7 +404,7 @@ The method may execute several bot turns synchronously, but it returns `YIELDED`
 
 The core checks a latched quit request before every state transition. GUI driving must use a bounded transition budget and yield back to Godot's event loop between budgets so the always-available quit control remains responsive. The CLI loops through bot progress without requesting stdin and accepts `quit`/`exit` whenever it is reading a human command.
 
-Implementation proceeds through the CLI first. Each runnable core increment is exposed through the CLI and manually tested before the next increment. GUI implementation begins only after a complete single-table tournament is playable through the CLI and the automated and human CLI completion gates in `docs/TASKS.md` pass.
+The completed implementation history proceeded through the interactive CLI first, then the GUI. Current unfinished work is split across [`CoreTasks.md`](CoreTasks.md), [`CliTasks.md`](CliTasks.md), [`GuiTasks.md`](GuiTasks.md), [`SimCoreTasks.md`](SimCoreTasks.md), and [`SimCliTasks.md`](SimCliTasks.md); completed historical sequencing is preserved under [`arkiv/`](arkiv/).
 
 ### GUI adapter
 
@@ -428,6 +429,20 @@ The shared theme may adapt font sizes to the viewport, but all player-facing tex
 
 Each seat panel displays one distinct avatar sourced at 32 by 32 pixels and enlarged for readable presentation (currently 56 pixels for opponents and 64 pixels for the human). At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
 
+GUI display names follow the same presentation boundary through a separate
+assignment service. The stored catalog contains exactly 50 unique first names
+with broad international representation. Every name contains only Unicode
+letters and at most eight Unicode code points; length is measured in code
+points, not bytes or grapheme clusters. Bot names are assigned without
+replacement and remain stable for one tournament. The human is rendered
+exactly as `Human`; interactive CLI names and its `(you)` suffix remain
+unchanged. Name selection uses the presentation-only `gui_names` RNG stream,
+while avatars use `gui_avatars`. These streams are derived by stable names,
+not creation order, so name consumption cannot perturb avatar assignment,
+deck order, button choice, bot decisions, or simulation randomness. Neither
+mapping is written to `Player`, `GameView`, match configuration, events, or
+simulation artifacts.
+
 Live seat panels show stacks directly below player names, position badges, and two visible card backs for opponents until cards are legitimately revealed. The current public action appears on its own line below the seat. Folded or outbid seats remain visible in grayscale and hide their cards. The centered board/pot/wager zone is visually separate from seats. Human action controls are framed, explicit two-row controls beside the human seat; the ordered event feed is a high-contrast scrollable viewport on the other side. Showdown summaries are rendered above the corresponding revealed seat from the recipient-safe result, never from hidden core state.
 
 ### CLI adapter
@@ -445,6 +460,31 @@ Live seat panels show stacks directly below player names, position badges, and t
 CLI card formatting belongs in a small presentation helper used by the renderer. It accepts `CardData` snapshots and produces UTF-8 text only; it must not mutate cards or influence comparisons, dealing, evaluation, or visibility. Collection formatting joins dynamically rendered cards with ` | ` and wraps them with `[ ` and ` ]`. It must not assume a fixed card width because rank `10` occupies one more character position than the other ranks.
 
 CLI player labeling is also presentation-only. `PlayerView` carries the authoritative human flag already required by the recipient-safe view contract, and `CliRenderer` uses that flag to append `(you)` to the human display name. The renderer must not infer human identity from seat 0, `hero_seat`, the acting seat, a name string, or the presence of hole cards. This keeps the label correct if composition or recipient choices change later, while leaving player identity and poker rules independent of terminal wording.
+
+The simulation CLI is a separate, non-interactive process adapter proposed at
+`scripts/simulation/simulation_cli_app.gd`. It consumes a versioned batch
+manifest and produces reproducible report artifacts; it never invokes the
+interactive CLI's prompts or command loop. Its simulation-only composition
+root may create an all-bot match, while normal GUI and CLI construction retain
+the exactly-one-human invariant. Command-line parsing, artifact I/O, progress,
+and report formatting remain outside `scripts/core/`; core continues to own
+rules, seeded randomness, game progression, and recipient-safe views. The full
+contract is in
+[`Simulation_And_Evolutionary_Bot_Strategy.md`](Simulation_And_Evolutionary_Bot_Strategy.md).
+Ordinary reports and traces never contain unrevealed opponent hole cards.
+The adapter writes the complete `run` report only to `--output`; stdout is
+reserved for one canonical validation/plan document, a compact completion
+summary, an inspection summary, or a replay comparison according to the
+selected command and format. Progress and diagnostics go to stderr.
+
+Profile evolution is owned by a separate non-interactive external tool, not a
+fourth game composition root. It operates only on immutable `BotProfile`
+parameter vectors and versioned artifacts. Its contract covers generation
+initialization, fitness evaluation, selection, crossover, bounded integer
+mutation, lineage inspection, and candidate export. It never generates or
+rewrites GDScript model code, edits published profiles in place, or promotes a
+candidate automatically. Promotion into the shared playable roster is a
+reviewed source change.
 
 ## 7. Commands, results, and events
 
@@ -525,7 +565,7 @@ The review below reflects the ecosystem as of 2026-10-15.
 | [GDScript Toolkit](https://github.com/Scony/godot-gdscript-toolkit) | Adopt as development tooling | Use `gdlint` for static checks and `gdformat --check` for consistent formatting. It is a Python development dependency and must not be included in game exports. Pin a stable `4.x` release when adding the development environment. |
 | [GdUnit4 6.2.x](https://github.com/godot-gdunit-labs/gdUnit4) | Alternative, do not install alongside GUT | Also supports Godot 4.7 and offers fluent assertions, mocks, scene testing, and editor integration. Reconsider only before tests are written if the team strongly prefers its API. Maintaining two test frameworks would add cost without useful coverage. |
 | [Godot State Charts 0.22.5+](https://github.com/derkork/godot-statecharts/blob/main/CHANGES.md) | Defer; optional for GUI flow only | It supports Godot 4.7 and can simplify declarative, editor-visible UI flows. Do not use it for `TournamentMatch`, `HandController`, or `BettingRound`: its Node-and-signal model would couple deterministic rules to the scene tree and make direct headless tests less clear. |
-| Dependency-injection addons | Do not adopt for v1 | Constructor injection and the two composition roots are sufficient. An autoload or service-locator dependency would hide ownership and introduce global state. |
+| Dependency-injection addons | Do not adopt for v1 | Constructor injection and the three composition roots are sufficient. An autoload or service-locator dependency would hide ownership and introduce global state. |
 | General card-game frameworks | Do not adopt for v1 | Most target draggable hands, deck builders, or collectible-card rule scripting. Pokahdot needs a fixed 52-card deck, private two-card hands, and poker-specific betting; adapting a broad framework would be more work than the small `CardData`, `Deck`, and GUI views defined here. |
 
 ### 9.1 GUT integration
@@ -586,9 +626,18 @@ addons/
   gut/                    # pinned GUT development dependency
 docs/
   ARCHITECTURE.md
+  CliTasks.md
+  CoreTasks.md
+  GuiTasks.md
   POKERCARDS_IN_CLI.md
   ProjectDescription.md
-  TASKS.md
+  README.md
+  SimCliTasks.md
+  SimCoreTasks.md
+  Simulation_And_Evolutionary_Bot_Strategy.md
+  WEB_SETUP.md
+  gui_scaling_best_practice.md
+  arkiv/                  # superseded completed-history documents
 scripts/
   core/
     config/
@@ -647,6 +696,9 @@ scripts/
     startup_prompt_result.gd
     terminal_io.gd
     cli_renderer.gd
+  simulation/             # proposed non-interactive all-bot adapter
+    simulation_cli_app.gd
+    # manifest/report parsing, batch planning, and artifact I/O
 resources/
   default_tournament_config.tres
   bot_profiles/
@@ -683,6 +735,10 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 - model output limited to the legal actions present in `GameView`.
 - CLI player-row formatting marks exactly the human `PlayerView` as `(you)`, leaves every bot unmarked, and remains correct across repeated snapshots and non-default table sizes.
 - CLI card formatting for every rank and suit, including `10`, all four canonical Unicode suit glyphs, collection delimiters and brackets, and the absence of internal card codes in rendered output.
+- GUI name-catalog validation for exactly 50 unique first names made only of
+  Unicode letters and no longer than eight Unicode code points; deterministic
+  `gui_names` assignment without replacement and independence from the
+  `gui_avatars` and core RNG streams.
 
 ### 13.2 Integration tests
 
@@ -697,6 +753,9 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 - different models running at different seats without changes to hand or betting orchestration;
 - human quit before a hand, during a hand, and between hands, always producing `player_quit` with no winner or payout;
 - identical outcomes for a fixed seed and scripted actions through GUI-independent and CLI-independent drivers;
+- simulation-only all-bot construction while GUI and interactive CLI continue
+  to reject zero-human configuration;
+- simulation reports and all trace modes exclude unrevealed opponent cards;
 - chip conservation after every completed hand.
 
 Use test doubles for agents and a scripted deck seam in integration tests. Production code still uses the normal `Deck`; the seam exists at construction, not as test branches inside rule logic.
