@@ -1,17 +1,17 @@
 # How-To Guide: Running and Testing Pokahdot
 
-This guide provides step-by-step commands for running the game in GUI or CLI mode, executing tests with GUT, and running code quality linters.
+This guide provides step-by-step commands for running the game in GUI or CLI mode, executing tests with GUT and Python unittest, running simulations, and using code quality linters.
 
 ---
 
 ## 1. Prerequisites
 
 - **Godot 4.7+**: Download from [godotengine.org](https://godotengine.org) or ensure the `godot` binary is in your `PATH` (on macOS, `/Applications/Godot.app/Contents/MacOS/Godot`).
-- **Python 3 with `gdlint` and `gdformat`** (optional, for code formatting and linting):
+- **Python 3 with dev dependencies**:
   ```bash
   python3 -m venv .venv
   source .venv/bin/activate
-  pip install gdtoolkit
+  pip install -r requirements-dev.txt
   ```
 
 ---
@@ -31,6 +31,11 @@ To play an interactive poker tournament in your terminal:
 godot --headless --path . --script res://scripts/cli/cli_app.gd
 ```
 
+To opt into the experimental bot roster:
+```bash
+godot --headless --path . --script res://scripts/cli/cli_app.gd -- --allow-experimental-models
+```
+
 #### In-Game CLI Commands:
 When it is your turn, enter any of the following commands:
 - `check` or `call`
@@ -45,9 +50,11 @@ When it is your turn, enter any of the following commands:
 
 ## 3. Running Automated Tests
 
-Pokahdot uses **GUT (Grand Unified Test)** for GDScript testing. All tests can be run headless from the terminal.
+Pokahdot has two test suites:
+1. **GUT (Grand Unified Test)**: Headless GDScript tests for poker rules, tournament match engine, and UI adapters.
+2. **Python `unittest`**: Tests for the external profile evolution tool, artifact schemas, and confirmation gates.
 
-### Run the Complete Test Suite
+### Run All GUT Tests (GDScript)
 ```bash
 godot --headless --path . -s addons/gut/gut_cmdln.gd
 ```
@@ -62,23 +69,58 @@ godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit
 godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/integration
 ```
 
-### Run a Specific Test File
+### Run a Specific GUT Test File
 Use `-gtest=` with the resource path:
 ```bash
-godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_hand_evaluator.gd
+godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_playable_bot_roster.gd
 ```
 
-### Run Tests Matching a Pattern
-Use `-gselect=` to filter by filename prefix or pattern:
+### Run Python Profile Evolution Tests
 ```bash
-godot --headless --path . -s addons/gut/gut_cmdln.gd -gselect=test_strategy
+python3 -B -m unittest discover -s tests/profile_evolution -t . -v
+# Or via Makefile:
+make profile-evolution-test
 ```
 
 ---
 
-## 4. Code Quality & Linting
+## 4. Running Simulations & Profile Evolution
 
-Before submitting pull requests, ensure your GDScript passes code formatting and linting rules.
+### Headless Batch Simulation Runner
+To validate manifests, run batch tournaments, inspect metrics, or replay outcomes:
+```bash
+# Validate manifest
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  validate --config path/to/manifest.json --format json
+
+# Run batch
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  run --config path/to/manifest.json --output artifacts/report.json
+
+# Inspect results
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  inspect --report artifacts/report.json --format text
+
+# Replay tournament
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  replay --report artifacts/report.json --tournament-index 0
+```
+
+### External Profile Evolution CLI
+To run genetic evolution operations, inspect lineages, or verify candidate promotion eligibility:
+```bash
+# View all available evolution commands
+tools/profile-evolution --help
+
+# Example: Inspect a candidate's lineage
+tools/profile-evolution inspect-lineage --registry artifacts/lineage.json --candidate-id <id>
+```
+
+---
+
+## 5. Code Quality & Pre-Commit Verification
+
+Before submitting pull requests, ensure all tests and linters pass.
 
 ### Check Formatting (Without Modifying Files)
 ```bash
@@ -95,15 +137,15 @@ Before submitting pull requests, ensure your GDScript passes code formatting and
 .venv/bin/gdlint scripts tests
 ```
 
-### Run the Complete Pre-Commit Check (`Makefile`)
-The project includes a Makefile target that imports assets, lints, format-checks, and runs all GUT tests:
+### Run Complete Pre-Commit Check (`Makefile`)
+The project `Makefile` runs Python unit tests, imports Godot assets, checks GDScript linting and formatting, and runs all GUT tests:
 ```bash
 make check
 ```
 
 ---
 
-## 5. Building the Web Release
+## 6. Building the Web Release
 
 To export the web release target to `build/web/index.html`:
 ```bash

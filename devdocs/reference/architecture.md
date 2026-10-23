@@ -17,8 +17,8 @@ flowchart TD
     end
 
     subgraph Adapters["Presentation & Adapter Layers"]
-        GUI_Adapter["GUI Table Controller\n& Action Pacer"]
-        CLI_Adapter["CLI Command Loop\n& Renderer"]
+        GUI_Adapter["GUI Table Controller\n& Action Pacer\n(uses PlayableBotRoster)"]
+        CLI_Adapter["CLI Command Loop\n& Renderer\n(uses PlayableBotRoster)"]
         SIM_Adapter["Simulation Match Factory\n& Metrics Collector"]
     end
 
@@ -85,9 +85,9 @@ A "composition root" is the place where configuration is loaded, dependencies ar
 
 | Root | Entry Point | Contract | Purpose |
 | :--- | :--- | :--- | :--- |
-| **GUI Root** | `scenes/main.tscn`<br>`startup_config_controller.gd` | `TournamentConstructionContract.product()` | Graphical player game with interactive table, cards, avatars, and visual action pacing. |
-| **Interactive CLI** | `scripts/cli/cli_app.gd` | `TournamentConstructionContract.product()` | Terminal-based game with text prompts, ASCII/Unicode cards, and standard input/output. |
-| **Simulation CLI** | `scripts/simulation/simulation_cli_app.gd` | `TournamentConstructionContract.simulation()` | Non-interactive, high-throughput headless runner for testing bot parameters across thousands of tournaments. |
+| **GUI Root** | `scenes/main.tscn`<br>`startup_config_controller.gd` | `TournamentConstructionContract.product()` | Graphical player game with interactive table, cards, avatars, and visual action pacing. Uses `GuiMatchFactory` and `PlayableBotRoster`. |
+| **Interactive CLI** | `scripts/cli/cli_app.gd` | `TournamentConstructionContract.product()` | Terminal-based game with text prompts, ASCII/Unicode cards, and standard input/output. Uses `CliMatchFactory` and `PlayableBotRoster`. |
+| **Simulation CLI** | `scripts/simulation/simulation_cli_app.gd` | `TournamentConstructionContract.simulation()` | Non-interactive, high-throughput headless runner for testing bot parameters across thousands of tournaments. Uses `SimulationMatchFactory`. |
 
 ### The Composition Contract (`TournamentConstructionContract`)
 To prevent accidental creation of all-bot games in the product (or human waits in simulation), `TournamentMatch` requires a contract:
@@ -260,7 +260,70 @@ If a single shared RNG were used, a bot taking an extra random roll would shift 
 
 ---
 
-## 7. Architectural Checklist for Developers
+## 7. Simulation and External Profile-Evolution Subsystem
+
+Pokahdot implements a decoupled, evidence-based bot evaluation and evolutionary architecture:
+
+```mermaid
+flowchart TD
+    subgraph PythonWorkflow["External Profile Evolution (tools/profile-evolution)"]
+        GEN["Generation (init / crossover / mutate)"]
+        FIT["Fitness Evaluation (evaluate-fitness)"]
+        SEL["Selection (select)"]
+        LIN["Lineage Registry (build-lineage)"]
+        CONF["Confirmation Gate (confirm-candidate)"]
+        REV["Human Promotion Review (review-promotion)"]
+        PUB["Profile Publisher (publish-profile)"]
+    end
+
+    subgraph SimulationHarness["Headless Simulation Harness (Godot)"]
+        MAN["SimulationManifest (schema 2)"]
+        RUN["SimulationBatchRunner (headless)"]
+        REP["SimulationReport (schema 3)"]
+    end
+
+    subgraph ProductCore["Curated Product Engine"]
+        RES["published/<candidate>.tres"]
+        PBR["PlayableBotRoster (curated catalog)"]
+        MATCH["TournamentMatch (GUI & CLI)"]
+    end
+
+    GEN -->|manifest| MAN
+    MAN --> RUN
+    RUN --> REP
+    REP -->|complete shards| FIT
+    FIT --> SEL
+    SEL --> GEN
+    SEL --> LIN
+    LIN --> CONF
+    REP -->|mirrored & mixed| CONF
+    CONF -->|eligible evidence| REV
+    REV -->|approved review| PUB
+    PUB -->|atomic write| RES
+    RES -->|reviewed source change| PBR
+    PBR --> MATCH
+```
+
+### 1. The Headless Simulation Engine (`scripts/simulation/`)
+- **Manifests (`SimulationManifest`, Schema 2)**: Immutable, JSON-configured batches specifying bot profile snapshots, tournament regimes, cyclic seat rotation, and matchups.
+- **Runner (`SimulationBatchRunner`)**: High-throughput headless execution enforcing zero-human composition contracts.
+- **Reports (`SimulationReport`, Schema 3)**: Checksummed artifacts containing exact manifest snapshots, deterministic roster provenance, ordered `selected_profile_ids` per tournament, outcomes, and recipient-safe traces.
+
+### 2. External Evolution & Promotion (`tools/profile-evolution`)
+- **Decoupled Python Tool**: Keeps evolutionary genetics, lineage registries, and confirmation gates outside the game runtime.
+- **Immutable Checksummed Envelopes**: All artifacts carry `schema_version`, `type`, `tool_version`, `payload`, and a SHA-256 canonical checksum.
+- **Automated Promotion Gates (`confirm-candidate`)**: Verifies lineage ancestry, dual independent regimes (mirrored & mixed), non-overlapping seeds, zero invalid actions, and behavioral diversity (L1 distance $\ge 10$).
+- **Human Review Barrier (`review-promotion`)**: An independent reviewer must explicitly approve the eligible confirmation artifact.
+- **Publication Boundary (`publish-profile`)**: Writes new versioned `.tres` files to `resources/bot_profiles/published/` via atomic no-clobber creation.
+
+### 3. Curated In-Game Catalog (`PlayableBotRoster`)
+- **Shared by GUI and CLI**: Centralizes in-game bot selection and creation.
+- **Legacy Invariant**: Enforces permanent retention of hand-authored legacy profiles (`random_default`, `tight_passive_default`, `loose_aggressive_default`).
+- **Deep-Copy Isolation**: Ensures live tournaments receive fresh duplicate copies and cannot mutate shared resource definitions.
+
+---
+
+## 8. Architectural Checklist for Developers
 
 When modifying or extending Pokahdot, keep these rules in mind:
 
@@ -268,4 +331,6 @@ When modifying or extending Pokahdot, keep these rules in mind:
 - [ ] **Always Use `GameView`**: Agents and presentation code must only read state through `GameView`.
 - [ ] **Target Total Wagers**: When constructing `PlayerAction.bet_to(n)` or `PlayerAction.raise_to(n)`, `n` is the total street wager.
 - [ ] **Immutable Configs**: Use `TournamentConfig` for UI/editor defaults, but always pass `ResolvedTournamentConfig` to live matches.
+- [ ] **Catalog Invariance**: Never remove required legacy profiles from `PlayableBotRoster`.
+- [ ] **Reviewed Promotion**: Never publish bot profiles without verified confirmation and reviewer approval artifacts.
 - [ ] **Strong Typing**: Write typed GDScript (`var stack: int = 1000`, `func get_name() -> StringName:`).

@@ -88,7 +88,9 @@ func choose_action(view: GameView) -> PlayerAction:
 
 ## Step 3: Register the Model
 
-Register the new model ID with the `DecisionModelRegistry` inside the relevant factory (`cli_match_factory.gd`, `gui_match_factory.gd`, or `simulation_match_factory.gd`):
+Register the new model ID with `DecisionModelRegistry`:
+- For playable games (GUI and CLI), register the script in [`PlayableBotRoster._create_registry()`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd).
+- For headless batch simulations, register it in [`SimulationMatchFactory._default_registry()`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_match_factory.gd).
 
 ```gdscript
 registry.register_model(

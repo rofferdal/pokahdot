@@ -69,21 +69,18 @@ var config: ResolvedTournamentConfig = resolution.config
 
 ### Step 2: Instantiating the Match
 Each seat receives an `Agent`:
-- Exactly one `HumanAgent` (in GUI or CLI play)
-- `BotAgent` instances for remaining seats
+- Exactly one `HumanAgent` (in GUI or CLI play).
+- `BotAgent` instances for the remaining seats, selected deterministically from the curated catalog via [`PlayableBotRoster`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd).
 
-The composition root builds a dictionary of agents and initializes `TournamentMatch`:
+The composition root ([`CliMatchFactory`](file:///Users/rofferdal/git/pokahdot/scripts/cli/cli_match_factory.gd) or [`GuiMatchFactory`](file:///Users/rofferdal/git/pokahdot/scripts/gui/gui_match_factory.gd)) selects deep copies of profiles from `PlayableBotRoster`, injects independent RNG streams, and constructs `TournamentMatch`:
 
 ```gdscript
-var seat_agents: Dictionary[int, Agent] = {
-    0: HumanAgent.new(),
-    1: BotAgent.new(tight_passive_model, tight_passive_profile),
-    2: BotAgent.new(loose_aggressive_model, loose_aggressive_profile),
-    # ... other bot seats
-}
-
-var match := TournamentMatch.new(config, seat_agents)
+# Composition root (CLI or GUI match factory):
+var factory := CliMatchFactory.new()
+var match: TournamentMatch = factory.create(config)
 ```
+
+Under the hood, `PlayableBotRoster.select()` samples the required number of bots without replacement from its catalog, and `roster.create_bot()` instantiates each `BotAgent` with its seat-specific RNG stream.
 
 ### Step 3: Starting the Match
 Calling `match.start()` sets up the `Table`, creates players with starting stacks, chooses a random button seat, and starts Hand #1:

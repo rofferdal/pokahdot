@@ -107,13 +107,23 @@ Test candidate bots against both regimes:
 
 ---
 
-## 5. Decision Checklist: When to Replace an In-Game Profile
+## 5. Automated Promotion Gates & Decision Checklist
 
-Use this checklist before promoting a candidate into production:
+Pokahdot enforces promotion rigor through the [`confirm-candidate`](file:///Users/rofferdal/git/pokahdot/tools/profile_evolution/confirmation.py) tool. An eligible candidate must satisfy each of the following strict criteria:
 
-- [ ] **Sample Count Met**: Evaluated over at least 300 tournaments with cyclic seat rotation.
-- [ ] **Confidence Interval Separation**: Fitness exceeds target baseline with non-overlapping 95% confidence intervals.
-- [ ] **Zero Invalid Actions**: `invalid_action_fallbacks == 0` across all runs.
-- [ ] **Positive Chip Differential**: Demonstrates positive average chip differential against the incumbent roster.
-- [ ] **Multi-Regime Stability**: Performs adequately in both heads-up and full-table regimes.
-- [ ] **Preserves Roster Diversity**: The candidate fits the intended gameplay archetype (e.g., if replacing a "Calling Station", the new profile should improve that personality without turning every bot into an identical clone).
+### The 7 Automated Promotion Criteria (`confirm-candidate`):
+1. **Lineage Provenance**: The candidate profile must be present in the lineage registry with complete generation, crossover, and mutation ancestry.
+2. **Independent Dual Regimes**: Must be evaluated in both **Mirrored** (identical candidate copies at table) and **Mixed-Table** (competing against legacy and champion baselines) simulation reports.
+3. **Non-Overlapping Seed Sequences**: Mirrored and mixed benchmark reports must have independent, non-overlapping pseudo-random seed ranges. Reused reports or shared seeds are automatically rejected.
+4. **Sample Thresholds**: Must satisfy sample requirements ($N \ge 300$ tournaments, minimum 100 per seat under cyclic rotation).
+5. **Zero Invalid Actions**: `invalid_action_fallbacks == 0` across all evaluation runs without exception.
+6. **Multi-Opponent Coverage**: Candidate must face declared legacy archetypes (`random_default`, `tight_passive_default`, `loose_aggressive_default`) and historical champions.
+7. **Behavioral Diversity Gate (L1 Distance $\ge 10$)**:
+   To avoid cloning existing archetypes, the tool calculates the L1 distance across the four percentage genes:
+   $$\text{L1 Distance} = |\Delta\text{tight}| + |\Delta\text{passive}| + |\Delta\text{call}| + |\Delta\text{bluff}|$$
+   The distance to every comparable declared legacy or historical champion profile must be **at least 10 percentage points**.
+
+### Post-Confirmation Human Gate (`review-promotion`):
+- Passing automated confirmation marks the candidate as `"promotion_eligible": true` and `"review_required": true`.
+- An independent human reviewer must execute `review-promotion --approve` with an explicit reviewer ID and review note before `publish-profile` is allowed to generate a Godot `.tres` resource.
+- No automated script can bypass human approval or modify the playable roster.

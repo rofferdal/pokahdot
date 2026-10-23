@@ -1,172 +1,200 @@
 # How-To Guide: Replacing In-Game Bot Profiles
 
-This guide provides the complete procedure for updating or replacing bot profiles in Pokahdot's playable GUI and CLI tournaments.
+This guide provides the complete, authoritative procedure for updating or replacing bot profiles in Pokahdot's playable GUI and CLI tournaments using the evidence-based promotion workflow.
 
 ---
 
-## 1. Understanding the Playable Rosters
+## 1. Understanding Playable Rosters and `PlayableBotRoster`
 
-Pokahdot maintains two bot roster configurations:
+Pokahdot manages all playable in-game bots through a centralized, source-controlled catalog class: [`PlayableBotRoster`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd).
 
-1. **Standard (Production) Roster**:
-   - The default out-of-the-box configuration when the game starts.
-   - Assigned in `scripts/core/config/tournament_config.gd` under `seat_agents`.
-   - Uses basic archetypes: `random`, `tight_passive`, and `loose_aggressive`.
-2. **Experimental (Strategy) Roster**:
-   - Activated when **"Allow Experimental Models"** is enabled in the startup GUI or via CLI flag `--allow-experimental-models`.
-   - Populated by `EXPERIMENTAL_BOT_AGENT_IDS` in `GuiMatchFactory` and `CliMatchFactory`.
-   - Currently includes:
-     - `nit_caller`
-     - `tight_aggressive`
-     - `loose_passive`
-     - `strategy_loose_aggressive`
-     - `balanced`
+### Key Architectural Invariants of `PlayableBotRoster`:
+1. **Centralized Composition**: Both [`GuiMatchFactory`](file:///Users/rofferdal/git/pokahdot/scripts/gui/gui_match_factory.gd) and [`CliMatchFactory`](file:///Users/rofferdal/git/pokahdot/scripts/cli/cli_match_factory.gd) delegate bot selection and creation exclusively to `PlayableBotRoster`.
+2. **Deep-Copy Isolation**: The catalog loads profiles once, but `select()` and `create_bot()` return deep copies. Matches cannot mutate shared profile resources.
+3. **Deterministic Positional Selection**: Given a tournament seed, seats are assigned profiles deterministically without replacement via `select(count, rng)`.
+4. **Guaranteed Legacy Retention**: The catalog strictly enforces that hand-authored legacy archetypes (`random_default`, `tight_passive_default`, `loose_aggressive_default`) are retained. Validation fails if any legacy archetype is missing.
+5. **Roster Version Tracking**: The constant `ROSTER_VERSION` (e.g. `curated_v1`) provides source-controlled identity for the catalog. Interactive diagnostics log this version alongside every seat's assigned profile.
 
 ---
 
-## 2. Step-by-Step Replacement Procedure
+## 2. The Evidence-Based Promotion Workflow
 
-### Step 1: Create the New `.tres` Profile Resource
-
-Save the verified profile as a Godot `Resource` inside `resources/bot_profiles/`. 
-
-For example, to introduce a new profile named `disciplined_tag`:
-Create `resources/bot_profiles/disciplined_tag.tres`:
+Never edit or replace in-game bot profiles ad-hoc. All candidate promotions follow a strict, multi-stage gate:
 
 ```text
-[gd_resource type="Resource" script_class="BotProfile" load_steps=3 format=3]
-
-[ext_resource type="Script" path="res://scripts/core/agents/bot_profile.gd" id="1_profile"]
-[ext_resource type="Script" path="res://scripts/core/agents/strategy_decision_model_parameters.gd" id="2_parameters"]
-
-[sub_resource type="Resource" id="StrategyParameters_disciplined_tag"]
-script = ExtResource("2_parameters")
-tight_vs_loose = 68
-passive_vs_aggressive = 46
-call_vs_raise = 42
-bluff_rate = 9
-
-[resource]
-script = ExtResource("1_profile")
-profile_id = &"disciplined_tag"
-model_id = &"strategy_parameterized"
-display_name = "Disciplined Tag"
-parameters = SubResource("StrategyParameters_disciplined_tag")
+[Simulation Runs (Mirrored & Mixed Reports)]
+                 │
+                 ▼
+[tools/profile-evolution confirm-candidate]
+                 │ (Verifies sample sizes, diversity L1 >= 10, zero fallbacks)
+                 ▼
+      [confirmation.json] (Eligible, review_required)
+                 │
+                 ▼
+[tools/profile-evolution review-promotion --approve]
+                 │ (Human reviewer signs off with note)
+                 ▼
+     [promotion_review.json]
+                 │
+                 ▼
+[tools/profile-evolution publish-profile]
+                 │ (Writes no-clobber .tres to resources/bot_profiles/published/)
+                 ▼
+[Source Change: Update PlayableBotRoster & Increment ROSTER_VERSION]
+                 │
+                 ▼
+[Run GUT & Python Tests: make check]
 ```
+
+---
+
+## 3. Step-by-Step Procedure
+
+### Step 1: Confirm Candidate Evidence
+Run `confirm-candidate` to verify that your candidate meets all mathematical and behavioral promotion gates:
+
+```bash
+tools/profile-evolution confirm-candidate \
+  --registry artifacts/lineage_registry.json \
+  --candidate-id candidate_id \
+  --legacy-id random_default \
+  --legacy-id tight_passive_default \
+  --legacy-id loose_aggressive_default \
+  --historical-champion-id champion_id \
+  --mirrored-report artifacts/mirrored_report.json \
+  --mixed-report artifacts/mixed_report.json \
+  --output artifacts/confirmation.json
+```
+
+The tool verifies:
+- Independent mirrored and mixed reports with non-overlapping seeds.
+- Adequate sample sizes ($N \ge 300$).
+- Zero invalid-action fallbacks.
+- Behavioral diversity: L1 distance across the four strategy genes must be $\ge 10$ from every comparable declared legacy and champion profile.
+- If successful, it writes `artifacts/confirmation.json` with `"promotion_eligible": true`.
+
+---
+
+### Step 2: Conduct Human Promotion Review
+An independent developer or reviewer inspects the confirmation artifact and records an immutable approval:
+
+```bash
+tools/profile-evolution review-promotion \
+  --confirmation artifacts/confirmation.json \
+  --reviewer-id reviewer_username \
+  --approve \
+  --note "Reviewed independent mirrored and mixed benchmark evidence. Candidate shows +140 chip differential and zero fallbacks." \
+  --output artifacts/promotion_review.json
+```
+
+> [!NOTE]
+> If evidence is insufficient, pass `--reject` with an explanatory note. Approval cannot be granted for ineligible confirmation artifacts.
+
+---
+
+### Step 3: Publish the Profile Resource
+Use `publish-profile` to generate the new Godot `.tres` Resource:
+
+```bash
+tools/profile-evolution publish-profile \
+  --confirmation artifacts/confirmation.json \
+  --review artifacts/promotion_review.json \
+  --version v1 \
+  --display-name "Disciplined TAG v1" \
+  --project-root .
+```
+
+This writes a versioned `.tres` file under `resources/bot_profiles/published/` (e.g. `resources/bot_profiles/published/candidate_id__v1.tres`).
+- It uses no-clobber atomic writes and refuses to overwrite an existing file.
+- It does **not** modify `PlayableBotRoster`; activating the profile is a deliberate, reviewed source code change.
+
+---
+
+### Step 4: Update `PlayableBotRoster`
+
+Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd):
+
+1. **Increment `ROSTER_VERSION`**:
+   ```gdscript
+   const ROSTER_VERSION: StringName = &"curated_v2"
+   ```
+
+2. **Add or Replace Profile in `DEFAULT_PROFILE_PATHS`**:
+   ```gdscript
+   const DEFAULT_PROFILE_PATHS: PackedStringArray = [
+   	"res://resources/bot_profiles/random_default.tres",
+   	"res://resources/bot_profiles/tight_passive_default.tres",
+   	"res://resources/bot_profiles/loose_aggressive_default.tres",
+   	"res://resources/bot_profiles/published/candidate_id__v1.tres", # Promoted profile
+   	"res://resources/bot_profiles/tight_aggressive.tres",
+   	"res://resources/bot_profiles/loose_passive.tres",
+   	"res://resources/bot_profiles/loose_aggressive.tres",
+   	"res://resources/bot_profiles/balanced.tres",
+   ]
+   ```
 
 > [!IMPORTANT]
-> Never mutate an existing `.tres` file in place if it represents a published benchmark. Always create a new file or increment a version suffix (e.g. `balanced_v2.tres`).
+> Always retain the legacy profiles listed in `REQUIRED_LEGACY_PROFILE_IDS`:
+> - `&"random_default"`
+> - `&"tight_passive_default"`
+> - `&"loose_aggressive_default"`
+> If any of these are omitted, `PlayableBotRoster.validate()` will fail!
 
 ---
 
-### Step 2: Update the GUI Match Factory
+### Step 5: Update Test Suites
 
-Open `scripts/gui/gui_match_factory.gd`:
-
-1. Update `EXPERIMENTAL_BOT_AGENT_IDS` (replace the old ID with your new one):
-   ```gdscript
-   const EXPERIMENTAL_BOT_AGENT_IDS: Array[StringName] = [
-   	&"disciplined_tag",   # Replaces nit_caller
-   	&"tight_aggressive",
-   	&"loose_passive",
-   	&"strategy_loose_aggressive",
-   	&"balanced",
-   ]
-   ```
-2. Ensure the ID is mapped in `_create_bot()`:
-   ```gdscript
-   &"disciplined_tag", &"tight_aggressive", &"loose_passive", &"balanced":
-   	return _create_strategy_bot(agent_id, rng)
-   ```
-
----
-
-### Step 3: Update the CLI Match Factory
-
-Open `scripts/cli/cli_match_factory.gd`:
-
-1. Update `EXPERIMENTAL_BOT_AGENT_IDS`:
-   ```gdscript
-   const EXPERIMENTAL_BOT_AGENT_IDS: Array[StringName] = [
-   	&"disciplined_tag",
-   	&"tight_aggressive",
-   	&"loose_passive",
-   	&"strategy_loose_aggressive",
-   	&"balanced",
-   ]
-   ```
-2. Update `_create_bot()`:
-   ```gdscript
-   &"disciplined_tag", &"tight_aggressive", &"loose_passive", &"balanced":
-   	return _create_strategy_bot(agent_id, rng)
-   ```
-
----
-
-### Step 4 (Optional): Update the Standard Production Roster
-
-If you are replacing one of the standard non-experimental seats (e.g. upgrading the baseline tight bot):
-
-1. Open `scripts/core/config/tournament_config.gd`.
-2. Update the default `seat_agents` dictionary:
-   ```gdscript
-   @export var seat_agents: Dictionary[int, StringName] = {
-   	0: &"human",
-   	1: &"random",
-   	2: &"disciplined_tag", # Updated seat 2
-   	3: &"loose_aggressive",
-   	# ...
-   }
-   ```
-3. Update `resources/default_tournament_config.tres` if necessary.
-
----
-
-### Step 5: Update Test Assertions
-
-Update the unit tests in `tests/unit/test_strategy_profiles.gd` to reflect the new profile:
+Update the roster unit tests in [`tests/unit/test_playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/tests/unit/test_playable_bot_roster.gd) to assert the new roster version:
 
 ```gdscript
-var expected_profiles := {
-	&"disciplined_tag": [68, 46, 42, 9],
-	&"tight_aggressive": [65, 53, 53, 8],
-	&"loose_passive": [100, 4, 4, 5],
-	&"loose_aggressive": [100, 72, 72, 22],
-	&"balanced": [70, 28, 28, 12],
-}
+assert_eq(roster.get_roster_version(), &"curated_v2")
 ```
 
-Run GUT to verify:
+If replacing a legacy test expectation in [`tests/unit/test_strategy_profiles.gd`](file:///Users/rofferdal/git/pokahdot/tests/unit/test_strategy_profiles.gd), update the parameter dictionary accordingly.
+
+Run the test suite:
 ```bash
-godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_strategy_profiles.gd
+godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_playable_bot_roster.gd
 ```
 
 ---
 
-### Step 6: Verify in Game
+### Step 6: Verify in CLI and GUI
 
-1. **Verify via CLI**:
-   Run the CLI with experimental bots enabled and observe the startup diagnostic seating output:
+1. **Verify via Interactive CLI**:
+   Run the CLI and check the startup diagnostics:
    ```bash
-   godot --headless --path . --script res://scripts/cli/cli_app.gd -- --allow-experimental-models
+   godot --headless --path . --script res://scripts/cli/cli_app.gd
    ```
-   Check that Seat 1 outputs: `Seat 1: model=strategy_parameterized profile=disciplined_tag`.
+   The diagnostic output prints:
+   ```text
+   Bot roster: production
+   Bot roster version: curated_v2
+   Selected bot profile IDs: candidate_id__v1,tight_aggressive,balanced,...
+   Seat 1: model=strategy_parameterized profile=candidate_id__v1
+   ```
 
-2. **Verify via GUI**:
-   Launch the game, check **Allow experimental models**, and start a match:
+2. **Verify via Graphical UI**:
+   Launch the game:
    ```bash
    godot --path . scenes/main.tscn
    ```
+   Start a tournament and verify smooth execution.
+
+3. **Run Full Verification**:
+   ```bash
+   make check
+   ```
 
 ---
 
-## 3. Best Practice: Preserving Archetype Diversity
+## 4. Best Practice: Preserving Archetype Diversity
 
 When improving bots, resist the temptation to make all opponents identical "optimal" clones. A compelling poker game requires **stylistic variety**:
 
-- **The Maniac** (`loose_aggressive`): Applies constant pressure, creates big pots, and tests the player's willingness to call down light.
+- **The Maniac** (`loose_aggressive`): Constant aggression, high variance, tests light call-downs.
 - **The Calling Station** (`loose_passive`): Rarely folds, rarely raises. Teaches value betting and punishes over-bluffing.
-- **The Nit** (`nit_caller` / tight-passive): Plays very few hands. Teaches blind stealing.
+- **The Nit** (`nit_caller` / tight-passive): Plays few hands. Teaches blind stealing.
 - **The TAG / Balanced** (`tight_aggressive` / `balanced`): Solid, aggressive poker. Teaches pot control and position.
 
 When replacing a profile, aim to **eliminate strategic blunders** (e.g. folding when receiving 20:1 pot odds, bleeding blinds without defending, or making invalid actions) while **preserving the archetype's distinct personality**.

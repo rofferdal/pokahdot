@@ -150,3 +150,46 @@ The recipient-specific, read-only snapshot provided to agents and UI.
 | `minimum_wager_total`| `int` | Minimum bet/raise total. |
 | `maximum_wager_total`| `int` | All-in wager total. |
 | `seats` | `Array[PlayerView]` | Public info for all seats (stacks, bets, folded/busted status). |
+
+---
+
+## 5. Agent, Strategy & Catalog Domain
+
+### `PlayableBotRoster` (`scripts/core/agents/playable_bot_roster.gd`)
+The centralized, curated bot catalog used by GUI and CLI presentation layers.
+
+- **Constants**:
+  - `ROSTER_VERSION: StringName`: Current catalog release version (e.g. `&"curated_v1"`).
+  - `REQUIRED_LEGACY_PROFILE_IDS`: Must always include `&"random_default"`, `&"tight_passive_default"`, and `&"loose_aggressive_default"`.
+  - `DEFAULT_PROFILE_PATHS`: Array of default `.tres` resource paths loaded into the roster.
+  - `MAX_PLAYABLE_BOT_COUNT`: Maximum bots selectable for one tournament (8).
+  - `MAX_CATALOG_PROFILE_COUNT`: Maximum profiles allowed in the catalog (32).
+- **Key Methods**:
+  - `validate() -> PackedStringArray`: Validates catalog bounds, profile uniqueness, model creation, and legacy profile presence.
+  - `select(count: int, rng: RandomNumberGenerator) -> PlayableBotRosterSelection`: Deterministically samples `count` distinct profiles without replacement, returning deep copies.
+  - `create_bot(profile: BotProfile, rng: RandomNumberGenerator) -> AgentCreationResult`: Instantiates a concrete `BotAgent` from a profile.
+  - `get_profile_ids() -> Array[StringName]`: Returns all catalog profile IDs.
+  - `get_roster_version() -> StringName`: Returns current roster version.
+
+### `PlayableBotRosterSelection` (`scripts/core/agents/playable_bot_roster_selection.gd`)
+Result object returned by `PlayableBotRoster.select()`.
+
+- `is_ok() -> bool`: True if selection completed without errors.
+- `get_profiles() -> Array[BotProfile]`: Returns deep copies of the selected profiles.
+- `errors: PackedStringArray`: Diagnostic error messages if selection failed.
+
+### `DecisionModelRegistry` (`scripts/core/agents/decision_model_registry.gd`)
+Registry mapping model IDs (`StringName`) to their GDScript model and parameter constructors.
+
+- `register_model(model_id, model_script, parameters_script) -> void`
+- `create_model(model_id) -> DecisionModel`
+- `create_parameters(model_id) -> DecisionModelParameters`
+
+### `BotProfile` (`scripts/core/agents/bot_profile.gd`)
+Custom `Resource` linking a stable profile identifier, model ID, display name, and parameter resource.
+
+- `profile_id: StringName`: e.g. `&"balanced"`, `&"nit_caller"`, `&"solid_tag__v1"`.
+- `model_id: StringName`: e.g. `&"strategy_parameterized"`, `&"random"`.
+- `display_name: String`: Human-readable label.
+- `parameters: DecisionModelParameters`: Typed parameter payload.
+

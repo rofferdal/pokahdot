@@ -1,24 +1,24 @@
 # Tutorial: Improving Bot Behavior Through Simulation and Promotion
 
-In this tutorial, you will learn how to design a new bot profile, test its performance against existing in-game bots using the headless simulation engine, analyze statistical metrics to decide if it is ready for promotion, and replace an in-game bot profile.
+In this tutorial, you will learn how to formulate a candidate bot hypothesis, benchmark its performance against existing in-game bots using the headless simulation engine, analyze statistical metrics to verify promotion eligibility, publish the approved profile, and integrate it into the playable game roster.
 
 ---
 
 ## 1. Overview & Learning Goals
 
 By the end of this tutorial, you will be able to:
-1. Understand the 4 strategy parameters of `StrategyDecisionModel`.
-2. Write a simulation manifest comparing a candidate bot against incumbent baselines.
-3. Run the simulation CLI and inspect the generated report.
-4. Interpret the 6-component fitness score and 95% confidence intervals.
-5. Safely replace or promote a bot profile in the playable game rosters.
-6. Verify your changes with automated tests.
+1. Understand the 4 strategy parameters of [`StrategyDecisionModel`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/strategy_decision_model.gd).
+2. Author a schema-2 simulation manifest comparing a candidate bot against incumbent baselines.
+3. Run the simulation CLI and inspect the generated schema-3 report.
+4. Interpret the 6-component fitness score, style metrics, and 95% confidence intervals.
+5. Use the external promotion tools to verify eligibility, review approvals, and publish the `.tres` Resource.
+6. Safely integrate the new profile into [`PlayableBotRoster`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd) and verify your changes with automated tests.
 
 ---
 
-## 2. The Mental Model: Bot Evolution & Roster Management
+## 2. The Mental Model: Bot Personalities & Parameters
 
-In Pokahdot, bots are parameterized agents. The algorithm (`StrategyDecisionModel`) does not change; instead, bot personalities are governed by **four integer percentage parameters (0–100)**:
+In Pokahdot, bot decisions are cleanly separated from personality tuning. The algorithm ([`StrategyDecisionModel`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/strategy_decision_model.gd)) evaluates board textures, hand rank percentiles, and pot odds. Its personality is governed by **four integer percentage parameters (0–100)**:
 
 | Parameter | Range | What it controls |
 | :--- | :--- | :--- |
@@ -27,7 +27,7 @@ In Pokahdot, bots are parameterized agents. The algorithm (`StrategyDecisionMode
 | `call_vs_raise` | 0–100 | Propensity to raise instead of call when facing a bet. |
 | `bluff_rate` | 0–100 | Percentage of eligible weak-hand opportunities converted into bluff bets/raises. |
 
-Existing in-game baselines include:
+Existing baseline profiles include:
 - `nit_caller`: Overly tight (60), extremely passive (4/4), rarely bluffs (2). Easily pushed around.
 - `tight_aggressive`: Selective hand range (65), assertive betting and raising (53/53), disciplined bluffs (8).
 - `loose_passive`: Plays almost every hand (100), calls down passively (4/4), rarely bluffs (5). "Calling station".
@@ -38,13 +38,13 @@ Existing in-game baselines include:
 
 ## 3. Step 1: Formulating a Candidate Hypothesis
 
-Suppose we observe that `nit_caller` is too easily exploited—it folds too often and never fights for pots. We want to test a **"Solid Tag"** (Tight-Aggressive) candidate:
+Suppose we observe that `nit_caller` is too easily exploited—it folds too often and never fights for pots. We want to evaluate a **"Solid Tag"** (Tight-Aggressive) candidate:
 - `tight_vs_loose`: `68` (slightly looser than nit, plays playable broadways and pairs).
 - `passive_vs_aggressive`: `45` (frequently bets when checked to).
 - `call_vs_raise`: `40` (defends against bets by raising strong holdings).
 - `bluff_rate`: `10` (bluffs selectively when weakness is shown).
 
-Our hypothesis: *The Solid Tag candidate will achieve a higher composite fitness score and higher chip differential than `nit_caller` when facing mixed table competition.*
+Our hypothesis: *The Solid Tag candidate will achieve a higher composite fitness score and positive chip differential against incumbent baselines without committing invalid actions.*
 
 ---
 
@@ -52,7 +52,7 @@ Our hypothesis: *The Solid Tag candidate will achieve a higher composite fitness
 
 Simulations are configured using a JSON manifest file conforming to schema 2.
 
-Create a temporary manifest file named `test_candidate_manifest.json`:
+Create a manifest file named `solid_tag_manifest.json`:
 
 ```json
 {
@@ -121,37 +121,40 @@ Create a temporary manifest file named `test_candidate_manifest.json`:
 }
 ```
 
-### Key Manifest Details:
-- **`tournament_count: 300`**: Because player count is 3, cyclic seat rotation cycles each bot through seats 0, 1, and 2 exactly 100 times each. This eliminates dealer button and positional bias.
-- **`seed_start: 500000`**: Sets a reproducible sequence of pseudo-random seeds ($500000$ to $500299$).
+### Key Details:
+- **`tournament_count: 300`**: Cycles each bot through seats 0, 1, and 2 exactly 100 times under cyclic rotation, eliminating positional bias.
+- **`seed_start: 500000`**: Provides reproducible pseudo-random streams.
 
 ---
 
 ## 5. Step 3: Validating and Running the Simulation
 
 ### 1. Validate the Plan
-Before running 300 tournaments, verify the manifest syntax and planning logic:
+Check manifest syntax and plan inputs without playing:
 ```bash
-godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- validate --config test_candidate_manifest.json
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  validate --config solid_tag_manifest.json --format json
 ```
-If valid, it will output the planned execution parameters and exit with code `0`.
 
 ### 2. Run the Batch
-Execute the tournaments and write the output report:
+Execute the tournaments and write the output report atomically:
 ```bash
-godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- run --config test_candidate_manifest.json --out test_report.json
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  run --config solid_tag_manifest.json --output artifacts/solid_tag_report.json \
+  --trace sampled --trace-sample 5 --format json
 ```
 
 ---
 
-## 6. Step 4: Inspecting and Interpreting the Results
+## 6. Step 4: Inspecting and Interpreting Results
 
 Inspect the generated report summary:
 ```bash
-godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- inspect --report test_report.json
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  inspect --report artifacts/solid_tag_report.json --format text
 ```
 
-You will see an aggregate table grouped by profile:
+You will see the aggregate metrics grouped by profile:
 
 ```text
 Profile Aggregates:
@@ -184,76 +187,108 @@ Profile: nit_caller (N = 300)
 ```
 
 ### Making the Decision:
-1. **Statistical Significance**: The difference in fitness between `candidate_solid_tag` ($0.584$) and `nit_caller` ($0.385$) is $\Delta = 0.199$. The combined uncertainty half-width is only $\sim 0.022$. The candidate's superiority over `nit_caller` is statistically conclusive.
-2. **Chip Economy**: `nit_caller` bled $-216.6$ chips on average, while our candidate generated $+182.4$ chips.
-3. **Behavioral Integrity**: `Invalid Actions` is 0. If a candidate ever attempts an illegal move (e.g. betting when check is not legal), it is disqualified.
+1. **Statistical Significance**: The difference in fitness between `candidate_solid_tag` ($0.584$) and `nit_caller` ($0.385$) is $\Delta = 0.199$, far exceeding the uncertainty half-width ($0.021$).
+2. **Chip Differential**: The candidate earns $+182.4$ chips on average, while `nit_caller` bleeds $-216.6$ chips.
+3. **Behavioral Integrity**: `Invalid Actions` is `0`.
+4. **Behavioral Diversity**: Comparing genes `[68, 45, 40, 10]` to `nit_caller` `[60, 4, 4, 2]` yields an L1 distance of $|68-60| + |45-4| + |40-4| + |10-2| = 8 + 41 + 36 + 8 = 93 \ge 10$.
 
-Conclusion: **The candidate is a clear upgrade over `nit_caller`.**
-
----
-
-## 7. Step 5: Replacing the In-Game Profile
-
-Now that the candidate has proven itself, we can promote it into the playable game.
-
-### 1. Save the New Profile Resource
-Create a new profile resource file: `resources/bot_profiles/solid_tag.tres`:
-
-```text
-[gd_resource type="Resource" script_class="BotProfile" load_steps=3 format=3]
-
-[ext_resource type="Script" path="res://scripts/core/agents/bot_profile.gd" id="1_profile"]
-[ext_resource type="Script" path="res://scripts/core/agents/strategy_decision_model_parameters.gd" id="2_parameters"]
-
-[sub_resource type="Resource" id="StrategyParameters_solid_tag"]
-script = ExtResource("2_parameters")
-tight_vs_loose = 68
-passive_vs_aggressive = 45
-call_vs_raise = 40
-bluff_rate = 10
-
-[resource]
-script = ExtResource("1_profile")
-profile_id = &"solid_tag"
-model_id = &"strategy_parameterized"
-display_name = "Solid Tag"
-parameters = SubResource("StrategyParameters_solid_tag")
-```
-
-### 2. Update the Composition Roots
-Both `scripts/gui/gui_match_factory.gd` and `scripts/cli/cli_match_factory.gd` define the active bot roster.
-
-In `scripts/gui/gui_match_factory.gd`:
-```gdscript
-const EXPERIMENTAL_BOT_AGENT_IDS: Array[StringName] = [
-	&"solid_tag",            # Replaced nit_caller with our new profile!
-	&"tight_aggressive",
-	&"loose_passive",
-	&"strategy_loose_aggressive",
-	&"balanced",
-]
-```
-And add `&"solid_tag"` to the factory method `_create_bot()`:
-```gdscript
-&"solid_tag", &"tight_aggressive", &"loose_passive", &"balanced":
-	return _create_strategy_bot(agent_id, rng)
-```
-
-Apply the identical change in `scripts/cli/cli_match_factory.gd`.
+Conclusion: **The candidate is a statistically sound, behaviorally diverse upgrade.**
 
 ---
 
-## 8. Step 6: Verifying with Tests
+## 7. Step 5: Evidence-Based Promotion and Publication
 
-Whenever you change or replace a bot profile:
-1. Update `tests/unit/test_strategy_profiles.gd` to include the new profile ID and expected parameters in `expected_profiles`.
-2. Run the test suite:
-   ```bash
-   godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_strategy_profiles.gd
+Rather than editing source code directly, promotion requires verified artifact gates:
+
+### 1. Confirm Promotion Eligibility
+Run the confirmation gate against mirrored and mixed benchmark reports:
+```bash
+tools/profile-evolution confirm-candidate \
+  --registry artifacts/lineage_registry.json \
+  --candidate-id candidate_solid_tag \
+  --legacy-id random_default \
+  --legacy-id tight_passive_default \
+  --legacy-id loose_aggressive_default \
+  --historical-champion-id balanced \
+  --mirrored-report artifacts/mirrored_report.json \
+  --mixed-report artifacts/mixed_report.json \
+  --output artifacts/confirmation.json
+```
+
+### 2. Record Reviewer Approval
+An independent reviewer verifies the evidence and records an approval artifact:
+```bash
+tools/profile-evolution review-promotion \
+  --confirmation artifacts/confirmation.json \
+  --reviewer-id reviewer_name \
+  --approve \
+  --note "Solid TAG candidate confirmed with positive chips and zero fallbacks." \
+  --output artifacts/promotion_review.json
+```
+
+### 3. Publish the Profile Resource
+Publish the new `.tres` file under `resources/bot_profiles/published/`:
+```bash
+tools/profile-evolution publish-profile \
+  --confirmation artifacts/confirmation.json \
+  --review artifacts/promotion_review.json \
+  --version v1 \
+  --display-name "Solid TAG v1" \
+  --project-root .
+```
+This generates `resources/bot_profiles/published/candidate_solid_tag__v1.tres`.
+
+---
+
+## 8. Step 6: Integrating into `PlayableBotRoster`
+
+Now bring the published profile into the playable game catalog:
+
+1. Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd).
+2. Increment `ROSTER_VERSION` (e.g. from `&"curated_v1"` to `&"curated_v2"`).
+3. Add the published resource path to `DEFAULT_PROFILE_PATHS`:
+   ```gdscript
+   const DEFAULT_PROFILE_PATHS: PackedStringArray = [
+   	"res://resources/bot_profiles/random_default.tres",
+   	"res://resources/bot_profiles/tight_passive_default.tres",
+   	"res://resources/bot_profiles/loose_aggressive_default.tres",
+   	"res://resources/bot_profiles/published/candidate_solid_tag__v1.tres",
+   	"res://resources/bot_profiles/tight_aggressive.tres",
+   	"res://resources/bot_profiles/loose_passive.tres",
+   	"res://resources/bot_profiles/loose_aggressive.tres",
+   	"res://resources/bot_profiles/balanced.tres",
+   ]
    ```
-3. Run the full project check:
+4. Verify that legacy profiles (`random_default`, `tight_passive_default`, `loose_aggressive_default`) are preserved.
+
+---
+
+## 9. Step 7: Verifying with Tests and Running
+
+1. Run the roster unit test:
+   ```bash
+   godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_playable_bot_roster.gd
+   ```
+2. Run full quality checks:
    ```bash
    make check
    ```
+3. Test in the interactive CLI:
+   ```bash
+   godot --headless --path . --script res://scripts/cli/cli_app.gd
+   ```
+   Check that your promoted bot profile appears in the startup seating diagnostics!
 
-Congratulations! You have successfully evaluated a bot strategy using simulations and safely promoted it into the Pokahdot tournament roster.
+---
+
+## 10. Exploring the Automated Evolution Loop
+
+Beyond testing one-off candidates manually, `tools/profile-evolution` provides a complete evolutionary workflow:
+- `init-generation`: Initializes a bounded random population of strategy genes.
+- `evaluate-fitness`: Ingests simulation reports and ranks candidates by composite fitness.
+- `select`: Performs truncation selection with elitism.
+- `crossover`: Generates offspring by mixing parent parameter genes.
+- `mutate`: Applies policy-bounded mutations with recorded deltas.
+- `build-lineage`: Tracks parentage, seeds, and mutations in an immutable registry.
+
+Refer to the [Architecture Reference](../reference/architecture.md) and [Running Simulations Guide](../how-to/running-simulations.md) for full pipeline specifications.
