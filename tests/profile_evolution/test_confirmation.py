@@ -19,7 +19,12 @@ from tools.profile_evolution.cli import main
 from tools.profile_evolution.confirmation import confirm_candidate
 from tools.profile_evolution.contracts import GENES
 from tools.profile_evolution.export import export_candidates
-from tools.profile_evolution.fitness import _simulation_manifest_checksum
+from tools.profile_evolution.fitness import _roster_provenance, _simulation_manifest_checksum
+from tools.profile_evolution.promotion_review import (
+    create_promotion_review,
+    validate_promotion_review,
+)
+from tools.profile_evolution.profile_publisher import publish_approved_profile
 
 
 def _candidate(candidate_id: str, value: int) -> dict[str, object]:
@@ -141,9 +146,11 @@ def _entry(candidate: dict[str, object], champion: bool = False) -> dict[str, ob
     }
 
 
-def _registry() -> tuple[dict[str, object], dict[str, dict[str, object]]]:
+def _registry(
+    candidate_value: int = 50,
+) -> tuple[dict[str, object], dict[str, dict[str, object]]]:
     candidates = {
-        "candidate": _candidate("candidate", 50),
+        "candidate": _candidate("candidate", candidate_value),
         "legacy": _candidate("legacy", 20),
         "champion": _candidate("champion", 80),
         "outsider": _candidate("outsider", 30),
@@ -276,6 +283,7 @@ def _report(
                     {"seat": seat, "profile_id": profile_id}
                     for seat, profile_id in enumerate(seat_ids)
                 ],
+                "selected_profile_ids": seat_ids,
                 "termination_reason": "winner",
                 "winner_profile_id": winner,
                 "tournament_hand_count": 1,
@@ -293,11 +301,12 @@ def _report(
             }
         )
     report = {
-        "report_schema_version": 2,
+        "report_schema_version": 3,
         "manifest": manifest,
         "manifest_checksum": _simulation_manifest_checksum(manifest),
+        "roster": _roster_provenance(manifest),
         "code_revision": "confirm-revision",
-        "command_version": "simulation_cli_v2",
+        "command_version": "simulation_cli_v3",
         "shard": {"index": 0, "count": 1},
         "started_at": "2026-01-01T00:00:00",
         "finished_at": "2026-01-01T00:01:00",
@@ -309,8 +318,13 @@ def _report(
     return path
 
 
-def _reports(directory: Path, fallback: int = 0, mixed_seed: int = 300):
-    registry, candidates = _registry()
+def _reports(
+    directory: Path,
+    fallback: int = 0,
+    mixed_seed: int = 300,
+    candidate_value: int = 50,
+):
+    registry, candidates = _registry(candidate_value)
     mirrored = [
         _report(
             directory / "mirror_legacy.json",
@@ -348,10 +362,75 @@ class ConfirmationTests(unittest.TestCase):
                 registry, "candidate", ["legacy"], ["champion"], reversed(mirrored), mixed
             )
             self.assertTrue(first["payload"]["promotion_eligible"])
+            self.assertTrue(first["payload"]["review_required"])
             self.assertEqual(canonical_json_bytes(first), canonical_json_bytes(second))
             bundle = export_candidates(registry, [first], ["candidate"])
             self.assertEqual(bundle["payload"]["purpose"], "review_only")
             self.assertEqual(bundle["payload"]["candidates"][0]["candidate"]["candidate_id"], "candidate")
+
+    def test_diversity_and_reviewer_approval_are_independent_promotion_gates(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            registry, _, mirrored, mixed = _reports(Path(name), candidate_value=20)
+            confirmation = confirm_candidate(
+                registry, "candidate", ["legacy"], ["champion"], mirrored, mixed
+            )
+            self.assertFalse(confirmation["payload"]["promotion_eligible"])
+            self.assertIn(
+                "behavioral_diversity:insufficient_parameter_distance",
+                confirmation["payload"]["ineligibility_reasons"],
+            )
+            self.assertFalse(confirmation["payload"]["behavioral_diversity"]["passed"])
+            with self.assertRaisesRegex(Exception, "cannot receive approval"):
+                create_promotion_review(confirmation, "reviewer", True, "Approve it")
+
+            eligible_registry, _, eligible_mirrored, eligible_mixed = _reports(
+                Path(name), candidate_value=50
+            )
+            approved_confirmation = confirm_candidate(
+                eligible_registry,
+                "candidate",
+                ["legacy"],
+                ["champion"],
+                eligible_mirrored,
+                eligible_mixed,
+            )
+            review = create_promotion_review(
+                approved_confirmation, "reviewer", True, "Evidence reviewed."
+            )
+            self.assertTrue(validate_promotion_review(review)["approved"])
+
+    def test_publish_requires_exact_approved_review_and_never_overwrites_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            registry, _, mirrored, mixed = _reports(directory)
+            confirmation = confirm_candidate(
+                registry, "candidate", ["legacy"], ["champion"], mirrored, mixed
+            )
+            rejected_review = create_promotion_review(
+                confirmation, "reviewer", False, "Not ready."
+            )
+            with self.assertRaisesRegex(Exception, "must approve"):
+                publish_approved_profile(
+                    confirmation, rejected_review, directory, "v1", "Published Candidate"
+                )
+
+            approved_review = create_promotion_review(
+                confirmation, "reviewer", True, "Approved for publication."
+            )
+            published = publish_approved_profile(
+                confirmation, approved_review, directory, "v1", "Published Candidate"
+            )
+            resource_path = Path(published["resource_path"])
+            contents = resource_path.read_text(encoding="utf-8")
+            self.assertEqual(published["profile_id"], "candidate__v1")
+            self.assertIn('profile_id = &"candidate__v1"', contents)
+            self.assertIn('model_id = &"strategy_parameterized"', contents)
+            self.assertIn("tight_vs_loose = 50", contents)
+            with self.assertRaisesRegex(Exception, "cannot be overwritten"):
+                publish_approved_profile(
+                    confirmation, approved_review, directory, "v1", "Changed Name"
+                )
+            self.assertEqual(contents, resource_path.read_text(encoding="utf-8"))
 
     def test_legacy_profile_does_not_require_evolution_lineage(self) -> None:
         with tempfile.TemporaryDirectory() as name:
@@ -427,6 +506,7 @@ class ConfirmationTests(unittest.TestCase):
             registry, _, mirrored, mixed = _reports(directory)
             registry_path = directory / "registry.json"
             confirmation_path = directory / "confirmation.json"
+            review_path = directory / "review.json"
             bundle_path = directory / "bundle.json"
             write_artifact_atomic(registry_path, registry)
             with contextlib.redirect_stdout(io.StringIO()):
@@ -452,6 +532,25 @@ class ConfirmationTests(unittest.TestCase):
                     ]
                 )
             self.assertEqual(result, 0)
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = main(
+                    [
+                        "review-promotion",
+                        "--confirmation",
+                        str(confirmation_path),
+                        "--reviewer-id",
+                        "reviewer",
+                        "--approve",
+                        "--note",
+                        "Evidence reviewed.",
+                        "--output",
+                        str(review_path),
+                    ]
+                )
+            self.assertEqual(result, 0)
+            self.assertTrue(
+                load_artifact(review_path, "promotion_review")["payload"]["approved"]
+            )
             with contextlib.redirect_stdout(io.StringIO()):
                 result = main(
                     [

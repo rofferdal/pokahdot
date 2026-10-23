@@ -60,7 +60,7 @@ interactive player CLI.
 - [x] Run a reviewed smoke batch with multiple bot profiles and preserve its
   manifest/report pair as a reproducible example before using results for
   profile selection.
-- [ ] Finish by updating `README.md` with a detailed user guide for validating
+- [x] Finish by updating `README.md` with a detailed user guide for validating
   manifests, running and sharding simulations, inspecting reports, replaying
   a tournament, retaining artifacts, and performing the external bot-profile
   evolution and reviewed promotion workflow end to end. This is the only

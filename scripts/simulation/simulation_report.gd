@@ -6,8 +6,8 @@ extends RefCounted
 ## The manifest snapshot is copied verbatim from the canonical manifest
 ## dictionary. Report serialization remains in the simulation adapter.
 
-const REPORT_SCHEMA_VERSION: int = 2
-const COMMAND_VERSION: StringName = &"simulation_cli_v2"
+const REPORT_SCHEMA_VERSION: int = 3
+const COMMAND_VERSION: StringName = &"simulation_cli_v3"
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
 const TOURNAMENT_FIELDS := [
 	"tournament_index",
@@ -19,6 +19,7 @@ const TOURNAMENT_FIELDS := [
 	"rotation",
 	"effective_seed",
 	"seat_map",
+	"selected_profile_ids",
 	"termination_reason",
 	"winner_profile_id",
 	"tournament_hand_count",
@@ -74,7 +75,9 @@ const TOURNAMENT_INTEGER_FIELDS := [
 const TOURNAMENT_STRING_FIELDS := [
 	"plan_id", "regime_id", "matchup_id", "termination_reason", "winner_profile_id"
 ]
-const TOURNAMENT_ARRAY_FIELDS := ["seat_map", "profile_results", "diagnostics"]
+const TOURNAMENT_ARRAY_FIELDS := [
+	"seat_map", "selected_profile_ids", "profile_results", "diagnostics"
+]
 const PROFILE_RESULT_INTEGER_FIELDS := [
 	"seat",
 	"finishing_position",
@@ -117,6 +120,7 @@ const PROFILE_RESULT_BOOLEAN_FIELDS := ["won_tournament", "top_third"]
 var report_schema_version: int = REPORT_SCHEMA_VERSION
 var manifest: Dictionary = {}
 var manifest_checksum: String
+var roster: Dictionary = {}
 var code_revision: String
 var command_version: StringName = COMMAND_VERSION
 var shard: SimulationShard
@@ -139,6 +143,7 @@ static func from_batch(
 	var report = REPORT_SCRIPT.new()
 	report.manifest = manifest_value.canonical_dictionary()
 	report.manifest_checksum = manifest_value.checksum()
+	report.roster = manifest_value.roster_provenance()
 	report.code_revision = revision
 	report.shard = SimulationShard.new(shard_value.index, shard_value.count)
 	report.started_at = started
@@ -161,6 +166,8 @@ func validate() -> PackedStringArray:
 		errors.append("Simulation report manifest is required.")
 	if manifest_checksum.is_empty():
 		errors.append("Simulation report manifest checksum is required.")
+	_validate_roster(roster, errors)
+	_validate_roster_matches_manifest(roster, manifest, errors)
 	if shard == null:
 		errors.append("Simulation report shard is required.")
 	else:
@@ -176,6 +183,8 @@ func validate() -> PackedStringArray:
 		for field: String in TOURNAMENT_ARRAY_FIELDS:
 			_validate_typed_field(tournament, field, TYPE_ARRAY, "Simulation tournament", errors)
 		_validate_seat_map(tournament.get("seat_map"), errors)
+		_validate_selected_profile_ids(tournament.get("selected_profile_ids"), errors)
+		_validate_tournament_selection(tournament, errors)
 		_validate_diagnostics(tournament.get("diagnostics"), errors)
 		var profile_results: Variant = tournament.get("profile_results")
 		if typeof(profile_results) != TYPE_ARRAY:
@@ -208,6 +217,7 @@ func to_dictionary() -> Dictionary:
 		"report_schema_version": report_schema_version,
 		"manifest": _copy_dictionary(manifest),
 		"manifest_checksum": manifest_checksum,
+		"roster": _copy_dictionary(roster),
 		"code_revision": code_revision,
 		"command_version": String(command_version),
 		"shard": shard.to_dictionary() if shard != null else {},
@@ -235,6 +245,7 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 	var required_types := {
 		"manifest": TYPE_DICTIONARY,
 		"manifest_checksum": TYPE_STRING,
+		"roster": TYPE_DICTIONARY,
 		"code_revision": TYPE_STRING,
 		"command_version": TYPE_STRING,
 		"shard": TYPE_DICTIONARY,
@@ -269,6 +280,9 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 	)
 	report.manifest_checksum = (
 		data.manifest_checksum if typeof(data.get("manifest_checksum")) == TYPE_STRING else ""
+	)
+	report.roster = (
+		data.roster.duplicate(true) if typeof(data.get("roster")) == TYPE_DICTIONARY else {}
 	)
 	report.code_revision = (
 		data.code_revision if typeof(data.get("code_revision")) == TYPE_STRING else ""
@@ -378,6 +392,56 @@ static func _validate_seat_map(value: Variant, errors: PackedStringArray) -> voi
 		)
 
 
+static func _validate_roster(value: Dictionary, errors: PackedStringArray) -> void:
+	for field: String in ["version", "profile_ids"]:
+		if not value.has(field):
+			errors.append("Simulation report roster is missing field: %s" % field)
+	if value.has("version") and typeof(value.version) != TYPE_STRING:
+		errors.append("Simulation report roster version must be a string.")
+	_validate_selected_profile_ids(value.get("profile_ids"), errors, "Simulation report roster")
+
+
+static func _validate_roster_matches_manifest(
+	roster_value: Dictionary, manifest_value: Dictionary, errors: PackedStringArray
+) -> void:
+	var manifest_result := SimulationManifest.parse(manifest_value)
+	if not manifest_result.is_ok():
+		return
+	var expected := manifest_result.manifest.roster_provenance()
+	if roster_value.get("version") != expected.version:
+		errors.append("Simulation report roster version does not match its manifest profiles.")
+	if roster_value.get("profile_ids") != expected.profile_ids:
+		errors.append("Simulation report roster profile IDs do not match its manifest profiles.")
+
+
+static func _validate_selected_profile_ids(
+	value: Variant, errors: PackedStringArray, context: String = "Simulation selected profile IDs"
+) -> void:
+	if typeof(value) != TYPE_ARRAY:
+		errors.append("%s must be an array." % context)
+		return
+	for profile_id: Variant in value:
+		if typeof(profile_id) != TYPE_STRING or String(profile_id).is_empty():
+			errors.append("%s must contain non-empty strings." % context)
+
+
+static func _validate_tournament_selection(
+	tournament: Dictionary, errors: PackedStringArray
+) -> void:
+	if typeof(tournament.get("seat_map")) != TYPE_ARRAY:
+		return
+	var expected_ids: Array[String] = []
+	for seat_data: Variant in tournament.seat_map:
+		if (
+			typeof(seat_data) != TYPE_DICTIONARY
+			or typeof(seat_data.get("profile_id")) != TYPE_STRING
+		):
+			return
+		expected_ids.append(seat_data.profile_id)
+	if tournament.get("selected_profile_ids") != expected_ids:
+		errors.append("Simulation selected profile IDs do not match the ordered seat map.")
+
+
 static func _validate_diagnostics(value: Variant, errors: PackedStringArray) -> void:
 	if typeof(value) != TYPE_ARRAY:
 		return
@@ -398,6 +462,7 @@ static func tournament_digest(tournament: Dictionary) -> String:
 		"tournament_index": float(tournament.get("tournament_index", -1)),
 		"effective_seed": float(tournament.get("effective_seed", 0)),
 		"seat_map": _normalized_seat_map(tournament.get("seat_map", [])),
+		"selected_profile_ids": tournament.get("selected_profile_ids", []).duplicate(),
 		"termination_reason": tournament.get("termination_reason", ""),
 		"winner_profile_id": tournament.get("winner_profile_id", ""),
 		"tournament_hand_count": float(tournament.get("tournament_hand_count", 0)),
@@ -456,6 +521,7 @@ static func _tournament_dictionary(outcome: SimulationTournamentOutcome) -> Dict
 		"rotation": outcome.rotation,
 		"effective_seed": outcome.effective_seed,
 		"seat_map": _seat_map(outcome.final_seat_mapping),
+		"selected_profile_ids": _selected_profile_ids(outcome.final_seat_mapping),
 		"termination_reason":
 		String(outcome.completion.termination_reason) if outcome.completion != null else "",
 		"winner_profile_id": winner_profile_id,
@@ -474,6 +540,13 @@ static func _seat_map(mapping: Dictionary[int, StringName]) -> Array[Dictionary]
 	var result: Array[Dictionary] = []
 	for seat: int in seats:
 		result.append({"seat": seat, "profile_id": String(mapping[seat])})
+	return result
+
+
+static func _selected_profile_ids(mapping: Dictionary[int, StringName]) -> Array[String]:
+	var result: Array[String] = []
+	for seat_data: Dictionary in _seat_map(mapping):
+		result.append(seat_data.profile_id)
 	return result
 
 

@@ -129,19 +129,19 @@ simulation may use zero humans only through its dedicated composition path.
 
 ## Milestone 6 — Evidence-based promotion and release
 
-- [ ] Centralize the curated playable bot roster so GUI and interactive CLI
+- [x] Centralize the curated playable bot roster so GUI and interactive CLI
   composition use the same catalog. Validate model/profile resolution, stable
   unique IDs, roster-size limits, and deterministic sampling without
   replacement.
-- [ ] Define a reviewed promotion gate requiring independent reports, valid
+- [x] Define a reviewed promotion gate requiring independent reports, valid
   action behavior, uncertainty bounds, behavioral diversity, and the exact
   candidate snapshot. A batch win alone must not update the playable roster.
-- [ ] Publish approved candidates as new immutable versioned `BotProfile`
+- [x] Publish approved candidates as new immutable versioned `BotProfile`
   Resources; never overwrite a published profile. Preserve a meaningful set of
   hand-authored/legacy personalities alongside promoted candidates.
-- [ ] Record roster version and selected profile IDs in normal-match diagnostics
+- [x] Record roster version and selected profile IDs in normal-match diagnostics
   and simulation reports so both production matches and evaluations remain
   reproducible.
-- [ ] Run a multi-profile smoke batch and the complete headless test suite.
+- [x] Run a multi-profile smoke batch and the complete headless test suite.
   Coordinate the final README user guide task in `SimCliTasks.md` only after
   the simulation, profile-evolution, report, and promotion workflows are executable.

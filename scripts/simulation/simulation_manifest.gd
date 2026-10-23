@@ -187,6 +187,23 @@ func checksum() -> String:
 	return context.finish().hex_encode()
 
 
+## The evaluation roster identity is derived only from immutable profile
+## snapshots in this manifest. It deliberately does not rely on the product
+## playable roster, which evaluations may extend with candidates.
+func roster_provenance() -> Dictionary:
+	var profiles_snapshot := _profiles_dictionary()
+	var context := HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update(JSON.stringify(profiles_snapshot, "", true).to_utf8_buffer())
+	var profile_ids: Array[String] = []
+	for profile: Dictionary in profiles_snapshot:
+		profile_ids.append(profile.profile_id)
+	return {
+		"version": "manifest_profiles_v1:%s" % context.finish().hex_encode(),
+		"profile_ids": profile_ids,
+	}
+
+
 static func parse(data: Dictionary) -> SimulationManifestParseResult:
 	var errors := _unknown_fields(
 		data,

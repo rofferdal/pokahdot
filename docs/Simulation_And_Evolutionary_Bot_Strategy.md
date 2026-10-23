@@ -249,7 +249,11 @@ The global tournament plan concatenates evaluation plans in manifest order.
 Within each plan, its local index selects matchups and rotations by section
 2.2. The global index assigns the seed and shard. Reports record global index,
 plan-local index, regime ID, matchup ID, matchup occurrence, rotation, final
-seat map, and effective seed.
+seat map, and effective seed. A report derives `roster.version` from the
+canonical immutable profile snapshots and records its catalog IDs. Each
+tournament also records ordered `selected_profile_ids` matching its seat map,
+so evaluation artifacts remain reproducible without relying on the
+product-curated roster.
 
 ### 4.3 Report schema and privacy
 
@@ -259,12 +263,13 @@ canonical `manifest` snapshot contains `profiles`, `regimes`, `matchups`, and
 IDs. No report-only tournament configuration, unnamed regime, or alternate
 matchup shape is permitted.
 
-A schema-2 report contains:
+A schema-3 report contains:
 
 ```text
 report_schema_version
 manifest                         # exact canonical manifest snapshot
 manifest_checksum
+roster { version, profile_ids[] }
 code_revision
 command_version
 shard { index, count }
@@ -272,7 +277,7 @@ started_at, finished_at
 tournaments[] {
   tournament_index, plan_id, plan_tournament_index,
   regime_id, matchup_id, matchup_occurrence, rotation,
-  effective_seed, seat_map, termination_reason, winner_profile_id,
+  effective_seed, seat_map, selected_profile_ids[], termination_reason, winner_profile_id,
   tournament_hand_count, profile_results[], diagnostics[]
 }
 aggregates {
@@ -342,6 +347,8 @@ profile-evolution <command> [options]
 | `build-lineage` | `--artifact <path>` (repeatable) `--output <path>` | deterministic lineage registry rebuilt from immutable generation, candidate, fitness, and selection history |
 | `inspect-lineage` | `--registry <path> --candidate-id <id>` | read-only ancestry and evidence summary on stdout |
 | `confirm-candidate` | `--registry <path> --candidate-id <id> --legacy-id <id>` (repeatable) `--historical-champion-id <id>` (repeatable) `--mirrored-report <path>` (repeatable) `--mixed-report <path>` (repeatable) `--output <path>` | independent confirmation evidence and promotion-gate result |
+| `review-promotion` | `--confirmation <path> --reviewer-id <id> --approve|--reject --note <text> --output <path>` | immutable human approval or rejection of an exact eligible confirmation; never publishes a profile or roster |
+| `publish-profile` | `--confirmation <path> --review <path> --version <id> [--display-name <text>] [--project-root <path>]` | manually write one approved candidate as a new no-clobber versioned `BotProfile` Resource; never edits the roster |
 | `export-candidates` | `--registry <path> --confirmation <path>` (repeatable) `--candidate-id <id>` (repeatable) `--output <path>` | versioned review-only candidate bundle; never the playable roster |
 
 All commands reject unknown fields and write atomically. Given identical
@@ -371,7 +378,7 @@ order, `seed`, `gene`, `before`, requested `delta`, bounded `after`, and a
 output and leaves its input snapshots unchanged.
 
 `evaluate-fitness` requires all shards for one identical schema-2 simulation
-manifest. It verifies `simulation_cli_v2`, the canonical manifest checksum,
+manifest. It verifies `simulation_cli_v3`, the canonical manifest checksum,
 the exact ID/model/four-gene snapshot of every candidate, deterministic plan
 and tournament identities, unique global indexes, complete shard and plan
 coverage, successful tournaments, finite metric values, and bounded rates.
@@ -452,6 +459,18 @@ bound to the same lineage registry and exact candidate snapshots, then emits
 a `candidate_bundle` whose purpose is `review_only`. It never writes a roster,
 Resource, or source file.
 
+Every confirmation also records a behavioral-diversity gate. For each declared
+legacy or historical-champion opponent that uses `strategy_parameterized`, the
+tool calculates the L1 distance across the four percentage genes. The nearest
+such profile must be at least 10 total percentage points away; a missing
+comparable profile or a smaller distance is ineligible. This is a stable,
+reproducible proxy for personality diversity, not a claim that a parameter
+distance alone proves game-play quality. A passing confirmation explicitly
+requires a separate human `promotion_review` artifact. The reviewer must give
+an immutable approval or rejection with an identity and note; approval is
+rejected unless the exact confirmation is eligible. Neither artifact can
+publish a Resource or modify the playable roster.
+
 Every persisted artifact is a strict JSON object envelope containing exactly
 `schema_version`, `type`, `tool_version`, `payload`, and `checksum`.
 The checksum is SHA-256 over the sorted, compact, UTF-8 canonical envelope
@@ -488,10 +507,15 @@ documented style expectations.
 
 Promotion is reviewed and non-automatic. A reviewer may export an approved
 candidate as a new, immutable, versioned `BotProfile` Resource and update one
-shared playable roster in a separate source change. Never overwrite a
-published profile, allow the external tool to edit the roster, or treat one
-batch win as approval. Preserve behavioral diversity and a meaningful set of
-hand-authored profiles.
+shared playable roster in a separate source change. `publish-profile` requires
+the exact eligible confirmation and its approved review, derives a versioned
+profile ID, and writes only a new file under
+`resources/bot_profiles/published/`; it rejects any existing destination.
+Publication never activates a profile or edits the roster. The curated roster
+must retain the legacy Random, Tight Passive, and Loose Aggressive profiles
+alongside any later promoted personalities. Never overwrite a published
+profile, allow the external tool to edit the roster, or treat one batch win as
+approval.
 
 ## 7. Examples
 

@@ -9,6 +9,7 @@ from typing import Any, Iterable
 
 from .artifacts import create_artifact, load_json_object, validate_artifact_envelope
 from .contracts import (
+    GENES,
     require_exact_fields,
     require_identifier,
     require_integer,
@@ -18,7 +19,10 @@ from .errors import ExitCode, ToolError
 from .fitness import COMPONENTS, WEIGHTS, evaluate_fitness
 from .lineage import validate_lineage_registry
 
+MINIMUM_STRATEGY_PARAMETER_DISTANCE = 10
+
 CONFIRMATION_FIELDS = (
+    "behavioral_diversity",
     "candidate",
     "historical_champion_ids",
     "ineligibility_reasons",
@@ -28,6 +32,7 @@ CONFIRMATION_FIELDS = (
     "opponent_profiles",
     "promotion_eligible",
     "registry_checksum",
+    "review_required",
 )
 
 SIMULATION_PROFILE_FIELDS = ("profile_id", "model_id", "parameters")
@@ -53,6 +58,47 @@ def _candidate_generation(entry: dict[str, Any]) -> dict[str, Any]:
             "seed": entry["creation"]["seed"],
         },
     )
+
+
+def _behavioral_diversity(
+    candidate: dict[str, Any], opponent_profiles: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    """Measure a stable strategy-genome distance from confirmed opponents.
+
+    The external workflow has no access to a live playable roster. Its declared
+    legacy and champion opponents are therefore the review set whose snapshots
+    are independently confirmed alongside the candidate. A minimum L1 distance
+    of ten percentage points prevents a near-identical strategy profile from
+    passing as a distinct playable personality.
+    """
+    distances: list[tuple[int, str]] = []
+    for profile_id, profile in opponent_profiles.items():
+        if profile.get("model_id") != candidate["model_id"]:
+            continue
+        parameters = profile.get("parameters")
+        if not isinstance(parameters, dict) or set(parameters) != set(GENES):
+            continue
+        if any(
+            isinstance(parameters[gene], bool) or not isinstance(parameters[gene], int)
+            for gene in GENES
+        ):
+            continue
+        distance = sum(
+            abs(candidate["parameters"][gene] - parameters[gene]) for gene in GENES
+        )
+        distances.append((distance, profile_id))
+    distances.sort(key=lambda item: (item[0], item[1]))
+    nearest_distance, nearest_profile_id = distances[0] if distances else (None, None)
+    return {
+        "compared_profile_ids": [profile_id for _, profile_id in distances],
+        "minimum_parameter_distance": MINIMUM_STRATEGY_PARAMETER_DISTANCE,
+        "nearest_parameter_distance": nearest_distance,
+        "nearest_profile_id": nearest_profile_id,
+        "passed": (
+            nearest_distance is not None
+            and nearest_distance >= MINIMUM_STRATEGY_PARAMETER_DISTANCE
+        ),
+    }
 
 
 def _group_reports(paths: Iterable[Path]) -> list[tuple[str, list[Path], dict[str, Any]]]:
@@ -278,6 +324,9 @@ def confirm_candidate(
         }
         if opponent_profiles.get(identifier) != expected_snapshot:
             reasons.append(f"confirmation:champion_snapshot_mismatch:{identifier}")
+    behavioral_diversity = _behavioral_diversity(entry["candidate"], opponent_profiles)
+    if not behavioral_diversity["passed"]:
+        reasons.append("behavioral_diversity:insufficient_parameter_distance")
 
     original_reports: set[str] = set()
     original_manifests: set[str] = set()
@@ -310,6 +359,7 @@ def confirm_candidate(
     return create_artifact(
         "confirmation",
         {
+            "behavioral_diversity": behavioral_diversity,
             "candidate": copy.deepcopy(entry["candidate"]),
             "historical_champion_ids": champions,
             "ineligibility_reasons": reasons,
@@ -321,6 +371,7 @@ def confirm_candidate(
             ],
             "promotion_eligible": not reasons,
             "registry_checksum": registry_artifact["checksum"],
+            "review_required": True,
         },
     )
 
@@ -367,6 +418,25 @@ def validate_confirmation(artifact: dict[str, Any]) -> dict[str, Any]:
         profiles[profile_id] = copy.deepcopy(profile)
     if set(profiles) != set(legacy + champions):
         _fail("invalid_confirmation", "Confirmation opponent snapshots do not match opponent IDs.")
+    behavioral_diversity = payload["behavioral_diversity"]
+    if not isinstance(behavioral_diversity, dict):
+        _fail("invalid_confirmation", "Confirmation behavioral diversity is invalid.")
+    require_exact_fields(
+        behavioral_diversity,
+        (
+            "compared_profile_ids",
+            "minimum_parameter_distance",
+            "nearest_parameter_distance",
+            "nearest_profile_id",
+            "passed",
+        ),
+        "confirmation behavioral diversity",
+    )
+    expected_diversity = _behavioral_diversity(candidate, profiles)
+    if behavioral_diversity != expected_diversity:
+        _fail("invalid_confirmation", "Confirmation behavioral diversity is inconsistent.")
+    if payload.get("review_required") is not True:
+        _fail("invalid_confirmation", "Confirmation must require an external reviewer.")
     reasons = payload["ineligibility_reasons"]
     if (
         not isinstance(payload["promotion_eligible"], bool)
@@ -377,6 +447,8 @@ def validate_confirmation(artifact: dict[str, Any]) -> dict[str, Any]:
         _fail("invalid_confirmation", "Confirmation eligibility fields are invalid.")
     if payload["promotion_eligible"] != (not reasons):
         _fail("invalid_confirmation", "Confirmation eligibility contradicts its reasons.")
+    if payload["promotion_eligible"] and behavioral_diversity["passed"] is not True:
+        _fail("invalid_confirmation", "Eligible confirmation lacks behavioral diversity.")
     for mode in ("mirrored", "mixed"):
         evidence = payload[mode]
         if not isinstance(evidence, dict):

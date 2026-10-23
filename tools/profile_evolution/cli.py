@@ -27,6 +27,8 @@ from .evolution import crossover_candidates, initialize_generation, mutate_candi
 from .export import export_candidates
 from .fitness import evaluate_fitness
 from .lineage import build_lineage_registry, inspect_lineage
+from .promotion_review import create_promotion_review
+from .profile_publisher import publish_approved_profile
 from .selection import select_elites
 
 
@@ -126,6 +128,21 @@ def build_parser() -> argparse.ArgumentParser:
     confirm.add_argument("--mixed-report", required=True, action="append", type=Path)
     confirm.add_argument("--output", required=True, type=_artifact_output_path)
 
+    review = commands.add_parser("review-promotion")
+    review.add_argument("--confirmation", required=True, type=Path)
+    review.add_argument("--reviewer-id", required=True)
+    review.add_argument("--approve", action="store_true")
+    review.add_argument("--reject", action="store_true")
+    review.add_argument("--note", required=True)
+    review.add_argument("--output", required=True, type=_artifact_output_path)
+
+    publish = commands.add_parser("publish-profile")
+    publish.add_argument("--confirmation", required=True, type=Path)
+    publish.add_argument("--review", required=True, type=Path)
+    publish.add_argument("--version", required=True)
+    publish.add_argument("--display-name")
+    publish.add_argument("--project-root", type=Path, default=Path("."))
+
     export = commands.add_parser("export-candidates")
     export.add_argument("--registry", required=True, type=Path)
     export.add_argument("--confirmation", required=True, action="append", type=Path)
@@ -222,6 +239,36 @@ def run(arguments: argparse.Namespace) -> None:
                 arguments.mixed_report,
             ),
         )
+        return
+    if arguments.command == "review-promotion":
+        if arguments.approve == arguments.reject:
+            raise ToolError(
+                "invalid_review_decision",
+                "Choose exactly one of --approve or --reject.",
+                ExitCode.INVALID_INPUT,
+            )
+        confirmation = load_artifact(arguments.confirmation, "confirmation")
+        _write_result(
+            arguments.output,
+            create_promotion_review(
+                confirmation,
+                arguments.reviewer_id,
+                arguments.approve,
+                arguments.note,
+            ),
+        )
+        return
+    if arguments.command == "publish-profile":
+        confirmation = load_artifact(arguments.confirmation, "confirmation")
+        review = load_artifact(arguments.review, "promotion_review")
+        result = publish_approved_profile(
+            confirmation,
+            review,
+            arguments.project_root,
+            arguments.version,
+            arguments.display_name,
+        )
+        sys.stdout.write(canonical_json_bytes(result).decode("utf-8"))
         return
     if arguments.command == "export-candidates":
         registry = load_artifact(arguments.registry, "lineage_registry")

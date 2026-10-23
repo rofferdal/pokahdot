@@ -3,35 +3,35 @@ extends RefCounted
 
 ## Composition root for the standard CLI table: one human and configured bot profiles.
 
-const STRATEGY_MODEL_SCRIPT := preload("res://scripts/core/agents/strategy_decision_model.gd")
-const STRATEGY_PARAMETERS_SCRIPT := preload(
-	"res://scripts/core/agents/strategy_decision_model_parameters.gd"
-)
-const EXPERIMENTAL_BOT_AGENT_IDS: Array[StringName] = [
-	&"nit_caller",
-	&"tight_aggressive",
-	&"loose_passive",
-	&"strategy_loose_aggressive",
-	&"balanced",
-]
+var _roster: PlayableBotRoster
+
+
+func _init(roster: PlayableBotRoster = null) -> void:
+	_roster = roster if roster != null else PlayableBotRoster.new()
 
 
 func create(config: ResolvedTournamentConfig) -> TournamentMatch:
 	assert(config != null, "A resolved configuration is required.")
 	var streams := RngStreamFactory.new().create(config)
+	var selection := _roster.select(
+		config.player_count - 1, streams.get_seat_profile_assignment_rng()
+	)
+	assert(selection.is_ok(), "The playable bot roster must resolve: %s" % selection.errors)
+	var profiles := selection.get_profiles()
 	var agents: Dictionary[int, Agent] = {}
+	var profile_index: int = 0
 	for seat: int in range(config.player_count):
-		var agent_id := _agent_id_for(config, seat)
-		if agent_id == RngStreamFactory.HUMAN_AGENT_ID:
+		if config.seat_agents[seat] == RngStreamFactory.HUMAN_AGENT_ID:
 			agents[seat] = HumanAgent.new()
 		else:
-			agents[seat] = _create_bot(agent_id, streams.get_bot_rng(seat))
+			agents[seat] = _create_bot(profiles[profile_index], streams.get_bot_rng(seat))
+			profile_index += 1
 	return TournamentMatch.new(config, agents, null, streams)
 
 
 func human_seat(config: ResolvedTournamentConfig) -> int:
 	for seat: int in range(config.player_count):
-		if _agent_id_for(config, seat) == RngStreamFactory.HUMAN_AGENT_ID:
+		if config.seat_agents[seat] == RngStreamFactory.HUMAN_AGENT_ID:
 			return seat
 	return Table.NO_SEAT
 
@@ -41,48 +41,31 @@ func diagnostics(config: ResolvedTournamentConfig) -> PackedStringArray:
 	lines.append(
 		"Bot roster: %s" % ("experimental" if config.allow_experimental_models else "production")
 	)
+	lines.append("Bot roster version: %s" % _roster.get_roster_version())
+	var streams := RngStreamFactory.new().create(config)
+	var selection := _roster.select(
+		config.player_count - 1, streams.get_seat_profile_assignment_rng()
+	)
+	assert(selection.is_ok(), "The playable bot roster must resolve: %s" % selection.errors)
+	var profiles := selection.get_profiles()
+	var selected_profile_ids := PackedStringArray()
+	for profile: BotProfile in profiles:
+		selected_profile_ids.append(String(profile.profile_id))
+	lines.append("Selected bot profile IDs: %s" % ",".join(selected_profile_ids))
+	var profile_index: int = 0
 	for seat: int in range(config.player_count):
-		var agent_id := _agent_id_for(config, seat)
-		if agent_id == RngStreamFactory.HUMAN_AGENT_ID:
+		if config.seat_agents[seat] == RngStreamFactory.HUMAN_AGENT_ID:
 			lines.append("Seat %d: human" % seat)
 		else:
-			var agent: BotAgent = _create_bot(agent_id, _diagnostic_rng(seat))
-			lines.append("Seat %d: model=%s profile=%s" % [seat, agent.model_id, agent.profile_id])
+			var profile: BotProfile = profiles[profile_index]
+			profile_index += 1
+			lines.append(
+				"Seat %d: model=%s profile=%s" % [seat, profile.model_id, profile.profile_id]
+			)
 	return lines
 
 
-func _agent_id_for(config: ResolvedTournamentConfig, seat: int) -> StringName:
-	if seat == 0 or not config.allow_experimental_models:
-		return config.seat_agents[seat]
-	return EXPERIMENTAL_BOT_AGENT_IDS[(seat - 1) % EXPERIMENTAL_BOT_AGENT_IDS.size()]
-
-
-func _create_bot(agent_id: StringName, rng: RandomNumberGenerator) -> BotAgent:
-	match agent_id:
-		&"tight_passive":
-			return TightPassiveAgent.new(rng)
-		&"loose_aggressive":
-			return LooseAggressiveAgent.new(rng)
-		&"nit_caller", &"tight_aggressive", &"loose_passive", &"balanced":
-			return _create_strategy_bot(agent_id, rng)
-		&"strategy_loose_aggressive":
-			return _create_strategy_bot(&"loose_aggressive", rng)
-		_:
-			return RandomAgent.new(rng)
-
-
-func _create_strategy_bot(profile_id: StringName, rng: RandomNumberGenerator) -> BotAgent:
-	var profile := load("res://resources/bot_profiles/%s.tres" % profile_id) as BotProfile
-	var registry := DecisionModelRegistry.new()
-	registry.register_model(
-		&"strategy_parameterized", STRATEGY_MODEL_SCRIPT, STRATEGY_PARAMETERS_SCRIPT
-	)
-	var result := AgentFactory.new(registry).create_bot(profile, rng)
-	assert(result.is_ok(), "The default strategy profile must be valid.")
+func _create_bot(profile: BotProfile, rng: RandomNumberGenerator) -> BotAgent:
+	var result := _roster.create_bot(profile, rng)
+	assert(result.is_ok(), "The selected playable bot profile must be valid: %s" % result.errors)
 	return result.agent as BotAgent
-
-
-func _diagnostic_rng(seat: int) -> RandomNumberGenerator:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = seat + 1
-	return rng

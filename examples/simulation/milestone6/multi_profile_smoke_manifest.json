@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "batch_id": "milestone6_multi_profile_smoke",
+  "seed_start": 64001,
+  "profiles": [
+    {
+      "profile_id": "smoke_random",
+      "model_id": "random",
+      "parameters": {
+        "fold_weight": 1,
+        "passive_weight": 4,
+        "aggressive_weight": 2
+      }
+    },
+    {
+      "profile_id": "smoke_tight_passive",
+      "model_id": "tight_passive",
+      "parameters": {
+        "minimum_preflop_high_rank": 10,
+        "raise_frequency": 5
+      }
+    },
+    {
+      "profile_id": "smoke_loose_aggressive",
+      "model_id": "loose_aggressive",
+      "parameters": {
+        "fold_frequency": 10,
+        "aggression_frequency": 55
+      }
+    }
+  ],
+  "regimes": [
+    {
+      "regime_id": "three_player_smoke",
+      "player_count": 3,
+      "starting_stack": 30,
+      "starting_small_blind": 5,
+      "starting_big_blind": 10,
+      "blind_progression": "normative_hand_based_v1"
+    }
+  ],
+  "matchups": [
+    {
+      "matchup_id": "three_profile_rotation",
+      "profile_ids": [
+        "smoke_random",
+        "smoke_tight_passive",
+        "smoke_loose_aggressive"
+      ]
+    }
+  ],
+  "evaluation_plans": [
+    {
+      "plan_id": "three_profile_smoke_plan",
+      "regime_id": "three_player_smoke",
+      "matchup_ids": ["three_profile_rotation"],
+      "tournament_count": 3,
+      "seat_rotation": "cyclic",
+      "minimum_profile_samples": 1,
+      "uncertainty_estimator": "normal_95"
+    }
+  ]
+}

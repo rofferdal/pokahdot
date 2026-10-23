@@ -15,6 +15,7 @@ from tools.profile_evolution.cli import main
 from tools.profile_evolution.errors import ToolError
 from tools.profile_evolution.evolution import initialize_generation
 from tools.profile_evolution.fitness import (
+    _roster_provenance,
     _simulation_manifest_checksum,
     evaluate_fitness,
 )
@@ -155,6 +156,7 @@ def _case(
                         {"seat": seat, "profile_id": profile_id}
                         for seat, profile_id in enumerate(seat_ids)
                     ],
+                    "selected_profile_ids": seat_ids,
                     "termination_reason": "winner",
                     "winner_profile_id": winner_id,
                     "tournament_hand_count": 1,
@@ -175,11 +177,12 @@ def _case(
     reports: list[Path] = []
     for shard_index in range(shard_count):
         report = {
-            "report_schema_version": 2,
+            "report_schema_version": 3,
             "manifest": copy.deepcopy(manifest),
             "manifest_checksum": _simulation_manifest_checksum(manifest),
+            "roster": _roster_provenance(manifest),
             "code_revision": "abc123",
-            "command_version": "simulation_cli_v2",
+            "command_version": "simulation_cli_v3",
             "shard": {"index": shard_index, "count": shard_count},
             "started_at": "2026-01-01T00:00:00",
             "finished_at": "2026-01-01T00:01:00",
@@ -196,6 +199,15 @@ def _case(
 
 
 class FitnessTests(unittest.TestCase):
+    def test_roster_provenance_matches_the_cross_language_fixture(self) -> None:
+        fixture = json.loads(
+            Path("tests/fixtures/roster_provenance_v1.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            _roster_provenance({"profiles": fixture["profiles"]}),
+            {"version": fixture["version"], "profile_ids": fixture["profile_ids"]},
+        )
+
     def test_manifest_checksum_matches_godot_fixture(self) -> None:
         fixture = json.loads(
             Path("tests/fixtures/simulation_report_v2.json").read_text(encoding="utf-8")
@@ -266,6 +278,7 @@ class FitnessTests(unittest.TestCase):
             report = json.loads(reports[0].read_text(encoding="utf-8"))
             report["manifest"]["profiles"][0]["parameters"][GENES[0]] += 1
             report["manifest_checksum"] = _simulation_manifest_checksum(report["manifest"])
+            report["roster"] = _roster_provenance(report["manifest"])
             reports[0].write_text(json.dumps(report), encoding="utf-8")
             with self.assertRaisesRegex(ToolError, "Manifest snapshot"):
                 evaluate_fitness(generation, reports)
@@ -334,12 +347,14 @@ class FitnessTests(unittest.TestCase):
             candidate_id = generation["payload"]["candidates"][0]["candidate_id"]
             report["manifest"]["matchups"][0]["profile_ids"] = [candidate_id, candidate_id]
             report["manifest_checksum"] = _simulation_manifest_checksum(report["manifest"])
+            report["roster"] = _roster_provenance(report["manifest"])
             for tournament in report["tournaments"]:
                 stack = report["manifest"]["regimes"][0]["starting_stack"]
                 tournament["seat_map"] = [
                     {"seat": 0, "profile_id": candidate_id},
                     {"seat": 1, "profile_id": candidate_id},
                 ]
+                tournament["selected_profile_ids"] = [candidate_id, candidate_id]
                 tournament["winner_profile_id"] = candidate_id
                 tournament["profile_results"] = [
                     _profile_result(candidate_id, 0, True, 2, stack),

@@ -17,6 +17,7 @@ REPORT_FIELDS = (
     "report_schema_version",
     "manifest",
     "manifest_checksum",
+    "roster",
     "code_revision",
     "command_version",
     "shard",
@@ -64,6 +65,7 @@ TOURNAMENT_FIELDS = (
     "rotation",
     "effective_seed",
     "seat_map",
+    "selected_profile_ids",
     "termination_reason",
     "winner_profile_id",
     "tournament_hand_count",
@@ -205,6 +207,17 @@ def _simulation_manifest_checksum(manifest: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _roster_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
+    profiles = manifest["profiles"]
+    encoded = json.dumps(
+        profiles, ensure_ascii=False, separators=(",", ":"), sort_keys=True, allow_nan=False
+    ).encode("utf-8")
+    return {
+        "version": f"manifest_profiles_v1:{hashlib.sha256(encoded).hexdigest()}",
+        "profile_ids": [profile["profile_id"] for profile in profiles],
+    }
+
+
 def _validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     require_exact_fields(manifest, MANIFEST_FIELDS, "simulation manifest")
     if manifest["schema_version"] != 2:
@@ -308,6 +321,7 @@ def _planned_tournaments(manifest: dict[str, Any], indexes: dict[str, Any]) -> d
                 "rotation": rotation,
                 "effective_seed": manifest["seed_start"] + global_index,
                 "seat_map": seat_map,
+                "selected_profile_ids": [seat["profile_id"] for seat in seat_map],
             }
             global_index += 1
     return planned
@@ -493,8 +507,8 @@ def evaluate_fitness(
         if (
             isinstance(report["report_schema_version"], bool)
             or not isinstance(report["report_schema_version"], int)
-            or report["report_schema_version"] != 2
-            or report["command_version"] != "simulation_cli_v2"
+            or report["report_schema_version"] != 3
+            or report["command_version"] != "simulation_cli_v3"
         ):
             _invalid("unsupported_simulation_report", "Simulation report or command version is unsupported.")
         if (
@@ -513,6 +527,8 @@ def evaluate_fitness(
         if not isinstance(report["manifest"], dict):
             _invalid("invalid_simulation_report", "Report manifest must be an object.")
         _validate_manifest(report["manifest"])
+        if report["roster"] != _roster_provenance(report["manifest"]):
+            _invalid("roster_provenance_mismatch", "Report roster provenance does not match its manifest.")
         expected_checksum = _simulation_manifest_checksum(report["manifest"])
         if report["manifest_checksum"] != expected_checksum:
             _invalid("manifest_checksum_mismatch", "Simulation manifest checksum does not match.")
@@ -593,6 +609,7 @@ def evaluate_fitness(
                 "rotation",
                 "effective_seed",
                 "seat_map",
+                "selected_profile_ids",
             ):
                 if tournament[field] != expected[field]:
                     _invalid("tournament_identity_mismatch", f"Tournament field '{field}' does not match its plan.")

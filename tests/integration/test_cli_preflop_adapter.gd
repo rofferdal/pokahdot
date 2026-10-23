@@ -76,15 +76,20 @@ func test_match_factory_uses_resolved_non_default_configuration() -> void:
 	assert_eq(view.seats[view.big_blind_seat].bet_this_round, 24)
 	assert_true(view.seats[factory.human_seat(config)].is_human)
 	var diagnostics: PackedStringArray = factory.diagnostics(config)
-	var has_tight_passive: bool = false
-	var has_loose_aggressive: bool = false
+	assert_has(diagnostics, "Bot roster version: curated_v1")
+	var has_selected_profile_ids := false
 	for line: String in diagnostics:
-		has_tight_passive = has_tight_passive or line.contains("model=tight_passive")
-		has_loose_aggressive = has_loose_aggressive or line.contains("model=loose_aggressive")
+		has_selected_profile_ids = (
+			has_selected_profile_ids or line.begins_with("Selected bot profile IDs: ")
+		)
+	assert_true(has_selected_profile_ids)
+	var selected_profiles: Dictionary[String, bool] = {}
+	for line: String in diagnostics:
 		assert_false(line.contains("parameters"))
 		assert_false(line.contains("rng"))
-	assert_true(has_tight_passive)
-	assert_true(has_loose_aggressive)
+		if line.contains("profile="):
+			selected_profiles[line.get_slice("profile=", 1)] = true
+	assert_eq(selected_profiles.size(), config.player_count - 1)
 
 
 func test_match_factory_selects_the_experimental_mixed_roster_only_when_enabled() -> void:
@@ -95,14 +100,7 @@ func test_match_factory_selects_the_experimental_mixed_roster_only_when_enabled(
 
 	assert_has(production_diagnostics, "Bot roster: production")
 	assert_has(experimental_diagnostics, "Bot roster: experimental")
-	for profile_id: String in [
-		"nit_caller",
-		"tight_aggressive",
-		"loose_passive",
-		"loose_aggressive",
-		"balanced",
-	]:
-		assert_true(_diagnostics_contain(experimental_diagnostics, profile_id))
+	assert_eq(_diagnostic_profile_count(experimental_diagnostics), 5)
 	assert_ne(experimental_match.start().status, StepResult.Status.ERROR)
 	var human_view := experimental_match.get_view_for(0)
 	assert_eq(human_view.hero_hole_cards.size(), 2)
@@ -207,8 +205,9 @@ func _assert_no_bot_cards_are_rendered(io: FakeCliIO, match_instance: Tournament
 			assert_false(token.contains(":"))
 
 
-func _diagnostics_contain(diagnostics: PackedStringArray, text: String) -> bool:
+func _diagnostic_profile_count(diagnostics: PackedStringArray) -> int:
+	var profile_ids: Dictionary[String, bool] = {}
 	for line: String in diagnostics:
-		if line.contains(text):
-			return true
-	return false
+		if line.contains("profile="):
+			profile_ids[line.get_slice("profile=", 1)] = true
+	return profile_ids.size()

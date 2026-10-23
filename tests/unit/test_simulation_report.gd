@@ -3,6 +3,27 @@ extends "res://tests/support/poker_gut_test.gd"
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
 
 
+func test_roster_provenance_matches_the_cross_language_fixture() -> void:
+	var file := FileAccess.open("res://tests/fixtures/roster_provenance_v1.json", FileAccess.READ)
+	assert_not_null(file)
+	var fixture: Dictionary = JSON.parse_string(file.get_as_text())
+	var alpha := _profile(&"alpha")
+	alpha.parameters = RandomDecisionModelParameters.new()
+	var beta := BotProfile.new()
+	beta.profile_id = &"beta"
+	beta.model_id = &"strategy_parameterized"
+	beta.parameters = StrategyDecisionModelParameters.new()
+	(beta.parameters as StrategyDecisionModelParameters).tight_vs_loose = 50
+	(beta.parameters as StrategyDecisionModelParameters).passive_vs_aggressive = 50
+	(beta.parameters as StrategyDecisionModelParameters).call_vs_raise = 50
+	(beta.parameters as StrategyDecisionModelParameters).bluff_rate = 10
+	var manifest := SimulationManifest.new()
+	manifest.profiles = [alpha, beta]
+
+	assert_eq(manifest.roster_provenance().profile_ids, fixture.profile_ids)
+	assert_eq(manifest.roster_provenance().version, fixture.version)
+
+
 func test_report_mirrors_manifest_identity_and_maps_outcome_fields() -> void:
 	var manifest := SimulationManifest.new()
 	manifest.batch_id = &"report_batch"
@@ -27,15 +48,17 @@ func test_report_mirrors_manifest_identity_and_maps_outcome_fields() -> void:
 	assert_true(report.validate().is_empty())
 	assert_eq(report.manifest, manifest.canonical_dictionary())
 	assert_eq(report.manifest_checksum, manifest.checksum())
+	assert_eq(report.roster, manifest.roster_provenance())
 	assert_eq(report.tournaments.size(), 1)
 	assert_eq(report.tournaments[0].plan_id, "plan")
 	assert_eq(report.tournaments[0].effective_seed, 200)
 	assert_eq(report.tournaments[0].seat_map.size(), 2)
+	assert_eq(report.tournaments[0].selected_profile_ids, ["alpha", "beta"])
 	assert_eq(report.tournaments[0].profile_results.size(), 2)
 	assert_false(report.to_dictionary().has("hole_cards"))
 
 
-func test_schema_two_rejects_legacy_command_and_incomplete_metric_payloads() -> void:
+func test_schema_three_rejects_legacy_command_and_incomplete_metric_payloads() -> void:
 	var manifest := SimulationManifest.new()
 	manifest.batch_id = &"report_validation"
 	manifest.seed_start = 300
@@ -59,7 +82,7 @@ func test_schema_two_rejects_legacy_command_and_incomplete_metric_payloads() -> 
 	var parsed: RefCounted = REPORT_SCRIPT.from_dictionary(data)
 	assert_has(parsed.validate(), "Unsupported simulation command version.")
 
-	data.command_version = "simulation_cli_v2"
+	data.command_version = "simulation_cli_v3"
 	data.tournaments[0].profile_results[0].erase("eligible_bluff_opportunities")
 	parsed = REPORT_SCRIPT.from_dictionary(data)
 	assert_has(
@@ -77,7 +100,7 @@ func test_schema_two_rejects_legacy_command_and_incomplete_metric_payloads() -> 
 	assert_has(parsed.validate(), "Simulation trace must be an object.")
 
 
-func test_schema_two_rejects_wrong_nested_field_types_without_conversion_errors() -> void:
+func test_schema_three_rejects_wrong_nested_field_types_without_conversion_errors() -> void:
 	var valid_data := _valid_report_dictionary()
 	valid_data.report_schema_version = {"invalid": true}
 	var parsed: RefCounted = REPORT_SCRIPT.from_dictionary(valid_data)
@@ -99,6 +122,17 @@ func test_schema_two_rejects_wrong_nested_field_types_without_conversion_errors(
 	assert_has(
 		parsed.validate(),
 		"Simulation profile result field has invalid type: eligible_bluff_opportunities",
+	)
+
+	valid_data = _valid_report_dictionary()
+	valid_data.roster.version = "forged"
+	valid_data.tournaments[0].selected_profile_ids = ["beta", "alpha"]
+	parsed = REPORT_SCRIPT.from_dictionary(valid_data)
+	assert_has(
+		parsed.validate(), "Simulation report roster version does not match its manifest profiles."
+	)
+	assert_has(
+		parsed.validate(), "Simulation selected profile IDs do not match the ordered seat map."
 	)
 
 

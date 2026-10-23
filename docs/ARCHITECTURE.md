@@ -136,9 +136,16 @@ derives matchup occurrence and cyclic seat rotation from each plan-local
 occurrence, and applies `SimulationShard` only after global planning.
 `SimulationCommandOptions` is the typed boundary for strict CLI arguments.
 
-`SimulationReport` schema 2 stores the canonical manifest snapshot and checksum beside
+`SimulationReport` schema 3 stores the canonical manifest snapshot and checksum beside
 typed outcome mappings, aggregate groups, diagnostics, and recipient-safe
 traces. Report writes use a temporary sibling followed by an atomic rename.
+It also records a deterministic roster provenance object derived from the
+manifest's immutable profile snapshots, and every tournament records its
+ordered selected profile IDs beside its seat map. This lets candidate
+evaluations reproduce their profile collection without claiming they used the
+product-curated roster. Normal GUI/interactive-CLI composition uses the
+source-controlled `PlayableBotRoster.ROSTER_VERSION`; interactive diagnostics
+record that version and the selected bot profile IDs.
 `simulation_cli_app.gd` is a separate `SceneTree` process entry point for
 `help`, `validate`, `run`, `inspect`, and `replay`; it never calls the
 interactive CLI or reads stdin. Replay rebuilds the manifest plan, executes
@@ -592,7 +599,7 @@ The repository entry point is `tools/profile-evolution`, backed by the Python
 Godot runtime and the simulation CLI. Its strict `argparse` interface exposes
 `init-generation`, `evaluate-fitness`, `select`, `crossover`, `mutate`,
 `build-lineage`, `inspect-lineage`, `confirm-candidate`, and
-`export-candidates`. JSON
+`review-promotion`, `publish-profile`, and `export-candidates`. JSON
 inputs must be UTF-8 objects without duplicate keys or non-finite numbers.
 Every persisted artifact has an exact envelope of `schema_version`, `type`,
 `tool_version`, object `payload`, and SHA-256 `checksum`.
@@ -623,7 +630,7 @@ random-number consumption, content-derived IDs, and canonical artifact writes
 make identical inputs and seeds byte-equivalent.
 
 `evaluate-fitness` consumes one immutable generation manifest and a complete
-set of schema-2 `SimulationReport` shards. It validates the simulation command
+set of schema-3 `SimulationReport` shards. It validates the simulation command
 version, canonical manifest checksum, exact candidate snapshots, deterministic
 plan identities, unique global tournament indexes, complete shard/plan
 coverage, successful completion, finite metric inputs, bounded behavioral
@@ -687,12 +694,34 @@ non-overlapping seed ranges. The immutable confirmation records the exact
 candidate/registry identity, per-mode metrics, samples, style evidence,
 uncertainty, reports, and explicit eligibility reasons.
 
+Confirmation also requires behavioral diversity before it can be eligible.
+For every comparable declared legacy or historical-champion
+`strategy_parameterized` profile, the tool records the L1 distance across the
+four percentage genes. The nearest distance must be at least ten; the recorded
+comparison is a deterministic personality-diversity proxy, while independent
+simulation evidence remains the validity and performance proof. Every
+confirmation is marked `review_required`; `review-promotion` creates a
+separate immutable, reviewer-identified approval or rejection record tied to
+the exact confirmation snapshot. Approval cannot be created for ineligible
+evidence. These external artifacts deliberately have no dependency on, access
+to, or mutation path for `PlayableBotRoster`.
+
 `export-candidates` accepts a lineage registry, eligible confirmation
 artifacts bound to that exact registry, and requested candidate IDs. It emits
 only a versioned `candidate_bundle` marked `review_only`, including the exact
 candidate, lineage, and confirmation snapshots. It cannot write roster or
 `.tres` destinations and performs no promotion; Milestone 6 remains a reviewed
 source-change workflow.
+
+`publish-profile` is the one manual Resource-publication boundary. It accepts
+both the exact confirmation and an approved `promotion_review`, verifies their
+candidate snapshot and checksum binding, and writes a new versioned
+`BotProfile` only at `resources/bot_profiles/published/<profile-id>.tres`.
+Publication uses no-clobber atomic creation, so a published version cannot be
+overwritten. It does not alter `PlayableBotRoster`; activation remains a
+separate reviewed source change. The roster validates that its retained catalog
+always includes the hand-authored Random, Tight Passive, and Loose Aggressive
+profiles, preventing promotion from replacing the legacy personality set.
 
 The executable Milestone 5 smoke history is preserved under
 `examples/profile_evolution/milestone5`. It includes deterministic generation,
