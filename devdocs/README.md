@@ -30,12 +30,15 @@ PROBLEM |      HOW-TO GUIDES       |        REFERENCE         |
 ### 1. Tutorials (Learning-Oriented)
 Start here if you are new to the codebase.
 - **[Understanding Pokahdot](tutorials/understanding-pokahdot.md)**: A hands-on walkthrough for junior developers explaining the mental model, execution flow, card security, and how to step through a live poker hand in code.
+- **[Improving Bot Behavior Through Simulation](tutorials/improving-bots-with-simulations.md)**: A step-by-step tutorial on formulating a candidate bot hypothesis, running benchmark simulations, interpreting fitness metrics, and promoting a new profile to the playable game.
 
 ### 2. How-To Guides (Problem-Oriented)
 Practical step-by-step instructions to get everyday development tasks done.
 - **[Running and Testing](how-to/running-and-testing.md)**: How to launch the GUI and interactive CLI, run headless GUT tests, filter test suites, and execute code formatters and linters.
 - **[Adding a Bot Strategy](how-to/adding-a-bot-strategy.md)**: How to create a new `DecisionModel`, define validated parameter resources, create a `.tres` profile, and wire it up.
 - **[Running Simulations](how-to/running-simulations.md)**: How to execute non-interactive batch simulations, validate manifests, inspect reports, and replay runs.
+- **[Evaluating Bot Performance & Statistical Decisions](how-to/evaluating-bot-performance.md)**: How to gather enough statistical information, calculate sample sizes, interpret 95% confidence intervals, and diagnose behavioral leaks.
+- **[Replacing In-Game Bot Profiles](how-to/replacing-in-game-bot-profiles.md)**: The exact workflow and checklist for safely promoting and replacing in-game bot profiles across GUI, CLI, and test suites.
 
 ### 3. Reference (Information-Oriented)
 Instructive, authoritative descriptions of the system machinery, architecture, and APIs.
