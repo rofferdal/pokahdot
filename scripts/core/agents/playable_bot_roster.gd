@@ -138,6 +138,17 @@ func create_bot(profile: BotProfile, rng: RandomNumberGenerator) -> AgentCreatio
 	return AgentFactory.new(_registry).create_bot(profile, rng)
 
 
+## Returns independent immutable-at-runtime snapshots of every catalog profile.
+##
+## The catalog Resources remain private so simulation configuration cannot
+## mutate the product roster or share nested parameter Resources between runs.
+func get_catalog_profiles() -> Array[BotProfile]:
+	var copied: Array[BotProfile] = []
+	for profile: BotProfile in _profiles:
+		copied.append(profile.duplicate(true) as BotProfile if profile != null else null)
+	return copied
+
+
 func get_profile_ids() -> Array[StringName]:
 	var profile_ids: Array[StringName] = []
 	for profile: BotProfile in _profiles:

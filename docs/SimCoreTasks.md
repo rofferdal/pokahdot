@@ -148,20 +148,20 @@ simulation may use zero humans only through its dedicated composition path.
 
 ## Milestone 7 — Playable roster simulation manifest generation
 
-- [ ] Extend `PlayableBotRoster` (`scripts/core/agents/playable_bot_roster.gd`) with
+- [x] Extend `PlayableBotRoster` (`scripts/core/agents/playable_bot_roster.gd`) with
   a method (`get_catalog_profiles() -> Array[BotProfile]`) that safely returns
   independent deep copies of all registered bot profile Resources, preserving catalog
   immutability and deep-copy isolation.
-- [ ] Implement a simulation manifest builder/generator in `scripts/simulation/`
+- [x] Implement a simulation manifest builder/generator in `scripts/simulation/`
   (e.g. `scripts/simulation/simulation_manifest_generator.gd` or `SimulationManifest.from_roster()`)
   that inspects `PlayableBotRoster`, extracts immutable profile snapshots, and generates
   a valid Schema 2 `SimulationManifest`.
-- [ ] Provide configurable batch planning defaults for roster manifests: assign a
+- [x] Provide configurable batch planning defaults for roster manifests: assign a
   descriptive `batch_id` derived from `PlayableBotRoster.ROSTER_VERSION`, a configurable
   non-zero `seed_start`, standard structural regimes matching table sizes (e.g. 8-max full table
   with 100bb stacks and 5/10 blinds), matchups grouping all active roster profiles, and
   balanced evaluation plans with cyclic seat rotation and sufficient tournament counts.
-- [ ] Ensure the generated manifest strictly adheres to Schema 2 constraints: validate
+- [x] Ensure the generated manifest strictly adheres to Schema 2 constraints: validate
   parameter dictionaries for all archetypes (random, tight_passive, loose_aggressive,
   strategy_parameterized), compute canonical JSON representation and SHA-256 checksum,
   and verify that `SimulationManifest.validate()` passes with zero errors.

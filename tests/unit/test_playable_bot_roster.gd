@@ -39,6 +39,27 @@ func test_seeded_selection_is_deterministic_without_replacement_and_returns_snap
 	assert_ne(first.get_profiles()[0].profile_id, &"mutated")
 
 
+func test_catalog_profiles_cover_the_roster_and_are_deeply_isolated() -> void:
+	var roster := PlayableBotRoster.new()
+	var first_catalog: Array[BotProfile] = roster.get_catalog_profiles()
+	var second_catalog: Array[BotProfile] = roster.get_catalog_profiles()
+
+	assert_eq(_profile_ids(first_catalog), roster.get_profile_ids())
+	assert_eq(_profile_ids(second_catalog), roster.get_profile_ids())
+	assert_ne(first_catalog[0], second_catalog[0])
+	assert_ne(first_catalog[0].parameters, second_catalog[0].parameters)
+	first_catalog[0].profile_id = &"mutated_catalog_profile"
+	first_catalog[0].display_name = "Mutated Catalog Profile"
+	var first_parameters := first_catalog[0].parameters as RandomDecisionModelParameters
+	first_parameters.fold_weight = 99
+
+	var fresh_catalog: Array[BotProfile] = roster.get_catalog_profiles()
+	var fresh_parameters := fresh_catalog[0].parameters as RandomDecisionModelParameters
+	assert_eq(fresh_catalog[0].profile_id, &"random_default")
+	assert_eq(fresh_catalog[0].display_name, "Random")
+	assert_eq(fresh_parameters.fold_weight, 1)
+
+
 func test_roster_rejects_invalid_profiles_and_selection_larger_than_catalog() -> void:
 	var invalid := BotProfile.new()
 	invalid.profile_id = &"duplicate"

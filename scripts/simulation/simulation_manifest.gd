@@ -60,6 +60,13 @@ func validate() -> PackedStringArray:
 		if profile.parameters == null:
 			errors.append("Profile %s has no parameters." % profile.profile_id)
 		else:
+			if not _parameters_match_model_id(profile.model_id, profile.parameters):
+				errors.append(
+					(
+						"Profile %s parameters do not match model ID: %s."
+						% [profile.profile_id, profile.model_id]
+					)
+				)
 			errors.append_array(profile.parameters.validate())
 	var regime_by_id: Dictionary = {}
 	for regime: SimulationRegime in regimes:
@@ -177,7 +184,7 @@ func canonical_dictionary() -> Dictionary:
 
 
 func canonical_json() -> String:
-	return JSON.stringify(canonical_dictionary())
+	return JSON.stringify(canonical_dictionary(), "", true)
 
 
 func checksum() -> String:
@@ -398,6 +405,20 @@ static func _parameters_for_model(model_id: StringName) -> DecisionModelParamete
 	if model_id == &"loose_aggressive":
 		return LOOSE_PARAMETERS_SCRIPT.new()
 	return null
+
+
+static func _parameters_match_model_id(
+	model_id: StringName, parameters: DecisionModelParameters
+) -> bool:
+	if model_id == &"strategy_parameterized":
+		return parameters is StrategyDecisionModelParameters
+	if model_id == &"random":
+		return parameters is RandomDecisionModelParameters
+	if model_id == &"tight_passive":
+		return parameters is TightPassiveDecisionModelParameters
+	if model_id == &"loose_aggressive":
+		return parameters is LooseAggressiveDecisionModelParameters
+	return false
 
 
 static func _assign_parameters(
