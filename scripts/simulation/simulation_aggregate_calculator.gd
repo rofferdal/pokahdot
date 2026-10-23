@@ -10,7 +10,13 @@ const FITNESS_WEIGHTS: Array[float] = [0.30, 0.20, 0.15, 0.15, 0.10, 0.10]
 func calculate(
 	outcomes: Array[SimulationTournamentOutcome], minimum_samples: int = 30
 ) -> Dictionary:
-	var groups := {"by_profile": {}, "by_matchup": {}, "by_seat": {}, "by_regime": {}}
+	var groups := {
+		"by_profile": {},
+		"by_matchup": {},
+		"by_seat": {},
+		"by_regime": {},
+		"by_evaluation_plan": {},
+	}
 	for outcome: SimulationTournamentOutcome in outcomes:
 		if outcome == null or not outcome.is_success():
 			continue
@@ -20,6 +26,7 @@ func calculate(
 			_add(groups.by_matchup, str(outcome.matchup_id), metric)
 			_add(groups.by_seat, str(metric.seat), metric)
 			_add(groups.by_regime, str(outcome.regime_id), metric)
+			_add(groups.by_evaluation_plan, str(outcome.plan_id), metric)
 	var result := {}
 	for group_name: String in groups:
 		var aggregate_rows: Array[Dictionary] = []

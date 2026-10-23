@@ -64,24 +64,24 @@ simulation may use zero humans only through its dedicated composition path.
 
 ## Milestone 3 — Coordinate the simulation CLI introduction
 
-- [ ] Complete the typed simulation manifest, report, shard, and option
+- [x] Complete the typed simulation manifest, report, shard, and option
   contracts jointly with the first task in `SimCliTasks.md`. The CLI manifest
   remains the versioned adapter input; the batch runner consumes validated
   typed values rather than JSON or command-line strings. Include explicit
   regimes and evaluation plans (one named regime remains valid), and make the
   report's identity/configuration structure mirror the manifest exactly.
-- [ ] After Milestones 1 and 2 can execute one tournament, introduce the
+- [x] After Milestones 1 and 2 can execute one tournament, introduce the
   dedicated CLI entry point and `help`/`validate`/`run --dry-run` tasks from
   `SimCliTasks.md`. Verify the execution plan exposes the same indexes, seeds,
   matchups, and rotations the batch runner will use.
-- [ ] After metrics and trace payloads are stable, introduce the `run`, report
+- [x] After metrics and trace payloads are stable, introduce the `run`, report
   persistence, and trace-mode tasks from `SimCliTasks.md`. Define one
   canonical report mapping from batch outcomes to artifact fields and test it
   end-to-end.
-- [ ] After reports are reproducible, introduce the `inspect` and `replay`
+- [x] After reports are reproducible, introduce the `inspect` and `replay`
   tasks from `SimCliTasks.md`. Replay must call the same simulation composition
   path and compare the stored outcome digest rather than trusting text output.
-- [ ] Complete the CLI unit, integration, and normal-product regression tasks
+- [x] Complete the CLI unit, integration, and normal-product regression tasks
   only after the corresponding core milestones pass. Keep one small
   manifest/report fixture for cross-layer tests and do not make the core test
   suite depend on filesystem command invocation.

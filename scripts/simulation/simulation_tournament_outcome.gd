@@ -7,6 +7,10 @@ var tournament_index: int
 var effective_seed: int
 var matchup_id: StringName
 var regime_id: StringName = &""
+var plan_id: StringName = &""
+var plan_tournament_index: int = -1
+var matchup_occurrence: int = 0
+var rotation: int = 0
 var final_seat_mapping: Dictionary[int, StringName]
 var completion: SimulationCompletionResult
 var diagnostics: Array[SimulationDiagnostic]

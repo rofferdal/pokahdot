@@ -1,7 +1,7 @@
 # Pokahdot Architecture
 
-Status: Core and interactive CLI tournament play, GUI work through archived Milestone 4.6b, and strategy work through archived Stratmilestone3 are implemented. GUI naming, remaining device/small-viewport verification, and all simulation/profile-evolution backlogs remain unfinished.
-Last updated: 2026-10-22
+Status: Core, interactive CLI tournament play, the simulation CLI introduction, GUI work through archived Milestone 4.6b, and strategy work through archived Stratmilestone3 are implemented. GUI naming, remaining device/small-viewport verification, and profile-evolution backlogs remain unfinished.
+Last updated: 2026-10-23
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -98,7 +98,7 @@ values alongside their existing identity and completion data.
 deterministically sampled mode. `SimulationTraceEntry` contains strategy
 branch/action metadata and hand outcomes only; it deliberately contains no
 hole cards or deck data. `SimulationAggregateCalculator` groups completed
-seat observations by profile, matchup, seat, and regime, reports 95% normal
+seat observations by profile, matchup, seat, regime, and evaluation plan, reports 95% normal
 half-width estimates, marks groups below the requested sample threshold as
 non-reportable, and applies the documented normalized fitness formula.
 
@@ -118,6 +118,23 @@ matchup, and assigned immutable profile snapshots; a
 `SimulationTournamentOutcome` carries copied identity, final seat-to-profile
 mapping, completion summary, and structured diagnostics. Neither retains live
 core state, rendering data, command-line arguments, or serialization details.
+
+`SimulationManifest` is the versioned simulation CLI input contract. It owns
+immutable profile snapshots, explicit structural regimes, matchups, and named
+evaluation plans. `SimulationManifest.build_plan()` concatenates plans in
+manifest order, assigns global zero-based indexes and `seed_start + index`,
+derives matchup occurrence and cyclic seat rotation from each plan-local
+occurrence, and applies `SimulationShard` only after global planning.
+`SimulationCommandOptions` is the typed boundary for strict CLI arguments.
+
+`SimulationReport` stores the canonical manifest snapshot and checksum beside
+typed outcome mappings, aggregate groups, diagnostics, and recipient-safe
+traces. Report writes use a temporary sibling followed by an atomic rename.
+`simulation_cli_app.gd` is a separate `SceneTree` process entry point for
+`help`, `validate`, `run`, `inspect`, and `replay`; it never calls the
+interactive CLI or reads stdin. Replay rebuilds the manifest plan, executes
+the same simulation composition path, and compares a normalized outcome
+digest so JSON integer/float representation cannot change reproducibility.
 
 ## 4. Key decisions
 
@@ -527,7 +544,7 @@ CLI card formatting belongs in a small presentation helper used by the renderer.
 
 CLI player labeling is also presentation-only. `PlayerView` carries the authoritative human flag already required by the recipient-safe view contract, and `CliRenderer` uses that flag to append `(you)` to the human display name. The renderer must not infer human identity from seat 0, `hero_seat`, the acting seat, a name string, or the presence of hole cards. This keeps the label correct if composition or recipient choices change later, while leaving player identity and poker rules independent of terminal wording.
 
-The simulation CLI is a separate, non-interactive process adapter proposed at
+The simulation CLI is a separate, non-interactive process adapter implemented at
 `scripts/simulation/simulation_cli_app.gd`. It consumes a versioned batch
 manifest and produces reproducible report artifacts; it never invokes the
 interactive CLI's prompts or command loop. Its simulation-only composition

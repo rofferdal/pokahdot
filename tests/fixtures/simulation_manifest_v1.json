@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "batch_id": "fixture_small_batch",
+  "seed_start": 9100,
+  "profiles": [
+    {
+      "profile_id": "alpha",
+      "model_id": "random",
+      "parameters": {
+        "fold_weight": 1,
+        "passive_weight": 4,
+        "aggressive_weight": 2
+      }
+    },
+    {
+      "profile_id": "beta",
+      "model_id": "random",
+      "parameters": {
+        "fold_weight": 1,
+        "passive_weight": 4,
+        "aggressive_weight": 2
+      }
+    }
+  ],
+  "regimes": [
+    {
+      "regime_id": "heads_up_20bb",
+      "player_count": 2,
+      "starting_stack": 20,
+      "starting_small_blind": 5,
+      "starting_big_blind": 10,
+      "blind_progression": "normative_hand_based_v1"
+    }
+  ],
+  "matchups": [
+    {
+      "matchup_id": "alpha_vs_beta",
+      "profile_ids": ["alpha", "beta"]
+    }
+  ],
+  "evaluation_plans": [
+    {
+      "plan_id": "fixture_plan",
+      "regime_id": "heads_up_20bb",
+      "matchup_ids": ["alpha_vs_beta"],
+      "tournament_count": 2,
+      "seat_rotation": "cyclic",
+      "minimum_profile_samples": 1,
+      "uncertainty_estimator": "normal_95"
+    }
+  ]
+}

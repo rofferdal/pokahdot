@@ -1,0 +1,50 @@
+{
+  "report_schema_version": 1,
+  "manifest": {
+    "schema_version": 1,
+    "batch_id": "fixture_small_batch",
+    "seed_start": 9100,
+    "profiles": [
+      {"profile_id": "alpha", "model_id": "random", "parameters": {"fold_weight": 1, "passive_weight": 4, "aggressive_weight": 2}},
+      {"profile_id": "beta", "model_id": "random", "parameters": {"fold_weight": 1, "passive_weight": 4, "aggressive_weight": 2}}
+    ],
+    "regimes": [
+      {"regime_id": "heads_up_20bb", "player_count": 2, "starting_stack": 20, "starting_small_blind": 5, "starting_big_blind": 10, "blind_progression": "normative_hand_based_v1"}
+    ],
+    "matchups": [
+      {"matchup_id": "alpha_vs_beta", "profile_ids": ["alpha", "beta"]}
+    ],
+    "evaluation_plans": [
+      {"plan_id": "fixture_plan", "regime_id": "heads_up_20bb", "matchup_ids": ["alpha_vs_beta"], "tournament_count": 2, "seat_rotation": "cyclic", "minimum_profile_samples": 1, "uncertainty_estimator": "normal_95"}
+    ]
+  },
+  "manifest_checksum": "d47f660b6ce0cd6ed30f99764a57b6486702d56a5ddd3c33cd963716421c8df9",
+  "code_revision": "",
+  "command_version": "simulation_cli_v1",
+  "shard": {"index": 0, "count": 2},
+  "started_at": "",
+  "finished_at": "",
+  "tournaments": [
+    {
+      "tournament_index": 0,
+      "plan_id": "fixture_plan",
+      "plan_tournament_index": 0,
+      "regime_id": "heads_up_20bb",
+      "matchup_id": "alpha_vs_beta",
+      "matchup_occurrence": 0,
+      "rotation": 0,
+      "effective_seed": 9100,
+      "seat_map": [{"seat": 0, "profile_id": "alpha"}, {"seat": 1, "profile_id": "beta"}],
+      "termination_reason": "winner",
+      "winner_profile_id": "beta",
+      "tournament_hand_count": 1,
+      "profile_results": [
+        {"seat": 0, "profile_id": "alpha", "finishing_position": 2, "won_tournament": false, "top_third": false, "starting_stack": 20, "final_stack": 0, "chip_differential": -20, "hands_survived": 1, "tournament_hand_count": 1, "survival_ratio": 1.0, "blind_normalized_chip_sum": -2.0, "hands_observed": 1, "bnc_per_100": -200.0, "vpip_hands": 1, "vpip_rate": 1.0, "pfr_hands": 0, "pfr_rate": 0.0, "aggressive_actions": 0, "calls": 0, "aggression_factor": 0.0, "invalid_action_fallbacks": 0},
+        {"seat": 1, "profile_id": "beta", "finishing_position": 1, "won_tournament": true, "top_third": true, "starting_stack": 20, "final_stack": 40, "chip_differential": 20, "hands_survived": 1, "tournament_hand_count": 1, "survival_ratio": 1.0, "blind_normalized_chip_sum": 2.0, "bnc_per_100": 200.0, "hands_observed": 1, "vpip_hands": 1, "vpip_rate": 1.0, "pfr_hands": 0, "pfr_rate": 0.0, "aggressive_actions": 0, "calls": 1, "aggression_factor": 0.0, "invalid_action_fallbacks": 0}
+      ],
+      "diagnostics": []
+    }
+  ],
+  "aggregates": {},
+  "traces": []
+}

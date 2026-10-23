@@ -66,10 +66,11 @@ func _run_one(
 				else "Simulation match construction failed."
 			),
 		)
+	var execution_config := _config_for_input(base_config, input)
 	var execution := _run_with_metrics(
 		creation.match_instance,
 		input,
-		base_config.starting_stack,
+		execution_config.starting_stack,
 		max_transitions,
 		trace_config,
 		creation.effective_seed
@@ -77,7 +78,7 @@ func _run_one(
 	var result: StepResult = execution.result
 	if result.status != StepResult.Status.TOURNAMENT_FINISHED:
 		return _failure_outcome(input, SimulationDiagnostic.Stage.EXECUTION, result.message)
-	return (
+	var outcome := (
 		SimulationTournamentOutcome
 		. new(
 			input.tournament_index,
@@ -99,6 +100,11 @@ func _run_one(
 			input.regime_id,
 		)
 	)
+	outcome.plan_id = input.plan_id
+	outcome.plan_tournament_index = input.plan_tournament_index
+	outcome.matchup_occurrence = input.matchup_occurrence
+	outcome.rotation = input.rotation
+	return outcome
 
 
 func _run_with_metrics(
@@ -270,6 +276,10 @@ func _stacks(view: GameView) -> Dictionary[int, int]:
 func _config_for_input(
 	base_config: ResolvedTournamentConfig, input: SimulationTournamentInput
 ) -> ResolvedTournamentConfig:
+	if input.regime != null:
+		var resolution := input.regime.resolve(input.effective_seed)
+		if resolution.is_ok():
+			return resolution.get_config()
 	return (
 		ResolvedTournamentConfig
 		. new(
