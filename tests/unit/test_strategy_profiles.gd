@@ -8,11 +8,11 @@ const STRATEGY_PARAMETERS_SCRIPT := preload(
 
 func test_strategy_profiles_have_documented_ids_model_and_parameters() -> void:
 	var expected_profiles := {
-		&"nit_caller": [60, 20, 20, 2],
-		&"tight_aggressive": [65, 75, 70, 8],
-		&"loose_passive": [100, 25, 15, 5],
-		&"loose_aggressive": [100, 85, 85, 22],
-		&"balanced": [70, 55, 50, 12],
+		&"nit_caller": [60, 4, 4, 2],
+		&"tight_aggressive": [65, 53, 53, 8],
+		&"loose_passive": [100, 4, 4, 5],
+		&"loose_aggressive": [100, 72, 72, 22],
+		&"balanced": [70, 28, 28, 12],
 	}
 
 	for profile_id: StringName in expected_profiles:
@@ -26,7 +26,7 @@ func test_strategy_profiles_have_documented_ids_model_and_parameters() -> void:
 			[
 				parameters.get("tight_vs_loose"),
 				parameters.get("passive_vs_aggressive"),
-				parameters.get("call_vs_bet"),
+				parameters.get("call_vs_raise"),
 				parameters.get("bluff_rate"),
 			],
 			expected_profiles[profile_id]

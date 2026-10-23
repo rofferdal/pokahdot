@@ -22,9 +22,23 @@ var vpip_hands: int
 var vpip_rate: float
 var pfr_hands: int
 var pfr_rate: float
+var bet_actions: int
+var raise_actions: int
 var aggressive_actions: int
-var calls: int
+var call_actions: int
 var aggression_factor: float
+var bet_raise_opportunities: int
+var bet_raise_frequency: float
+var check_bet_opportunities: int
+var bets_at_check_bet_opportunity: int
+var bet_frequency: float
+var call_raise_opportunities: int
+var calls_at_call_raise_opportunity: int
+var raises_at_call_raise_opportunity: int
+var raise_share: float
+var eligible_bluff_opportunities: int
+var bluff_actions: int
+var eligible_bluff_frequency: float
 var invalid_action_fallbacks: int
 
 
@@ -44,7 +58,22 @@ func finish(stack: int, position: int, winner: bool, player_count: int, hand_cou
 	tournament_hand_count = hand_count
 	self.player_count = player_count if player_count > 0 else 1
 	survival_ratio = float(hands_survived) / float(hand_count) if hand_count > 0 else 0.0
-	bnc_per_100 = blind_normalized_chip_sum * 100.0 / float(hands_observed) if hands_observed > 0 else 0.0
+	bnc_per_100 = (
+		blind_normalized_chip_sum * 100.0 / float(hands_observed) if hands_observed > 0 else 0.0
+	)
 	vpip_rate = float(vpip_hands) / float(hands_observed) if hands_observed > 0 else 0.0
 	pfr_rate = float(pfr_hands) / float(hands_observed) if hands_observed > 0 else 0.0
-	aggression_factor = float(aggressive_actions) / float(calls) if calls > 0 else 0.0
+	aggression_factor = (
+		float(aggressive_actions) / float(call_actions) if call_actions > 0 else 0.0
+	)
+	bet_raise_frequency = _ratio(aggressive_actions, bet_raise_opportunities)
+	bet_frequency = _ratio(bets_at_check_bet_opportunity, check_bet_opportunities)
+	raise_share = _ratio(
+		raises_at_call_raise_opportunity,
+		calls_at_call_raise_opportunity + raises_at_call_raise_opportunity,
+	)
+	eligible_bluff_frequency = _ratio(bluff_actions, eligible_bluff_opportunities)
+
+
+func _ratio(numerator: int, denominator: int) -> float:
+	return float(numerator) / float(denominator) if denominator > 0 else 0.0

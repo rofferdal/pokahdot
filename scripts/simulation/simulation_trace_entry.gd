@@ -68,9 +68,19 @@ static func error(index: int, diagnostic: String) -> SimulationTraceEntry:
 func copy() -> SimulationTraceEntry:
 	var copied := SimulationTraceEntry.new()
 	for property: StringName in [
-		"kind", "tournament_index", "hand_number", "seat", "profile_id", "street",
-		"selected_branch", "hand_potential_band", "action_kind", "action_amount",
-		"winner_seat", "termination_reason", "message",
+		"kind",
+		"tournament_index",
+		"hand_number",
+		"seat",
+		"profile_id",
+		"street",
+		"selected_branch",
+		"hand_potential_band",
+		"action_kind",
+		"action_amount",
+		"winner_seat",
+		"termination_reason",
+		"message",
 	]:
 		copied.set(property, get(property))
 	return copied

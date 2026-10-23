@@ -36,6 +36,6 @@ func _field_names() -> Array[StringName]:
 	return [
 		&"tight_vs_loose",
 		&"passive_vs_aggressive",
-		&"call_vs_bet",
+		&"call_vs_raise",
 		&"bluff_rate",
 	]

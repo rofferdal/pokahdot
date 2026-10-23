@@ -35,6 +35,94 @@ func test_report_mirrors_manifest_identity_and_maps_outcome_fields() -> void:
 	assert_false(report.to_dictionary().has("hole_cards"))
 
 
+func test_schema_two_rejects_legacy_command_and_incomplete_metric_payloads() -> void:
+	var manifest := SimulationManifest.new()
+	manifest.batch_id = &"report_validation"
+	manifest.seed_start = 300
+	manifest.profiles = [_profile(&"alpha"), _profile(&"beta")]
+	manifest.regimes = [SimulationRegime.new(&"heads_up", 2, 20, 5, 10)]
+	manifest.matchups = [SimulationMatchup.new(&"match", manifest.profiles)]
+	manifest.evaluation_plans = [SimulationEvaluationPlan.new(&"plan", &"heads_up", [&"match"], 1)]
+	var batch := (
+		SimulationBatchRunner
+		. new()
+		. run(
+			ResolvedTournamentConfig.new(
+				2, 20, 5, 10, 300, &"single_table", {0: &"random", 1: &"random"}
+			),
+			manifest.build_plan().inputs,
+		)
+	)
+	var valid_report: RefCounted = REPORT_SCRIPT.from_batch(manifest, SimulationShard.new(), batch)
+	var data: Dictionary = valid_report.to_dictionary()
+	data.command_version = "simulation_cli_v1"
+	var parsed: RefCounted = REPORT_SCRIPT.from_dictionary(data)
+	assert_has(parsed.validate(), "Unsupported simulation command version.")
+
+	data.command_version = "simulation_cli_v2"
+	data.tournaments[0].profile_results[0].erase("eligible_bluff_opportunities")
+	parsed = REPORT_SCRIPT.from_dictionary(data)
+	assert_has(
+		parsed.validate(),
+		"Simulation profile result is missing field: eligible_bluff_opportunities",
+	)
+
+	data = valid_report.to_dictionary()
+	data.manifest = 1
+	data.tournaments = [42]
+	data.traces = [false]
+	parsed = REPORT_SCRIPT.from_dictionary(data)
+	assert_has(parsed.validate(), "Simulation report field has invalid type: manifest")
+	assert_has(parsed.validate(), "Simulation tournament must be an object.")
+	assert_has(parsed.validate(), "Simulation trace must be an object.")
+
+
+func test_schema_two_rejects_wrong_nested_field_types_without_conversion_errors() -> void:
+	var valid_data := _valid_report_dictionary()
+	valid_data.report_schema_version = {"invalid": true}
+	var parsed: RefCounted = REPORT_SCRIPT.from_dictionary(valid_data)
+	assert_has(
+		parsed.validate(),
+		"Simulation report field has invalid type: report_schema_version",
+	)
+
+	valid_data = _valid_report_dictionary()
+	valid_data.shard.index = []
+	parsed = REPORT_SCRIPT.from_dictionary(valid_data)
+	assert_has(parsed.validate(), "Simulation report shard field has invalid type: index")
+
+	valid_data = _valid_report_dictionary()
+	valid_data.tournaments[0].seat_map = false
+	valid_data.tournaments[0].profile_results[0].eligible_bluff_opportunities = "one"
+	parsed = REPORT_SCRIPT.from_dictionary(valid_data)
+	assert_has(parsed.validate(), "Simulation tournament field has invalid type: seat_map")
+	assert_has(
+		parsed.validate(),
+		"Simulation profile result field has invalid type: eligible_bluff_opportunities",
+	)
+
+
+func _valid_report_dictionary() -> Dictionary:
+	var manifest := SimulationManifest.new()
+	manifest.batch_id = &"nested_validation"
+	manifest.seed_start = 400
+	manifest.profiles = [_profile(&"alpha"), _profile(&"beta")]
+	manifest.regimes = [SimulationRegime.new(&"heads_up", 2, 20, 5, 10)]
+	manifest.matchups = [SimulationMatchup.new(&"match", manifest.profiles)]
+	manifest.evaluation_plans = [SimulationEvaluationPlan.new(&"plan", &"heads_up", [&"match"], 1)]
+	var batch := (
+		SimulationBatchRunner
+		. new()
+		. run(
+			ResolvedTournamentConfig.new(
+				2, 20, 5, 10, 400, &"single_table", {0: &"random", 1: &"random"}
+			),
+			manifest.build_plan().inputs,
+		)
+	)
+	return REPORT_SCRIPT.from_batch(manifest, SimulationShard.new(), batch).to_dictionary()
+
+
 func _profile(profile_id: StringName) -> BotProfile:
 	var profile := BotProfile.new()
 	profile.profile_id = profile_id

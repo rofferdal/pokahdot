@@ -8,7 +8,7 @@ interactive player CLI.
 ## Contract and composition
 
 - [x] Define typed simulation manifest, report, shard, and command-option
-  Resources/value objects for schema version 1. Keep profile snapshots
+  Resources/value objects for current schema version 2. Keep profile snapshots
   immutable and validate them independently of the playable roster.
 - [x] Add a dedicated `scripts/simulation/simulation_cli_app.gd` process entry
   point. It must not use `cli_app.gd`, terminal prompts, `CliCommandLoop`, or

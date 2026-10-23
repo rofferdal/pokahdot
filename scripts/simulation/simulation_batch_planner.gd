@@ -26,14 +26,20 @@ func plan(
 		var occurrence: int = occurrences.get(matchup.matchup_id, 0)
 		occurrences[matchup.matchup_id] = occurrence + 1
 		var rotation: int = occurrence % config.player_count
-		inputs.append(
-			SimulationTournamentInput.new(
-				index,
-				seed_start + index,
-				matchup,
-				_rotated_seats(matchup.get_profiles(), rotation),
-				occurrence,
-				rotation,
+		(
+			inputs
+			. append(
+				(
+					SimulationTournamentInput
+					. new(
+						index,
+						seed_start + index,
+						matchup,
+						_rotated_seats(matchup.get_profiles(), rotation),
+						occurrence,
+						rotation,
+					)
+				)
 			)
 		)
 	return BATCH_PLAN_SCRIPT.new(inputs)

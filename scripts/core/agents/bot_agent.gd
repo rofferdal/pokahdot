@@ -20,12 +20,17 @@ func _init(model: DecisionModel, profile: BotProfile) -> void:
 func choose_action(view: GameView) -> PlayerAction:
 	var action := _model.choose_action(view)
 	var trace := _model.get_last_decision_trace_for_testing()
-	if trace != null:
-		_decision_history.append({
-			"trace": trace.copy(),
-			"street": view.street if view != null else &"unknown",
-			"action": action,
-		})
+	(
+		_decision_history
+		. append(
+			{
+				"trace": trace.copy() if trace != null else null,
+				"street": view.street if view != null else &"unknown",
+				"legal_actions": view.legal_actions if view != null else [],
+				"action": action,
+			}
+		)
+	)
 	return action
 
 

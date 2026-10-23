@@ -88,16 +88,16 @@ simulation may use zero humans only through its dedicated composition path.
 
 ## Milestone 4 — Validate the current parameter model
 
-- [ ] Run controlled fixed-seed batches that isolate each current strategy
-  parameter (`tight_vs_loose`, `passive_vs_aggressive`, `call_vs_bet`, and
-  `bluff_rate`) and measure its effect on VPIP, bet/raise frequency,
-  call-versus-raise splits, and eligible bluff frequency. Treat every
+- [x] Run controlled fixed-seed batches that isolate each current strategy
+  parameter (`tight_vs_loose`, `passive_vs_aggressive`, schema-1
+  `call_vs_bet`, and `bluff_rate`) and measure its effect on VPIP, bet/raise
+  frequency, call-versus-raise splits, and eligible bluff frequency. Treat every
   parameter as an inclusive integer percentage from 0 through 100.
-- [ ] Investigate the overlapping aggression controls. If measurement confirms
+- [x] Investigate the overlapping aggression controls. If measurement confirms
   that their combined rolls do not provide distinct observable behavior,
   simplify or redefine the parameter contract and update its validation,
   profiles, tests, and simulation manifest version deliberately.
-- [ ] Keep hand-potential and sizing weights fixed until evidence shows the
+- [x] Keep hand-potential and sizing weights fixed until evidence shows the
   existing parameter genome cannot express useful variation. Add a new gene
   only with a bounded range, a behavioral metric, a reproducibility test, and
   migration handling for profile snapshots.

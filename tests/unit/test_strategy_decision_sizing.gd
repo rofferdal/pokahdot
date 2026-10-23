@@ -10,7 +10,7 @@ func test_marginal_aggression_targets_approximately_half_pot() -> void:
 	var parameters := StrategyParametersScript.new()
 	parameters.tight_vs_loose = 100
 	parameters.passive_vs_aggressive = 100
-	parameters.call_vs_bet = 100
+	parameters.call_vs_raise = 100
 	var model := _model_with_parameters(55, parameters)
 	var view := _view_for_bet_with_cards("AS KD")
 	var action: PlayerAction = model.choose_action(view)
@@ -26,7 +26,7 @@ func test_strong_aggression_targets_approximately_one_pot() -> void:
 	var parameters := StrategyParametersScript.new()
 	parameters.tight_vs_loose = 100
 	parameters.passive_vs_aggressive = 100
-	parameters.call_vs_bet = 100
+	parameters.call_vs_raise = 100
 	var model := _model_with_parameters(56, parameters)
 	var view := _view_for_bet_with_cards("9H 9D", 100, 100, "2C 7D 9S")
 	var action: PlayerAction = model.choose_action(view)
@@ -42,7 +42,7 @@ func test_premium_aggression_selects_all_in_as_a_wager_total() -> void:
 	var parameters := StrategyParametersScript.new()
 	parameters.tight_vs_loose = 100
 	parameters.passive_vs_aggressive = 100
-	parameters.call_vs_bet = 100
+	parameters.call_vs_raise = 100
 	var model := _model_with_parameters(57, parameters)
 	var view := _view_for_bet_with_cards("AS 5S", 100, 30, "2S 7S KS")
 	var action: PlayerAction = model.choose_action(view)
@@ -59,7 +59,7 @@ func test_raise_sizing_emits_a_total_wager_including_existing_call() -> void:
 	var parameters := StrategyParametersScript.new()
 	parameters.tight_vs_loose = 100
 	parameters.passive_vs_aggressive = 100
-	parameters.call_vs_bet = 100
+	parameters.call_vs_raise = 100
 	var model := _model_with_parameters(58, parameters)
 	var view := _view_for_call_with_cards("AS KD", 100, 10, 100, 0)
 	var action: PlayerAction = model.choose_action(view)

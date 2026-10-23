@@ -6,9 +6,113 @@ extends RefCounted
 ## The manifest snapshot is copied verbatim from the canonical manifest
 ## dictionary. Report serialization remains in the simulation adapter.
 
-const REPORT_SCHEMA_VERSION: int = 1
-const COMMAND_VERSION: StringName = &"simulation_cli_v1"
+const REPORT_SCHEMA_VERSION: int = 2
+const COMMAND_VERSION: StringName = &"simulation_cli_v2"
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
+const TOURNAMENT_FIELDS := [
+	"tournament_index",
+	"plan_id",
+	"plan_tournament_index",
+	"regime_id",
+	"matchup_id",
+	"matchup_occurrence",
+	"rotation",
+	"effective_seed",
+	"seat_map",
+	"termination_reason",
+	"winner_profile_id",
+	"tournament_hand_count",
+	"profile_results",
+	"diagnostics",
+]
+const PROFILE_RESULT_FIELDS := [
+	"seat",
+	"profile_id",
+	"finishing_position",
+	"won_tournament",
+	"top_third",
+	"starting_stack",
+	"final_stack",
+	"chip_differential",
+	"hands_survived",
+	"tournament_hand_count",
+	"survival_ratio",
+	"blind_normalized_chip_sum",
+	"hands_observed",
+	"bnc_per_100",
+	"vpip_hands",
+	"vpip_rate",
+	"pfr_hands",
+	"pfr_rate",
+	"bet_actions",
+	"raise_actions",
+	"aggressive_actions",
+	"call_actions",
+	"aggression_factor",
+	"bet_raise_opportunities",
+	"bet_raise_frequency",
+	"check_bet_opportunities",
+	"bets_at_check_bet_opportunity",
+	"bet_frequency",
+	"call_raise_opportunities",
+	"calls_at_call_raise_opportunity",
+	"raises_at_call_raise_opportunity",
+	"raise_share",
+	"eligible_bluff_opportunities",
+	"bluff_actions",
+	"eligible_bluff_frequency",
+	"invalid_action_fallbacks",
+]
+const TOURNAMENT_INTEGER_FIELDS := [
+	"tournament_index",
+	"plan_tournament_index",
+	"matchup_occurrence",
+	"rotation",
+	"effective_seed",
+	"tournament_hand_count",
+]
+const TOURNAMENT_STRING_FIELDS := [
+	"plan_id", "regime_id", "matchup_id", "termination_reason", "winner_profile_id"
+]
+const TOURNAMENT_ARRAY_FIELDS := ["seat_map", "profile_results", "diagnostics"]
+const PROFILE_RESULT_INTEGER_FIELDS := [
+	"seat",
+	"finishing_position",
+	"starting_stack",
+	"final_stack",
+	"chip_differential",
+	"hands_survived",
+	"tournament_hand_count",
+	"hands_observed",
+	"vpip_hands",
+	"pfr_hands",
+	"bet_actions",
+	"raise_actions",
+	"aggressive_actions",
+	"call_actions",
+	"bet_raise_opportunities",
+	"check_bet_opportunities",
+	"bets_at_check_bet_opportunity",
+	"call_raise_opportunities",
+	"calls_at_call_raise_opportunity",
+	"raises_at_call_raise_opportunity",
+	"eligible_bluff_opportunities",
+	"bluff_actions",
+	"invalid_action_fallbacks",
+]
+const PROFILE_RESULT_NUMBER_FIELDS := [
+	"survival_ratio",
+	"blind_normalized_chip_sum",
+	"bnc_per_100",
+	"vpip_rate",
+	"pfr_rate",
+	"aggression_factor",
+	"bet_raise_frequency",
+	"bet_frequency",
+	"raise_share",
+	"eligible_bluff_frequency",
+]
+const PROFILE_RESULT_BOOLEAN_FIELDS := ["won_tournament", "top_third"]
 
 var report_schema_version: int = REPORT_SCHEMA_VERSION
 var manifest: Dictionary = {}
@@ -21,6 +125,7 @@ var finished_at: String
 var tournaments: Array[Dictionary] = []
 var aggregates: Dictionary = {}
 var traces: Array[Dictionary] = []
+var _structural_errors := PackedStringArray()
 
 
 static func from_batch(
@@ -47,9 +152,11 @@ static func from_batch(
 
 
 func validate() -> PackedStringArray:
-	var errors := PackedStringArray()
+	var errors := _structural_errors.duplicate()
 	if report_schema_version != REPORT_SCHEMA_VERSION:
 		errors.append("Unsupported simulation report schema version.")
+	if command_version != COMMAND_VERSION:
+		errors.append("Unsupported simulation command version.")
 	if manifest.is_empty():
 		errors.append("Simulation report manifest is required.")
 	if manifest_checksum.is_empty():
@@ -58,6 +165,41 @@ func validate() -> PackedStringArray:
 		errors.append("Simulation report shard is required.")
 	else:
 		errors.append_array(shard.validate())
+	for tournament: Dictionary in tournaments:
+		for field: String in TOURNAMENT_FIELDS:
+			if not tournament.has(field):
+				errors.append("Simulation tournament is missing field: %s" % field)
+		for field: String in TOURNAMENT_INTEGER_FIELDS:
+			_validate_integral_field(tournament, field, "Simulation tournament", errors)
+		for field: String in TOURNAMENT_STRING_FIELDS:
+			_validate_typed_field(tournament, field, TYPE_STRING, "Simulation tournament", errors)
+		for field: String in TOURNAMENT_ARRAY_FIELDS:
+			_validate_typed_field(tournament, field, TYPE_ARRAY, "Simulation tournament", errors)
+		_validate_seat_map(tournament.get("seat_map"), errors)
+		_validate_diagnostics(tournament.get("diagnostics"), errors)
+		var profile_results: Variant = tournament.get("profile_results")
+		if typeof(profile_results) != TYPE_ARRAY:
+			errors.append("Simulation tournament profile_results must be an array.")
+			continue
+		for profile_result: Variant in profile_results:
+			if typeof(profile_result) != TYPE_DICTIONARY:
+				errors.append("Simulation profile result must be an object.")
+				continue
+			for field: String in PROFILE_RESULT_FIELDS:
+				if not profile_result.has(field):
+					errors.append("Simulation profile result is missing field: %s" % field)
+			_validate_integral_fields(
+				profile_result, PROFILE_RESULT_INTEGER_FIELDS, "Simulation profile result", errors
+			)
+			_validate_typed_field(
+				profile_result, "profile_id", TYPE_STRING, "Simulation profile result", errors
+			)
+			for field: String in PROFILE_RESULT_NUMBER_FIELDS:
+				_validate_number_field(profile_result, field, "Simulation profile result", errors)
+			for field: String in PROFILE_RESULT_BOOLEAN_FIELDS:
+				_validate_typed_field(
+					profile_result, field, TYPE_BOOL, "Simulation profile result", errors
+				)
 	return errors
 
 
@@ -90,25 +232,165 @@ func checksum() -> String:
 
 static func from_dictionary(data: Dictionary) -> RefCounted:
 	var report = REPORT_SCRIPT.new()
-	report.report_schema_version = int(data.get("report_schema_version", 0))
-	report.manifest = data.get("manifest", {}).duplicate(true)
-	report.manifest_checksum = String(data.get("manifest_checksum", ""))
-	report.code_revision = String(data.get("code_revision", ""))
-	report.command_version = StringName(data.get("command_version", ""))
-	var shard_data: Dictionary = data.get("shard", {})
-	report.shard = SimulationShard.new(
-		int(shard_data.get("index", -1)), int(shard_data.get("count", 0))
+	var required_types := {
+		"manifest": TYPE_DICTIONARY,
+		"manifest_checksum": TYPE_STRING,
+		"code_revision": TYPE_STRING,
+		"command_version": TYPE_STRING,
+		"shard": TYPE_DICTIONARY,
+		"started_at": TYPE_STRING,
+		"finished_at": TYPE_STRING,
+		"tournaments": TYPE_ARRAY,
+		"aggregates": TYPE_DICTIONARY,
+		"traces": TYPE_ARRAY,
+	}
+	for field: String in required_types:
+		if not data.has(field):
+			report._structural_errors.append("Simulation report is missing field: %s" % field)
+		elif typeof(data[field]) != required_types[field]:
+			report._structural_errors.append("Simulation report field has invalid type: %s" % field)
+	if not data.has("report_schema_version"):
+		report._structural_errors.append(
+			"Simulation report is missing field: report_schema_version"
+		)
+	elif (
+		typeof(data.report_schema_version) not in [TYPE_INT, TYPE_FLOAT]
+		or not is_equal_approx(data.report_schema_version, floor(data.report_schema_version))
+	):
+		report._structural_errors.append(
+			"Simulation report field has invalid type: report_schema_version"
+		)
+	var schema_version_value: Variant = data.get("report_schema_version")
+	report.report_schema_version = (
+		int(schema_version_value) if _is_integral_number(schema_version_value) else 0
 	)
-	report.started_at = String(data.get("started_at", ""))
-	report.finished_at = String(data.get("finished_at", ""))
-	for tournament: Variant in data.get("tournaments", []):
+	report.manifest = (
+		data.manifest.duplicate(true) if typeof(data.get("manifest")) == TYPE_DICTIONARY else {}
+	)
+	report.manifest_checksum = (
+		data.manifest_checksum if typeof(data.get("manifest_checksum")) == TYPE_STRING else ""
+	)
+	report.code_revision = (
+		data.code_revision if typeof(data.get("code_revision")) == TYPE_STRING else ""
+	)
+	report.command_version = (
+		StringName(data.command_version)
+		if typeof(data.get("command_version")) == TYPE_STRING
+		else &""
+	)
+	var shard_data: Dictionary = data.shard if typeof(data.get("shard")) == TYPE_DICTIONARY else {}
+	for field: String in ["index", "count"]:
+		if not shard_data.has(field):
+			report._structural_errors.append("Simulation report shard is missing field: %s" % field)
+		elif not _is_integral_number(shard_data[field]):
+			report._structural_errors.append(
+				"Simulation report shard field has invalid type: %s" % field
+			)
+	report.shard = (
+		SimulationShard
+		. new(
+			(
+				int(shard_data.get("index", -1))
+				if _is_integral_number(shard_data.get("index"))
+				else -1
+			),
+			int(shard_data.get("count", 0)) if _is_integral_number(shard_data.get("count")) else 0,
+		)
+	)
+	report.started_at = data.started_at if typeof(data.get("started_at")) == TYPE_STRING else ""
+	report.finished_at = data.finished_at if typeof(data.get("finished_at")) == TYPE_STRING else ""
+	var tournament_values: Array = (
+		data.tournaments if typeof(data.get("tournaments")) == TYPE_ARRAY else []
+	)
+	for tournament: Variant in tournament_values:
 		if typeof(tournament) == TYPE_DICTIONARY:
 			report.tournaments.append(tournament.duplicate(true))
-	report.aggregates = data.get("aggregates", {}).duplicate(true)
-	for trace: Variant in data.get("traces", []):
+		else:
+			report._structural_errors.append("Simulation tournament must be an object.")
+	report.aggregates = (
+		data.aggregates.duplicate(true) if typeof(data.get("aggregates")) == TYPE_DICTIONARY else {}
+	)
+	var trace_values: Array = data.traces if typeof(data.get("traces")) == TYPE_ARRAY else []
+	for trace: Variant in trace_values:
 		if typeof(trace) == TYPE_DICTIONARY:
 			report.traces.append(trace.duplicate(true))
+		else:
+			report._structural_errors.append("Simulation trace must be an object.")
 	return report
+
+
+static func _is_integral_number(value: Variant) -> bool:
+	return (
+		typeof(value) in [TYPE_INT, TYPE_FLOAT]
+		and is_finite(float(value))
+		and is_equal_approx(float(value), floor(float(value)))
+	)
+
+
+static func _validate_integral_fields(
+	data: Dictionary, fields: Array, context: String, errors: PackedStringArray
+) -> void:
+	for field: String in fields:
+		_validate_integral_field(data, field, context, errors)
+
+
+static func _validate_integral_field(
+	data: Dictionary, field: String, context: String, errors: PackedStringArray
+) -> void:
+	if data.has(field) and not _is_integral_number(data[field]):
+		errors.append("%s field has invalid type: %s" % [context, field])
+
+
+static func _validate_number_field(
+	data: Dictionary, field: String, context: String, errors: PackedStringArray
+) -> void:
+	if (
+		data.has(field)
+		and (typeof(data[field]) not in [TYPE_INT, TYPE_FLOAT] or not is_finite(float(data[field])))
+	):
+		errors.append("%s field has invalid type: %s" % [context, field])
+
+
+static func _validate_typed_field(
+	data: Dictionary,
+	field: String,
+	expected_type: int,
+	context: String,
+	errors: PackedStringArray,
+) -> void:
+	if data.has(field) and typeof(data[field]) != expected_type:
+		errors.append("%s field has invalid type: %s" % [context, field])
+
+
+static func _validate_seat_map(value: Variant, errors: PackedStringArray) -> void:
+	if typeof(value) != TYPE_ARRAY:
+		return
+	for seat_data: Variant in value:
+		if typeof(seat_data) != TYPE_DICTIONARY:
+			errors.append("Simulation seat map entry must be an object.")
+			continue
+		if not seat_data.has("seat") or not seat_data.has("profile_id"):
+			errors.append("Simulation seat map entry requires seat and profile_id.")
+			continue
+		_validate_integral_field(seat_data, "seat", "Simulation seat map entry", errors)
+		_validate_typed_field(
+			seat_data, "profile_id", TYPE_STRING, "Simulation seat map entry", errors
+		)
+
+
+static func _validate_diagnostics(value: Variant, errors: PackedStringArray) -> void:
+	if typeof(value) != TYPE_ARRAY:
+		return
+	for diagnostic: Variant in value:
+		if typeof(diagnostic) != TYPE_DICTIONARY:
+			errors.append("Simulation diagnostic must be an object.")
+			continue
+		for field: String in ["stage", "message", "seat"]:
+			if not diagnostic.has(field):
+				errors.append("Simulation diagnostic is missing field: %s" % field)
+		_validate_integral_field(diagnostic, "stage", "Simulation diagnostic", errors)
+		_validate_typed_field(diagnostic, "message", TYPE_STRING, "Simulation diagnostic", errors)
+		_validate_integral_field(diagnostic, "seat", "Simulation diagnostic", errors)
 
 
 static func tournament_digest(tournament: Dictionary) -> String:
@@ -147,30 +429,7 @@ static func _normalized_profile_results(value: Variant) -> Array[Dictionary]:
 		if typeof(profile_data) != TYPE_DICTIONARY:
 			continue
 		var normalized: Dictionary = {}
-		for key: String in [
-			"seat",
-			"profile_id",
-			"finishing_position",
-			"won_tournament",
-			"top_third",
-			"starting_stack",
-			"final_stack",
-			"chip_differential",
-			"hands_survived",
-			"tournament_hand_count",
-			"survival_ratio",
-			"blind_normalized_chip_sum",
-			"hands_observed",
-			"bnc_per_100",
-			"vpip_hands",
-			"vpip_rate",
-			"pfr_hands",
-			"pfr_rate",
-			"aggressive_actions",
-			"calls",
-			"aggression_factor",
-			"invalid_action_fallbacks",
-		]:
+		for key: String in PROFILE_RESULT_FIELDS:
 			var numeric_value: Variant = profile_data.get(key)
 			normalized[key] = (
 				float(numeric_value)
@@ -248,9 +507,23 @@ static func _profile_results(metrics: Dictionary) -> Array[Dictionary]:
 					"vpip_rate": metric.vpip_rate,
 					"pfr_hands": metric.pfr_hands,
 					"pfr_rate": metric.pfr_rate,
+					"bet_actions": metric.bet_actions,
+					"raise_actions": metric.raise_actions,
 					"aggressive_actions": metric.aggressive_actions,
-					"calls": metric.calls,
+					"call_actions": metric.call_actions,
 					"aggression_factor": metric.aggression_factor,
+					"bet_raise_opportunities": metric.bet_raise_opportunities,
+					"bet_raise_frequency": metric.bet_raise_frequency,
+					"check_bet_opportunities": metric.check_bet_opportunities,
+					"bets_at_check_bet_opportunity": metric.bets_at_check_bet_opportunity,
+					"bet_frequency": metric.bet_frequency,
+					"call_raise_opportunities": metric.call_raise_opportunities,
+					"calls_at_call_raise_opportunity": metric.calls_at_call_raise_opportunity,
+					"raises_at_call_raise_opportunity": metric.raises_at_call_raise_opportunity,
+					"raise_share": metric.raise_share,
+					"eligible_bluff_opportunities": metric.eligible_bluff_opportunities,
+					"bluff_actions": metric.bluff_actions,
+					"eligible_bluff_frequency": metric.eligible_bluff_frequency,
 					"invalid_action_fallbacks": metric.invalid_action_fallbacks,
 				}
 			)

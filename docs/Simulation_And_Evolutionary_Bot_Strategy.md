@@ -58,11 +58,11 @@ indexes and never replans local indexes.
 
 ### 2.3 Strategy parameter contract
 
-`StrategyDecisionModel` has four profile parameters:
+`StrategyDecisionModel` schema 2 has four profile parameters:
 
 - `tight_vs_loose`;
 - `passive_vs_aggressive`;
-- `call_vs_bet`; and
+- `call_vs_raise`; and
 - `bluff_rate`.
 
 Every value is an integer percentage in the inclusive range **0–100**.
@@ -184,7 +184,7 @@ invalid tournament settings are rejected.
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "batch_id": "gen_004_baseline",
   "seed_start": 410000,
   "profiles": [
@@ -193,8 +193,8 @@ invalid tournament settings are rejected.
       "model_id": "strategy_parameterized",
       "parameters": {
         "tight_vs_loose": 42,
-        "passive_vs_aggressive": 66,
-        "call_vs_bet": 58,
+        "passive_vs_aggressive": 38,
+        "call_vs_raise": 38,
         "bluff_rate": 11
       }
     },
@@ -203,8 +203,8 @@ invalid tournament settings are rejected.
       "model_id": "strategy_parameterized",
       "parameters": {
         "tight_vs_loose": 30,
-        "passive_vs_aggressive": 35,
-        "call_vs_bet": 55,
+        "passive_vs_aggressive": 19,
+        "call_vs_raise": 19,
         "bluff_rate": 5
       }
     }
@@ -355,11 +355,14 @@ and export history. Selected elites remain immutable historical benchmarks.
 
 ## 6. Validation and promotion
 
-Before evolving profiles, fixed-seed batches must verify that each parameter
-causes a distinct, repeatable behavioral change. In particular, measure VPIP,
-bet/raise frequency, call-versus-raise split, and eligible bluff frequency.
-If `passive_vs_aggressive` and `call_vs_bet` are not observably distinct,
-revise the parameter contract deliberately before expanding the genome.
+Fixed-seed validation established that schema-1 `passive_vs_aggressive` and
+`call_vs_bet` were commutative inputs to one AND gate. Schema 2 deliberately
+separates opening check-versus-bet behavior (`passive_vs_aggressive`) from
+facing-wager call-versus-raise behavior (`call_vs_raise`). Continue to verify
+each parameter with VPIP, bet/raise frequency, contextual action splits, and
+eligible bluff frequency before evolving profiles. See
+`StrategyParameterValidation.md` for the baseline, migration, and regression
+batch.
 
 Candidates require independent, seat-rotated confirmation against legacy
 bots and historical champions across applicable regimes. Reject candidates

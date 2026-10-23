@@ -121,7 +121,7 @@ style_shift = round(tilt * (tilt_response - 50) / 100)
 effective_tight_vs_loose = clamp(tight_vs_loose + style_shift, 0, 100)
 effective_passive_vs_aggressive =
     clamp(passive_vs_aggressive + style_shift, 0, 100)
-effective_call_vs_bet = clamp(call_vs_bet + style_shift, 0, 100)
+effective_call_vs_raise = clamp(call_vs_raise + style_shift, 0, 100)
 effective_bluff_rate = clamp(bluff_rate + bounded_bluff_shift, 0, 100)
 ```
 

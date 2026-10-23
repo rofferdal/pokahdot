@@ -33,7 +33,7 @@ func test_unavailable_bets_and_raises_are_never_requested() -> void:
 	var parameters := ParametersScript.new()
 	parameters.bluff_rate = 100
 	parameters.passive_vs_aggressive = 100
-	parameters.call_vs_bet = 100
+	parameters.call_vs_raise = 100
 	var model := _model(2004, parameters)
 	var no_bet_view := _view("7S 2H", 0, 0, 100)
 	no_bet_view._legal_actions = [PlayerAction.Kind.FOLD, PlayerAction.Kind.CHECK]
@@ -99,7 +99,7 @@ func test_seeded_property_regression_keeps_actions_and_wagers_legal() -> void:
 		var parameters := ParametersScript.new()
 		parameters.tight_vs_loose = view_rng.randi_range(0, 100)
 		parameters.passive_vs_aggressive = view_rng.randi_range(0, 100)
-		parameters.call_vs_bet = view_rng.randi_range(0, 100)
+		parameters.call_vs_raise = view_rng.randi_range(0, 100)
 		parameters.bluff_rate = view_rng.randi_range(0, 100)
 		var model := _model(seed_value, parameters)
 		for attempt: int in range(40):
@@ -129,7 +129,7 @@ func test_seeded_realistic_views_do_not_use_fallback_for_normal_actions() -> voi
 		var parameters := ParametersScript.new()
 		parameters.tight_vs_loose = seed_value % 101
 		parameters.passive_vs_aggressive = (seed_value * 3) % 101
-		parameters.call_vs_bet = (seed_value * 7) % 101
+		parameters.call_vs_raise = (seed_value * 7) % 101
 		parameters.bluff_rate = (seed_value * 11) % 101
 		var model := _model(seed_value, parameters)
 		var view := _view("AS KD", seed_value * 3, seed_value % 20, 100 + seed_value)

@@ -131,8 +131,15 @@ func _run_with_metrics(
 	var decision_cursors: Dictionary[int, int] = {}
 	var result: StepResult = match_instance.start(max_transitions)
 	while true:
-		_capture_decision_traces(
-			traces, trace_config, trace_rng, match_instance, input, event_cursor, decision_cursors
+		_capture_decisions(
+			metrics,
+			traces,
+			trace_config,
+			trace_rng,
+			match_instance,
+			input,
+			event_cursor,
+			decision_cursors,
 		)
 		event_cursor = match_instance.get_events().size()
 		if (
@@ -141,6 +148,9 @@ func _run_with_metrics(
 		):
 			_capture_completed_hand(metrics, match_instance)
 			_capture_hand_trace(traces, trace_config, trace_rng, match_instance, input)
+		if result.status == StepResult.Status.HAND_COMPLETED:
+			# HandController starts a fresh event list for the next hand.
+			event_cursor = 0
 		if result.status == StepResult.Status.TOURNAMENT_FINISHED:
 			var final_view: GameView = match_instance.get_view_for(0)
 			metrics.finish(
@@ -169,7 +179,8 @@ func _run_with_metrics(
 	}
 
 
-func _capture_decision_traces(
+func _capture_decisions(
+	metrics: RefCounted,
 	traces: Array[SimulationTraceEntry],
 	trace_config: SimulationTraceConfig,
 	trace_rng: RandomNumberGenerator,
@@ -178,8 +189,6 @@ func _capture_decision_traces(
 	event_cursor: int,
 	decision_cursors: Dictionary[int, int],
 ) -> void:
-	if trace_config.mode != SimulationTraceConfig.Mode.SAMPLED:
-		return
 	var events := match_instance.get_events()
 	for event_index: int in range(event_cursor, events.size()):
 		var event: DomainEvent = events[event_index]
@@ -197,6 +206,9 @@ func _capture_decision_traces(
 		if event.kind == DomainEvent.Kind.ACTION_REJECTED:
 			continue
 		var trace: RefCounted = decision.trace
+		metrics.observe_decision(event.seat, decision.legal_actions, decision.action, trace)
+		if trace_config.mode != SimulationTraceConfig.Mode.SAMPLED:
+			continue
 		_append_sample(
 			traces,
 			trace_config.max_entries_per_tournament,

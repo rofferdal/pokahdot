@@ -50,6 +50,16 @@ func _add(groups: Dictionary, group_id: String, metric: SimulationSeatMetrics) -
 
 func _summarize(group_id: String, metrics: Array, minimum_samples: int) -> Dictionary:
 	var values: Dictionary = {}
+	var behavior_counts := {
+		"aggressive_actions": 0,
+		"bet_raise_opportunities": 0,
+		"bets_at_check_bet_opportunity": 0,
+		"check_bet_opportunities": 0,
+		"calls_at_call_raise_opportunity": 0,
+		"raises_at_call_raise_opportunity": 0,
+		"eligible_bluff_opportunities": 0,
+		"bluff_actions": 0,
+	}
 	var names := [
 		"win_score",
 		"finish_score",
@@ -65,6 +75,10 @@ func _summarize(group_id: String, metrics: Array, minimum_samples: int) -> Dicti
 		"vpip_rate",
 		"pfr_rate",
 		"aggression_factor",
+		"bet_raise_frequency",
+		"bet_frequency",
+		"raise_share",
+		"eligible_bluff_frequency",
 		"invalid_action_fallbacks",
 	]
 	for name: String in names:
@@ -92,12 +106,56 @@ func _summarize(group_id: String, metrics: Array, minimum_samples: int) -> Dicti
 		values.vpip_rate.append(metric.vpip_rate)
 		values.pfr_rate.append(metric.pfr_rate)
 		values.aggression_factor.append(metric.aggression_factor)
+		if metric.bet_raise_opportunities > 0:
+			values.bet_raise_frequency.append(metric.bet_raise_frequency)
+		if metric.check_bet_opportunities > 0:
+			values.bet_frequency.append(metric.bet_frequency)
+		if metric.calls_at_call_raise_opportunity + metric.raises_at_call_raise_opportunity > 0:
+			values.raise_share.append(metric.raise_share)
+		if metric.eligible_bluff_opportunities > 0:
+			values.eligible_bluff_frequency.append(metric.eligible_bluff_frequency)
+		for count_name: String in behavior_counts:
+			behavior_counts[count_name] += metric.get(count_name)
 		values.invalid_action_fallbacks.append(float(metric.invalid_action_fallbacks))
 	var means := {}
 	var uncertainty := {}
 	for name: String in values:
 		means[name] = _mean(values[name])
 		uncertainty[name] = _half_width(values[name])
+	means.bet_raise_frequency = _ratio(
+		behavior_counts.aggressive_actions, behavior_counts.bet_raise_opportunities
+	)
+	means.bet_frequency = _ratio(
+		behavior_counts.bets_at_check_bet_opportunity,
+		behavior_counts.check_bet_opportunities,
+	)
+	means.raise_share = _ratio(
+		behavior_counts.raises_at_call_raise_opportunity,
+		(
+			behavior_counts.calls_at_call_raise_opportunity
+			+ behavior_counts.raises_at_call_raise_opportunity
+		),
+	)
+	means.eligible_bluff_frequency = _ratio(
+		behavior_counts.bluff_actions, behavior_counts.eligible_bluff_opportunities
+	)
+	uncertainty.bet_raise_frequency = _proportion_half_width(
+		behavior_counts.aggressive_actions, behavior_counts.bet_raise_opportunities
+	)
+	uncertainty.bet_frequency = _proportion_half_width(
+		behavior_counts.bets_at_check_bet_opportunity,
+		behavior_counts.check_bet_opportunities,
+	)
+	uncertainty.raise_share = _proportion_half_width(
+		behavior_counts.raises_at_call_raise_opportunity,
+		(
+			behavior_counts.calls_at_call_raise_opportunity
+			+ behavior_counts.raises_at_call_raise_opportunity
+		),
+	)
+	uncertainty.eligible_bluff_frequency = _proportion_half_width(
+		behavior_counts.bluff_actions, behavior_counts.eligible_bluff_opportunities
+	)
 	var fitness := 0.0
 	for index: int in range(FITNESS_WEIGHTS.size()):
 		fitness += (
@@ -128,6 +186,7 @@ func _summarize(group_id: String, metrics: Array, minimum_samples: int) -> Dicti
 		"reportable": metrics.size() >= minimum_samples,
 		"means": means,
 		"uncertainty_95_half_width": uncertainty,
+		"behavior_counts": behavior_counts,
 		"fitness": clampf(fitness - penalty, 0.0, 1.0),
 		"uncertainty_penalty": penalty,
 	}
@@ -140,6 +199,17 @@ func _mean(values: Array) -> float:
 	for value: float in values:
 		total += value
 	return total / float(values.size())
+
+
+func _ratio(numerator: int, denominator: int) -> float:
+	return float(numerator) / float(denominator) if denominator > 0 else 0.0
+
+
+func _proportion_half_width(numerator: int, denominator: int) -> float:
+	if denominator <= 0:
+		return 0.0
+	var proportion := _ratio(numerator, denominator)
+	return Z_95 * sqrt(proportion * (1.0 - proportion) / float(denominator))
 
 
 func _half_width(values: Array) -> float:

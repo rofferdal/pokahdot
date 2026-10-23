@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "batch_id": "fixture_small_batch",
   "seed_start": 9100,
   "profiles": [

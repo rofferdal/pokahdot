@@ -188,11 +188,11 @@ func get_view_for(seat: int) -> GameView:
 			_showdown_hands,
 			hand_number,
 			_pot_layers,
-		_showdown_results,
-		_blind_progression,
-		_starting_stacks,
-		_active_seats_at_start,
-	)
+			_showdown_results,
+			_blind_progression,
+			_starting_stacks,
+			_active_seats_at_start,
+		)
 	)
 	view.hand_complete = state == State.COMPLETE
 	view.hand_winner_seat = winner_seat

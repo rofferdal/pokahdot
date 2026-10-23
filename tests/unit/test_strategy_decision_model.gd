@@ -34,7 +34,10 @@ func test_same_seed_and_view_produce_same_legal_action_sequence() -> void:
 
 
 func test_baseline_prefers_check_then_call_then_fold() -> void:
-	var model := _model(42)
+	var parameters := StrategyParametersScript.new()
+	parameters.passive_vs_aggressive = 0
+	parameters.call_vs_raise = 0
+	var model := _model_with_parameters(42, parameters)
 	var check_view := _view_for_check()
 	var call_view := _view_for_actor()
 
@@ -92,34 +95,56 @@ func test_policy_uses_later_position_as_a_small_continuation_credit() -> void:
 	assert_eq(model.choose_action(late).kind, PlayerAction.Kind.CALL)
 
 
-func test_continuation_uses_both_seeded_style_rolls_when_both_actions_are_legal() -> void:
-	var aggressive_parameters := StrategyParametersScript.new()
-	aggressive_parameters.passive_vs_aggressive = 100
-	aggressive_parameters.call_vs_bet = 100
-	var aggressive_model := _model_with_parameters(52, aggressive_parameters)
-	var aggressive_view := _view_for_call_with_cards("AS AH", 100, 10, 100, 0)
-	var aggressive_action: PlayerAction = aggressive_model.choose_action(aggressive_view)
-	var aggressive_trace: Variant = aggressive_model.get_last_decision_trace_for_testing()
+func test_opening_aggression_and_facing_wager_aggression_are_distinct() -> void:
+	var opening_parameters := StrategyParametersScript.new()
+	opening_parameters.passive_vs_aggressive = 100
+	opening_parameters.call_vs_raise = 0
+	var opening_model := _model_with_parameters(52, opening_parameters)
+	var opening_action: PlayerAction = opening_model.choose_action(
+		_view_for_check_with_cards("AS AH")
+	)
+	var opening_trace: Variant = opening_model.get_last_decision_trace_for_testing()
 
-	var passive_parameters := StrategyParametersScript.new()
-	passive_parameters.passive_vs_aggressive = 100
-	passive_parameters.call_vs_bet = 0
-	var passive_model := _model_with_parameters(52, passive_parameters)
-	var passive_view := _view_for_call_with_cards("AS AH", 100, 10, 100, 0)
-	var passive_action: PlayerAction = passive_model.choose_action(passive_view)
-	var passive_trace: Variant = passive_model.get_last_decision_trace_for_testing()
+	var facing_wager_parameters := StrategyParametersScript.new()
+	facing_wager_parameters.passive_vs_aggressive = 0
+	facing_wager_parameters.call_vs_raise = 100
+	var facing_wager_model := _model_with_parameters(52, facing_wager_parameters)
+	var facing_wager_action: PlayerAction = facing_wager_model.choose_action(
+		_view_for_call_with_cards("AS AH", 100, 10, 100, 0)
+	)
+	var facing_wager_trace: Variant = facing_wager_model.get_last_decision_trace_for_testing()
 
-	assert_eq(aggressive_action.kind, PlayerAction.Kind.RAISE)
-	assert_eq(aggressive_trace.selected_branch, &"continue_aggressive")
-	assert_eq(passive_action.kind, PlayerAction.Kind.CALL)
-	assert_eq(passive_trace.selected_branch, &"continue_passive")
+	assert_eq(opening_action.kind, PlayerAction.Kind.BET)
+	assert_eq(opening_trace.selected_branch, &"continue_aggressive")
+	assert_eq(facing_wager_action.kind, PlayerAction.Kind.RAISE)
+	assert_eq(facing_wager_trace.selected_branch, &"continue_aggressive")
+
+
+func test_each_context_ignores_the_other_aggression_parameter() -> void:
+	var parameters := StrategyParametersScript.new()
+	parameters.passive_vs_aggressive = 0
+	parameters.call_vs_raise = 100
+	var model := _model_with_parameters(53, parameters)
+
+	assert_eq(
+		model.choose_action(_view_for_check_with_cards("AS AH")).kind,
+		PlayerAction.Kind.CHECK,
+	)
+	parameters = StrategyParametersScript.new()
+	parameters.passive_vs_aggressive = 100
+	parameters.call_vs_raise = 0
+	model = _model_with_parameters(53, parameters)
+	assert_eq(
+		model.choose_action(_view_for_call_with_cards("AS AH", 100, 10, 100, 0)).kind,
+		PlayerAction.Kind.CALL,
+	)
 
 
 func test_only_passive_legal_chooses_call_without_rng_rolls() -> void:
 	var parameters := StrategyParametersScript.new()
 	parameters.tight_vs_loose = 100
 	parameters.passive_vs_aggressive = 100
-	parameters.call_vs_bet = 100
+	parameters.call_vs_raise = 100
 	var model := _model_with_parameters(53, parameters)
 	var view := _view_for_call_with_cards("AS AH", 100, 10, 10, 0)
 	var action: PlayerAction = model.choose_action(view)
@@ -132,7 +157,7 @@ func test_only_passive_legal_chooses_call_without_rng_rolls() -> void:
 func test_only_aggressive_legal_chooses_raise_without_passive_fallback() -> void:
 	var parameters := StrategyParametersScript.new()
 	parameters.passive_vs_aggressive = 0
-	parameters.call_vs_bet = 0
+	parameters.call_vs_raise = 0
 	var model := _model_with_parameters(54, parameters)
 	var view := _view_for_call_with_cards("AS AH", 100, 10, 100, 0)
 	view._legal_actions = [PlayerAction.Kind.FOLD, PlayerAction.Kind.RAISE]

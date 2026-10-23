@@ -6,7 +6,7 @@ extends RefCounted
 ## JSON is accepted only at this boundary. Planning and execution operate on
 ## the typed snapshots held by this value.
 
-const SUPPORTED_SCHEMA_VERSION: int = 1
+const SUPPORTED_SCHEMA_VERSION: int = 2
 const BLIND_PROGRESSION: StringName = &"normative_hand_based_v1"
 const PLAN_SCRIPT := preload("res://scripts/simulation/simulation_evaluation_plan.gd")
 const PARSE_RESULT_SCRIPT := preload("res://scripts/simulation/simulation_manifest_parse_result.gd")
@@ -387,8 +387,12 @@ static func _assign_parameters(
 	parameters: DecisionModelParameters, values: Dictionary
 ) -> PackedStringArray:
 	var errors := PackedStringArray()
+	var expected_names := _parameter_names(parameters)
+	for parameter_name: String in expected_names:
+		if not values.has(parameter_name):
+			errors.append("Missing parameter field: %s" % parameter_name)
 	for key: Variant in values:
-		if typeof(key) != TYPE_STRING or not key in _parameter_names(parameters):
+		if typeof(key) != TYPE_STRING or not key in expected_names:
 			errors.append("Unknown parameter field: %s" % key)
 			continue
 		if not _is_integral(values[key]):
@@ -401,7 +405,7 @@ static func _assign_parameters(
 
 static func _parameter_names(parameters: DecisionModelParameters) -> Array[String]:
 	if parameters is StrategyDecisionModelParameters:
-		return ["tight_vs_loose", "passive_vs_aggressive", "call_vs_bet", "bluff_rate"]
+		return ["tight_vs_loose", "passive_vs_aggressive", "call_vs_raise", "bluff_rate"]
 	if parameters is RandomDecisionModelParameters:
 		return ["fold_weight", "passive_weight", "aggressive_weight"]
 	if parameters is TightPassiveDecisionModelParameters:

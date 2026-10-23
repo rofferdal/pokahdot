@@ -34,7 +34,7 @@ func test_manifest_round_trips_canonical_identity_and_builds_global_plan() -> vo
 
 func test_manifest_rejects_unknown_fields_and_fractional_parameters() -> void:
 	var data := {
-		"schema_version": 1,
+		"schema_version": 2,
 		"batch_id": "invalid",
 		"seed_start": 100,
 		"unexpected": true,
@@ -47,7 +47,7 @@ func test_manifest_rejects_unknown_fields_and_fractional_parameters() -> void:
 				{
 					"tight_vs_loose": 20.5,
 					"passive_vs_aggressive": 40,
-					"call_vs_bet": 50,
+					"call_vs_raise": 50,
 					"bluff_rate": 10,
 				},
 			}
@@ -65,6 +65,40 @@ func test_manifest_rejects_unknown_fields_and_fractional_parameters() -> void:
 	parsed = MANIFEST_SCRIPT.parse(data)
 	assert_false(parsed.is_ok())
 	assert_has(parsed.errors, "Parameter tight_vs_loose must be an integer.")
+
+
+func test_schema_two_rejects_legacy_or_incomplete_strategy_snapshots() -> void:
+	var data := {
+		"schema_version": 1,
+		"batch_id": "legacy",
+		"seed_start": 100,
+		"profiles": [],
+		"regimes": [],
+		"matchups": [],
+		"evaluation_plans": [],
+	}
+	var parsed := MANIFEST_SCRIPT.parse(data)
+	assert_false(parsed.is_ok())
+	assert_has(parsed.errors, "Unsupported simulation manifest schema version.")
+
+	data.schema_version = 2
+	data.profiles = [
+		{
+			"profile_id": "legacy_strategy",
+			"model_id": "strategy_parameterized",
+			"parameters":
+			{
+				"tight_vs_loose": 50,
+				"passive_vs_aggressive": 50,
+				"call_vs_bet": 50,
+				"bluff_rate": 10,
+			},
+		}
+	]
+	parsed = MANIFEST_SCRIPT.parse(data)
+	assert_false(parsed.is_ok())
+	assert_has(parsed.errors, "Unknown parameter field: call_vs_bet")
+	assert_has(parsed.errors, "Missing parameter field: call_vs_raise")
 
 
 func test_shard_contract_filters_without_replanning() -> void:

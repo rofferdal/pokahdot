@@ -225,9 +225,10 @@ func _choose_continuation(
 
 	if passive_action != null and aggressive_action != null:
 		var parameters := _parameters as StrategyDecisionModelParameters
-		var pressure_roll: bool = _percentage_roll(parameters.passive_vs_aggressive)
-		var style_roll: bool = _percentage_roll(parameters.call_vs_bet)
-		if pressure_roll and style_roll:
+		var aggression_percentage: int = parameters.passive_vs_aggressive
+		if aggressive_action.kind == PlayerAction.Kind.RAISE:
+			aggression_percentage = parameters.call_vs_raise
+		if _percentage_roll(aggression_percentage):
 			return _recorded_action(
 				view, &"continue_aggressive", aggressive_action, hand_potential_band
 			)

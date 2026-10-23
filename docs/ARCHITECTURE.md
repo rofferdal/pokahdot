@@ -87,20 +87,27 @@ validates them through the normal `ConfigResolver`; all regimes therefore use
 the existing single-table and hand-based blind-progression rules.
 
 `SimulationTournamentMetrics` observes only recipient-safe completed-hand
-snapshots, public action records, and domain events. `HandController` records
-the starting active seats and stacks for that hand in its safe `GameView`, so
-the simulation adapter can calculate survival, blind-normalized chip change,
-VPIP/PFR/aggression, and invalid-action fallbacks without retaining cards or
-mutable core state. Completed outcomes contain the resulting per-seat metric
-values alongside their existing identity and completion data.
+snapshots, public action records, domain events, and copied bot-decision
+metadata. `HandController` records the starting active seats and stacks for
+that hand in its safe `GameView`; `BotAgent` separately retains legal-action
+alternatives and strategy traces only for simulation measurement. The adapter
+can therefore calculate survival, blind-normalized chip change, per-hand
+VPIP/PFR, all-street bet/raise and call counts, action-opportunity rates,
+call-versus-raise splits, eligible bluff frequency, and invalid-action
+fallbacks without retaining cards or mutable core state. Measurement consumes
+every applied decision independently of optional bounded trace sampling.
 
 `SimulationTraceConfig` restricts tracing to none, errors, or a bounded
 deterministically sampled mode. `SimulationTraceEntry` contains strategy
 branch/action metadata and hand outcomes only; it deliberately contains no
 hole cards or deck data. `SimulationAggregateCalculator` groups completed
-seat observations by profile, matchup, seat, regime, and evaluation plan, reports 95% normal
-half-width estimates, marks groups below the requested sample threshold as
-non-reportable, and applies the documented normalized fitness formula.
+seat observations by profile, matchup, seat, regime, and evaluation plan.
+Behavioral rates divide summed raw numerators by summed opportunity
+denominators; tournaments with no opportunity do not become artificial zero
+observations. Aggregates also report those summed counts, 95% normal
+half-width estimates, sample-threshold eligibility, and the documented
+normalized fitness formula. Public all-ins are classified as calls, opening
+bets, or raises from their target total relative to the street's prior wager.
 
 `RngStreamFactory` derives every random stream from the effective tournament
 seed and a stable name. In addition to deck, initial-button, and per-seat bot
@@ -119,15 +126,17 @@ matchup, and assigned immutable profile snapshots; a
 mapping, completion summary, and structured diagnostics. Neither retains live
 core state, rendering data, command-line arguments, or serialization details.
 
-`SimulationManifest` is the versioned simulation CLI input contract. It owns
+`SimulationManifest` schema 2 is the versioned simulation CLI input contract. It owns
 immutable profile snapshots, explicit structural regimes, matchups, and named
-evaluation plans. `SimulationManifest.build_plan()` concatenates plans in
+evaluation plans. Every model parameter is required in a snapshot; schema 1
+and mixed legacy/current parameter fields are rejected instead of receiving
+silent defaults. `SimulationManifest.build_plan()` concatenates plans in
 manifest order, assigns global zero-based indexes and `seed_start + index`,
 derives matchup occurrence and cyclic seat rotation from each plan-local
 occurrence, and applies `SimulationShard` only after global planning.
 `SimulationCommandOptions` is the typed boundary for strict CLI arguments.
 
-`SimulationReport` stores the canonical manifest snapshot and checksum beside
+`SimulationReport` schema 2 stores the canonical manifest snapshot and checksum beside
 typed outcome mappings, aggregate groups, diagnostics, and recipient-safe
 traces. Report writes use a temporary sibling followed by an atomic rename.
 `simulation_cli_app.gd` is a separate `SceneTree` process entry point for
@@ -355,7 +364,7 @@ Every `BotAgent` receives a separate RNG stream derived from the tournament seed
 `StrategyDecisionModel` is the first parameterized strategy model, registered as
 `strategy_parameterized`. Its typed `StrategyDecisionModelParameters` Resource
 contains inclusive integer percentages for `tight_vs_loose`,
-`passive_vs_aggressive`, `call_vs_bet`, and `bluff_rate`. The model receives
+`passive_vs_aggressive`, `call_vs_raise`, and `bluff_rate`. The model receives
 only its per-seat injected RNG and recipient-safe `GameView`; it has no access
 to opponents' hole cards, the deck, or mutable poker state. Its initial
 foundation, public hand-potential estimator, and legal wagering policy are
@@ -381,11 +390,12 @@ raise can consume one injected-RNG roll, with probability exactly
 `bluff_rate / 100`; `bluff_rate` is never used as a general aggression
 multiplier. Bluff wagers use the legal minimum target; ordinary aggressive
 continuation sizing is described below.
-When both passive and aggressive actions are
-legal, continuation consumes separate injected-RNG rolls: the first applies
-`passive_vs_aggressive` as pressure desire and the second applies
-`call_vs_bet` as style preference. If only one action class is legal, that
-class is selected without a roll. Aggressive continuation uses the estimator's
+When checking or betting are both legal, one injected-RNG roll applies
+`passive_vs_aggressive` to that opening decision. When calling or raising are
+both legal, one roll instead applies `call_vs_raise`. This context split
+replaced the schema-1 two-roll AND gate after controlled batches confirmed
+that the old controls were commutative aliases. If only one action class is
+legal, that class is selected without a roll. Aggressive continuation uses the estimator's
 stable bands for discrete target totals: minimum for weak hands, approximately
 half-pot for marginal hands, approximately one pot for strong hands, and the
 maximum legal total for premium hands. The loose profile Resources use a
@@ -396,6 +406,14 @@ two still fold marginal hands but now contest premium and strong suited
 broadway hands. Each target is clamped to the
 recipient-safe `GameView` minimum and maximum wager totals, and bet/raise
 requests always carry a target total rather than a chip delta.
+
+Published schema-1 profile values migrate explicitly by calculating
+`round(passive_vs_aggressive * call_vs_bet / 100)` and assigning that result
+to both schema-2 aggression fields. This preserves the old aggregate
+aggressive propensity as a starting point while allowing later independent
+tuning. The five bundled Resources were migrated with that formula; no loader
+silently upgrades an artifact. The evidence and exact mapped values are in
+`StrategyParameterValidation.md`.
 
 `HandPotentialEstimator` is a pure helper for the later policy stage. Its only
 inputs are the recipient's two hole cards, public board cards, and an explicit

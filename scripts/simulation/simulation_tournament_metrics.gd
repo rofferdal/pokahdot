@@ -11,7 +11,9 @@ const SEAT_METRICS_SCRIPT := preload("res://scripts/simulation/simulation_seat_m
 var _by_seat: Dictionary = {}
 
 
-func _init(seat_profiles: Dictionary[int, StringName], starting_stacks: Dictionary[int, int]) -> void:
+func _init(
+	seat_profiles: Dictionary[int, StringName], starting_stacks: Dictionary[int, int]
+) -> void:
 	for seat: int in seat_profiles:
 		_by_seat[seat] = SEAT_METRICS_SCRIPT.new(seat_profiles[seat], seat, starting_stacks[seat])
 
@@ -35,6 +37,8 @@ func observe_hand(
 		metric.blind_normalized_chip_sum += (
 			float(stacks_after[seat] - stacks_before[seat]) / float(big_blind_at_start)
 		)
+	var voluntary_seats: Dictionary = {}
+	var preflop_raiser_seats: Dictionary = {}
 	var actions := _actions_by_event_phase(public_actions, events)
 	for action_data: Dictionary in actions:
 		var seat: int = action_data.seat
@@ -43,29 +47,97 @@ func observe_hand(
 		var metric = _by_seat[seat]
 		if action_data.invalid:
 			metric.invalid_action_fallbacks += 1
-		if not action_data.preflop or action_data.record == null:
+		if action_data.record == null:
 			continue
 		var action: PublicActionRecord = action_data.record
-		if action.kind in [PlayerAction.Kind.CALL, PlayerAction.Kind.BET, PlayerAction.Kind.RAISE, PlayerAction.Kind.ALL_IN]:
-			metric.vpip_hands += 1
-		if action.kind in [PlayerAction.Kind.RAISE, PlayerAction.Kind.BET]:
-			metric.pfr_hands += 1
-		if action.kind in [PlayerAction.Kind.BET, PlayerAction.Kind.RAISE]:
+		if action_data.opening_aggressive:
+			metric.bet_actions += 1
 			metric.aggressive_actions += 1
-		elif action.kind == PlayerAction.Kind.CALL:
-			metric.calls += 1
+		elif action_data.aggressive:
+			metric.raise_actions += 1
+			metric.aggressive_actions += 1
+		elif action_data.passive_call:
+			metric.call_actions += 1
+		if not action_data.preflop:
+			continue
+		if (
+			action.kind
+			in [
+				PlayerAction.Kind.CALL,
+				PlayerAction.Kind.BET,
+				PlayerAction.Kind.RAISE,
+				PlayerAction.Kind.ALL_IN,
+			]
+		):
+			voluntary_seats[seat] = true
+		if action_data.aggressive:
+			preflop_raiser_seats[seat] = true
+	for seat: int in voluntary_seats:
+		_by_seat[seat].vpip_hands += 1
+	for seat: int in preflop_raiser_seats:
+		_by_seat[seat].pfr_hands += 1
+
+
+func observe_decision(
+	seat: int,
+	legal_actions: Array[PlayerAction.Kind],
+	action: PlayerAction,
+	trace: RefCounted = null,
+) -> void:
+	if not _by_seat.has(seat) or action == null:
+		return
+	var metric = _by_seat[seat]
+	var has_bet: bool = PlayerAction.Kind.BET in legal_actions
+	var has_raise: bool = PlayerAction.Kind.RAISE in legal_actions
+	var selected_bet: bool = (
+		action.kind == PlayerAction.Kind.BET
+		or (action.kind == PlayerAction.Kind.ALL_IN and has_bet)
+	)
+	var selected_raise: bool = (
+		action.kind == PlayerAction.Kind.RAISE
+		or (action.kind == PlayerAction.Kind.ALL_IN and has_raise)
+	)
+	var selected_call: bool = (
+		action.kind == PlayerAction.Kind.CALL
+		or (
+			action.kind == PlayerAction.Kind.ALL_IN
+			and PlayerAction.Kind.CALL in legal_actions
+			and not has_raise
+		)
+	)
+	if has_bet or has_raise:
+		metric.bet_raise_opportunities += 1
+	if has_bet and PlayerAction.Kind.CHECK in legal_actions:
+		metric.check_bet_opportunities += 1
+		if selected_bet:
+			metric.bets_at_check_bet_opportunity += 1
+	if has_raise and PlayerAction.Kind.CALL in legal_actions:
+		metric.call_raise_opportunities += 1
+		if selected_call:
+			metric.calls_at_call_raise_opportunity += 1
+		elif selected_raise:
+			metric.raises_at_call_raise_opportunity += 1
+	if trace == null:
+		return
+	if trace.hand_potential_band == StrategyDecisionTrace.WEAK_BAND and (has_bet or has_raise):
+		metric.eligible_bluff_opportunities += 1
+		if trace.selected_branch in [&"bluff_bet", &"bluff_raise"]:
+			metric.bluff_actions += 1
 
 
 func finish(final_stacks: Dictionary[int, int], winner_seat: int, hand_count: int) -> void:
 	var ordered_seats: Array = _by_seat.keys()
-	ordered_seats.sort_custom(func(left: int, right: int) -> bool:
-		if final_stacks[left] == final_stacks[right]:
-			return left < right
-		return final_stacks[left] > final_stacks[right]
+	ordered_seats.sort_custom(
+		func(left: int, right: int) -> bool:
+			if final_stacks[left] == final_stacks[right]:
+				return left < right
+			return final_stacks[left] > final_stacks[right]
 	)
 	for index: int in range(ordered_seats.size()):
 		var seat: int = ordered_seats[index]
-		_by_seat[seat].finish(final_stacks[seat], index + 1, seat == winner_seat, _by_seat.size(), hand_count)
+		_by_seat[seat].finish(
+			final_stacks[seat], index + 1, seat == winner_seat, _by_seat.size(), hand_count
+		)
 
 
 func get_seat_metrics() -> Dictionary:
@@ -76,18 +148,45 @@ func _actions_by_event_phase(
 	public_actions: Array[PublicActionRecord], events: Array[DomainEvent]
 ) -> Array[Dictionary]:
 	var applied: Array[PublicActionRecord] = []
+	var current_bet: int = 0
 	for action: PublicActionRecord in public_actions:
 		if action.record_kind == PublicActionRecord.Kind.ACTION:
 			applied.append(action)
+		else:
+			current_bet = maxi(current_bet, action.amount)
 	var output: Array[Dictionary] = []
 	var action_index: int = 0
 	var preflop: bool = true
 	for event: DomainEvent in events:
 		if event.kind == DomainEvent.Kind.STREET_CHANGED:
 			preflop = false
+			current_bet = 0
 		elif event.kind == DomainEvent.Kind.ACTION_REJECTED:
 			output.append({"seat": event.seat, "record": null, "preflop": preflop, "invalid": true})
 		elif event.kind == DomainEvent.Kind.ACTION_APPLIED and action_index < applied.size():
-			output.append({"seat": event.seat, "record": applied[action_index], "preflop": preflop, "invalid": false})
+			var action: PublicActionRecord = applied[action_index]
+			var aggressive: bool = action.kind in [PlayerAction.Kind.BET, PlayerAction.Kind.RAISE]
+			if action.kind == PlayerAction.Kind.ALL_IN:
+				aggressive = action.amount > current_bet
+			var opening_aggressive: bool = aggressive and current_bet == 0
+			(
+				output
+				. append(
+					{
+						"seat": event.seat,
+						"record": action,
+						"preflop": preflop,
+						"invalid": false,
+						"aggressive": aggressive,
+						"opening_aggressive": opening_aggressive,
+						"passive_call":
+						(
+							action.kind == PlayerAction.Kind.CALL
+							or (action.kind == PlayerAction.Kind.ALL_IN and not aggressive)
+						),
+					}
+				)
+			)
+			current_bet = maxi(current_bet, action.amount)
 			action_index += 1
 	return output
