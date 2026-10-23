@@ -233,7 +233,7 @@ invalid tournament settings are rejected.
       "tournament_count": 1000,
       "seat_rotation": "cyclic",
       "minimum_profile_samples": 200,
-      "uncertainty_estimator": "bootstrap_95"
+      "uncertainty_estimator": "normal_95"
     }
   ]
 }
@@ -259,7 +259,7 @@ canonical `manifest` snapshot contains `profiles`, `regimes`, `matchups`, and
 IDs. No report-only tournament configuration, unnamed regime, or alternate
 matchup shape is permitted.
 
-A version 1 report contains:
+A schema-2 report contains:
 
 ```text
 report_schema_version
@@ -332,15 +332,17 @@ contract is:
 profile-evolution <command> [options]
 ```
 
-| Command | Required inputs | Immutable output |
+| Command | Required options | Immutable output |
 | --- | --- | --- |
-| `init-generation` | bounds, population size, generation seed | generation manifest with candidate profiles and parentless lineage records |
-| `evaluate-fitness` | generation manifest, completed simulation reports | fitness artifact using section 3.2 and rejecting missing/incompatible plans |
-| `select` | fitness artifact, elite fraction (10–20%) | selection artifact listing retained candidate IDs and evidence |
-| `crossover` | selection artifact, crossover seed, target count | child profile artifact with two parent IDs per recombined candidate |
-| `mutate` | child/profile artifact, mutation seed, mutation policy | new candidates with every integer parameter clamped to inclusive 0–100 and each delta recorded |
-| `inspect-lineage` | lineage registry, candidate ID | read-only ancestry and evidence summary on stdout |
-| `export-candidates` | evaluated candidate IDs and destination path | versioned candidate bundle for review; never the playable roster |
+| `init-generation` | `--bounds <path> --population-size <count> --seed <seed> --output <path>` | generation manifest with candidate profiles and parentless lineage records |
+| `evaluate-fitness` | `--generation <path> --report <path>` (repeatable) `--output <path>` | fitness artifact using section 3.2 and rejecting missing/incompatible plans |
+| `select` | `--fitness <path> --elite-fraction <0.10..0.20> --output <path>` | selection artifact listing retained candidate IDs and evidence |
+| `crossover` | `--selection <path> --seed <seed> --target-count <count> --output <path>` | child profile artifact with two parent IDs per recombined candidate |
+| `mutate` | `--input <path> --seed <seed> --policy <path> --output <path>` | new candidates with every integer parameter clamped to inclusive 0–100 and each delta recorded |
+| `build-lineage` | `--artifact <path>` (repeatable) `--output <path>` | deterministic lineage registry rebuilt from immutable generation, candidate, fitness, and selection history |
+| `inspect-lineage` | `--registry <path> --candidate-id <id>` | read-only ancestry and evidence summary on stdout |
+| `confirm-candidate` | `--registry <path> --candidate-id <id> --legacy-id <id>` (repeatable) `--historical-champion-id <id>` (repeatable) `--mirrored-report <path>` (repeatable) `--mixed-report <path>` (repeatable) `--output <path>` | independent confirmation evidence and promotion-gate result |
+| `export-candidates` | `--registry <path> --confirmation <path>` (repeatable) `--candidate-id <id>` (repeatable) `--output <path>` | versioned review-only candidate bundle; never the playable roster |
 
 All commands reject unknown fields and write atomically. Given identical
 inputs and seeds they produce byte-equivalent canonical artifacts. Crossover
@@ -348,10 +350,125 @@ operates only on immutable `BotProfile` parameter vectors. Mutation uses
 integer deltas, applies configured per-gene bounds no wider than 0–100, and
 records pre-mutation value, delta, bounded result, and seed.
 
+The deterministic commands use a tool-owned SplitMix64 generator and unbiased
+bounded sampling, never Python's runtime-defined `random` implementation.
+`gene_bounds` payloads contain one `minimum` and `maximum` for each of the
+exact schema-2 genes (`tight_vs_loose`, `passive_vs_aggressive`,
+`call_vs_raise`, and `bluff_rate`); all bounds and candidate values are
+inclusive integers in `0..100`. `mutation_policy` payloads contain exactly an
+inclusive `mutation_probability_percent` and `maximum_delta`, also in
+`0..100`. A selection identifies its source generation, embeds its bounds,
+and contains ordered complete candidate snapshots. Candidate and generation
+artifacts preserve input order, use content-derived deterministic IDs, and
+carry immutable bounds snapshots and parent IDs.
+
+Initialization records the generation seed and empty parent lists. Crossover
+uses two distinct selected parents for each child and records both ordered
+parent IDs plus the chosen source parent for every gene. Mutation produces a
+new candidate snapshot for each source candidate and records, in schema gene
+order, `seed`, `gene`, `before`, requested `delta`, bounded `after`, and a
+`clamped` flag. Every operation validates all candidates before producing an
+output and leaves its input snapshots unchanged.
+
+`evaluate-fitness` requires all shards for one identical schema-2 simulation
+manifest. It verifies `simulation_cli_v2`, the canonical manifest checksum,
+the exact ID/model/four-gene snapshot of every candidate, deterministic plan
+and tournament identities, unique global indexes, complete shard and plan
+coverage, successful tournaments, finite metric values, and bounded rates.
+Traces and any card data are ignored. For each candidate and evaluation plan,
+the tool counts observations and applies that plan's
+`minimum_profile_samples`; candidates below any threshold are recorded as
+ineligible and are not ranked.
+
+The tool recomputes all six normalized components in section 3.2 for every
+candidate observation, then records their means and normal 95% confidence
+interval half-widths. The uncertainty penalty is the mean of those six
+half-widths clamped to `[0, 0.10]`. Eligible fitness is the documented weighted
+sum minus that penalty, clamped to `[0, 1]`. The fitness artifact also records
+source-generation identity, report and manifest checksums, shards, regime and
+plan IDs, code revisions, sample counts, and explicit style checks. Version 1
+requires zero invalid-action fallbacks and finite behavioral rates in
+`[0, 1]`; a fallback makes that candidate ineligible, while malformed or
+out-of-range report metrics invalidate the evaluation.
+External evaluator v1 requires each plan to name `normal_95`; it rejects
+`bootstrap_95` until a deterministic bootstrap contract is implemented. Its
+regime validation uses the product table-size limit of two through nine
+players.
+
+Elitist selection accepts an inclusive fraction from `0.10` through `0.20`
+and retains `ceil(population_size * elite_fraction)` candidates; ceiling is
+the normative rounding rule. It considers only eligible candidates with
+finite numeric fitness, ordering them by fitness descending and then stable
+candidate ID. Selection fails rather than weakening the contract when the
+rounded count is below two crossover parents or eligible candidates are too
+few. Its immutable artifact preserves each selected candidate's full fitness,
+uncertainty, style, sample, and report evidence as a historical benchmark and
+records the source fitness checksum plus a content-derived next-generation
+manifest identity. Crossover consumes the selected snapshots without changing
+those benchmarks.
+
+The selection artifact's `next_generation_manifest` supplies the exact next
+generation number and ID. Crossover uses that identity, and mutation preserves
+it while emitting the final `generation_manifest` accepted by
+`evaluate-fitness`. Thus intermediate crossover candidates and their final
+mutated descendants belong to one explicitly named generation rather than
+silently deriving competing IDs.
+
+`build-lineage` rebuilds a registry from repeatable `--artifact` history
+inputs; it does not update an existing registry in place. Inputs may be
+generation manifests, intermediate candidate batches, fitness artifacts, and
+selection artifacts. Every checksum and cross-artifact reference is verified,
+and conflicting snapshots or orphan parents are rejected. Registry entries
+contain the complete profile and creation provenance, generation/bounds,
+evaluation configuration, regime and plan IDs, code revision, report
+identities/checksums, normalized metrics, style/sample evidence, uncertainty,
+fitness, and selection history for retained champions. Canonical checksum
+ordering makes rebuilds byte-equivalent regardless of input order.
+`inspect-lineage` validates the registry and emits the requested candidate's
+ordered ancestors and evidence as JSON without modifying the registry.
+
+`confirm-candidate` evaluates mirrored and mixed-table report sets
+independently with the same strict schema-2 evaluator. Each manifest group
+must contain complete shards and plans, the exact candidate snapshot,
+successful tournaments, enough candidate observations for its declared
+normal 95% uncertainty calculation, bounded metrics, and zero invalid-action
+fallbacks for every participant. Mirrored evidence is heads-up and cyclic: it
+must place the candidate in every seat against every declared legacy profile
+and historical champion. Mixed evidence uses tables of at least three players
+with cyclic candidate seat coverage, and every matchup must contain the
+candidate plus both a declared legacy opponent and a declared historical
+champion.
+
+The original fitness evidence, mirrored confirmation, and mixed confirmation
+must have disjoint report checksums, manifest checksums, and seed ranges;
+separate confirmation batches must also use disjoint seed ranges. The
+immutable `confirmation` artifact records the exact candidate and registry
+checksum, exact opponent profile snapshots, per-mode
+fitness/component/style/sample evidence,
+uncertainty, report identities, and explicit ineligibility reasons.
+`promotion_eligible` is true only when all gates pass. This is an evidence
+gate, not promotion: `export-candidates` accepts only eligible confirmations
+bound to the same lineage registry and exact candidate snapshots, then emits
+a `candidate_bundle` whose purpose is `review_only`. It never writes a roster,
+Resource, or source file.
+
+Every persisted artifact is a strict JSON object envelope containing exactly
+`schema_version`, `type`, `tool_version`, `payload`, and `checksum`.
+The checksum is SHA-256 over the sorted, compact, UTF-8 canonical envelope
+with the `checksum` field omitted and one trailing newline. Writes reject an
+existing destination and publish a flushed and synced temporary sibling via
+an atomic hard link, then clean up and sync the parent directory. Exit code
+`0` means success, `2` means invalid
+arguments or JSON/schema input, `3` means an input/output failure, and `4`
+means an invariant or unavailable workflow-stage failure. Machine diagnostics
+are strict JSON on stderr; artifact-producing commands do not duplicate their
+artifact on stdout.
+
 The lineage registry records candidate ID, profile snapshot, parent IDs,
 generation, creation command/version, seeds, regime and evaluation-plan IDs,
 simulation report checksums, fitness components, uncertainty, code revision,
-and export history. Selected elites remain immutable historical benchmarks.
+and champion selection history. Selected elites remain immutable historical
+benchmarks; confirmation and export remain separate immutable artifacts.
 
 ## 6. Validation and promotion
 

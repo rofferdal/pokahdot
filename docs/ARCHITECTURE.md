@@ -582,10 +582,124 @@ Profile evolution is owned by a separate non-interactive external tool, not a
 fourth game composition root. It operates only on immutable `BotProfile`
 parameter vectors and versioned artifacts. Its contract covers generation
 initialization, fitness evaluation, selection, crossover, bounded integer
-mutation, lineage inspection, and candidate export. It never generates or
+mutation, lineage inspection, independent confirmation, and candidate export. It never generates or
 rewrites GDScript model code, edits published profiles in place, or promotes a
 candidate automatically. Promotion into the shared playable roster is a
 reviewed source change.
+
+The repository entry point is `tools/profile-evolution`, backed by the Python
+3 standard-library package `tools/profile_evolution`; it is outside both the
+Godot runtime and the simulation CLI. Its strict `argparse` interface exposes
+`init-generation`, `evaluate-fitness`, `select`, `crossover`, `mutate`,
+`build-lineage`, `inspect-lineage`, `confirm-candidate`, and
+`export-candidates`. JSON
+inputs must be UTF-8 objects without duplicate keys or non-finite numbers.
+Every persisted artifact has an exact envelope of `schema_version`, `type`,
+`tool_version`, object `payload`, and SHA-256 `checksum`.
+Checksums cover sorted compact UTF-8 canonical JSON with one trailing newline
+and omit the checksum member itself. Output publication rejects an existing
+target and uses a flushed and synced temporary sibling followed by atomic
+hard-link publication, cleanup, and parent-directory sync. This preserves the
+no-clobber guarantee even when writers race.
+The stable exit categories are success (`0`), invalid arguments or input
+(`2`), I/O failure (`3`), and invariant/workflow-stage failure (`4`). The tool
+never accepts roster, `.tres`, or source-code output destinations.
+
+Candidate randomness uses the tool-owned SplitMix64 implementation with
+rejection sampling for unbiased inclusive integer ranges; it never depends on
+Python's `random` implementation. A `gene_bounds` artifact contains exactly
+the four schema-2 strategy genes and inclusive integer minimum/maximum values
+within `0..100`. A `generation_manifest` contains deterministic candidate IDs,
+parentless snapshots, the bounds snapshot, generation seed, and initialization
+records. `crossover` consumes a strict `selection` artifact, chooses two
+distinct parents for each child, and records the source parent for every gene.
+`mutate` consumes a generation or candidate batch plus a strict
+`mutation_policy`; it records seed, gene, before value, requested integer
+delta, bounded result, and whether clamping occurred for all four genes.
+Generated collections, candidates, bounds, policies, selections, and creation
+records reject missing and unknown fields. Candidate operations copy their
+inputs and never change source profile snapshots. Stable input ordering, local
+random-number consumption, content-derived IDs, and canonical artifact writes
+make identical inputs and seeds byte-equivalent.
+
+`evaluate-fitness` consumes one immutable generation manifest and a complete
+set of schema-2 `SimulationReport` shards. It validates the simulation command
+version, canonical manifest checksum, exact candidate snapshots, deterministic
+plan identities, unique global tournament indexes, complete shard/plan
+coverage, successful completion, finite metric inputs, bounded behavioral
+rates, and every plan's minimum candidate sample threshold. Trace and card
+data are not fitness inputs. Each candidate's six normalized per-tournament
+components are recomputed from profile results rather than trusting stored
+aggregates. Their arithmetic means and normal 95% confidence-interval
+half-widths feed the documented weighted formula and capped mean uncertainty
+penalty. The immutable `fitness` artifact records report and manifest
+checksums, shard identities, regimes, plans, code revisions, component sample
+counts, uncertainty, and explicit style checks. Candidates with insufficient
+samples or invalid-action fallbacks are ineligible, have null fitness, and are
+never assigned a rank. Input generation and report bytes are never modified.
+Evaluator v1 requires `normal_95`; it rejects `bootstrap_95` rather than
+silently calculating and labeling a different estimator. Simulation regimes
+also enforce the product maximum of nine players.
+
+`select` validates the complete fitness artifact and its envelope checksum,
+then retains `ceil(population_size * elite_fraction)` candidates for an
+inclusive fraction from `0.10` through `0.20`. Only eligible candidates with
+finite numeric fitness may participate. Ordering is fitness descending with
+candidate ID as the stable tie-breaker. Selection fails if rounding retains
+fewer than two parents or if too few eligible candidates remain. The immutable
+selection artifact embeds full candidate/result snapshots as historical
+benchmarks, report evidence, bounds, source fitness checksum, and a
+content-derived next-generation manifest identity. It remains directly
+consumable by deterministic crossover and never mutates or ranks the source
+fitness artifact.
+
+The selection artifact's `next_generation_manifest` is authoritative for both
+the generation number and ID. Crossover consumes that identity verbatim, and
+mutation preserves it while publishing the final children as an evaluable
+`generation_manifest`; intermediate crossover output remains a
+`candidate_batch`. This prevents selection, crossover, mutation, evaluation,
+and lineage from inventing different identities for one generation.
+
+`build-lineage` accepts repeatable immutable history artifacts and rebuilds a
+canonical `lineage_registry`; it never incrementally edits a registry. It
+validates every envelope checksum, fitness-to-generation and
+selection-to-fitness reference, candidate snapshot, parent edge, and
+generation relationship. Missing parents and conflicting uses of one
+candidate ID are rejected. Entries are ordered by candidate ID and contain
+the profile snapshot, parent IDs, generation and bounds, complete creation
+operation/seed/provenance, evaluation configuration and regime/plan IDs, code
+revisions, report identities/checksums, metrics, samples, style evidence,
+uncertainty, and champion selection history. `inspect-lineage` validates that
+registry and emits a read-only JSON ancestry/evidence view; it writes no
+artifact. Identical history artifacts produce byte-equivalent registries
+regardless of input argument order.
+
+`confirm-candidate` is the independent evidence gate between lineage and a
+review export. It reuses the strict schema-2 evaluator separately for complete
+mirrored and mixed-table report groups. Mirrored plans must be cyclic
+heads-up matchups that cover every candidate seat against every declared
+legacy profile and historical champion. Mixed plans must be cyclic tables of
+at least three seats whose matchups contain the candidate plus both opponent
+classes. All participants must have zero invalid-action fallbacks. Original,
+mirrored, and mixed evidence use disjoint report and manifest checksums and
+non-overlapping seed ranges; separate confirmation batches also have
+non-overlapping seed ranges. The immutable confirmation records the exact
+candidate/registry identity, per-mode metrics, samples, style evidence,
+uncertainty, reports, and explicit eligibility reasons.
+
+`export-candidates` accepts a lineage registry, eligible confirmation
+artifacts bound to that exact registry, and requested candidate IDs. It emits
+only a versioned `candidate_bundle` marked `review_only`, including the exact
+candidate, lineage, and confirmation snapshots. It cannot write roster or
+`.tres` destinations and performs no promotion; Milestone 6 remains a reviewed
+source-change workflow.
+
+The executable Milestone 5 smoke history is preserved under
+`examples/profile_evolution/milestone5`. It includes deterministic generation,
+fitness, selection, crossover, mutation, and lineage artifacts plus real Godot
+mirrored and mixed-table confirmation reports. Both smoke candidates were
+correctly rejected after invalid-action fallbacks appeared in independent
+evidence, so no review bundle or roster change was produced.
 
 ## 7. Commands, results, and events
 

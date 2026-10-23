@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "batch_id": "milestone5_mixed_confirmation",
+  "seed_start": 40000,
+  "profiles": [
+    {"profile_id":"candidate_g1_mut_0001_7f27d508c883fbeb","model_id":"strategy_parameterized","parameters":{"bluff_rate":61,"call_vs_raise":1,"passive_vs_aggressive":71,"tight_vs_loose":13}},
+    {"profile_id":"balanced","model_id":"strategy_parameterized","parameters":{"tight_vs_loose":70,"passive_vs_aggressive":28,"call_vs_raise":28,"bluff_rate":12}},
+    {"profile_id":"candidate_g0_0003_9963610230e600f4","model_id":"strategy_parameterized","parameters":{"bluff_rate":30,"call_vs_raise":8,"passive_vs_aggressive":89,"tight_vs_loose":13}}
+  ],
+  "regimes": [
+    {"regime_id":"three_max_short","player_count":3,"starting_stack":20,"starting_small_blind":5,"starting_big_blind":10,"blind_progression":"normative_hand_based_v1"}
+  ],
+  "matchups": [
+    {"matchup_id":"candidate_legacy_champion","profile_ids":["candidate_g1_mut_0001_7f27d508c883fbeb","balanced","candidate_g0_0003_9963610230e600f4"]}
+  ],
+  "evaluation_plans": [
+    {"plan_id":"mixed_confirmation","regime_id":"three_max_short","matchup_ids":["candidate_legacy_champion"],"tournament_count":3,"seat_rotation":"cyclic","minimum_profile_samples":3,"uncertainty_estimator":"normal_95"}
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "batch_id": "milestone5_initial_evaluation",
+  "seed_start": 10000,
+  "profiles": [
+    {"profile_id":"candidate_g0_0000_aac13445a039a6be","model_id":"strategy_parameterized","parameters":{"bluff_rate":37,"call_vs_raise":84,"passive_vs_aggressive":94,"tight_vs_loose":80}},
+    {"profile_id":"candidate_g0_0001_6ec74900c08c93e0","model_id":"strategy_parameterized","parameters":{"bluff_rate":50,"call_vs_raise":52,"passive_vs_aggressive":2,"tight_vs_loose":47}},
+    {"profile_id":"candidate_g0_0002_d755a0dbe8d9ea45","model_id":"strategy_parameterized","parameters":{"bluff_rate":50,"call_vs_raise":77,"passive_vs_aggressive":41,"tight_vs_loose":55}},
+    {"profile_id":"candidate_g0_0003_9963610230e600f4","model_id":"strategy_parameterized","parameters":{"bluff_rate":30,"call_vs_raise":8,"passive_vs_aggressive":89,"tight_vs_loose":13}},
+    {"profile_id":"candidate_g0_0004_e66c3fcbff5b805c","model_id":"strategy_parameterized","parameters":{"bluff_rate":100,"call_vs_raise":21,"passive_vs_aggressive":82,"tight_vs_loose":80}},
+    {"profile_id":"candidate_g0_0005_6c996ede771db4b0","model_id":"strategy_parameterized","parameters":{"bluff_rate":63,"call_vs_raise":27,"passive_vs_aggressive":75,"tight_vs_loose":39}},
+    {"profile_id":"candidate_g0_0006_b593b71403c10415","model_id":"strategy_parameterized","parameters":{"bluff_rate":77,"call_vs_raise":80,"passive_vs_aggressive":57,"tight_vs_loose":89}},
+    {"profile_id":"candidate_g0_0007_01d72cd06a9e492c","model_id":"strategy_parameterized","parameters":{"bluff_rate":68,"call_vs_raise":14,"passive_vs_aggressive":96,"tight_vs_loose":36}},
+    {"profile_id":"candidate_g0_0008_12b92b672f9b3b2c","model_id":"strategy_parameterized","parameters":{"bluff_rate":64,"call_vs_raise":5,"passive_vs_aggressive":90,"tight_vs_loose":76}},
+    {"profile_id":"candidate_g0_0009_fb5c417217c1db9b","model_id":"strategy_parameterized","parameters":{"bluff_rate":21,"call_vs_raise":48,"passive_vs_aggressive":91,"tight_vs_loose":43}},
+    {"profile_id":"candidate_g0_0010_efccaebfb834fa4d","model_id":"strategy_parameterized","parameters":{"bluff_rate":50,"call_vs_raise":44,"passive_vs_aggressive":3,"tight_vs_loose":50}},
+    {"profile_id":"balanced","model_id":"strategy_parameterized","parameters":{"tight_vs_loose":70,"passive_vs_aggressive":28,"call_vs_raise":28,"bluff_rate":12}}
+  ],
+  "regimes": [
+    {"regime_id":"heads_up_short","player_count":2,"starting_stack":20,"starting_small_blind":5,"starting_big_blind":10,"blind_progression":"normative_hand_based_v1"}
+  ],
+  "matchups": [
+    {"matchup_id":"g0_00_vs_balanced","profile_ids":["candidate_g0_0000_aac13445a039a6be","balanced"]},
+    {"matchup_id":"g0_01_vs_balanced","profile_ids":["candidate_g0_0001_6ec74900c08c93e0","balanced"]},
+    {"matchup_id":"g0_02_vs_balanced","profile_ids":["candidate_g0_0002_d755a0dbe8d9ea45","balanced"]},
+    {"matchup_id":"g0_03_vs_balanced","profile_ids":["candidate_g0_0003_9963610230e600f4","balanced"]},
+    {"matchup_id":"g0_04_vs_balanced","profile_ids":["candidate_g0_0004_e66c3fcbff5b805c","balanced"]},
+    {"matchup_id":"g0_05_vs_balanced","profile_ids":["candidate_g0_0005_6c996ede771db4b0","balanced"]},
+    {"matchup_id":"g0_06_vs_balanced","profile_ids":["candidate_g0_0006_b593b71403c10415","balanced"]},
+    {"matchup_id":"g0_07_vs_balanced","profile_ids":["candidate_g0_0007_01d72cd06a9e492c","balanced"]},
+    {"matchup_id":"g0_08_vs_balanced","profile_ids":["candidate_g0_0008_12b92b672f9b3b2c","balanced"]},
+    {"matchup_id":"g0_09_vs_balanced","profile_ids":["candidate_g0_0009_fb5c417217c1db9b","balanced"]},
+    {"matchup_id":"g0_10_vs_balanced","profile_ids":["candidate_g0_0010_efccaebfb834fa4d","balanced"]}
+  ],
+  "evaluation_plans": [
+    {"plan_id":"initial_heads_up","regime_id":"heads_up_short","matchup_ids":["g0_00_vs_balanced","g0_01_vs_balanced","g0_02_vs_balanced","g0_03_vs_balanced","g0_04_vs_balanced","g0_05_vs_balanced","g0_06_vs_balanced","g0_07_vs_balanced","g0_08_vs_balanced","g0_09_vs_balanced","g0_10_vs_balanced"],"tournament_count":22,"seat_rotation":"cyclic","minimum_profile_samples":2,"uncertainty_estimator":"normal_95"}
+  ]
+}

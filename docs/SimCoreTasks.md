@@ -104,26 +104,26 @@ simulation may use zero humans only through its dedicated composition path.
 
 ## Milestone 5 — External profile-evolution workflow
 
-- [ ] Define a separate non-interactive external profile-evolution tool with
+- [x] Define a separate non-interactive external profile-evolution tool with
   commands for generation initialization, fitness evaluation, selection,
   crossover, bounded mutation, lineage inspection, and candidate export. It
   creates immutable artifacts and must not mutate an in-game profile Resource,
   edit model code, or write the playable roster.
-- [ ] Implement deterministic candidate initialization, crossover, and bounded
+- [x] Implement deterministic candidate initialization, crossover, and bounded
   integer mutation (including recorded mutation seed, per-gene delta, and
   inclusive 0–100 bounds). Reject invalid candidates before scheduling
   simulations.
-- [ ] Implement fitness evaluation from batch reports using outcome metrics,
+- [x] Implement fitness evaluation from batch reports using outcome metrics,
   style checks, the documented normalized non-monetary formula,
   variance/uncertainty penalties, and a documented minimum sample threshold.
-- [ ] Implement elitist selection that retains the selected 10–20% candidates
+- [x] Implement elitist selection that retains the selected 10–20% candidates
   as immutable historical benchmarks and produces a versioned next-generation
   manifest.
-- [ ] Maintain a champion lineage registry containing profile snapshot, parent
+- [x] Maintain a champion lineage registry containing profile snapshot, parent
   IDs, generation, configuration/regimes, code revision, report identities,
   metrics, and uncertainty. Add tests for lineage completeness and repeatable
   generation creation.
-- [ ] Run independent mirrored and mixed-table confirmation batches against
+- [x] Run independent mirrored and mixed-table confirmation batches against
   legacy bots and historical champions before a candidate is eligible for
   promotion.
 

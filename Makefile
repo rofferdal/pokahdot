@@ -5,13 +5,17 @@ GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd
 WEB_EXPORT_PATH := build/web/index.html
 WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 
-.PHONY: check web-release verify-web-release-output require-clean-worktree
+.PHONY: check profile-evolution-test web-release verify-web-release-output require-clean-worktree
 
 check:
+	$(MAKE) --no-print-directory profile-evolution-test
 	$(GODOT) --headless --path . --import
 	$(GDLINT) scripts tests my_test_node.gd
 	$(GDFORMAT) --check scripts tests my_test_node.gd
 	$(GUT_COMMAND)
+
+profile-evolution-test:
+	python3 -m unittest discover -s tests/profile_evolution -t . -v
 
 require-clean-worktree:
 	@test -z "$$(git status --porcelain)" || { \
