@@ -3,6 +3,11 @@
 /android/
 .venv/
 
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Reproducible Web release output; deploy it as a CI artifact instead.
 /build/
 

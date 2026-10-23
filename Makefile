@@ -15,7 +15,7 @@ check:
 	$(GUT_COMMAND)
 
 profile-evolution-test:
-	python3 -m unittest discover -s tests/profile_evolution -t . -v
+	python3 -B -m unittest discover -s tests/profile_evolution -t . -v
 
 require-clean-worktree:
 	@test -z "$$(git status --porcelain)" || { \
