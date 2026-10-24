@@ -30,6 +30,8 @@ class CliTests(unittest.TestCase):
             ["build-lineage", "--artifact", "g.json", "--artifact", "f.json", "--output", "l.json"],
             ["inspect-lineage", "--registry", "l.json", "--candidate-id", "c1"],
             ["confirm-candidate", "--registry", "l.json", "--candidate-id", "c1", "--legacy-id", "legacy", "--historical-champion-id", "champion", "--mirrored-report", "heads.json", "--mixed-report", "mixed.json", "--output", "confirmation.json"],
+            ["prepare-promotion-review", "--confirmation", "confirmation.json", "--reviewer-id", "reviewer", "--output", "review_plan.json"],
+            ["finalize-promotion-review", "--plan", "review_plan.json", "--confirmation", "confirmation.json", "--output", "promotion_review.json"],
             ["export-candidates", "--registry", "l.json", "--confirmation", "confirmation.json", "--candidate-id", "c1", "--output", "e.json"],
         )
         for arguments in cases:

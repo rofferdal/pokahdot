@@ -249,29 +249,42 @@ tools/profile-evolution confirm-candidate \
   --output artifacts/confirmation.json
 ```
 
-### 2. Record Reviewer Approval
-An independent reviewer verifies the evidence and records an approval artifact:
+### 2. Record the Consolidated Reviewer Decisions
+
+Collect all proposed candidates in one plan (repeat `--confirmation` for each):
+
 ```bash
-tools/profile-evolution review-promotion \
+tools/profile-evolution prepare-promotion-review \
   --confirmation artifacts/confirmation.json \
   --reviewer-id reviewer_name \
-  --approve \
-  --output artifacts/promotion_review.json
+  --output artifacts/promotion_review_plan.json
 ```
 
-Add `--note "..."` when reviewer context is useful; the note is optional.
+An independent reviewer opens that one file, changes each candidate's single
+`decision` from `pending` to `approve` or `reject`, and may fill in
+`display_name` and `review_note`. Finalize all decisions once:
+
+```bash
+tools/profile-evolution finalize-promotion-review \
+  --plan artifacts/promotion_review_plan.json \
+  --confirmation artifacts/confirmation.json \
+  --output artifacts/promotion_review_batch.json
+```
+
+The finalizer refuses incomplete decisions or any change to the confirmation
+bindings and produces one immutable review artifact for the whole set.
 
 ### 3. Publish the Profile Resource
 Publish the new `.tres` file under `resources/bot_profiles/published/`:
 ```bash
 tools/profile-evolution publish-profile \
   --confirmation artifacts/confirmation.json \
-  --review artifacts/promotion_review.json \
+  --review artifacts/promotion_review_batch.json \
   --version v1 \
-  --display-name "Solid TAG v1" \
   --project-root .
 ```
 This generates `resources/bot_profiles/published/candidate_solid_tag__v1.tres`.
+It uses the review plan's display name unless `--display-name` overrides it.
 
 ---
 

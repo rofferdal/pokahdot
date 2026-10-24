@@ -361,7 +361,7 @@ contract is:
 profile-evolution <command> [options]
 ```
 
-| Command | Required options | Immutable output |
+| Command | Required options | Output |
 | --- | --- | --- |
 | `init-generation` | `--bounds <path> --population-size <count> --seed <seed> --output <path>` | generation manifest with candidate profiles and parentless lineage records |
 | `evaluate-fitness` | `--generation <path> --report <path>` (repeatable) `--output <path>` | fitness artifact using section 3.2 and rejecting missing/incompatible plans |
@@ -371,8 +371,9 @@ profile-evolution <command> [options]
 | `build-lineage` | `--artifact <path>` (repeatable) `--output <path>` | deterministic lineage registry rebuilt from immutable generation, candidate, fitness, and selection history |
 | `inspect-lineage` | `--registry <path> --candidate-id <id>` | read-only ancestry and evidence summary on stdout |
 | `confirm-candidate` | `--registry <path> --candidate-id <id> --legacy-id <id>` (repeatable) `--historical-champion-id <id>` (repeatable) `--mirrored-report <path>` (repeatable) `--mixed-report <path>` (repeatable) `--output <path>` | independent confirmation evidence and promotion-gate result |
-| `review-promotion` | `--confirmation <path> --reviewer-id <id> --approve|--reject [--note <text>] --output <path>` | immutable human approval or rejection of an exact eligible confirmation, with an optional note; never publishes a profile or roster |
-| `publish-profile` | `--confirmation <path> --review <path> --version <id> [--display-name <text>] [--project-root <path>]` | manually write one approved candidate as a new no-clobber versioned `BotProfile` Resource; never edits the roster |
+| `prepare-promotion-review` | `--confirmation <path>` (repeatable) `--reviewer-id <id> --output <path>` | one editable JSON plan listing every candidate, exact confirmation binding, and one initially `pending` decision field per candidate |
+| `finalize-promotion-review` | `--plan <path> --confirmation <path>` (repeatable) `--output <path>` | one immutable `promotion_review_batch` after every candidate decision is changed to `approve` or `reject` and revalidated against its confirmation |
+| `publish-profile` | `--confirmation <path> --review <path> --version <id> [--display-name <text>] [--project-root <path>]` | manually write one candidate approved in the consolidated review as a new no-clobber versioned `BotProfile` Resource; never edits the roster |
 | `export-candidates` | `--registry <path> --confirmation <path>` (repeatable) `--candidate-id <id>` (repeatable) `--output <path>` | versioned review-only candidate bundle; never the playable roster |
 
 All commands reject unknown fields and write atomically. Given identical
@@ -489,11 +490,13 @@ tool calculates the L1 distance across the four percentage genes. The nearest
 such profile must be at least 10 total percentage points away; a missing
 comparable profile or a smaller distance is ineligible. This is a stable,
 reproducible proxy for personality diversity, not a claim that a parameter
-distance alone proves game-play quality. A passing confirmation explicitly
-requires a separate human `promotion_review` artifact. The reviewer must give
-an immutable approval or rejection with an identity and may include a note;
-approval is rejected unless the exact confirmation is eligible. Neither artifact can
-publish a Resource or modify the playable roster.
+distance alone proves game-play quality. Passing confirmations are collected
+into one editable review plan. The reviewer records exactly one `approve` or
+`reject` decision per candidate and may add a display name or note.
+Finalization rejects pending, missing, duplicate, altered, or ineligible
+approvals and creates one immutable `promotion_review_batch` bound to every
+exact confirmation. Neither the plan nor finalized review can publish a
+Resource or modify the playable roster.
 
 Every persisted artifact is a strict JSON object envelope containing exactly
 `schema_version`, `type`, `tool_version`, `payload`, and `checksum`.
@@ -529,10 +532,12 @@ bots and historical champions across applicable regimes. Reject candidates
 that depend on invalid-action fallbacks, only win one narrow matchup, or fail
 documented style expectations.
 
-Promotion is reviewed and non-automatic. A reviewer may export an approved
-candidate as a new, immutable, versioned `BotProfile` Resource and update one
-shared playable roster in a separate source change. `publish-profile` requires
-the exact eligible confirmation and its approved review, derives a versioned
+Promotion is reviewed and non-automatic. One consolidated review plan covers
+the whole proposed candidate set and must be finalized before any approved
+candidate is published as a new, immutable, versioned `BotProfile` Resource.
+The shared playable roster remains a separate source change. `publish-profile`
+requires the exact eligible confirmation and its approved decision in the
+finalized batch review, derives a versioned
 profile ID, and writes only a new file under
 `resources/bot_profiles/published/`; it rejects any existing destination.
 Publication never activates a profile or edits the roster. The curated roster

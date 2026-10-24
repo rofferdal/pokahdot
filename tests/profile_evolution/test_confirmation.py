@@ -22,6 +22,9 @@ from tools.profile_evolution.export import export_candidates
 from tools.profile_evolution.fitness import _roster_provenance, _simulation_manifest_checksum
 from tools.profile_evolution.promotion_review import (
     create_promotion_review,
+    create_promotion_review_plan,
+    finalize_promotion_review,
+    validate_promotion_review_batch,
     validate_promotion_review,
 )
 from tools.profile_evolution.profile_publisher import publish_approved_profile
@@ -352,6 +355,53 @@ def _reports(
 
 
 class ConfirmationTests(unittest.TestCase):
+    def test_consolidated_review_plan_requires_one_decision_per_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            registry, _, mirrored, mixed = _reports(directory)
+            confirmation = confirm_candidate(
+                registry, "candidate", ["legacy"], ["champion"], mirrored, mixed
+            )
+            plan = create_promotion_review_plan([confirmation], "reviewer")
+            self.assertEqual(plan["candidates"][0]["decision"], "pending")
+            with self.assertRaisesRegex(Exception, "must be approve or reject"):
+                finalize_promotion_review(plan, [confirmation])
+
+            rejected_plan = copy.deepcopy(plan)
+            rejected_plan["candidates"][0]["decision"] = "reject"
+            rejected_review = finalize_promotion_review(
+                rejected_plan, [confirmation]
+            )
+            with self.assertRaisesRegex(Exception, "must approve"):
+                publish_approved_profile(
+                    confirmation, rejected_review, directory, "rejected"
+                )
+
+            plan["candidates"][0]["decision"] = "approve"
+            plan["candidates"][0]["display_name"] = "Reviewed Candidate"
+            review = finalize_promotion_review(plan, [confirmation])
+            validated = validate_promotion_review_batch(review)
+            self.assertEqual(validated["reviewer_id"], "reviewer")
+            self.assertTrue(validated["decisions"][0]["approved"])
+
+            published = publish_approved_profile(
+                confirmation, review, directory, "v1"
+            )
+            contents = Path(published["resource_path"]).read_text(encoding="utf-8")
+            self.assertIn('display_name = "Reviewed Candidate"', contents)
+
+    def test_consolidated_review_rejects_confirmation_snapshot_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            registry, _, mirrored, mixed = _reports(Path(name))
+            confirmation = confirm_candidate(
+                registry, "candidate", ["legacy"], ["champion"], mirrored, mixed
+            )
+            plan = create_promotion_review_plan([confirmation], "reviewer")
+            plan["candidates"][0]["decision"] = "reject"
+            plan["candidates"][0]["candidate"]["parameters"][GENES[0]] += 1
+            with self.assertRaisesRegex(Exception, "snapshot differs"):
+                finalize_promotion_review(plan, [confirmation])
+
     def test_deterministic_eligible_confirmation_and_review_export(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             registry, _, mirrored, mixed = _reports(Path(name))
@@ -506,6 +556,7 @@ class ConfirmationTests(unittest.TestCase):
             registry, _, mirrored, mixed = _reports(directory)
             registry_path = directory / "registry.json"
             confirmation_path = directory / "confirmation.json"
+            review_plan_path = directory / "review_plan.json"
             review_path = directory / "review.json"
             bundle_path = directory / "bundle.json"
             write_artifact_atomic(registry_path, registry)
@@ -535,19 +586,36 @@ class ConfirmationTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 result = main(
                     [
-                        "review-promotion",
+                        "prepare-promotion-review",
                         "--confirmation",
                         str(confirmation_path),
                         "--reviewer-id",
                         "reviewer",
-                        "--approve",
+                        "--output",
+                        str(review_plan_path),
+                    ]
+                )
+            self.assertEqual(result, 0)
+            review_plan = json.loads(review_plan_path.read_text(encoding="utf-8"))
+            review_plan["candidates"][0]["decision"] = "approve"
+            review_plan_path.write_text(json.dumps(review_plan), encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = main(
+                    [
+                        "finalize-promotion-review",
+                        "--plan",
+                        str(review_plan_path),
+                        "--confirmation",
+                        str(confirmation_path),
                         "--output",
                         str(review_path),
                     ]
                 )
             self.assertEqual(result, 0)
             self.assertTrue(
-                load_artifact(review_path, "promotion_review")["payload"]["approved"]
+                load_artifact(review_path, "promotion_review_batch")["payload"][
+                    "decisions"
+                ][0]["approved"]
             )
             with contextlib.redirect_stdout(io.StringIO()):
                 result = main(

@@ -639,7 +639,10 @@ The repository entry point is `tools/profile-evolution`, backed by the Python
 Godot runtime and the simulation CLI. Its strict `argparse` interface exposes
 `init-generation`, `evaluate-fitness`, `select`, `crossover`, `mutate`,
 `build-lineage`, `inspect-lineage`, `confirm-candidate`, and
-`review-promotion`, `publish-profile`, and `export-candidates`. JSON
+`prepare-promotion-review`, `finalize-promotion-review`, `publish-profile`,
+and `export-candidates`. The older single-candidate `review-promotion` command
+remains only for artifact compatibility; new workflows must use one
+consolidated review. JSON
 inputs must be UTF-8 objects without duplicate keys or non-finite numbers.
 Every persisted artifact has an exact envelope of `schema_version`, `type`,
 `tool_version`, object `payload`, and SHA-256 `checksum`.
@@ -740,11 +743,16 @@ For every comparable declared legacy or historical-champion
 four percentage genes. The nearest distance must be at least ten; the recorded
 comparison is a deterministic personality-diversity proxy, while independent
 simulation evidence remains the validity and performance proof. Every
-confirmation is marked `review_required`; `review-promotion` creates a
-separate immutable, reviewer-identified approval or rejection record tied to
-the exact confirmation snapshot. Approval cannot be created for ineligible
-evidence. These external artifacts deliberately have no dependency on, access
-to, or mutation path for `PlayableBotRoster`.
+confirmation is marked `review_required`. `prepare-promotion-review` writes one
+editable plan listing all supplied candidates and their exact confirmation
+checksums. The reviewer changes each candidate's single `decision` field from
+`pending` to `approve` or `reject`, with optional display names and notes.
+`finalize-promotion-review` requires a completed decision for every listed
+candidate, verifies the plan against the complete supplied confirmation set,
+and emits one immutable, reviewer-identified `promotion_review_batch`.
+Approval cannot be finalized for ineligible evidence. These external records
+deliberately have no dependency on, access to, or mutation path for
+`PlayableBotRoster`.
 
 `export-candidates` accepts a lineage registry, eligible confirmation
 artifacts bound to that exact registry, and requested candidate IDs. It emits
@@ -754,8 +762,9 @@ candidate, lineage, and confirmation snapshots. It cannot write roster or
 source-change workflow.
 
 `publish-profile` is the one manual Resource-publication boundary. It accepts
-both the exact confirmation and an approved `promotion_review`, verifies their
-candidate snapshot and checksum binding, and writes a new versioned
+the exact confirmation and the consolidated `promotion_review_batch`, selects
+that candidate's approved decision, verifies the snapshot and checksum
+binding, and writes a new versioned
 `BotProfile` only at `resources/bot_profiles/published/<profile-id>.tres`.
 Publication uses no-clobber atomic creation, so a published version cannot be
 overwritten. It does not alter `PlayableBotRoster`; activation remains a

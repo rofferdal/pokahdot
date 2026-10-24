@@ -221,25 +221,35 @@ tools/profile-evolution confirm-candidate --registry artifacts/lineage.json \
   --mixed-report artifacts/mixed_report.json --output artifacts/confirmation.json
 ```
 
-An independent reviewer must create an explicit approval tied to that exact
-eligible confirmation. Publication creates one new versioned `.tres` file and
-refuses to overwrite an existing one. It still does not activate the profile:
-roster membership is a separate reviewed source change that must retain the
-legacy personalities.
+An independent reviewer handles the complete proposed candidate set in one
+editable plan. Each candidate receives exactly one `approve` or `reject`
+decision, after which the plan is finalized into one immutable review artifact
+bound to every exact eligible confirmation. Publication creates a new
+versioned `.tres` file for an approved candidate and refuses to overwrite an
+existing one. It still does not activate the profile: roster membership is a
+separate reviewed source change that must retain the legacy personalities.
 
 ```bash
-tools/profile-evolution review-promotion --confirmation artifacts/confirmation.json \
-  --reviewer-id reviewer_id --approve \
-  --output artifacts/promotion_review.json
+tools/profile-evolution prepare-promotion-review \
+  --confirmation artifacts/confirmation.json \
+  --reviewer-id reviewer_id \
+  --output artifacts/promotion_review_plan.json
+
+# In the plan, change each decision from "pending" to "approve" or "reject".
+tools/profile-evolution finalize-promotion-review \
+  --plan artifacts/promotion_review_plan.json \
+  --confirmation artifacts/confirmation.json \
+  --output artifacts/promotion_review_batch.json
 
 tools/profile-evolution publish-profile --confirmation artifacts/confirmation.json \
-  --review artifacts/promotion_review.json --version v1 \
+  --review artifacts/promotion_review_batch.json --version v1 \
   --display-name "Candidate v1" --project-root .
 ```
 
-Use `--reject` instead of `--approve` when the evidence is not sufficient.
-Optionally add `--note "..."` to preserve reviewer context. Do not manually
-alter checksummed artifacts, overwrite published profiles, or
+Repeat `--confirmation` in both review commands for additional candidates.
+The editable plan also has optional `display_name` and `review_note` fields.
+Do not alter candidate or confirmation fields, checksummed artifacts,
+overwrite published profiles, or
 treat an approval as permission to change `PlayableBotRoster` automatically.
 
 ## Development checks

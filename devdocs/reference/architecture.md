@@ -272,7 +272,8 @@ flowchart TD
         SEL["Selection (select)"]
         LIN["Lineage Registry (build-lineage)"]
         CONF["Confirmation Gate (confirm-candidate)"]
-        REV["Human Promotion Review (review-promotion)"]
+        PLAN["Consolidated Review Plan (prepare-promotion-review)"]
+        REV["Finalized Batch Review (finalize-promotion-review)"]
         PUB["Profile Publisher (publish-profile)"]
     end
 
@@ -300,7 +301,8 @@ flowchart TD
     SEL --> LIN
     LIN --> CONF
     REP -->|mirrored & mixed| CONF
-    CONF -->|eligible evidence| REV
+    CONF -->|eligible evidence| PLAN
+    PLAN -->|one decision per candidate| REV
     REV -->|approved review| PUB
     PUB -->|atomic write| RES
     RES -->|reviewed source change| PBR
@@ -317,8 +319,8 @@ flowchart TD
 - **Decoupled Python Tool**: Keeps evolutionary genetics, lineage registries, and confirmation gates outside the game runtime.
 - **Immutable Checksummed Envelopes**: All artifacts carry `schema_version`, `type`, `tool_version`, `payload`, and a SHA-256 canonical checksum.
 - **Automated Promotion Gates (`confirm-candidate`)**: Verifies lineage ancestry, dual independent regimes (mirrored & mixed), non-overlapping seeds, zero invalid actions, and behavioral diversity (L1 distance $\ge 10$).
-- **Human Review Barrier (`review-promotion`)**: An independent reviewer must explicitly approve the eligible confirmation artifact.
-- **Publication Boundary (`publish-profile`)**: Writes new versioned `.tres` files to `resources/bot_profiles/published/` via atomic no-clobber creation.
+- **Human Review Barrier**: `prepare-promotion-review` creates one editable plan for the complete candidate set. An independent reviewer changes each candidate's single decision to `approve` or `reject`; `finalize-promotion-review` verifies every confirmation binding and creates one immutable batch review.
+- **Publication Boundary (`publish-profile`)**: Selects an approved decision from the consolidated review and writes a new versioned `.tres` file to `resources/bot_profiles/published/` via atomic no-clobber creation.
 
 ### 3. Curated In-Game Catalog (`PlayableBotRoster`)
 - **Shared by GUI and CLI**: Centralizes in-game bot selection and creation.
@@ -338,5 +340,5 @@ When modifying or extending Pokahdot, keep these rules in mind:
 - [ ] **Target Total Wagers**: When constructing `PlayerAction.bet_to(n)` or `PlayerAction.raise_to(n)`, `n` is the total street wager.
 - [ ] **Immutable Configs**: Use `TournamentConfig` for UI/editor defaults, but always pass `ResolvedTournamentConfig` to live matches.
 - [ ] **Catalog Invariance**: Never remove required legacy profiles from `PlayableBotRoster`.
-- [ ] **Reviewed Promotion**: Never publish bot profiles without verified confirmation and reviewer approval artifacts.
+- [ ] **Reviewed Promotion**: Never publish bot profiles without verified confirmations and one finalized consolidated reviewer-approval artifact.
 - [ ] **Strong Typing**: Write typed GDScript (`var stack: int = 1000`, `func get_name() -> StringName:`).

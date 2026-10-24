@@ -27,7 +27,12 @@ from .evolution import crossover_candidates, initialize_generation, mutate_candi
 from .export import export_candidates
 from .fitness import evaluate_fitness
 from .lineage import build_lineage_registry, inspect_lineage
-from .promotion_review import create_promotion_review
+from .promotion_review import (
+    create_promotion_review,
+    create_promotion_review_plan,
+    finalize_promotion_review,
+    write_promotion_review_plan_atomic,
+)
 from .profile_publisher import publish_approved_profile
 from .selection import select_elites
 
@@ -135,6 +140,20 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--reject", action="store_true")
     review.add_argument("--note", default="")
     review.add_argument("--output", required=True, type=_artifact_output_path)
+
+    prepare_review = commands.add_parser("prepare-promotion-review")
+    prepare_review.add_argument(
+        "--confirmation", required=True, action="append", type=Path
+    )
+    prepare_review.add_argument("--reviewer-id", required=True)
+    prepare_review.add_argument("--output", required=True, type=_artifact_output_path)
+
+    finalize_review = commands.add_parser("finalize-promotion-review")
+    finalize_review.add_argument("--plan", required=True, type=Path)
+    finalize_review.add_argument(
+        "--confirmation", required=True, action="append", type=Path
+    )
+    finalize_review.add_argument("--output", required=True, type=_artifact_output_path)
 
     publish = commands.add_parser("publish-profile")
     publish.add_argument("--confirmation", required=True, type=Path)
@@ -258,9 +277,32 @@ def run(arguments: argparse.Namespace) -> None:
             ),
         )
         return
+    if arguments.command == "prepare-promotion-review":
+        confirmations = [
+            load_artifact(path, "confirmation") for path in arguments.confirmation
+        ]
+        plan = create_promotion_review_plan(confirmations, arguments.reviewer_id)
+        write_promotion_review_plan_atomic(arguments.output, plan)
+        completion = {
+            "candidate_count": len(plan["candidates"]),
+            "output": str(arguments.output),
+            "type": "promotion_review_plan",
+        }
+        sys.stdout.write(canonical_json_bytes(completion).decode("utf-8"))
+        return
+    if arguments.command == "finalize-promotion-review":
+        plan = load_json_object(arguments.plan)
+        confirmations = [
+            load_artifact(path, "confirmation") for path in arguments.confirmation
+        ]
+        _write_result(
+            arguments.output,
+            finalize_promotion_review(plan, confirmations),
+        )
+        return
     if arguments.command == "publish-profile":
         confirmation = load_artifact(arguments.confirmation, "confirmation")
-        review = load_artifact(arguments.review, "promotion_review")
+        review = load_artifact(arguments.review)
         result = publish_approved_profile(
             confirmation,
             review,

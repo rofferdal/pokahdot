@@ -28,13 +28,19 @@ Never edit or replace in-game bot profiles ad-hoc. All candidate promotions foll
 [tools/profile-evolution confirm-candidate]
                  │ (Verifies sample sizes, diversity L1 >= 10, zero fallbacks)
                  ▼
-      [confirmation.json] (Eligible, review_required)
+ [confirmation_*.json] (Eligible, review_required)
                  │
                  ▼
-[tools/profile-evolution review-promotion --approve]
-                 │ (Human reviewer signs off; note optional)
+[tools/profile-evolution prepare-promotion-review]
+                 │ (One editable plan lists every candidate)
                  ▼
-     [promotion_review.json]
+       [promotion_review_plan.json]
+                 │ (Human sets one approve/reject decision per candidate)
+                 ▼
+[tools/profile-evolution finalize-promotion-review]
+                 │ (Verifies every exact confirmation binding)
+                 ▼
+     [promotion_review_batch.json]
                  │
                  ▼
 [tools/profile-evolution publish-profile]
@@ -94,19 +100,39 @@ The tool verifies:
 
 ---
 
-### Step 3: Conduct Human Promotion Review
-An independent developer or reviewer inspects the confirmation artifact and records an immutable approval:
+### Step 3: Conduct One Consolidated Human Promotion Review
+
+Collect every proposed candidate in one editable plan. Repeat
+`--confirmation` for each candidate; do not generate a review file per
+candidate.
 
 ```bash
-tools/profile-evolution review-promotion \
-  --confirmation artifacts/confirmation.json \
+tools/profile-evolution prepare-promotion-review \
+  --confirmation artifacts/confirmation_01.json \
+  --confirmation artifacts/confirmation_02.json \
   --reviewer-id reviewer_username \
-  --approve \
-  --output artifacts/promotion_review.json
+  --output artifacts/promotion_review_plan.json
 ```
 
-> [!NOTE]
-> If evidence is insufficient, pass `--reject`. `--note "..."` is optional for either decision. Approval cannot be granted for ineligible confirmation artifacts.
+The reviewer opens `promotion_review_plan.json` and changes each candidate's
+single `"decision": "pending"` value to exactly `"approve"` or `"reject"`.
+The optional `display_name` and `review_note` fields may also be filled in.
+Candidate snapshots, confirmation checksums, and eligibility fields must not
+be edited.
+
+Finalize the entire plan once, supplying the same complete confirmation set:
+
+```bash
+tools/profile-evolution finalize-promotion-review \
+  --plan artifacts/promotion_review_plan.json \
+  --confirmation artifacts/confirmation_01.json \
+  --confirmation artifacts/confirmation_02.json \
+  --output artifacts/promotion_review_batch.json
+```
+
+Finalization rejects pending or invalid decisions, missing or duplicate
+candidates, altered snapshots or checksums, and approval of ineligible
+evidence. The output is one immutable checksummed review artifact.
 
 ---
 
@@ -115,14 +141,15 @@ Use `publish-profile` to generate the new Godot `.tres` Resource:
 
 ```bash
 tools/profile-evolution publish-profile \
-  --confirmation artifacts/confirmation.json \
-  --review artifacts/promotion_review.json \
+  --confirmation artifacts/confirmation_01.json \
+  --review artifacts/promotion_review_batch.json \
   --version v1 \
-  --display-name "Disciplined TAG v1" \
   --project-root .
 ```
 
 This writes a versioned `.tres` file under `resources/bot_profiles/published/` (e.g. `resources/bot_profiles/published/candidate_id__v1.tres`).
+- Repeat publication only for candidates approved in the single batch review.
+- The plan's `display_name` is used by default; `--display-name` can override it.
 - It uses no-clobber atomic writes and refuses to overwrite an existing file.
 - It does **not** modify `PlayableBotRoster`; activating the profile is a deliberate, reviewed source code change.
 

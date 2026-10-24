@@ -131,7 +131,8 @@ Pokahdot enforces promotion rigor through the [`confirm-candidate`](file:///User
    $$\text{L1 Distance} = |\Delta\text{tight}| + |\Delta\text{passive}| + |\Delta\text{call}| + |\Delta\text{bluff}|$$
    The distance to every comparable declared legacy or historical champion profile must be **at least 10 percentage points**.
 
-### Post-Confirmation Human Gate (`review-promotion`):
+### Post-Confirmation Human Gate:
 - Passing automated confirmation marks the candidate as `"promotion_eligible": true` and `"review_required": true`.
-- An independent human reviewer must execute `review-promotion --approve` with an explicit reviewer ID before `publish-profile` is allowed to generate a Godot `.tres` resource. A review note is optional.
+- Collect every proposed candidate with `prepare-promotion-review`. An independent human reviewer must change each candidate's one `decision` field from `pending` to `approve` or `reject`, then run `finalize-promotion-review` against the complete confirmation set.
+- `publish-profile` may generate a Godot `.tres` resource only when the single finalized batch review contains an approved decision bound to that exact candidate and confirmation checksum. A review note is optional.
 - No automated script can bypass human approval or modify the playable roster.

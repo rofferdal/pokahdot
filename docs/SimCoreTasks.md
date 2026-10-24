@@ -213,3 +213,15 @@ writing, or terminal output to `scripts/core/`.
   checked-in roster-export smoke artifact. Record the generated manifest's
   schema/checksum and confirm that it uses immutable snapshots rather than
   retaining live `PlayableBotRoster` Resources.
+
+## Milestone 8 — Consolidated human promotion review
+
+- [x] Replace the one-review-file-per-candidate procedure with one editable
+  review plan containing the complete confirmation set and exactly one
+  `approve` or `reject` decision per candidate.
+- [x] Finalize the completed plan into one immutable checksummed batch review,
+  preserving exact candidate, confirmation, eligibility, reviewer, note, and
+  display-name bindings while rejecting pending or altered entries.
+- [x] Allow the existing no-clobber profile publisher to resolve an approved
+  candidate from the consolidated review, retain legacy review compatibility,
+  and update Python coverage and all relevant workflow documentation.

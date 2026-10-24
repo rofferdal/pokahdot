@@ -11,7 +11,7 @@ from typing import Any
 
 from .confirmation import validate_confirmation
 from .errors import ExitCode, ToolError
-from .promotion_review import validate_promotion_review
+from .promotion_review import promotion_decision_for_candidate
 
 VERSION_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]*")
 PROFILE_ID_PATTERN = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_-]*")
@@ -100,7 +100,8 @@ def publish_approved_profile(
 ) -> dict[str, str]:
     """Publish one approved snapshot without modifying a roster or source profile."""
     confirmation = validate_confirmation(confirmation_artifact)
-    review = validate_promotion_review(review_artifact)
+    candidate_id = confirmation["candidate"]["candidate_id"]
+    review = promotion_decision_for_candidate(review_artifact, candidate_id)
     if review["confirmation_checksum"] != confirmation_artifact["checksum"]:
         _fail("promotion_review_mismatch", "Promotion review is bound to another confirmation.")
     if review["candidate"] != confirmation["candidate"]:
@@ -113,6 +114,8 @@ def publish_approved_profile(
     candidate = confirmation["candidate"]
     profile_id = _profile_id(candidate["candidate_id"], version)
     resolved_name = display_name.strip() if isinstance(display_name, str) else ""
+    if not resolved_name:
+        resolved_name = review.get("display_name", "")
     if not resolved_name:
         resolved_name = f"Promoted {candidate['candidate_id']} {version}"
     root = project_root.resolve()

@@ -303,18 +303,22 @@ of the ten proposed profiles:
    the declared historical champion, and the complete mirrored and mixed
    reports. Do not substitute the two ranking reports for these independent
    reports.
-4. Stop for an independent human reviewer. The reviewer must inspect the
-   confirmation evidence and run `review-promotion --approve` with their own
-   identity. A review note is optional. The execution agent must not approve
-   its own candidates.
-5. Only for candidates with eligible confirmation and independent approval,
-   run `publish-profile`, choosing the working label as the descriptive
-   `--display-name`. Never overwrite an existing published resource.
+4. Collect all ten confirmations with one `prepare-promotion-review` command.
+   Stop for an independent human reviewer, who inspects the evidence and edits
+   only the consolidated plan: change each candidate's one `decision` from
+   `pending` to `approve` or `reject`, and optionally add `display_name` and
+   `review_note`. The execution agent must not make these decisions.
+5. Run `finalize-promotion-review` once with the edited plan and the same
+   complete confirmation set. Finalization must fail if any candidate remains
+   pending or any confirmation binding changed. For each approved candidate,
+   run `publish-profile` with the single finalized batch review. The plan's
+   display name is used unless `--display-name` overrides it. Never overwrite
+   an existing published resource.
 
 ### 5. Integrate only the approved profiles
 
-After and only after all ten profiles have passed their individual review
-gates:
+After and only after all ten decisions have been recorded and the consolidated
+review has been finalized:
 
 1. Add the ten published resource paths to
    `scripts/core/agents/playable_bot_roster.gd`; retain all three legacy
