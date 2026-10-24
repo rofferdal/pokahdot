@@ -203,18 +203,32 @@ The evaluator must be deterministic, testable, and independent of UI.
   cards unless legitimately revealed at showdown.
 - A seat's strategy can change without modifying deck, pot, or betting rules.
 
-Version 1 includes at least three strategies in separate files:
+`PlayableBotRoster` separates profiles by their decision-model family. A
+profile whose model is `StrategyDecisionModel` is a **strategic** profile; a
+profile using any other decision model is a **legacy heuristic** profile. This
+classification applies to future models as well: adding a non-
+`StrategyDecisionModel` profile makes it legacy automatically rather than
+requiring a second manually maintained list.
 
-1. `RandomAgent` — chooses a random legal action for smoke testing.
-2. `TightPassiveAgent` — folds weak hands, otherwise checks or calls, and
-   rarely raises.
-3. `LooseAggressiveAgent` — bets or raises more often with a wider range.
+The strategic profile catalog available to product games is capped at **25**
+profiles. This is a playable-roster limit only; it does not limit the number
+of profiles in a simulation manifest, candidate batch, matchup, or any other
+simulation workflow.
 
-Strategies may use simple heuristics, such as a Chen-like preflop score and
-postflop board texture. They must not cheat.
+Standard product play selects only strategic profiles. The optional
+`use_legacy_models` startup setting is disabled by default. When enabled,
+selection uses approximately half legacy heuristic profiles and half strategic
+profiles: for `bot_count` bot seats, it selects `ceil(bot_count / 2)` legacy
+profiles and the remaining strategic profiles. The selector is deterministic
+from the tournament seed, samples independently within each family, and may
+repeat a profile only when that family's assigned seats exceed its available
+profile count. This permits every supported 2–9 player table size while still
+using each available profile before repetition.
 
-The default table uses seat 0 for the human and seats 1–5 for bots, with at
-least two different bot classes represented.
+The default table uses seat 0 for the human and seats 1–5 for bots. It therefore
+uses five randomly selected strategic profiles unless the user explicitly
+enables legacy models. Strategies may use simple heuristics, such as a
+Chen-like preflop score and postflop board texture, but they must not cheat.
 
 ### 5.3 Simulation-only composition
 
@@ -419,13 +433,15 @@ input:
 - `starting_stack`;
 - `rng_seed`: 0 selects a time-based seed; any other value is deterministic
   and tests require a nonzero value;
+- `use_legacy_models`: false by default; when true, include the defined
+  approximately half legacy-heuristic roster share;
 - `seat_agents`: seat to agent ID;
 - `tournament_mode`: `single_table` in v1.
 
 Before constructing each product tournament, GUI and interactive CLI may
-independently override `player_count`, `starting_stack`, `small_blind`, and
-`big_blind`. Defaults are 6, 1000, 5, and 10. Omitted values are resolved
-individually from defaults. Validate, copy, and freeze the resolved
+independently override `player_count`, `starting_stack`, `small_blind`,
+`big_blind`, and `use_legacy_models`. Defaults are 6, 1000, 5, 10, and false.
+Omitted values are resolved individually from defaults. Validate, copy, and freeze the resolved
 configuration when the tournament starts. A later tournament may choose new
 values. Product play has `player_count - 1` bot seats and one human at seat 0.
 

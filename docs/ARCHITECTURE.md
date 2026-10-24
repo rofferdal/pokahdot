@@ -19,6 +19,8 @@ The v1 boundary is one single-table tournament with 2–9 participants, equal st
 - No hidden-card leakage to agents or presentation layers.
 - Replaceable bot strategies without changes to poker rules.
 - Multiple decision-model implementations with independently tunable, per-seat behavior profiles.
+- Strategic profiles as the standard product roster, with an explicit optional
+  legacy-heuristic share for product games.
 - Optional startup overrides, with defaults, for participant count, common starting stack, and both blind sizes in GUI and CLI.
 - Deterministic runs when an RNG seed is supplied.
 - A human action may arrive later without blocking Godot's main thread.
@@ -160,6 +162,23 @@ evaluations reproduce their profile collection without claiming they used the
 product-curated roster. Normal GUI/interactive-CLI composition uses the
 source-controlled `PlayableBotRoster.ROSTER_VERSION`; interactive diagnostics
 record that version and the selected bot profile IDs.
+
+For product composition, `PlayableBotRoster` classifies a profile by its
+concrete decision-model family: `StrategyDecisionModel` profiles are
+strategic; every other decision-model implementation is a legacy heuristic.
+The classification is derived from the registered model rather than a second
+hand-maintained profile list, so a future non-strategic model automatically
+joins the legacy family. Standard GUI and CLI games select only strategic
+profiles, and the product strategic catalog is capped at 25 profiles. That cap
+belongs exclusively to `PlayableBotRoster` product validation: simulation
+manifests, candidate batches, and matchups may contain more strategic profiles
+and must never be rejected or truncated because of the product limit. With
+`use_legacy_models` enabled, the roster selector assigns
+`ceil(bot_count / 2)` legacy profiles and the remainder strategic profiles.
+Selection is deterministic from the seat-profile-assignment RNG stream,
+random within each family, and reuses a profile only after exhausting the
+assigned family's available profiles. This supports all 1–8 product bot-seat
+counts even when a family has fewer profiles than seats.
 `simulation_cli_app.gd` is a separate `SceneTree` process entry point for
 `help`, `validate`, `run`, `inspect`, and `replay`; it never calls the
 interactive CLI or reads stdin. Replay rebuilds the manifest plan, executes
@@ -380,7 +399,12 @@ No changes should be required in `TournamentMatch`, `HandController`, `BettingRo
 
 Every `BotAgent` receives a separate RNG stream derived from the tournament seed. A model must use only that stream for randomness. This makes a model/profile pair reproducible and prevents one bot's random calls from changing deck order or another bot's decisions.
 
-`RandomAgent`, `TightPassiveAgent`, and `LooseAggressiveAgent` are separate concrete classes in the required separate files. Each extends `BotAgent` as a thin preset subclass that supplies its corresponding decision model and default profile; decision logic remains in the model class. The default six-seat setup uses seat 0 for `HumanAgent`, seats 1–5 for these bot classes, and at least two different concrete bot classes.
+`RandomDecisionModel`, `TightPassiveDecisionModel`, and
+`LooseAggressiveDecisionModel` remain supported legacy heuristic models for
+testing and optional variety. Their profiles are excluded from standard
+product selection, but participate in the deterministic legacy share when
+`use_legacy_models` is enabled. New decision models that are not
+`StrategyDecisionModel` receive the same treatment.
 
 `StrategyDecisionModel` is the first parameterized strategy model, registered as
 `strategy_parameterized`. Its typed `StrategyDecisionModelParameters` Resource
@@ -449,15 +473,14 @@ quality, draw outs, public board texture, board-only status, and improvement
 potential. The estimate is a deterministic heuristic, not equity; it must not
 be rendered in normal player UI or used to reveal unshown cards.
 
-Experimental parameterized models are opt-in. `TournamentConfig` defaults
-`allow_experimental_models` to false, `StartupOverrides` can explicitly select
-it, and `ResolvedTournamentConfig` freezes the resolved value. The CLI reads
-`--allow-experimental-models` only from Godot user arguments after `--`; the
-GUI presents an unchecked “Allow experimental models” checkbox and clears it
-when returning to startup. Roster selection remains in the CLI and GUI
-composition roots: disabled keeps the legacy production roster, while enabled
-uses the documented mixed parameterized profiles. Poker-rule modules only see
-the constructed agents, never a strategy-selection branch.
+There is no experimental game mode. `TournamentConfig` defaults
+`use_legacy_models` to false, `StartupOverrides` may explicitly select it,
+and `ResolvedTournamentConfig` freezes the resolved value. The CLI reads
+`--use-legacy-models` only from Godot user arguments after `--`; the GUI
+presents an unchecked “Use legacy heuristic models” checkbox and clears it
+when returning to startup. The option changes only product-roster selection;
+poker-rule modules see only the completed agents and never a strategy-family
+branch.
 
 Model output is still validated by `BettingRound`. Invalid output produces the standard warning and fallback in `HandController`, regardless of model implementation. Network-backed or asynchronous models are outside v1; they may later add a pending decision result without changing poker rules or profile formats.
 
@@ -781,21 +804,23 @@ Use a typed configuration `Resource` as the source of defaults; its validated re
 - `big_blind`: default 10;
 - `starting_stack`: default 1000, applied equally to every participant;
 - `rng_seed`: 0 selects a time-based seed; every other value is deterministic and tests must use a nonzero value;
+- `use_legacy_models`: false by default; permits the defined legacy-model
+  share in product roster selection;
 - `seat_agents`: complete seat-to-agent-ID mapping with exactly one `HumanAgent` in every valid v1 match;
 - `tournament_mode`: only `single_table` is valid in v1.
 
 Configuration crosses the startup boundary through four explicit types:
 
 - `TournamentConfig` is the mutable editor-facing default/template `Resource`; it is never passed to a running match.
-- `StartupOverrides` stores each optional user value with a separate presence flag, so an omitted value differs from an explicitly invalid zero. It also carries the explicit experimental-model opt-in.
+- `StartupOverrides` stores each optional user value with a separate presence flag, so an omitted value differs from an explicitly invalid zero. It also carries the explicit legacy-model opt-in.
 - `ConfigResolver` merges defaults and overrides, performs authoritative validation, and returns typed field/error codes in `ConfigResolution`.
 - `ResolvedTournamentConfig` is a defensive runtime snapshot with read-only public properties and copied collections. `TournamentMatch` will accept only this resolved type.
 
-Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. This includes `allow_experimental_models`, which is disabled by default and does not change poker rules. Milestone 0 validates scalar values and the structural seat map; model/profile ID lookup remains the responsibility of `AgentFactory` when agents are implemented.
+Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. This includes `use_legacy_models`, which is disabled by default and does not change poker rules. Model/profile ID lookup remains the responsibility of `AgentFactory` and `PlayableBotRoster` during product composition.
 
 Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be positive, and small blind must not exceed big blind. The adapters may perform the same checks for immediate feedback, but core validation of the fully resolved configuration remains authoritative.
 
-The resolved values are copied into a fresh configuration before `TournamentMatch` is constructed and cannot change after `start()`. The resolved blind values are the starting blinds for level 1; `TournamentMatch` owns subsequent hand-based blind progression. The composition root builds the complete `seat_agents` map from `player_count`: seat 0 is the human and seats 1 through `player_count - 1` are bots. The default six-seat setup uses at least two of the three required concrete bot classes; smaller and larger tables use the same registered presets without changing poker rules.
+The resolved values are copied into a fresh configuration before `TournamentMatch` is constructed and cannot change after `start()`. The resolved blind values are the starting blinds for level 1; `TournamentMatch` owns subsequent hand-based blind progression. The composition root builds the complete `seat_agents` map from `player_count`: seat 0 is the human and seats 1 through `player_count - 1` are bots. The default six-seat setup selects five strategic profiles; the optional legacy setting applies the documented family split without changing poker rules.
 
 Validate configuration before any chips or cards are created. Invalid configuration returns a descriptive startup error.
 
