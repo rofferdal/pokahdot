@@ -52,6 +52,12 @@ stress surface for this milestone.
   [`GuiTasks.md` — Systematic GUI issue detection and remediation](GuiTasks.md#systematic-gui-issue-detection-and-remediation):
   canonical viewport and state fixtures, automatic GUI invariants, resize
   coverage, reproducible screenshots, and the standard defect record/loop.
+- [ ] Complete every task in
+  [`GuiTasks.md` — Stable seat alignment across player action states](GuiTasks.md#stable-seat-alignment-across-player-action-states).
+  Treat each occupied latest-action row as the positional reference and require
+  paired automated and visual evidence across 2–9 players that an empty row
+  does not move its seat or neighboring regions. Explicitly verify that the
+  human row does not move the event feed, human seat panel, or action panel.
 - [ ] Complete every automated implementation and regression task in
   [`GuiTasks.md` — Small desktop viewport table collision remediation](GuiTasks.md#small-desktop-viewport-table-collision-remediation),
   covering auxiliary labels, side panels, the central zone, controls, and all

@@ -133,6 +133,36 @@ space for seat annotations, side panels, the central zone, and controls.
   tables through preflop, street changes, and showdown. Confirm no player
   details, actions, showdown results, event entries, or controls are obscured.
 
+## Stable seat alignment across player action states
+
+Reserve permanent space below every GUI player seat for its latest-action
+description, whether or not that player currently has description text. The
+occupied latest-action state is the positional reference: an empty description
+must retain the same one-line row instead of allowing seats or neighboring
+regions to shift vertically.
+
+- [ ] **Reserve every player's latest-action row:** give each human and bot
+  seat's below-seat description a stable one-line layout slot whose height and
+  spacing do not collapse when its text is empty or hidden. Preserve the
+  existing occupied-state positions and do not synthesize placeholder text for
+  the player.
+- [ ] **Keep one geometry owner for the lower-table regions:** derive the event
+  feed, human seat panel, and human action panel rectangles from the reserved
+  row in the same layout pass. Toggling only the latest-action description
+  must not change any of those three rectangles or leave stale deferred
+  geometry.
+- [ ] **Add automated paired-state regressions:** at the approximately
+  950 x 532 reference viewport, render otherwise identical states with
+  representative latest actions and with no latest actions across 2–9 player
+  layouts. Assert equal seat positions and sizes, an available one-line slot
+  below every seat, viewport containment, and non-intersection. For the human
+  seat pair, also assert equal positions and sizes for the event feed, human
+  seat panel, and human action panel.
+- [ ] **Verify the correction visually:** capture the paired reference states
+  and confirm every seat remains aligned with the occupied-description
+  reference, the three lower-table regions remain fixed, and each empty
+  reserved row remains visually blank.
+
 ## Systematic GUI issue detection and remediation
 
 Complete the workflow foundation in this section before implementing the
@@ -240,7 +270,7 @@ presentation layer.
   hosted candidate; preserve physical-device sign-off for the existing Web and
   device matrix.
 - [ ] **Document the implemented contract:** update `ARCHITECTURE.md` and
-  `gui_scaling_best_practice.md` with the final layout profiles, player-count
+  `ProvisionalGUILayoutGuidance.md` with the final layout profiles, player-count
   policy, phone information hierarchy, overlay ownership, and automated visual
   verification workflow.
 
