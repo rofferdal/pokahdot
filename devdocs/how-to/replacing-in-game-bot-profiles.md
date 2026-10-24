@@ -153,11 +153,10 @@ Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/
    ```
 
 > [!IMPORTANT]
-> Always retain the legacy profiles listed in `REQUIRED_LEGACY_PROFILE_IDS`:
-> - `&"random_default"`
-> - `&"tight_passive_default"`
-> - `&"loose_aggressive_default"`
-> If any of these are omitted, `PlayableBotRoster.validate()` will fail!
+> Product validation requires at least one strategic profile: a profile whose
+> registered implementation is `StrategyDecisionModel`. Every other registered
+> decision model is classified as a legacy heuristic. If the user enables
+> legacy models, selection also requires at least one legacy profile.
 >
 > `PlayableBotRoster` also allows at most 25 profiles backed by
 > `StrategyDecisionModel`. When promoting another strategic profile beyond

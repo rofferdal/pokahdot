@@ -160,13 +160,13 @@ The centralized, curated bot catalog used by GUI and CLI presentation layers.
 
 - **Constants**:
   - `ROSTER_VERSION: StringName`: Current catalog release version (e.g. `&"curated_v1"`).
-  - `REQUIRED_LEGACY_PROFILE_IDS`: Must always include `&"random_default"`, `&"tight_passive_default"`, and `&"loose_aggressive_default"`.
   - `DEFAULT_PROFILE_PATHS`: Array of default `.tres` resource paths loaded into the roster.
   - `MAX_PLAYABLE_BOT_COUNT`: Maximum bots selectable for one tournament (8).
   - `MAX_STRATEGIC_PROFILE_COUNT`: Maximum `StrategyDecisionModel`-based profiles in the playable product roster (25). This bound does not apply to non-strategic profiles or to simulation manifests.
 - **Key Methods**:
-  - `validate() -> PackedStringArray`: Validates catalog bounds, profile uniqueness, model creation, and legacy profile presence.
-  - `select(count: int, rng: RandomNumberGenerator) -> PlayableBotRosterSelection`: Deterministically samples `count` distinct profiles without replacement, returning deep copies.
+  - `validate() -> PackedStringArray`: Validates catalog bounds, profile uniqueness, model creation, and that the strategic family is non-empty.
+  - `is_strategic_profile(profile: BotProfile) -> bool`: Classifies a profile from its registered model implementation. Only `StrategyDecisionModel` profiles are strategic; all others are legacy heuristics.
+  - `select(count: int, rng: RandomNumberGenerator, use_legacy_models: bool = false) -> PlayableBotRosterSelection`: Deterministically selects strategic profiles only by default. With legacy models enabled, it selects `ceil(count / 2)` legacy profiles and the remainder strategic, exhausting each assigned family before repeating a profile.
   - `create_bot(profile: BotProfile, rng: RandomNumberGenerator) -> AgentCreationResult`: Instantiates a concrete `BotAgent` from a profile.
   - `get_catalog_profiles() -> Array[BotProfile]`: Returns a deep-copied snapshot of every catalog profile. This is the only catalog-reading API used to bootstrap a roster simulation manifest; neither the manifest nor a simulation can retain a live catalog Resource.
   - `get_profile_ids() -> Array[StringName]`: Returns all catalog profile IDs.

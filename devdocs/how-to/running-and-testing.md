@@ -31,10 +31,15 @@ To play an interactive poker tournament in your terminal:
 godot --headless --path . --script res://scripts/cli/cli_app.gd
 ```
 
-To opt into the experimental bot roster:
+By default, product games select only strategic `StrategyDecisionModel`
+profiles. To include legacy heuristic profiles in the CLI roster:
 ```bash
-godot --headless --path . --script res://scripts/cli/cli_app.gd -- --allow-experimental-models
+godot --headless --path . --script res://scripts/cli/cli_app.gd -- --use-legacy-models
 ```
+
+The GUI provides the equivalent unchecked **Use legacy heuristic models**
+startup checkbox. With the option enabled, `ceil(bot_count / 2)` bot seats use
+legacy profiles and the rest use strategic profiles.
 
 #### In-Game CLI Commands:
 When it is your turn, enter any of the following commands:

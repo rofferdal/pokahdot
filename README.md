@@ -17,10 +17,10 @@ Prosjektet er tidlig i utviklingen. Grafisk UI og terminal-UI er under oppbyggin
    use those defaults, or change any value before starting.
 3. The form validates whole-number input and the tournament constraints inline.
    A match is created only after all values are valid.
-4. **Allow experimental models** is unchecked by default. Select it to use the
-   evaluated mixed roster of parameterized bot profiles; leave it unchecked to
-   retain the production roster. The choice resets to unchecked when returning
-   to the startup screen.
+4. **Use legacy heuristic models** is unchecked by default. Leave it unchecked
+   to select only strategic `StrategyDecisionModel` profiles. Select it to
+   include legacy heuristic profiles; this choice resets when returning to the
+   startup screen.
 
 Fra terminal, med prosjektroten som arbeidsmappe:
 
@@ -67,21 +67,21 @@ button submits the currently displayed pot amount through the normal wager
 validation path. It is disabled if that target is not a legal raise; **All-in**
 and the free wager entry remain separate controls.
 
-### Experimental bot roster
+### Bot roster selection
 
-The production roster remains the default. To opt into the evaluated,
-non-production parameterized roster, pass the flag after Godot's `--`
-argument separator:
+Standard GUI and CLI games select strategic `StrategyDecisionModel` profiles
+only. To include legacy heuristic models in an interactive CLI game, pass this
+flag after Godot's `--` argument separator:
 
 ```bash
-godot --headless --path . --script res://scripts/cli/cli_app.gd -- --allow-experimental-models
+godot --headless --path . --script res://scripts/cli/cli_app.gd -- --use-legacy-models
 ```
 
-Startup diagnostics identify the selected production or experimental roster
-and every bot's model and profile ID. The experimental mixed roster uses the
-`nit_caller`, `tight_aggressive`, `loose_passive`, `loose_aggressive`, and
-`balanced` profiles. It is deterministic for a fixed tournament seed and does
-not expose opponent hole cards.
+When legacy models are enabled, `ceil(bot_count / 2)` bot seats receive legacy
+heuristic profiles and the remaining seats receive strategic profiles. The
+selection is deterministic for a fixed tournament seed; diagnostics state
+whether legacy models are included and list every selected model and profile
+ID. Neither option exposes opponent hole cards.
 
 ## Deterministic simulation and bot-profile workflow
 
