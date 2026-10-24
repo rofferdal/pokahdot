@@ -5,7 +5,7 @@ nor owned by the simulation backlog. Simulation and profile-evolution work is
 in [`SimCoreTasks.md`](SimCoreTasks.md). Task status is preserved from the
 source backlogs.
 
-## GUI/CLI player-name presentation foundation
+## GUI player-name presentation foundation
 
 - [ ] Define a stored, presentation-only catalog of exactly 50 generated first
   names. Each name must consist only of Unicode letters, contain at most eight
