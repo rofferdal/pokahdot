@@ -115,8 +115,8 @@ func test_avatar_assignment_is_seeded_and_unique() -> void:
 	var catalog := GuiAvatarCatalogScript.new(PackedStringArray(["a", "b", "c", "d"]))
 	var service = AvatarAssignmentServiceScript.new(catalog)
 
-	var first = service.assign_for_tournament(4, 7331)
-	var second = service.assign_for_tournament(4, 7331)
+	var first = service.assign_for_tournament(4, _avatar_rng(7331))
+	var second = service.assign_for_tournament(4, _avatar_rng(7331))
 
 	assert_true(first.is_ok())
 	assert_eq(first.assignments, second.assignments)
@@ -129,7 +129,7 @@ func test_avatar_assignment_is_seeded_and_unique() -> void:
 
 func test_avatar_assignment_rejects_an_insufficient_catalog() -> void:
 	var catalog := GuiAvatarCatalogScript.new(PackedStringArray(["a", "b"]))
-	var result = AvatarAssignmentServiceScript.new(catalog).assign_for_tournament(3, 1)
+	var result = AvatarAssignmentServiceScript.new(catalog).assign_for_tournament(3, _avatar_rng(1))
 
 	assert_false(result.is_ok())
 	assert_eq(result.assignments, {})
@@ -591,6 +591,20 @@ func test_gui_startup_displays_the_initial_read_only_table() -> void:
 	assert_false(main.get_node("Center").visible)
 	assert_eq(table.displayed_hero_cards.size(), 2)
 	assert_eq(table.board_card_count, 0)
+	var assigned_names: Dictionary[int, String] = main.startup_adapter.name_assignments
+	var assigned_avatars: Dictionary[int, String] = main.startup_adapter.avatar_assignments
+	var hero_name: Label = table.get_node(
+		"TableMargin/Felt/TableSurface/Seats/Seat0/Content/Header/Identity/Name"
+	)
+	var bot_name: Label = table.get_node(
+		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/Identity/Name"
+	)
+	var bot_avatar: TextureRect = table.get_node(
+		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/Avatar"
+	)
+	assert_eq(hero_name.text, "Human")
+	assert_eq(bot_name.text, assigned_names[1])
+	assert_eq(bot_avatar.texture.resource_path, assigned_avatars[1])
 
 
 func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
@@ -605,7 +619,14 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 		add_child_autofree(table)
 		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		table.size = test_case["size"]
-		table.bind_view(_hero_table_view(player_count), _avatar_assignments(player_count))
+		(
+			table
+			. bind_view(
+				_hero_table_view(player_count),
+				_avatar_assignments(player_count),
+				_visual_name_assignments(player_count),
+			)
+		)
 		table.show()
 		await get_tree().process_frame
 		await get_tree().process_frame
@@ -614,7 +635,7 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 		var hero_name: Label = hero_panel.find_child("Name", true, false)
 		var hero_card: PanelContainer = hero_panel.find_child("HeroCard1", true, false)
 		assert_gt(hero_panel.get_rect().get_center().y, _surface_size(table).y * 0.75)
-		assert_eq(hero_name.text, "Player 1 (you)")
+		assert_eq(hero_name.text, "Human")
 		assert_eq(hero_card.get_node("Content/Rank").text, "A")
 		assert_eq(
 			hero_card.get_node("Content/Suit").texture.resource_path, "res://assets/ui/heart.svg"
@@ -624,7 +645,7 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 			var name_label: Label = table.get_node(
 				"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Header/Identity/Name" % seat
 			)
-			assert_eq(name_label.text, "Player %d" % (seat + 1))
+			assert_eq(name_label.text, _visual_name_assignments(player_count)[seat])
 
 
 func test_live_seat_panels_show_stacks_positions_and_hidden_opponent_cards() -> void:
@@ -721,6 +742,22 @@ func _avatar_assignments(player_count: int) -> Dictionary[int, String]:
 	var assignments: Dictionary[int, String] = {}
 	for seat: int in range(player_count):
 		assignments[seat] = paths[seat]
+	return assignments
+
+
+func _avatar_rng(seed_value: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	return rng
+
+
+func _visual_name_assignments(player_count: int) -> Dictionary[int, String]:
+	var bot_names: PackedStringArray = [
+		"Youssef", "Leilani", "Alexandr", "Minseo", "Haruto", "Anahit", "Adaeze", "Priya"
+	]
+	var assignments: Dictionary[int, String] = {0: "Human"}
+	for seat: int in range(1, player_count):
+		assignments[seat] = bot_names[seat - 1]
 	return assignments
 
 

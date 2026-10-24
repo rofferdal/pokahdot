@@ -28,27 +28,27 @@ Complete the core configuration and roster-selection gates in
 
 ## GUI player display names
 
-- [ ] Add a GUI-owned player-name assignment service alongside avatar
+- [x] Add a GUI-owned player-name assignment service alongside avatar
   assignment. Load the validated stored catalog of exactly 50 internationally
   representative first names, assign bot names without replacement at GUI
   tournament creation, and retain the `seat -> visual name` mapping until the
   tournament ends.
-- [ ] Use only names made of Unicode letters and no longer than eight Unicode
+- [x] Use only names made of Unicode letters and no longer than eight Unicode
   code points. Length is measured by code points, not bytes or grapheme
   clusters.
-- [ ] Render each assigned bot name in its seat panel instead of the legacy
+- [x] Render each assigned bot name in its seat panel instead of the legacy
   numbered label. Render the human seat exactly as `Human`, regardless of core
   seat number or internal display name.
-- [ ] Keep visual naming strictly presentation-only: do not write it into
+- [x] Keep visual naming strictly presentation-only: do not write it into
   `Player`, `GameView`, match configuration, events, agents, simulation data,
   or the interactive CLI. Existing CLI `(you)` labeling remains unchanged.
-- [ ] Derive name choice from the presentation-only `gui_names` RNG stream and
+- [x] Derive name choice from the presentation-only `gui_names` RNG stream and
   avatar choice from the distinct `gui_avatars` stream. Prove that consuming
   either stream does not change the other mapping or any core RNG result.
-- [ ] Preserve readable, non-overlapping name rendering at 2–9 seats across
+- [x] Preserve readable, non-overlapping name rendering at 2–9 seats across
   desktop and compact layouts. The longest catalog names and `Human` must fit
   the existing name region without reducing player-facing text below 20 px.
-- [ ] Add GUI unit/regression coverage for catalog validation, deterministic
+- [x] Add GUI unit/regression coverage for catalog validation, deterministic
   injected-RNG assignment, uniqueness, stable rerenders, human labeling, RNG
   isolation, and seat-panel rendering at representative 2-, 6-, and 9-seat
   layouts.

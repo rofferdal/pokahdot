@@ -18,7 +18,6 @@ const STARTUP_TOUCH_TARGET_HEIGHT := 64.0
 ## Binds the startup controls to the GUI configuration adapter.
 
 var startup_adapter
-var _avatar_assignment_service := AvatarAssignmentService.new()
 var _number_keypad: WagerKeypad
 
 @onready var _player_count_input: LineEdit = %PlayerCountInput
@@ -63,18 +62,6 @@ func _on_start_pressed() -> void:
 	startup_adapter.big_blind_text = _big_blind_input.text
 	startup_adapter.use_legacy_models = _use_legacy_models_checkbox.button_pressed
 	if startup_adapter.try_start():
-		var avatar_result = (
-			_avatar_assignment_service
-			. assign_for_tournament(
-				startup_adapter.resolved_config.player_count,
-				startup_adapter.resolved_config.rng_seed,
-			)
-		)
-		if not avatar_result.is_ok():
-			startup_adapter.match_instance.request_quit()
-			startup_adapter.field_errors[&"form"] = avatar_result.error_message
-			_render_errors()
-			return
 		_clear_errors()
 		(
 			_poker_table
@@ -82,7 +69,8 @@ func _on_start_pressed() -> void:
 				"bind_match",
 				startup_adapter.match_instance,
 				0,
-				avatar_result.assignments,
+				startup_adapter.avatar_assignments,
+				startup_adapter.name_assignments,
 			)
 		)
 		_startup_panel.hide()

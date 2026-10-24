@@ -171,14 +171,14 @@ func test_gui_name_and_avatar_named_streams_are_isolated() -> void:
 		(
 			avatar_service
 			. assign_for_tournament(
-				9, consumed.get_stream_seed(AvatarAssignmentServiceScript.RNG_STREAM_ID)
+				9, consumed.get_rng(AvatarAssignmentServiceScript.RNG_STREAM_ID)
 			)
 			. assignments
 		),
 		(
 			avatar_service
 			. assign_for_tournament(
-				9, untouched.get_stream_seed(AvatarAssignmentServiceScript.RNG_STREAM_ID)
+				9, untouched.get_rng(AvatarAssignmentServiceScript.RNG_STREAM_ID)
 			)
 			. assignments
 		),
@@ -220,7 +220,7 @@ func test_name_assignment_does_not_change_fixed_seed_core_snapshot_or_cli_labels
 		. new()
 		. assign_for_tournament(
 			6,
-			presentation_streams.get_stream_seed(AvatarAssignmentServiceScript.RNG_STREAM_ID),
+			presentation_streams.get_rng(AvatarAssignmentServiceScript.RNG_STREAM_ID),
 		)
 	)
 	var after = _fixed_seed_adapter()

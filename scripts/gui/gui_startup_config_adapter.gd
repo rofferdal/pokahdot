@@ -2,6 +2,7 @@ class_name GuiStartupConfigAdapter
 extends RefCounted
 
 const GuiMatchFactoryScript := preload("res://scripts/gui/gui_match_factory.gd")
+const GuiMatchCreationResultScript := preload("res://scripts/gui/gui_match_creation_result.gd")
 
 ## Presentation adapter for the GUI startup form.
 ##
@@ -17,9 +18,21 @@ var field_errors: Dictionary[StringName, String] = {}
 var resolved_config: ResolvedTournamentConfig
 var match_instance: TournamentMatch
 var start_result: StepResult
+var name_assignments: Dictionary[int, String]:
+	get:
+		return _name_assignments.duplicate()
+var avatar_assignments: Dictionary[int, String]:
+	get:
+		return _avatar_assignments.duplicate()
+var effective_seed: int:
+	get:
+		return _effective_seed
 
 var _defaults: TournamentConfig
 var _match_factory
+var _name_assignments: Dictionary[int, String] = {}
+var _avatar_assignments: Dictionary[int, String] = {}
+var _effective_seed: int = 0
 
 
 func _init(
@@ -44,6 +57,9 @@ func reset_to_defaults() -> void:
 	resolved_config = null
 	match_instance = null
 	start_result = null
+	_name_assignments.clear()
+	_avatar_assignments.clear()
+	_effective_seed = 0
 
 
 func try_start() -> bool:
@@ -51,6 +67,9 @@ func try_start() -> bool:
 	resolved_config = null
 	match_instance = null
 	start_result = null
+	_name_assignments.clear()
+	_avatar_assignments.clear()
+	_effective_seed = 0
 	var overrides := StartupOverrides.new()
 	var player_count := _parse_integer(player_count_text, &"player_count", "Player count")
 	var starting_stack := _parse_integer(starting_stack_text, &"starting_stack", "Starting stack")
@@ -71,12 +90,23 @@ func try_start() -> bool:
 		return false
 
 	resolved_config = resolution.get_config()
-	match_instance = _match_factory.create(resolved_config)
+	var creation: GuiMatchCreationResultScript = _match_factory.create(resolved_config)
+	if not creation.is_ok():
+		field_errors[&"form"] = creation.error_message
+		resolved_config = null
+		return false
+	match_instance = creation.match_instance
+	_name_assignments = creation.name_assignments
+	_avatar_assignments = creation.avatar_assignments
+	_effective_seed = creation.effective_seed
 	start_result = match_instance.start(1)
 	if start_result.status == StepResult.Status.ERROR:
 		field_errors[&"form"] = start_result.message
 		match_instance = null
 		resolved_config = null
+		_name_assignments.clear()
+		_avatar_assignments.clear()
+		_effective_seed = 0
 		return false
 	return true
 

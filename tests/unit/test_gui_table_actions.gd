@@ -222,16 +222,17 @@ func test_tournament_winner_and_eliminated_seat_are_rendered_from_the_match_view
 	view.end_reason = &"winner"
 	view.tournament_winner_seat = 0
 	view._seats[1].busted = true
-	table.bind_view(view, _empty_assignments())
+	var visual_names: Dictionary[int, String] = {0: "Human", 1: "Youssef"}
+	table.bind_view(view, _empty_assignments(), visual_names)
 
 	assert_eq(table.get_node("%ActionStatus").text, "Player 1 wins the tournament!")
-	assert_string_contains(
+	assert_eq(
 		(
 			table
 			. get_node("TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/Identity/Name")
 			. text
 		),
-		"(eliminated)"
+		"Youssef",
 	)
 	assert_eq(
 		(

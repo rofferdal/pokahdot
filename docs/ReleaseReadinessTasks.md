@@ -31,14 +31,14 @@ Build the visible feature on the stable contract from Milestone 1. Keep the
 seat-to-name mapping stable for the whole tournament and independent from avatar
 selection and core randomness.
 
-- [ ] Complete the implementation and automated coverage tasks in
+- [x] Complete the implementation and automated coverage tasks in
   [`GuiTasks.md` — GUI player display names](GuiTasks.md#gui-player-display-names):
   assignment service, bot and human labels, separate named RNG streams,
   presentation-boundary regressions, and representative 2-, 6-, and 9-seat
   rendering coverage.
-- [ ] Exercise the longest allowed catalog names and `Human` in desktop and
+- [x] Exercise the longest allowed catalog names and `Human` in desktop and
   compact automated layouts without reducing player-facing text below 20 px.
-- [ ] Run the focused GUI tests and the complete headless test suite. Preserve
+- [x] Run the focused GUI tests and the complete headless test suite. Preserve
   the source section's final visual-acceptance task for the combined visual
   gate in Milestone 3, where final small-viewport geometry is available.
 

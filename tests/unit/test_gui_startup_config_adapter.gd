@@ -2,6 +2,10 @@ extends "res://tests/support/poker_gut_test.gd"
 
 const GuiMatchFactoryScript := preload("res://scripts/gui/gui_match_factory.gd")
 const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_config_adapter.gd")
+const GuiAvatarCatalogScript := preload("res://scripts/gui/gui_avatar_catalog.gd")
+const GuiNameCatalogScript := preload("res://scripts/gui/gui_name_catalog.gd")
+const NameAssignmentServiceScript := preload("res://scripts/gui/name_assignment_service.gd")
+const AvatarAssignmentServiceScript := preload("res://scripts/gui/avatar_assignment_service.gd")
 
 
 func test_default_form_starts_with_resolved_defaults() -> void:
@@ -57,6 +61,123 @@ func test_fixed_seed_reproduces_gui_legacy_model_selection() -> void:
 	assert_true(first.try_start())
 	assert_true(second.try_start())
 	assert_eq(_bot_profile_ids(first.match_instance, 9), _bot_profile_ids(second.match_instance, 9))
+
+
+func test_fixed_seed_reproduces_gui_name_and_avatar_assignments() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.player_count = 9
+	defaults.rng_seed = 803
+	var first = GuiStartupConfigAdapterScript.new(defaults)
+	var second = GuiStartupConfigAdapterScript.new(defaults)
+
+	assert_true(first.try_start())
+	assert_true(second.try_start())
+	assert_eq(first.effective_seed, 803)
+	assert_eq(first.name_assignments, second.name_assignments)
+	assert_eq(first.avatar_assignments, second.avatar_assignments)
+	assert_eq(first.name_assignments[0], "Human")
+	var unique_bot_names: Dictionary[String, bool] = {}
+	for seat: int in range(1, 9):
+		unique_bot_names[first.name_assignments[seat]] = true
+	assert_eq(unique_bot_names.size(), 8)
+
+
+func test_zero_seed_uses_one_effective_seed_for_both_named_presentation_streams() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.player_count = 6
+	defaults.rng_seed = 0
+	var seed_provider := func() -> int: return 2468
+	var factory = (
+		GuiMatchFactoryScript
+		. new(
+			null,
+			null,
+			null,
+			RngStreamFactory.new(seed_provider),
+		)
+	)
+	var adapter = GuiStartupConfigAdapterScript.new(defaults, factory)
+
+	assert_true(adapter.try_start())
+	assert_eq(adapter.effective_seed, 2468)
+	var presentation_streams: RngStreams = (
+		RngStreamFactory
+		. new()
+		. create_named(
+			2468,
+			PackedStringArray(
+				[
+					NameAssignmentServiceScript.RNG_STREAM_ID,
+					AvatarAssignmentServiceScript.RNG_STREAM_ID,
+				]
+			),
+		)
+	)
+	var expected_names: NameAssignmentResult = (
+		NameAssignmentServiceScript
+		. new()
+		. assign_for_tournament(
+			6,
+			0,
+			presentation_streams.get_rng(NameAssignmentServiceScript.RNG_STREAM_ID),
+		)
+	)
+	var expected_avatars: AvatarAssignmentResult = (
+		AvatarAssignmentServiceScript
+		. new()
+		. assign_for_tournament(
+			6,
+			presentation_streams.get_rng(AvatarAssignmentServiceScript.RNG_STREAM_ID),
+		)
+	)
+	assert_eq(adapter.name_assignments, expected_names.assignments)
+	assert_eq(adapter.avatar_assignments, expected_avatars.assignments)
+
+
+func test_invalid_gui_name_catalog_stops_creation_with_a_form_error() -> void:
+	var invalid_names: PackedStringArray = GuiNameCatalogScript.default_names()
+	invalid_names.remove_at(invalid_names.size() - 1)
+	var factory = (
+		GuiMatchFactoryScript
+		. new(
+			null,
+			NameAssignmentServiceScript.new(GuiNameCatalogScript.new(invalid_names)),
+		)
+	)
+	var adapter = GuiStartupConfigAdapterScript.new(TournamentConfig.new(), factory)
+
+	assert_false(adapter.try_start())
+	assert_null(adapter.match_instance)
+	assert_null(adapter.resolved_config)
+	assert_eq(adapter.name_assignments, {})
+	assert_eq(adapter.avatar_assignments, {})
+	assert_eq(
+		adapter.error_for(&"form"),
+		"GUI name catalog must contain exactly 50 names; found 49.",
+	)
+
+
+func test_invalid_gui_avatar_catalog_stops_creation_with_a_form_error() -> void:
+	var invalid_catalog := GuiAvatarCatalogScript.new(PackedStringArray(["one_avatar"]))
+	var factory = (
+		GuiMatchFactoryScript
+		. new(
+			null,
+			null,
+			AvatarAssignmentServiceScript.new(invalid_catalog),
+		)
+	)
+	var adapter = GuiStartupConfigAdapterScript.new(TournamentConfig.new(), factory)
+
+	assert_false(adapter.try_start())
+	assert_null(adapter.match_instance)
+	assert_null(adapter.resolved_config)
+	assert_eq(adapter.name_assignments, {})
+	assert_eq(adapter.avatar_assignments, {})
+	assert_eq(
+		adapter.error_for(&"form"),
+		"Avatar catalog has 1 assets but 6 seats require distinct avatars.",
+	)
 
 
 func test_each_partial_override_preserves_the_other_defaults() -> void:

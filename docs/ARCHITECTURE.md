@@ -1,7 +1,7 @@
 # Pokahdot Architecture
 
-Status: Core, interactive CLI tournament play, the simulation CLI introduction, GUI work through archived Milestone 4.6b, and strategy work through archived Stratmilestone3 are implemented. GUI naming, remaining device/small-viewport verification, and profile-evolution backlogs remain unfinished.
-Last updated: 2026-10-23
+Status: Core, interactive CLI tournament play, the simulation CLI introduction, GUI work through archived Milestone 4.6b plus player-name implementation, and strategy work through archived Stratmilestone3 are implemented. GUI naming visual acceptance, remaining device/small-viewport verification, and profile-evolution backlogs remain unfinished.
+Last updated: 2026-10-24
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -591,6 +591,15 @@ deck order, button choice, bot decisions, or simulation randomness. Neither
 mapping is written to `Player`, `GameView`, match configuration, events, or
 simulation artifacts.
 
+`GuiMatchFactory` resolves the core RNG streams once, then derives a separate
+presentation stream collection from that same effective seed. Only the core
+collection enters `TournamentMatch`; the factory returns the match and
+defensive copies of both visual mappings in `GuiMatchCreationResult`.
+`GuiStartupConfigAdapter` retains those mappings for the tournament, and
+`PokerTableController` reuses them for every recipient-safe rerender and layout
+pass. This also gives an unseeded GUI tournament one shared nonzero effective
+seed without placing `gui_names` or `gui_avatars` state in the core.
+
 Live seat panels show stacks directly below player names, position badges, and two visible card backs for opponents until cards are legitimately revealed. The current public action appears on its own line below the seat. Folded or outbid seats remain visible in grayscale and hide their cards. The centered board/pot/wager zone is visually separate from seats. Human action controls are framed, explicit two-row controls beside the human seat; the ordered event feed is a high-contrast scrollable viewport on the other side. Showdown summaries are rendered above the corresponding revealed seat from the recipient-safe result, never from hidden core state.
 
 ### CLI adapter
@@ -1034,6 +1043,10 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
   Unicode letters and no longer than eight Unicode code points; deterministic
   `gui_names` assignment without replacement and independence from the
   `gui_avatars` and core RNG streams.
+- GUI seat rendering uses assigned bot names and the exact human label at 2-,
+  6-, and 9-seat tables; mappings remain stable across refresh and layout
+  changes, and longest permitted names fit desktop and compact layouts without
+  reducing player-facing text below 20 px.
 
 ### 13.2 Integration tests
 

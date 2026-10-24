@@ -39,6 +39,7 @@ var _bound_view: GameView
 var _match: TournamentMatch
 var _recipient_seat: int = Table.NO_SEAT
 var _avatar_assignments: Dictionary[int, String] = {}
+var _name_assignments: Dictionary[int, String] = {}
 var _seat_widgets: Dictionary[int, PanelContainer] = {}
 var _seat_action_widgets: Dictionary[int, Label] = {}
 var _seat_showdown_widgets: Dictionary[int, Label] = {}
@@ -104,12 +105,17 @@ func _ready() -> void:
 	_queue_layout()
 
 
-func bind_view(view: GameView, avatar_assignments: Dictionary[int, String]) -> void:
+func bind_view(
+	view: GameView,
+	avatar_assignments: Dictionary[int, String],
+	name_assignments: Dictionary[int, String] = {},
+) -> void:
 	if view == null:
 		push_error("PokerTableController requires a GameView.")
 		return
 	_bound_view = view
 	_avatar_assignments = avatar_assignments.duplicate()
+	_name_assignments = name_assignments.duplicate()
 	_event_texts.clear()
 	board_card_count = view.community_cards.size()
 	displayed_pot_amount = view.pot_amount
@@ -133,6 +139,7 @@ func bind_match(
 	match: TournamentMatch,
 	recipient_seat: int,
 	avatar_assignments: Dictionary[int, String],
+	name_assignments: Dictionary[int, String] = {},
 ) -> void:
 	if match == null:
 		push_error("PokerTableController requires a TournamentMatch.")
@@ -140,6 +147,7 @@ func bind_match(
 	_match = match
 	_recipient_seat = recipient_seat
 	_avatar_assignments = avatar_assignments.duplicate()
+	_name_assignments = name_assignments.duplicate()
 	refresh_from_match()
 	_schedule_after_latest_action()
 
@@ -152,7 +160,7 @@ func refresh_from_match() -> void:
 	if view == null:
 		push_error("TournamentMatch has no view for the requested table recipient.")
 		return
-	bind_view(view, _avatar_assignments)
+	bind_view(view, _avatar_assignments, _name_assignments)
 	_render_events(_match.get_events())
 
 
@@ -665,9 +673,9 @@ func _create_opponent_card_face(card_data: CardData, index: int) -> PanelContain
 
 
 func _seat_title(player_view: PlayerView) -> String:
-	var human_suffix: String = " (you)" if player_view.is_human else ""
-	var elimination_suffix: String = " (eliminated)" if player_view.busted else ""
-	return "%s%s%s" % [player_view.display_name, human_suffix, elimination_suffix]
+	if player_view.is_human:
+		return NameAssignmentService.HUMAN_LABEL
+	return _name_assignments.get(player_view.seat, player_view.display_name)
 
 
 func _seat_marker_text(player_view: PlayerView) -> String:
@@ -1182,6 +1190,7 @@ func _layout_table() -> void:
 			1.0,
 			not mobile_portrait_layout and not small_desktop_layout
 		)
+		_reserve_full_name_width(panel, small_desktop_layout)
 		var minimum_size: Vector2 = panel.get_combined_minimum_size()
 		var resolved_seat_size := Vector2(
 			maxf(seat_size.x, minimum_size.x), maxf(seat_size.y, minimum_size.y)
@@ -1275,6 +1284,28 @@ func _layout_table() -> void:
 		_event_log.size.y = desktop_side_height
 		_action_panel.position.y = desktop_side_y
 		_event_log.position.y = desktop_side_y
+
+
+func _reserve_full_name_width(panel: PanelContainer, should_reserve: bool) -> void:
+	var name_label := panel.find_child("Name", true, false) as Label
+	if name_label == null:
+		return
+	name_label.custom_minimum_size.x = 0.0
+	if not should_reserve:
+		return
+	var font_size: int = name_label.get_theme_font_size("font_size")
+	var rendered_width: float = (
+		name_label
+		. get_theme_font("font")
+		. get_string_size(
+			name_label.text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			font_size,
+		)
+		. x
+	)
+	name_label.custom_minimum_size.x = ceilf(rendered_width)
 
 
 func _visual_slot_for_seat(seat: int, seat_count: int) -> int:

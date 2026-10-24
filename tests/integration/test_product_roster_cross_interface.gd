@@ -9,7 +9,9 @@ func test_fixed_seed_config_selects_equivalent_families_and_one_human_in_both_in
 	var cli_factory := CliMatchFactoryScript.new()
 	var gui_factory := GuiMatchFactoryScript.new()
 	var cli_match: TournamentMatch = cli_factory.create(config)
-	var gui_match: TournamentMatch = gui_factory.create(config)
+	var gui_creation: GuiMatchCreationResult = gui_factory.create(config)
+	assert_true(gui_creation.is_ok(), gui_creation.error_message)
+	var gui_match: TournamentMatch = gui_creation.match_instance
 
 	assert_eq(_bot_identity_by_seat(cli_match), _bot_identity_by_seat(gui_match))
 	assert_eq(_human_count(cli_match), 1)
