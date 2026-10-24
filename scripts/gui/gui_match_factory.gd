@@ -18,8 +18,13 @@ func create(config: ResolvedTournamentConfig) -> TournamentMatch:
 	assert(config != null, "A resolved configuration is required.")
 	creation_count += 1
 	var streams := RngStreamFactory.new().create(config)
-	var selection := _roster.select(
-		config.player_count - 1, streams.get_seat_profile_assignment_rng()
+	var selection := (
+		_roster
+		. select(
+			config.player_count - 1,
+			streams.get_seat_profile_assignment_rng(),
+			config.use_legacy_models,
+		)
 	)
 	assert(selection.is_ok(), "The playable bot roster must resolve: %s" % selection.errors)
 	var profiles := selection.get_profiles()

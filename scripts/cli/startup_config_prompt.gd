@@ -19,9 +19,7 @@ func _init(io: CliIO, resolver: ConfigResolver = null) -> void:
 	_resolver = resolver if resolver != null else ConfigResolver.new()
 
 
-func run(
-	defaults: TournamentConfig, allow_experimental_models: bool = false
-) -> StartupPromptResult:
+func run(defaults: TournamentConfig, use_legacy_models: bool = false) -> StartupPromptResult:
 	_io.write_line("Pokahdot tournament setup")
 	_io.write_line(_defaults_summary(defaults))
 
@@ -34,11 +32,11 @@ func run(
 
 		var command := input.text.strip_edges().to_lower()
 		if command.is_empty() or command == "start":
-			return _resolve_and_report(defaults, _startup_overrides(allow_experimental_models))
+			return _resolve_and_report(defaults, _startup_overrides(use_legacy_models))
 		if command in CONFIGURE_COMMANDS:
-			return _run_custom_configuration(defaults, allow_experimental_models)
+			return _run_custom_configuration(defaults, use_legacy_models)
 		if command in SHORT_STACK_COMMANDS:
-			return _resolve_short_stack_configuration(defaults, allow_experimental_models)
+			return _resolve_short_stack_configuration(defaults, use_legacy_models)
 		if command in QUIT_COMMANDS:
 			_io.write_line("Startup cancelled.")
 			return StartupPromptResult.new(StartupPromptResult.Status.QUIT)
@@ -49,10 +47,10 @@ func run(
 
 
 func _run_custom_configuration(
-	defaults: TournamentConfig, allow_experimental_models: bool
+	defaults: TournamentConfig, use_legacy_models: bool
 ) -> StartupPromptResult:
 	while true:
-		var overrides := _startup_overrides(allow_experimental_models)
+		var overrides := _startup_overrides(use_legacy_models)
 		var player_count := _read_optional_integer("Players", defaults.player_count)
 		var early_result := _handle_non_value_status(player_count)
 		if early_result != null:
@@ -102,14 +100,14 @@ func _resolve_and_report(
 
 
 func _resolve_short_stack_configuration(
-	defaults: TournamentConfig, allow_experimental_models: bool = false
+	defaults: TournamentConfig, use_legacy_models: bool = false
 ) -> StartupPromptResult:
 	var deterministic_defaults := defaults.duplicate(true) as TournamentConfig
 	if deterministic_defaults == null:
 		_io.write_line("Unable to prepare the short-stack manual-test configuration.")
 		return StartupPromptResult.new(StartupPromptResult.Status.ERROR)
 	deterministic_defaults.rng_seed = SHORT_STACK_RNG_SEED
-	var overrides := _startup_overrides(allow_experimental_models)
+	var overrides := _startup_overrides(use_legacy_models)
 	overrides.set_player_count(SHORT_STACK_PLAYER_COUNT)
 	overrides.set_starting_stack(SHORT_STACK_STARTING_STACK)
 	overrides.set_small_blind(SHORT_STACK_SMALL_BLIND)
@@ -125,8 +123,8 @@ func _report_ready(config: ResolvedTournamentConfig) -> StartupPromptResult:
 	_io.write_line("  Blinds: %d/%d" % [config.small_blind, config.big_blind])
 	_io.write_line(
 		(
-			"  Experimental models: %s"
-			% ("enabled" if config.allow_experimental_models else "disabled")
+			"  Legacy heuristic models: %s"
+			% ("included" if config.use_legacy_models else "not included")
 		)
 	)
 	return StartupPromptResult.new(StartupPromptResult.Status.READY, config)
@@ -150,9 +148,9 @@ func _defaults_summary(defaults: TournamentConfig) -> String:
 	)
 
 
-func _startup_overrides(allow_experimental_models: bool) -> StartupOverrides:
+func _startup_overrides(use_legacy_models: bool) -> StartupOverrides:
 	var overrides := StartupOverrides.new()
-	overrides.set_allow_experimental_models(allow_experimental_models)
+	overrides.set_use_legacy_models(use_legacy_models)
 	return overrides
 
 

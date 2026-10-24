@@ -14,7 +14,7 @@ func create(config: ResolvedTournamentConfig) -> TournamentMatch:
 	assert(config != null, "A resolved configuration is required.")
 	var streams := RngStreamFactory.new().create(config)
 	var selection := _roster.select(
-		config.player_count - 1, streams.get_seat_profile_assignment_rng()
+		config.player_count - 1, streams.get_seat_profile_assignment_rng(), config.use_legacy_models
 	)
 	assert(selection.is_ok(), "The playable bot roster must resolve: %s" % selection.errors)
 	var profiles := selection.get_profiles()
@@ -39,12 +39,12 @@ func human_seat(config: ResolvedTournamentConfig) -> int:
 func diagnostics(config: ResolvedTournamentConfig) -> PackedStringArray:
 	var lines := PackedStringArray()
 	lines.append(
-		"Bot roster: %s" % ("experimental" if config.allow_experimental_models else "production")
+		"Legacy heuristic models: %s" % ("included" if config.use_legacy_models else "not included")
 	)
 	lines.append("Bot roster version: %s" % _roster.get_roster_version())
 	var streams := RngStreamFactory.new().create(config)
 	var selection := _roster.select(
-		config.player_count - 1, streams.get_seat_profile_assignment_rng()
+		config.player_count - 1, streams.get_seat_profile_assignment_rng(), config.use_legacy_models
 	)
 	assert(selection.is_ok(), "The playable bot roster must resolve: %s" % selection.errors)
 	var profiles := selection.get_profiles()
@@ -52,6 +52,10 @@ func diagnostics(config: ResolvedTournamentConfig) -> PackedStringArray:
 	for profile: BotProfile in profiles:
 		selected_profile_ids.append(String(profile.profile_id))
 	lines.append("Selected bot profile IDs: %s" % ",".join(selected_profile_ids))
+	var selected_model_families := PackedStringArray()
+	for profile: BotProfile in profiles:
+		selected_model_families.append(String(profile.model_id))
+	lines.append("Selected bot model families: %s" % ",".join(selected_model_families))
 	var profile_index: int = 0
 	for seat: int in range(config.player_count):
 		if config.seat_agents[seat] == RngStreamFactory.HUMAN_AGENT_ID:

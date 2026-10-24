@@ -14,8 +14,8 @@ var has_small_blind: bool = false
 var small_blind: int = 0
 var has_big_blind: bool = false
 var big_blind: int = 0
-var has_allow_experimental_models: bool = false
-var allow_experimental_models: bool = false
+var has_use_legacy_models: bool = false
+var use_legacy_models: bool = false
 
 
 func set_player_count(value: int) -> StartupOverrides:
@@ -42,7 +42,7 @@ func set_big_blind(value: int) -> StartupOverrides:
 	return self
 
 
-func set_allow_experimental_models(value: bool) -> StartupOverrides:
-	has_allow_experimental_models = true
-	allow_experimental_models = value
+func set_use_legacy_models(value: bool) -> StartupOverrides:
+	has_use_legacy_models = true
+	use_legacy_models = value
 	return self

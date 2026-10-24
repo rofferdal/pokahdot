@@ -12,20 +12,51 @@ func test_default_form_starts_with_resolved_defaults() -> void:
 	assert_eq(factory.creation_count, 1)
 	assert_not_null(adapter.match_instance)
 	assert_config(adapter.resolved_config, 6, 1000, 5, 10)
-	assert_false(adapter.resolved_config.allow_experimental_models)
+	assert_false(adapter.resolved_config.use_legacy_models)
+	assert_eq(_bot_model_ids(adapter.match_instance, 6).count(&"strategy_parameterized"), 5)
 
 
-func test_experimental_model_opt_in_resolves_and_resets_to_disabled() -> void:
+func test_legacy_model_opt_in_resolves_and_resets_to_disabled() -> void:
 	var adapter = GuiStartupConfigAdapterScript.new()
-	adapter.allow_experimental_models = true
+	adapter.use_legacy_models = true
 
 	assert_true(adapter.try_start())
-	assert_true(adapter.resolved_config.allow_experimental_models)
-	adapter.allow_experimental_models = false
-	assert_true(adapter.resolved_config.allow_experimental_models)
+	assert_true(adapter.resolved_config.use_legacy_models)
+	adapter.use_legacy_models = false
+	assert_true(adapter.resolved_config.use_legacy_models)
 
 	adapter.reset_to_defaults()
-	assert_false(adapter.allow_experimental_models)
+	assert_false(adapter.use_legacy_models)
+
+
+func test_legacy_model_opt_in_uses_the_shared_split_for_representative_table_sizes() -> void:
+	for player_count: int in [2, 6, 9]:
+		var defaults := TournamentConfig.new()
+		defaults.player_count = player_count
+		defaults.rng_seed = 801
+		var adapter = GuiStartupConfigAdapterScript.new(defaults)
+		adapter.use_legacy_models = true
+
+		assert_true(adapter.try_start(), "player count %d" % player_count)
+		var model_ids := _bot_model_ids(adapter.match_instance, player_count)
+		var bot_count: int = player_count - 1
+		var legacy_count: int = bot_count - model_ids.count(&"strategy_parameterized")
+		assert_eq(legacy_count, (bot_count + 1) / 2, "player count %d" % player_count)
+		assert_eq(model_ids.count(&"strategy_parameterized"), bot_count - legacy_count)
+
+
+func test_fixed_seed_reproduces_gui_legacy_model_selection() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.player_count = 9
+	defaults.rng_seed = 802
+	var first = GuiStartupConfigAdapterScript.new(defaults)
+	var second = GuiStartupConfigAdapterScript.new(defaults)
+	first.use_legacy_models = true
+	second.use_legacy_models = true
+
+	assert_true(first.try_start())
+	assert_true(second.try_start())
+	assert_eq(_bot_profile_ids(first.match_instance, 9), _bot_profile_ids(second.match_instance, 9))
 
 
 func test_each_partial_override_preserves_the_other_defaults() -> void:
@@ -89,3 +120,21 @@ func assert_config(
 	assert_eq(config.starting_stack, starting_stack)
 	assert_eq(config.small_blind, small_blind)
 	assert_eq(config.big_blind, big_blind)
+
+
+func _bot_model_ids(match_instance: TournamentMatch, player_count: int) -> Array[StringName]:
+	var model_ids: Array[StringName] = []
+	for seat: int in range(1, player_count):
+		var agent := match_instance.get_agent_for_simulation(seat) as BotAgent
+		assert_not_null(agent, "seat %d" % seat)
+		model_ids.append(agent.model_id)
+	return model_ids
+
+
+func _bot_profile_ids(match_instance: TournamentMatch, player_count: int) -> Array[StringName]:
+	var profile_ids: Array[StringName] = []
+	for seat: int in range(1, player_count):
+		var agent := match_instance.get_agent_for_simulation(seat) as BotAgent
+		assert_not_null(agent, "seat %d" % seat)
+		profile_ids.append(agent.profile_id)
+	return profile_ids

@@ -77,6 +77,7 @@ func test_match_factory_uses_resolved_non_default_configuration() -> void:
 	assert_true(view.seats[factory.human_seat(config)].is_human)
 	var diagnostics: PackedStringArray = factory.diagnostics(config)
 	assert_has(diagnostics, "Bot roster version: curated_v1")
+	assert_has(diagnostics, "Legacy heuristic models: not included")
 	var has_selected_profile_ids := false
 	for line: String in diagnostics:
 		has_selected_profile_ids = (
@@ -90,21 +91,47 @@ func test_match_factory_uses_resolved_non_default_configuration() -> void:
 		if line.contains("profile="):
 			selected_profiles[line.get_slice("profile=", 1)] = true
 	assert_eq(selected_profiles.size(), config.player_count - 1)
+	for model_family: String in _selected_model_families(diagnostics):
+		assert_eq(model_family, "strategy_parameterized")
 
 
-func test_match_factory_selects_the_experimental_mixed_roster_only_when_enabled() -> void:
+func test_match_factory_selects_the_legacy_mixed_roster_only_when_enabled() -> void:
 	var factory := CliMatchFactoryScript.new()
-	var production_diagnostics := factory.diagnostics(_config(6, 240, 12, 24))
-	var experimental_diagnostics := factory.diagnostics(_config(6, 240, 12, 24, true))
-	var experimental_match := factory.create(_config(6, 240, 12, 24, true))
+	var default_diagnostics := factory.diagnostics(_config(6, 240, 12, 24))
+	var legacy_diagnostics := factory.diagnostics(_config(6, 240, 12, 24, true))
+	var legacy_match := factory.create(_config(6, 240, 12, 24, true))
 
-	assert_has(production_diagnostics, "Bot roster: production")
-	assert_has(experimental_diagnostics, "Bot roster: experimental")
-	assert_eq(_diagnostic_profile_count(experimental_diagnostics), 5)
-	assert_ne(experimental_match.start().status, StepResult.Status.ERROR)
-	var human_view := experimental_match.get_view_for(0)
+	assert_has(default_diagnostics, "Legacy heuristic models: not included")
+	assert_has(legacy_diagnostics, "Legacy heuristic models: included")
+	assert_eq(_diagnostic_profile_count(legacy_diagnostics), 5)
+	assert_ne(legacy_match.start().status, StepResult.Status.ERROR)
+	var human_view := legacy_match.get_view_for(0)
 	assert_eq(human_view.hero_hole_cards.size(), 2)
 	assert_true(human_view.revealed_hole_cards.is_empty())
+	for line: String in legacy_diagnostics:
+		assert_false(line.contains("experimental"))
+
+
+func test_match_factory_legacy_selection_has_the_shared_family_split_for_every_table_size() -> void:
+	var factory := CliMatchFactoryScript.new()
+	for player_count: int in range(2, 10):
+		var config := _config(player_count, 240, 12, 24, true)
+		var model_families := _selected_model_families(factory.diagnostics(config))
+		var legacy_count := 0
+		for model_family: String in model_families:
+			if model_family != "strategy_parameterized":
+				legacy_count += 1
+		assert_eq(model_families.size(), player_count - 1)
+		assert_eq(legacy_count, player_count / 2)
+		assert_eq(factory.human_seat(config), 0)
+
+
+func test_match_factory_repeats_legacy_profile_selection_for_a_fixed_seed() -> void:
+	var factory := CliMatchFactoryScript.new()
+	var first_config := _config(7, 240, 12, 24, true)
+	var second_config := _config(7, 240, 12, 24, true)
+
+	assert_eq(factory.diagnostics(first_config), factory.diagnostics(second_config))
 
 
 func test_default_and_non_default_tables_mark_exactly_one_human_across_snapshots() -> void:
@@ -143,11 +170,7 @@ func test_cli_runs_seeded_short_stack_tournament_to_a_displayed_winner() -> void
 
 
 func _config(
-	count: int,
-	stack: int,
-	small_blind: int,
-	big_blind: int,
-	allow_experimental_models: bool = false
+	count: int, stack: int, small_blind: int, big_blind: int, use_legacy_models: bool = false
 ) -> ResolvedTournamentConfig:
 	var defaults := TournamentConfig.new()
 	defaults.rng_seed = 4242
@@ -156,7 +179,7 @@ func _config(
 	overrides.set_starting_stack(stack)
 	overrides.set_small_blind(small_blind)
 	overrides.set_big_blind(big_blind)
-	overrides.set_allow_experimental_models(allow_experimental_models)
+	overrides.set_use_legacy_models(use_legacy_models)
 	return ConfigResolver.new().resolve(defaults, overrides).get_config()
 
 
@@ -211,3 +234,10 @@ func _diagnostic_profile_count(diagnostics: PackedStringArray) -> int:
 		if line.contains("profile="):
 			profile_ids[line.get_slice("profile=", 1)] = true
 	return profile_ids.size()
+
+
+func _selected_model_families(diagnostics: PackedStringArray) -> PackedStringArray:
+	for line: String in diagnostics:
+		if line.begins_with("Selected bot model families: "):
+			return line.trim_prefix("Selected bot model families: ").split(",", false)
+	return PackedStringArray()

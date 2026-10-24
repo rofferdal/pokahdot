@@ -13,9 +13,6 @@ const MAX_STRATEGIC_PROFILE_COUNT := 25
 ## Source-controlled identity for the curated product catalog. Increment this
 ## whenever its membership or an included profile snapshot changes.
 const ROSTER_VERSION: StringName = &"curated_v1"
-const REQUIRED_LEGACY_PROFILE_IDS: Array[StringName] = [
-	&"random_default", &"tight_passive_default", &"loose_aggressive_default"
-]
 const DEFAULT_PROFILE_PATHS: PackedStringArray = [
 	"res://resources/bot_profiles/random_default.tres",
 	"res://resources/bot_profiles/tight_passive_default.tres",
@@ -67,12 +64,28 @@ func _init(
 
 
 func validate() -> PackedStringArray:
+	var errors := validate_for_simulation()
+	var strategic_profiles := _profiles_for_family(true)
+	if strategic_profiles.is_empty():
+		errors.append("The playable bot roster must contain at least one strategic profile.")
+	if strategic_profiles.size() > MAX_STRATEGIC_PROFILE_COUNT:
+		errors.append(
+			(
+				"The playable bot roster cannot contain more than %d strategic profiles."
+				% MAX_STRATEGIC_PROFILE_COUNT
+			)
+		)
+	return errors
+
+
+## Validates catalog entries without applying product-roster family or capacity
+## policy. Simulation manifests deliberately retain independent capacity rules.
+func validate_for_simulation() -> PackedStringArray:
 	var errors := PackedStringArray()
 	if _profiles.is_empty():
 		errors.append("The playable bot roster must contain at least one profile.")
 
 	var seen_ids: Dictionary[StringName, bool] = {}
-	var strategic_profile_count: int = 0
 	for index: int in range(_profiles.size()):
 		var profile: BotProfile = _profiles[index]
 		if profile == null:
@@ -87,26 +100,16 @@ func validate() -> PackedStringArray:
 		else:
 			seen_ids[profile.profile_id] = true
 
-		if _is_strategic_profile(profile):
-			strategic_profile_count += 1
 		var creation := AgentFactory.new(_registry).create_bot(profile, _validation_rng(index))
 		if not creation.is_ok():
 			for error: String in creation.errors:
 				errors.append("Playable bot roster profile %s: %s" % [profile.profile_id, error])
-	if strategic_profile_count > MAX_STRATEGIC_PROFILE_COUNT:
-		errors.append(
-			(
-				"The playable bot roster cannot contain more than %d strategic profiles."
-				% MAX_STRATEGIC_PROFILE_COUNT
-			)
-		)
-	for legacy_id: StringName in REQUIRED_LEGACY_PROFILE_IDS:
-		if not seen_ids.has(legacy_id):
-			errors.append("Playable bot roster must retain legacy profile: %s." % legacy_id)
 	return errors
 
 
-func select(count: int, rng: RandomNumberGenerator) -> PlayableBotRosterSelection:
+func select(
+	count: int, rng: RandomNumberGenerator, use_legacy_models: bool = false
+) -> PlayableBotRosterSelection:
 	var errors := validate()
 	if count <= 0:
 		errors.append("The playable bot selection count must be positive.")
@@ -114,28 +117,27 @@ func select(count: int, rng: RandomNumberGenerator) -> PlayableBotRosterSelectio
 		errors.append(
 			"A normal tournament cannot select more than %d bots." % MAX_PLAYABLE_BOT_COUNT
 		)
-	if count > _profiles.size():
-		errors.append(
-			(
-				"The playable bot roster has %d profiles but %d bots were requested."
-				% [_profiles.size(), count]
-			)
-		)
 	if rng == null:
 		errors.append("A seeded roster selection random number generator is required.")
+	var strategic_profiles := _profiles_for_family(true)
+	var legacy_profiles := _profiles_for_family(false)
+	if strategic_profiles.is_empty():
+		errors.append("The playable bot roster has no strategic profiles for product selection.")
+	if use_legacy_models and legacy_profiles.is_empty():
+		(
+			errors
+			. append(
+				"Legacy models were enabled, but the playable bot roster has no legacy heuristic profiles."
+			)
+		)
 	if not errors.is_empty():
 		return PlayableBotRosterSelection.new([], errors)
 
-	var remaining: Array[BotProfile] = []
-	for profile: BotProfile in _profiles:
-		remaining.append(profile)
 	var selected: Array[BotProfile] = []
-	for selection_index: int in range(count):
-		var remaining_index := rng.randi_range(selection_index, remaining.size() - 1)
-		var selected_profile: BotProfile = remaining[remaining_index]
-		remaining[remaining_index] = remaining[selection_index]
-		remaining[selection_index] = selected_profile
-		selected.append(selected_profile.duplicate(true) as BotProfile)
+	var legacy_count: int = (count + 1) / 2 if use_legacy_models else 0
+	selected.append_array(_select_family(legacy_profiles, legacy_count, rng))
+	selected.append_array(_select_family(strategic_profiles, count - legacy_count, rng))
+	_shuffle_profiles(selected, rng)
 	return PlayableBotRosterSelection.new(selected)
 
 
@@ -166,11 +168,45 @@ func get_roster_version() -> StringName:
 	return ROSTER_VERSION
 
 
-func _is_strategic_profile(profile: BotProfile) -> bool:
+func is_strategic_profile(profile: BotProfile) -> bool:
 	if profile == null:
 		return false
 	var model := _registry.create_model(profile.model_id)
 	return model is StrategyDecisionModel
+
+
+func _profiles_for_family(strategic: bool) -> Array[BotProfile]:
+	var family: Array[BotProfile] = []
+	for profile: BotProfile in _profiles:
+		if profile != null and is_strategic_profile(profile) == strategic:
+			family.append(profile)
+	return family
+
+
+func _select_family(
+	family: Array[BotProfile], count: int, rng: RandomNumberGenerator
+) -> Array[BotProfile]:
+	var selected: Array[BotProfile] = []
+	while selected.size() < count:
+		var shuffled := family.duplicate()
+		for index: int in range(shuffled.size()):
+			var swap_index := rng.randi_range(index, shuffled.size() - 1)
+			var profile: BotProfile = shuffled[index]
+			shuffled[index] = shuffled[swap_index]
+			shuffled[swap_index] = profile
+		for profile: BotProfile in shuffled:
+			if selected.size() == count:
+				break
+			selected.append(profile.duplicate(true) as BotProfile)
+	return selected
+
+
+func _shuffle_profiles(profiles: Array[BotProfile], rng: RandomNumberGenerator) -> void:
+	for index: int in range(profiles.size()):
+		var swap_index := rng.randi_range(index, profiles.size() - 1)
+		var profile: BotProfile = profiles[index]
+		profiles[index] = profiles[swap_index]
+		profiles[swap_index] = profile
 
 
 func _validation_rng(index: int) -> RandomNumberGenerator:

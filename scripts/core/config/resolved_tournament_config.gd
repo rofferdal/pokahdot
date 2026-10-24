@@ -27,9 +27,9 @@ var tournament_mode: StringName:
 	get:
 		return _tournament_mode
 
-var allow_experimental_models: bool:
+var use_legacy_models: bool:
 	get:
-		return _allow_experimental_models
+		return _use_legacy_models
 
 var seat_agents: Dictionary[int, StringName]:
 	get:
@@ -41,7 +41,7 @@ var _small_blind: int
 var _big_blind: int
 var _rng_seed: int
 var _tournament_mode: StringName
-var _allow_experimental_models: bool
+var _use_legacy_models: bool
 var _seat_agents: Dictionary[int, StringName]
 
 
@@ -53,7 +53,7 @@ func _init(
 	config_rng_seed: int,
 	config_tournament_mode: StringName,
 	config_seat_agents: Dictionary[int, StringName],
-	config_allow_experimental_models: bool = false,
+	config_use_legacy_models: bool = false,
 ) -> void:
 	_player_count = config_player_count
 	_starting_stack = config_starting_stack
@@ -61,7 +61,7 @@ func _init(
 	_big_blind = config_big_blind
 	_rng_seed = config_rng_seed
 	_tournament_mode = config_tournament_mode
-	_allow_experimental_models = config_allow_experimental_models
+	_use_legacy_models = config_use_legacy_models
 	_seat_agents = config_seat_agents.duplicate(true)
 
 

@@ -127,7 +127,7 @@ func _simulation_config(
 			config.rng_seed,
 			config.tournament_mode,
 			seat_agents,
-			config.allow_experimental_models,
+			config.use_legacy_models,
 		)
 	)
 

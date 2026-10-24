@@ -130,12 +130,12 @@ func test_startup_form_collapses_empty_errors_and_uses_visible_input_controls() 
 	]:
 		var input := main.get_node(input_path) as LineEdit
 		assert_gte(input.get_theme_stylebox("normal").border_width_left, 2, str(input_path))
-	assert_not_null(
-		(
-			(main.get_node("Center/Panel/Margin/Form/AllowExperimentalModelsCheckBox") as CheckBox)
-			. get_theme_icon("unchecked")
-		)
+	var use_legacy_models := (
+		main.get_node("Center/Panel/Margin/Form/UseLegacyModelsCheckBox") as CheckBox
 	)
+	assert_eq(use_legacy_models.text, "Use legacy heuristic models")
+	assert_false(use_legacy_models.button_pressed)
+	assert_not_null(use_legacy_models.get_theme_icon("unchecked"))
 
 
 func _hero_table_view(player_count: int) -> GameView:

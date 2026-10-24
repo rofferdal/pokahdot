@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 extends "res://tests/support/poker_gut_test.gd"
 
 
@@ -14,7 +15,7 @@ func test_defaults_resolve_to_the_specified_configuration() -> void:
 	assert_eq(config.big_blind, 10)
 	assert_eq(config.rng_seed, 0)
 	assert_eq(config.tournament_mode, &"single_table")
-	assert_false(config.allow_experimental_models)
+	assert_false(config.use_legacy_models)
 
 
 func test_default_resource_resolves_without_overrides() -> void:
@@ -204,7 +205,7 @@ func test_snapshot_is_independent_of_defaults_overrides_and_returned_seat_dictio
 
 	defaults.player_count = 9
 	defaults.starting_stack = 9999
-	defaults.allow_experimental_models = true
+	defaults.use_legacy_models = true
 	overrides.set_player_count(9)
 	overrides.set_starting_stack(9999)
 	returned_seat_agents[0] = &"bot"
@@ -212,22 +213,35 @@ func test_snapshot_is_independent_of_defaults_overrides_and_returned_seat_dictio
 
 	assert_eq(config.player_count, 2)
 	assert_eq(config.starting_stack, 500)
-	assert_false(config.allow_experimental_models)
+	assert_false(config.use_legacy_models)
 	assert_eq(config.seat_agents[0], &"human")
 
 
-func test_experimental_model_option_is_preserved_in_the_immutable_snapshot() -> void:
+func test_legacy_model_option_is_preserved_in_the_immutable_snapshot() -> void:
 	var defaults := TournamentConfig.new()
 	var overrides := StartupOverrides.new()
-	overrides.set_allow_experimental_models(true)
+	overrides.set_use_legacy_models(true)
 	var config: ResolvedTournamentConfig = (
 		ConfigResolver.new().resolve(defaults, overrides).get_config()
 	)
 
-	assert_true(config.allow_experimental_models)
-	defaults.allow_experimental_models = false
-	overrides.set_allow_experimental_models(false)
-	assert_true(config.allow_experimental_models)
+	assert_true(config.use_legacy_models)
+	defaults.use_legacy_models = false
+	overrides.set_use_legacy_models(false)
+	assert_true(config.use_legacy_models)
+
+
+func test_legacy_model_option_can_explicitly_override_an_enabled_default() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.use_legacy_models = true
+	var overrides := StartupOverrides.new()
+	overrides.set_use_legacy_models(false)
+
+	var config: ResolvedTournamentConfig = (
+		ConfigResolver.new().resolve(defaults, overrides).get_config()
+	)
+
+	assert_false(config.use_legacy_models)
 
 
 func test_unsupported_tournament_mode_is_rejected() -> void:

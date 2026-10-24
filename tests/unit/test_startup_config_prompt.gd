@@ -13,18 +13,18 @@ func test_immediate_blank_starts_with_all_defaults() -> void:
 	assert_true(io.contains_write("  Players: 6"))
 	assert_true(io.contains_write("  Starting stack: 1000"))
 	assert_true(io.contains_write("  Blinds: 5/10"))
-	assert_true(io.contains_write("  Experimental models: disabled"))
+	assert_true(io.contains_write("  Legacy heuristic models: not included"))
 
 
-func test_experimental_model_opt_in_is_resolved_and_reported() -> void:
+func test_legacy_model_opt_in_is_resolved_and_reported() -> void:
 	var io := FakeCliIO.new()
 	io.queue_blank_line()
 
 	var result := _run_prompt(io, null, true)
 
 	assert_true(result.is_ready())
-	assert_true(result.config.allow_experimental_models)
-	assert_true(io.contains_write("  Experimental models: enabled"))
+	assert_true(result.config.use_legacy_models)
+	assert_true(io.contains_write("  Legacy heuristic models: included"))
 
 
 func test_partial_override_keeps_omitted_defaults() -> void:
@@ -213,13 +213,13 @@ func test_malformed_defaults_return_error_without_config() -> void:
 func _run_prompt(
 	io: FakeCliIO,
 	defaults: TournamentConfig = null,
-	allow_experimental_models: bool = false,
+	use_legacy_models: bool = false,
 ) -> StartupPromptResult:
 	var prompt := StartupConfigPrompt.new(io)
 	var prompt_defaults: TournamentConfig = defaults
 	if prompt_defaults == null:
 		prompt_defaults = TournamentConfig.new()
-	return prompt.run(prompt_defaults, allow_experimental_models)
+	return prompt.run(prompt_defaults, use_legacy_models)
 
 
 func assert_config_values(

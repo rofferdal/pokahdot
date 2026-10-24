@@ -25,7 +25,7 @@ var _number_keypad: WagerKeypad
 @onready var _starting_stack_input: LineEdit = %StartingStackInput
 @onready var _small_blind_input: LineEdit = %SmallBlindInput
 @onready var _big_blind_input: LineEdit = %BigBlindInput
-@onready var _allow_experimental_models_checkbox: CheckBox = %AllowExperimentalModelsCheckBox
+@onready var _use_legacy_models_checkbox: CheckBox = %UseLegacyModelsCheckBox
 @onready var _player_count_error: Label = %PlayerCountError
 @onready var _starting_stack_error: Label = %StartingStackError
 @onready var _small_blind_error: Label = %SmallBlindError
@@ -61,7 +61,7 @@ func _on_start_pressed() -> void:
 	startup_adapter.starting_stack_text = _starting_stack_input.text
 	startup_adapter.small_blind_text = _small_blind_input.text
 	startup_adapter.big_blind_text = _big_blind_input.text
-	startup_adapter.allow_experimental_models = _allow_experimental_models_checkbox.button_pressed
+	startup_adapter.use_legacy_models = _use_legacy_models_checkbox.button_pressed
 	if startup_adapter.try_start():
 		var avatar_result = (
 			_avatar_assignment_service
@@ -166,17 +166,15 @@ func _configure_startup_control_visuals() -> void:
 		input.add_theme_stylebox_override(
 			"read_only", GuiTableStyleScript.box(Color("0a1711"), Color("557665"), 2, 6)
 		)
-	_allow_experimental_models_checkbox.add_theme_icon_override(
-		"unchecked", STARTUP_CHECKBOX_UNCHECKED
-	)
-	_allow_experimental_models_checkbox.add_theme_icon_override("checked", STARTUP_CHECKBOX_CHECKED)
-	_allow_experimental_models_checkbox.add_theme_icon_override(
+	_use_legacy_models_checkbox.add_theme_icon_override("unchecked", STARTUP_CHECKBOX_UNCHECKED)
+	_use_legacy_models_checkbox.add_theme_icon_override("checked", STARTUP_CHECKBOX_CHECKED)
+	_use_legacy_models_checkbox.add_theme_icon_override(
 		"unchecked_disabled", STARTUP_CHECKBOX_UNCHECKED
 	)
-	_allow_experimental_models_checkbox.add_theme_icon_override(
+	_use_legacy_models_checkbox.add_theme_icon_override(
 		"checked_disabled", STARTUP_CHECKBOX_CHECKED
 	)
-	_allow_experimental_models_checkbox.add_theme_constant_override("h_separation", 12)
+	_use_legacy_models_checkbox.add_theme_constant_override("h_separation", 12)
 
 
 func show_numeric_keypad(input: LineEdit) -> void:
@@ -203,7 +201,7 @@ func _apply_defaults() -> void:
 	_starting_stack_input.text = startup_adapter.starting_stack_text
 	_small_blind_input.text = startup_adapter.small_blind_text
 	_big_blind_input.text = startup_adapter.big_blind_text
-	_allow_experimental_models_checkbox.button_pressed = startup_adapter.allow_experimental_models
+	_use_legacy_models_checkbox.button_pressed = startup_adapter.use_legacy_models
 	_clear_errors()
 
 

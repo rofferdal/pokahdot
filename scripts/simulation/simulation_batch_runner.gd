@@ -302,7 +302,7 @@ func _config_for_input(
 			input.effective_seed,
 			base_config.tournament_mode,
 			base_config.seat_agents,
-			base_config.allow_experimental_models,
+			base_config.use_legacy_models,
 		)
 	)
 

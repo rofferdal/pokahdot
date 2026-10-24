@@ -12,31 +12,46 @@ func test_curated_roster_resolves_every_model_profile_and_has_stable_unique_ids(
 	for profile_id: StringName in profile_ids:
 		unique_ids[profile_id] = true
 	assert_eq(unique_ids.size(), profile_ids.size())
-	for legacy_id: StringName in PlayableBotRoster.REQUIRED_LEGACY_PROFILE_IDS:
-		assert_true(legacy_id in unique_ids, "Curated roster must retain %s." % legacy_id)
+	assert_eq(_family_count(roster, false), 3)
+	assert_eq(_family_count(roster, true), 5)
 
 
-func test_seeded_selection_is_deterministic_without_replacement_and_returns_snapshots() -> void:
-	var first_rng := RandomNumberGenerator.new()
-	first_rng.seed = 718
-	var second_rng := RandomNumberGenerator.new()
-	second_rng.seed = 718
+func test_default_selection_is_strategic_deterministic_and_returns_snapshots() -> void:
 	var roster := PlayableBotRoster.new()
+	for bot_count: int in range(1, PlayableBotRoster.MAX_PLAYABLE_BOT_COUNT + 1):
+		var first_rng := RandomNumberGenerator.new()
+		first_rng.seed = 718 + bot_count
+		var second_rng := RandomNumberGenerator.new()
+		second_rng.seed = 718 + bot_count
+		var first := roster.select(bot_count, first_rng)
+		var second := roster.select(bot_count, second_rng)
+		assert_true(first.is_ok())
+		assert_eq(_profile_ids(first.get_profiles()), _profile_ids(second.get_profiles()))
+		for profile: BotProfile in first.get_profiles():
+			assert_true(roster.is_strategic_profile(profile))
+		_assert_unique_until_exhausted(first.get_profiles(), roster, true)
+	var snapshots := roster.select(1, _rng(91)).get_profiles()
+	snapshots[0].profile_id = &"mutated"
+	assert_ne(roster.select(1, _rng(91)).get_profiles()[0].profile_id, &"mutated")
 
-	var first := roster.select(5, first_rng)
-	var second := roster.select(5, second_rng)
 
-	assert_true(first.is_ok())
-	assert_true(second.is_ok())
-	var first_profiles := first.get_profiles()
-	var second_profiles := second.get_profiles()
-	assert_eq(_profile_ids(first_profiles), _profile_ids(second_profiles))
-	var unique_ids: Dictionary[StringName, bool] = {}
-	for profile: BotProfile in first_profiles:
-		unique_ids[profile.profile_id] = true
-	assert_eq(unique_ids.size(), first_profiles.size())
-	first_profiles[0].profile_id = &"mutated"
-	assert_ne(first.get_profiles()[0].profile_id, &"mutated")
+func test_legacy_selection_uses_exact_family_counts_and_repeats_only_after_exhaustion() -> void:
+	var roster := PlayableBotRoster.new()
+	for bot_count: int in range(1, PlayableBotRoster.MAX_PLAYABLE_BOT_COUNT + 1):
+		var selection := roster.select(bot_count, _rng(100 + bot_count), true)
+		assert_true(selection.is_ok())
+		var profiles := selection.get_profiles()
+		var legacy_count := 0
+		var strategic_count := 0
+		for profile: BotProfile in profiles:
+			if roster.is_strategic_profile(profile):
+				strategic_count += 1
+			else:
+				legacy_count += 1
+		assert_eq(legacy_count, (bot_count + 1) / 2)
+		assert_eq(strategic_count, bot_count - legacy_count)
+		_assert_unique_until_exhausted(profiles, roster, false)
+		_assert_unique_until_exhausted(profiles, roster, true)
 
 
 func test_catalog_profiles_cover_the_roster_and_are_deeply_isolated() -> void:
@@ -85,10 +100,32 @@ func test_roster_rejects_invalid_profiles_and_selection_larger_than_catalog() ->
 	assert_false(roster.validate().is_empty())
 	var selection := roster.select(3, rng)
 	assert_false(selection.is_ok())
-	var has_size_error: bool = false
+	var has_profile_error: bool = false
 	for error: String in selection.errors:
-		has_size_error = has_size_error or error.contains("requested")
-	assert_true(has_size_error)
+		has_profile_error = has_profile_error or error.contains("profile")
+	assert_true(has_profile_error)
+
+
+func test_roster_requires_strategic_profiles_and_legacy_profiles_only_when_enabled() -> void:
+	var legacy_only: Array[BotProfile] = []
+	for profile: BotProfile in PlayableBotRoster.new().get_catalog_profiles():
+		if profile.model_id != &"strategy_parameterized":
+			legacy_only.append(profile)
+	var roster := PlayableBotRoster.new(legacy_only, null, false)
+	assert_has(
+		roster.validate(), "The playable bot roster must contain at least one strategic profile."
+	)
+
+	var strategic_only: Array[BotProfile] = []
+	for profile: BotProfile in PlayableBotRoster.new().get_catalog_profiles():
+		if profile.model_id == &"strategy_parameterized":
+			strategic_only.append(profile)
+	var strategic_roster := PlayableBotRoster.new(strategic_only, null, false)
+	assert_true(strategic_roster.select(1, _rng(12)).is_ok())
+	assert_has(
+		strategic_roster.select(1, _rng(12), true).errors,
+		"Legacy models were enabled, but the playable bot roster has no legacy heuristic profiles."
+	)
 
 
 func test_roster_accepts_twenty_five_strategic_profiles_regardless_of_legacy_profiles() -> void:
@@ -128,3 +165,31 @@ func _profile_ids(profiles: Array[BotProfile]) -> Array[StringName]:
 	for profile: BotProfile in profiles:
 		ids.append(profile.profile_id)
 	return ids
+
+
+func _family_count(roster: PlayableBotRoster, strategic: bool) -> int:
+	var count := 0
+	for profile: BotProfile in roster.get_catalog_profiles():
+		if roster.is_strategic_profile(profile) == strategic:
+			count += 1
+	return count
+
+
+func _assert_unique_until_exhausted(
+	profiles: Array[BotProfile], roster: PlayableBotRoster, strategic: bool
+) -> void:
+	var family_ids: Array[StringName] = []
+	for profile: BotProfile in profiles:
+		if roster.is_strategic_profile(profile) == strategic:
+			family_ids.append(profile.profile_id)
+	var unique_ids: Dictionary[StringName, bool] = {}
+	var expected_unique_count := mini(family_ids.size(), _family_count(roster, strategic))
+	for profile_id: StringName in family_ids:
+		unique_ids[profile_id] = true
+	assert_eq(unique_ids.size(), expected_unique_count)
+
+
+func _rng(seed: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	return rng

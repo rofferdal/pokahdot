@@ -18,7 +18,7 @@ func generate(
 	if roster == null:
 		errors.append("A playable bot roster is required for manifest generation.")
 	else:
-		errors.append_array(roster.validate())
+		errors.append_array(roster.validate_for_simulation())
 		var selected_settings: SimulationRosterManifestSettings = (
 			SETTINGS_SCRIPT.new() if settings == null else settings
 		)

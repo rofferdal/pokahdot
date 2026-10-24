@@ -19,10 +19,8 @@ func _initialize() -> void:
 		return
 
 	var prompt := StartupConfigPrompt.new(io)
-	var allow_experimental_models := CliStartupArgumentsScript.allow_experimental_models(
-		OS.get_cmdline_user_args()
-	)
-	var result: StartupPromptResult = prompt.run(defaults, allow_experimental_models)
+	var use_legacy_models := CliStartupArgumentsScript.use_legacy_models(OS.get_cmdline_user_args())
+	var result: StartupPromptResult = prompt.run(defaults, use_legacy_models)
 	if result.status == StartupPromptResult.Status.ERROR:
 		quit(1)
 		return

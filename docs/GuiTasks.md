@@ -10,15 +10,15 @@ environment tasks elsewhere.
 Complete the core configuration and roster-selection gates in
 [`CoreTasks.md`](CoreTasks.md) before beginning these tasks.
 
-- [ ] Remove the “Allow experimental models” checkbox, adapter field,
+- [x] Replace the obsolete roster checkbox, adapter field,
   controller wiring, scene-node name, and regression coverage. Add an
   unchecked **Use legacy heuristic models** checkbox bound only to the shared
   `use_legacy_models` startup override; reset it to false whenever the startup
   form is reset.
-- [ ] Update startup feedback and any match diagnostics to describe whether
+- [x] Update startup feedback and any match diagnostics to describe whether
   legacy heuristic models are included. Do not present a separate experimental
   mode or expose profile parameter/RNG details in the GUI.
-- [ ] Add GUI adapter/controller and integration tests proving that the
+- [x] Add GUI adapter/controller and integration tests proving that the
   default GUI game selects only strategic profiles; enabling the checkbox
   produces the exact shared legacy/strategic split for representative 2-, 6-,
   and 9-seat tables; fixed seeds reproduce selection; and the setting remains

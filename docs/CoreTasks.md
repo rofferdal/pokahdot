@@ -33,38 +33,38 @@ configuration and roster-selection contract. The CLI and GUI task sections
 below are coordinated gates: do not begin their implementation until the
 corresponding core gate is complete.
 
-- [ ] Remove `allow_experimental_models` from `TournamentConfig`,
+- [x] Replace the obsolete roster-mode setting in `TournamentConfig`,
   `StartupOverrides`, `ResolvedTournamentConfig`, configuration resolution,
   diagnostics contracts, and all product/simulation construction paths. Add
   the immutable, default-false `use_legacy_models` setting with equivalent
   explicit-override and defensive-copy semantics. It must not alter poker
   rules, card privacy, or simulation manifest semantics.
-- [ ] Define and implement a `PlayableBotRoster` model-family classification
+- [x] Define and implement a `PlayableBotRoster` model-family classification
   contract: profiles whose registered implementation is `StrategyDecisionModel`
   are strategic; every other registered decision model is a legacy heuristic.
   Do not maintain a separate list of legacy profile IDs. Validate that the
   standard strategic pool is non-empty and that enabling legacy models has a
   non-empty legacy pool, with actionable diagnostics for invalid rosters.
-- [ ] Implement deterministic family-aware product selection. With legacy
+- [x] Implement deterministic family-aware product selection. With legacy
   models disabled, fill every bot seat from strategic profiles only. With the
   setting enabled, assign `ceil(bot_count / 2)` legacy seats and the remainder
   strategic seats; randomly map the selected profiles to bot seats using the
   existing named seat/profile RNG stream. Within a family, exhaust distinct
   profiles before deterministic repeat selection when its assigned seat count
   exceeds its profile count.
-- [ ] Unit-test classification and selection for every 1–8 bot-seat count:
+- [x] Unit-test classification and selection for every 1–8 bot-seat count:
   default mode excludes every non-`StrategyDecisionModel` profile; legacy mode
   has the exact defined family counts; selection is deterministic for a seed;
   profile IDs are unique until a family is exhausted; and invalid/missing
   family pools fail without constructing a match.
-- [ ] After the configuration and selection unit contracts pass, implement the
+- [x] After the configuration and selection unit contracts pass, implement the
   CLI tasks in `CliTasks.md` and GUI tasks in `GuiTasks.md` in parallel. Keep
   both adapters restricted to collecting and displaying the setting; roster
   classification and selection remain shared code.
-- [ ] After both adapter task groups pass, add cross-interface integration
+- [x] After both adapter task groups pass, add cross-interface integration
   coverage for equivalent fixed-seed configuration, selected profile families,
   diagnostics, and normal exactly-one-human construction. Update all affected
-  documentation and remove every user-facing reference to experimental mode.
+  documentation and remove every user-facing reference to the obsolete mode.
 
 ## Milestone — Product strategic roster capacity
 
@@ -95,6 +95,6 @@ manifests, matchups, candidate batches, or profile evolution.
 
 ## Shared release verification
 
-- [ ] Run all headless tests and resolve warnings or invariant failures.
+- [x] Run all headless tests and resolve warnings or invariant failures.
 - [ ] Review all user-facing text and documentation for consistency with the
   implemented game.
