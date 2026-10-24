@@ -334,7 +334,8 @@ cards were actually shown.
   small blind, and big blind, prefilled with defaults. Starting without edits
   is valid. Explain invalid input and do not begin a hand until all values are
   valid.
-- Show board, pots, stacks, blinds, acting player, the human's cards,
+- Show board, pots, stacks, blinds, the acting player through an enhanced seat
+  frame, the human's cards,
   active/eliminated players, and the tournament winner.
 - Hide opponent cards until legitimately revealed at showdown.
 - Provide Fold, Check/Call, and Bet/Raise controls with minimum, Pot raise,
@@ -353,11 +354,12 @@ cards were actually shown.
 - Present the human seat at the bottom without changing the core seat identity
   or poker position. Opponents show two card backs until showdown. Folded or
   eliminated seats remain visible in grayscale without hole cards.
-- Seat panels show readable names, stack immediately below the name, position
-  markers, and the latest public action from the **active betting round** on a
-  separate line. Clear all prior seat action text at the start of preflop and
-  each transition to flop, turn, and river; retain the complete public history
-  in the event log. Center community cards, wagers, and pots as one group.
+- Seat panels show readable names, stack immediately below the name, dealer and
+  blind position markers, and the latest public action from the **active
+  betting round** on a separate line. Clear all prior seat action text at the
+  start of preflop and each transition to flop, turn, and river; retain the
+  complete public history in the event log. Center community cards, wagers,
+  and pots as one group.
 - Place compact, explicit two-row action controls beside the human seat. The
   event log is scrollable, high contrast, and cannot cover seats. At showdown,
   show each revealed player's best hand above that player's seat.

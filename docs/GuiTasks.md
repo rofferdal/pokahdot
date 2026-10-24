@@ -107,6 +107,8 @@ confirmation, and `player_quit`. No environment passes on editor preview,
 The reference surface is approximately 950 × 532. The remaining tasks reserve
 space for seat annotations, side panels, the central zone, and controls.
 
+- [x] Remove the redundant textual `ACT` seat marker while retaining the white,
+  three-times-thicker acting-seat frame and explicit action-status wording.
 - [ ] **Reserve all auxiliary-text clearance:** include each seat's below-seat
   latest-action label and above-seat showdown-summary label in the layout
   bounds before placing seats. The left-middle and right-middle layout

@@ -686,8 +686,6 @@ func _seat_marker_text(player_view: PlayerView) -> String:
 		markers.append("SB")
 	if player_view.seat == _bound_view.big_blind_seat:
 		markers.append("BB")
-	if player_view.seat == _bound_view.acting_seat:
-		markers.append("ACT")
 	return " ".join(markers)
 
 

@@ -515,7 +515,7 @@ func test_table_renders_only_recipient_cards_and_live_position_state() -> void:
 	assert_eq(table.get_node("%CardSlots/CardSlot1/Content/Suit").custom_minimum_size, Vector2.ZERO)
 	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "D")
 	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "SB")
-	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "BB ACT")
+	assert_eq(table.get_node(seat_prefix % 2 + "Header/Marker").text, "BB")
 	assert_eq(table.get_node(seat_prefix % 0 + "Header/Identity/Stack").text, "95 chips")
 	assert_eq(table.get_node(seat_prefix % 0 + "HeroCards/HeroCard1/Content/Rank").text, "K")
 	assert_eq(
@@ -666,8 +666,10 @@ func test_live_seat_panels_show_stacks_positions_and_hidden_opponent_cards() -> 
 	var seat_prefix: String = "TableMargin/Felt/TableSurface/Seats/Seat%d/Content/"
 	assert_string_contains(table.get_node(seat_prefix % 1 + "Header/Marker").text, "D")
 	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "SB")
-	assert_string_contains(table.get_node(seat_prefix % 2 + "Header/Marker").text, "ACT")
 	assert_string_contains(table.get_node(seat_prefix % 0 + "Header/Marker").text, "BB")
+	for seat: int in range(3):
+		var marker: Label = table.get_node(seat_prefix % seat + "Header/Marker")
+		assert_false("ACT" in marker.text, "seat %d must not show a redundant ACT marker" % seat)
 	assert_eq(table.get_node(seat_prefix % 1 + "Header/Identity/Stack").text, "990 chips")
 	var chip_detail: Label = table.get_node(seat_prefix % 1 + "Header/Identity/Stack")
 	var avatar: TextureRect = table.get_node(seat_prefix % 1 + "Header/Avatar")
