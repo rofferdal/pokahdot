@@ -1,19 +1,34 @@
 extends "res://tests/support/poker_gut_test.gd"
 
+const EXPECTED_PROMOTED_PROFILE_IDS: Array[StringName] = [
+	&"candidate_g0_0005_7e36a0b114c9dcaf__20261024_r3b0",
+	&"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+	&"candidate_g0_0004_65dfe5e8e29beba9__20261024_r3b0",
+	&"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+	&"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+	&"candidate_g0_0001_e944f5fff577f272__20261024_r3b0",
+	&"candidate_g1_mut_0001_7420b8a13d172e7f__20261024_r3b0",
+	&"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+	&"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+	&"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+]
+
 
 func test_curated_roster_resolves_every_model_profile_and_has_stable_unique_ids() -> void:
 	var roster := PlayableBotRoster.new()
 
 	assert_eq(roster.validate(), PackedStringArray())
-	assert_eq(roster.get_roster_version(), &"curated_v1")
+	assert_eq(roster.get_roster_version(), &"curated_v2")
 	var profile_ids := roster.get_profile_ids()
-	assert_eq(profile_ids.size(), PlayableBotRoster.MAX_PLAYABLE_BOT_COUNT)
+	assert_eq(profile_ids.size(), 18)
 	var unique_ids: Dictionary[StringName, bool] = {}
 	for profile_id: StringName in profile_ids:
 		unique_ids[profile_id] = true
 	assert_eq(unique_ids.size(), profile_ids.size())
+	for promoted_id: StringName in EXPECTED_PROMOTED_PROFILE_IDS:
+		assert_has(profile_ids, promoted_id)
 	assert_eq(_family_count(roster, false), 3)
-	assert_eq(_family_count(roster, true), 5)
+	assert_eq(_family_count(roster, true), 15)
 
 
 func test_default_selection_is_strategic_deterministic_and_returns_snapshots() -> void:

@@ -102,8 +102,10 @@ does not read or mutate the playable product roster.
 
 To establish a benchmark for the presently playable roster, export a baseline
 manifest. The command atomically writes immutable profile snapshots; it does
-not alter the roster. Defaults use the `curated_v1`-derived batch ID, seed
-`71001`, a roster-sized 100bb 5/10 table, and 2520 balanced cyclic rotations.
+not alter the roster. Defaults use the `curated_v2`-derived batch ID, seed
+`71001`, 100bb 5/10 tables, and 2520 balanced cyclic tournaments. The current
+18-profile catalog is covered by deterministic nine-seat matchups without
+raising the product table-size limit.
 
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
@@ -227,7 +229,7 @@ legacy personalities.
 
 ```bash
 tools/profile-evolution review-promotion --confirmation artifacts/confirmation.json \
-  --reviewer-id reviewer_id --approve --note "Reviewed independent evidence" \
+  --reviewer-id reviewer_id --approve \
   --output artifacts/promotion_review.json
 
 tools/profile-evolution publish-profile --confirmation artifacts/confirmation.json \
@@ -235,8 +237,9 @@ tools/profile-evolution publish-profile --confirmation artifacts/confirmation.js
   --display-name "Candidate v1" --project-root .
 ```
 
-Use `--reject` instead of `--approve` when the evidence is not sufficient. Do
-not manually alter checksummed artifacts, overwrite published profiles, or
+Use `--reject` instead of `--approve` when the evidence is not sufficient.
+Optionally add `--note "..."` to preserve reviewer context. Do not manually
+alter checksummed artifacts, overwrite published profiles, or
 treat an approval as permission to change `PlayableBotRoster` automatically.
 
 ## Development checks

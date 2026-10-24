@@ -206,7 +206,16 @@ func _capture_decisions(
 		if event.kind == DomainEvent.Kind.ACTION_REJECTED:
 			continue
 		var trace: RefCounted = decision.trace
-		metrics.observe_decision(event.seat, decision.legal_actions, decision.action, trace)
+		(
+			metrics
+			. observe_decision(
+				event.seat,
+				decision.legal_actions,
+				decision.action,
+				trace,
+				int(decision.get("all_in_aggression_kind", -1)),
+			)
+		)
 		if trace_config.mode != SimulationTraceConfig.Mode.SAMPLED:
 			continue
 		_append_sample(

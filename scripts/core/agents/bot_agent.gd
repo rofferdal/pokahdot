@@ -27,6 +27,7 @@ func choose_action(view: GameView) -> PlayerAction:
 				"trace": trace.copy() if trace != null else null,
 				"street": view.street if view != null else &"unknown",
 				"legal_actions": view.legal_actions if view != null else [],
+				"all_in_aggression_kind": _all_in_aggression_kind(view),
 				"action": action,
 			}
 		)
@@ -47,3 +48,19 @@ func get_decision_history_for_simulation() -> Array[Dictionary]:
 
 func observe(record: PublicActionRecord) -> void:
 	_model.observe(record)
+
+
+func _all_in_aggression_kind(view: GameView) -> int:
+	if view == null or PlayerAction.Kind.ALL_IN not in view.legal_actions:
+		return -1
+	if PlayerAction.Kind.BET in view.legal_actions or PlayerAction.Kind.RAISE in view.legal_actions:
+		return -1
+	var wager_before_call: int = 0
+	for player: PlayerView in view.seats:
+		if player.seat == view.hero_seat:
+			wager_before_call = player.bet_this_round
+			break
+	var current_bet: int = wager_before_call + view.call_amount
+	if view.maximum_wager_total <= current_bet:
+		return -1
+	return PlayerAction.Kind.BET if current_bet == 0 else PlayerAction.Kind.RAISE

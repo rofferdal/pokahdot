@@ -12,7 +12,8 @@ const MAX_PLAYABLE_BOT_COUNT := 8
 const MAX_STRATEGIC_PROFILE_COUNT := 25
 ## Source-controlled identity for the curated product catalog. Increment this
 ## whenever its membership or an included profile snapshot changes.
-const ROSTER_VERSION: StringName = &"curated_v1"
+const ROSTER_VERSION: StringName = &"curated_v2"
+const PUBLISHED_PROFILE_DIRECTORY := "res://resources/bot_profiles/published/"
 const DEFAULT_PROFILE_PATHS: PackedStringArray = [
 	"res://resources/bot_profiles/random_default.tres",
 	"res://resources/bot_profiles/tight_passive_default.tres",
@@ -22,6 +23,16 @@ const DEFAULT_PROFILE_PATHS: PackedStringArray = [
 	"res://resources/bot_profiles/loose_passive.tres",
 	"res://resources/bot_profiles/loose_aggressive.tres",
 	"res://resources/bot_profiles/balanced.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0005_7e36a0b114c9dcaf__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0004_65dfe5e8e29beba9__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0009_292e08a42fe29566__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0001_e944f5fff577f272__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0001_7420b8a13d172e7f__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0008_28cda20c09a12235__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0.tres",
 ]
 
 const RANDOM_MODEL_SCRIPT := preload("res://scripts/core/agents/random_decision_model.gd")

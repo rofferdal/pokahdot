@@ -82,7 +82,7 @@ func legal_actions(seat: int) -> Array[PlayerAction.Kind]:
 		result.append(PlayerAction.Kind.CALL)
 
 	var maximum: int = maximum_wager_total(seat)
-	if maximum > current_bet and can_raise(seat):
+	if maximum >= minimum_wager_total() and can_raise(seat):
 		if current_bet == 0:
 			result.append(PlayerAction.Kind.BET)
 		else:

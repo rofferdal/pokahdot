@@ -133,5 +133,5 @@ Pokahdot enforces promotion rigor through the [`confirm-candidate`](file:///User
 
 ### Post-Confirmation Human Gate (`review-promotion`):
 - Passing automated confirmation marks the candidate as `"promotion_eligible": true` and `"review_required": true`.
-- An independent human reviewer must execute `review-promotion --approve` with an explicit reviewer ID and review note before `publish-profile` is allowed to generate a Godot `.tres` resource.
+- An independent human reviewer must execute `review-promotion --approve` with an explicit reviewer ID before `publish-profile` is allowed to generate a Godot `.tres` resource. A review note is optional.
 - No automated script can bypass human approval or modify the playable roster.

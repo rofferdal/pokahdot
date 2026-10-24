@@ -394,10 +394,10 @@ class ConfirmationTests(unittest.TestCase):
                 eligible_mirrored,
                 eligible_mixed,
             )
-            review = create_promotion_review(
-                approved_confirmation, "reviewer", True, "Evidence reviewed."
-            )
-            self.assertTrue(validate_promotion_review(review)["approved"])
+            review = create_promotion_review(approved_confirmation, "reviewer", True)
+            validated_review = validate_promotion_review(review)
+            self.assertTrue(validated_review["approved"])
+            self.assertEqual(validated_review["review_note"], "")
 
     def test_publish_requires_exact_approved_review_and_never_overwrites_profile(self) -> None:
         with tempfile.TemporaryDirectory() as name:
@@ -541,8 +541,6 @@ class ConfirmationTests(unittest.TestCase):
                         "--reviewer-id",
                         "reviewer",
                         "--approve",
-                        "--note",
-                        "Evidence reviewed.",
                         "--output",
                         str(review_path),
                     ]

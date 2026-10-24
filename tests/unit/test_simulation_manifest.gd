@@ -17,7 +17,7 @@ func test_roster_generator_creates_a_valid_schema_two_snapshot_manifest() -> voi
 	assert_true(generated.is_ok())
 	assert_true(generated.errors.is_empty())
 	assert_eq(generated.manifest.schema_version, SimulationManifest.SUPPORTED_SCHEMA_VERSION)
-	assert_eq(generated.manifest.batch_id, &"roster_curated_v1")
+	assert_eq(generated.manifest.batch_id, &"roster_curated_v2")
 	assert_eq(_profile_ids(generated.manifest.profiles), roster.get_profile_ids())
 	assert_eq(
 		_unique_model_ids(generated.manifest.profiles),
@@ -47,18 +47,17 @@ func test_roster_generator_default_plan_balances_all_roster_seats() -> void:
 
 	assert_true(generated.is_ok())
 	var manifest: SimulationManifest = generated.manifest
-	assert_eq(manifest.batch_id, &"roster_curated_v1")
+	assert_eq(manifest.batch_id, &"roster_curated_v2")
 	assert_eq(manifest.seed_start, 71001)
 	assert_eq(manifest.regimes.size(), 1)
 	var regime: SimulationRegime = manifest.regimes[0]
-	assert_eq(regime.regime_id, &"roster_8_max")
-	assert_eq(regime.player_count, 8)
+	assert_eq(regime.regime_id, &"roster_9_max")
+	assert_eq(regime.player_count, 9)
 	assert_eq(regime.starting_stack, 1000)
 	assert_eq(regime.starting_small_blind, 5)
 	assert_eq(regime.starting_big_blind, 10)
-	assert_eq(manifest.matchups.size(), 1)
-	assert_eq(manifest.matchups[0].matchup_id, &"active_roster")
-	assert_eq(_profile_ids(manifest.matchups[0].get_profiles()), roster.get_profile_ids())
+	assert_eq(manifest.matchups.size(), 18)
+	_assert_equal_appearances_and_complete_pair_coverage(manifest, roster.get_profile_ids(), 9)
 	assert_eq(manifest.evaluation_plans.size(), 1)
 	var evaluation_plan: SimulationEvaluationPlan = manifest.evaluation_plans[0]
 	assert_eq(evaluation_plan.tournament_count, 2520)
@@ -67,11 +66,16 @@ func test_roster_generator_default_plan_balances_all_roster_seats() -> void:
 	var batch_plan: SimulationBatchPlan = manifest.build_plan()
 	assert_true(batch_plan.is_valid())
 	assert_eq(batch_plan.inputs.size(), 2520)
-	var rotation_counts: Dictionary = {}
+	var profile_seat_counts: Dictionary = {}
 	for input: SimulationTournamentInput in batch_plan.inputs:
-		rotation_counts[input.rotation] = int(rotation_counts.get(input.rotation, 0)) + 1
-	for rotation: int in range(regime.player_count):
-		assert_eq(rotation_counts.get(rotation, 0), 315)
+		var seat_profiles := input.get_seat_profiles()
+		for seat: int in seat_profiles:
+			var profile: BotProfile = seat_profiles[seat]
+			var key := "%s:%d" % [profile.profile_id, seat]
+			profile_seat_counts[key] = int(profile_seat_counts.get(key, 0)) + 1
+	for profile_id: StringName in roster.get_profile_ids():
+		for seat: int in range(regime.player_count):
+			assert_eq(profile_seat_counts.get("%s:%d" % [profile_id, seat], 0), 140)
 
 
 func test_roster_generator_defaults_are_balanced_for_a_three_profile_roster() -> void:
@@ -92,12 +96,23 @@ func test_roster_generator_defaults_are_balanced_for_a_three_profile_roster() ->
 	for rotation: int in range(3):
 		assert_eq(rotation_counts.get(rotation, 0), 840)
 
+	var settings := ROSTER_MANIFEST_SETTINGS_SCRIPT.new()
+	settings.minimum_profile_samples = 2520
+	assert_true(MANIFEST_GENERATOR_SCRIPT.new().generate(three_profile_roster, settings).is_ok())
+	settings.minimum_profile_samples = 2521
+	var insufficient := MANIFEST_GENERATOR_SCRIPT.new().generate(three_profile_roster, settings)
+	assert_false(insufficient.is_ok())
+	assert_has(
+		insufficient.errors,
+		"Roster manifest minimum profile samples exceed per-profile tournaments.",
+	)
+
 
 func test_roster_generator_accepts_custom_planning_defaults_and_rejects_invalid_blinds() -> void:
 	var settings: SimulationRosterManifestSettings = ROSTER_MANIFEST_SETTINGS_SCRIPT.new()
 	settings.batch_id = &"custom_roster_baseline"
 	settings.seed_start = 12
-	settings.tournament_count = 160
+	settings.tournament_count = 180
 	settings.starting_stack = 2000
 	settings.starting_small_blind = 10
 	settings.starting_big_blind = 20
@@ -107,7 +122,7 @@ func test_roster_generator_accepts_custom_planning_defaults_and_rejects_invalid_
 	assert_true(generated.is_ok())
 	assert_eq(generated.manifest.batch_id, &"custom_roster_baseline")
 	assert_eq(generated.manifest.seed_start, 12)
-	assert_eq(generated.manifest.evaluation_plans[0].tournament_count, 160)
+	assert_eq(generated.manifest.evaluation_plans[0].tournament_count, 180)
 	assert_eq(generated.manifest.evaluation_plans[0].minimum_profile_samples, 20)
 	assert_eq(generated.manifest.regimes[0].starting_stack, 2000)
 	assert_eq(generated.manifest.regimes[0].starting_small_blind, 10)
@@ -194,6 +209,26 @@ func test_manifest_round_trips_canonical_identity_and_builds_global_plan() -> vo
 	assert_true(parsed.is_ok())
 	assert_eq(parsed.manifest.canonical_json(), manifest.canonical_json())
 	assert_eq(parsed.manifest.checksum(), manifest.checksum())
+
+
+func _assert_equal_appearances_and_complete_pair_coverage(
+	manifest: SimulationManifest, profile_ids: Array[StringName], expected_appearances: int
+) -> void:
+	var appearances: Dictionary[StringName, int] = {}
+	var pairs: Dictionary[String, bool] = {}
+	for matchup: SimulationMatchup in manifest.matchups:
+		var matchup_ids := _profile_ids(matchup.get_profiles())
+		assert_eq(matchup_ids.size(), 9)
+		for profile_id: StringName in matchup_ids:
+			appearances[profile_id] = int(appearances.get(profile_id, 0)) + 1
+		for left_index: int in range(matchup_ids.size()):
+			for right_index: int in range(left_index + 1, matchup_ids.size()):
+				var pair := [String(matchup_ids[left_index]), String(matchup_ids[right_index])]
+				pair.sort()
+				pairs["%s|%s" % pair] = true
+	for profile_id: StringName in profile_ids:
+		assert_eq(appearances.get(profile_id, 0), expected_appearances)
+	assert_eq(pairs.size(), profile_ids.size() * (profile_ids.size() - 1) / 2)
 
 
 func test_manifest_rejects_unknown_fields_and_fractional_parameters() -> void:

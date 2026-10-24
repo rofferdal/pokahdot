@@ -76,7 +76,7 @@ func test_match_factory_uses_resolved_non_default_configuration() -> void:
 	assert_eq(view.seats[view.big_blind_seat].bet_this_round, 24)
 	assert_true(view.seats[factory.human_seat(config)].is_human)
 	var diagnostics: PackedStringArray = factory.diagnostics(config)
-	assert_has(diagnostics, "Bot roster version: curated_v1")
+	assert_has(diagnostics, "Bot roster version: curated_v2")
 	assert_has(diagnostics, "Legacy heuristic models: not included")
 	var has_selected_profile_ids := false
 	for line: String in diagnostics:

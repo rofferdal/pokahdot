@@ -105,28 +105,26 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 		printerr("The manifest has no resolvable simulation regime.")
 		return EXIT_INVALID
 	var started := Time.get_datetime_string_from_system(true)
+	var outcomes: Array[SimulationTournamentOutcome] = []
+	var runner := SimulationBatchRunner.new()
+	var trace_config := options.trace_config()
+	var current_plan_id := &""
+	var show_progress := options.format == SimulationCommandOptions.OutputFormat.TEXT
 	for input: SimulationTournamentInput in plan.inputs:
-		printerr(
-			(
-				"Running tournament %d (seed %d, regime %s, matchup %s)."
-				% [
-					input.tournament_index,
-					input.effective_seed,
-					input.regime_id,
-					input.matchup.matchup_id
-				]
-			)
+		if show_progress and input.plan_id != current_plan_id:
+			if not current_plan_id.is_empty():
+				printraw("\n")
+			current_plan_id = input.plan_id
+			print("Evaluation plan: %s" % current_plan_id)
+		var tournament_batch: SimulationBatchResult = runner.run(
+			base_config, [input], 256, trace_config
 		)
-	var batch: SimulationBatchResult = (
-		SimulationBatchRunner
-		. new()
-		. run(
-			base_config,
-			plan.inputs,
-			256,
-			options.trace_config(),
-		)
-	)
+		outcomes.append_array(tournament_batch.outcomes)
+		if show_progress:
+			printraw(".")
+	if show_progress and not plan.inputs.is_empty():
+		printraw("\n")
+	var batch := SimulationBatchResult.new(outcomes)
 	if not batch.is_success():
 		var failed_report: RefCounted = REPORT_SCRIPT.from_batch(
 			manifest, options.shard, batch, started, Time.get_datetime_string_from_system(true)

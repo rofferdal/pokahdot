@@ -28,15 +28,15 @@ def create_promotion_review(
     confirmation_artifact: dict[str, Any],
     reviewer_id: str,
     approved: bool,
-    review_note: str,
+    review_note: str = "",
 ) -> dict[str, Any]:
     """Record a human decision without publishing a profile or touching a roster."""
     confirmation = validate_confirmation(confirmation_artifact)
     reviewer = require_identifier(reviewer_id, "reviewer_id")
     if not isinstance(approved, bool):
         _fail("invalid_promotion_review", "Promotion review approval must be boolean.")
-    if not isinstance(review_note, str) or not review_note.strip():
-        _fail("invalid_promotion_review", "Promotion review note must be non-empty.")
+    if not isinstance(review_note, str):
+        _fail("invalid_promotion_review", "Promotion review note must be a string.")
     if approved and not confirmation["promotion_eligible"]:
         _fail(
             "ineligible_promotion_review",
@@ -78,7 +78,7 @@ def validate_promotion_review(artifact: dict[str, Any]) -> dict[str, Any]:
         )
     reviewer_id = require_identifier(payload["reviewer_id"], "reviewer_id")
     review_note = payload["review_note"]
-    if not isinstance(review_note, str) or not review_note or review_note.strip() != review_note:
+    if not isinstance(review_note, str) or review_note.strip() != review_note:
         _fail("invalid_promotion_review", "Promotion review note is invalid.")
     return {
         "approved": payload["approved"],

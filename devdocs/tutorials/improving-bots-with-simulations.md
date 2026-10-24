@@ -256,9 +256,10 @@ tools/profile-evolution review-promotion \
   --confirmation artifacts/confirmation.json \
   --reviewer-id reviewer_name \
   --approve \
-  --note "Solid TAG candidate confirmed with positive chips and zero fallbacks." \
   --output artifacts/promotion_review.json
 ```
+
+Add `--note "..."` when reviewer context is useful; the note is optional.
 
 ### 3. Publish the Profile Resource
 Publish the new `.tres` file under `resources/bot_profiles/published/`:

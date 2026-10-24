@@ -25,9 +25,9 @@ these counts if the catalog has changed.
 
 The simulation engine supports at most nine players per tournament. Thus, a
 "set" of 18 profiles in round 1 or 23 profiles in round 2 is a candidate pool,
-not one table. Every current profile must be present in each round's manifest,
-and every candidate must be tested in a balanced nine-player matchup against
-all eight incumbents.
+not one table. Every current profile must be present in each round's manifest.
+Use deterministic randomized mixed-field scheduling so every profile appears
+equally often and shares a table with every other profile at least once.
 
 Do not auto-promote, publish, or alter `PlayableBotRoster`. The repository
 requires independent mirrored and mixed-table evidence, followed by approval
@@ -35,6 +35,55 @@ from an independent human reviewer, before publication. If no reviewer is
 available, finish with artifacts and a proposed roster patch only.
 
 ## Important tool limitations
+
+### Long-running Godot execution collaboration
+
+The application runner available to an execution agent can impose a short
+foreground command window. This is an execution-environment limit, not a
+Godot simulation limit. A large simulation can finish every tournament yet
+still be stopped while Godot serializes its report, leaving no report artifact.
+
+If a required Godot `run` command cannot persist its output within the agent's
+command window, the agent must stop before performing any dependent step. It
+must record the condition in `run_log.md` and ask the user to run the exact
+command in their IDE terminal. The handoff must include:
+
+- the complete command, including the run-local manifest and output paths;
+- the expected report path and any console-log redirection path;
+- a command to verify the report exists after completion; and
+- an instruction for the user to reply when the command has completed.
+
+The user should run the command directly in the repository root. For example:
+
+```sh
+/Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script \
+  res://scripts/simulation/simulation_cli_app.gd -- \
+  run --config artifacts/bot_evolution_<run_id>/round1_manifest.json \
+  --output artifacts/bot_evolution_<run_id>/round1_report.json --format json \
+  > artifacts/bot_evolution_<run_id>/round1_console.log 2>&1
+```
+
+After the user confirms completion, the agent must first check the expected
+report exists and then run `inspect` and `replay` against that exact immutable
+artifact. It must not substitute a partial shard or rerun a dependent
+evaluation merely because the long-running report is unavailable.
+
+### Mandatory user review before each ranking simulation
+
+After creating or changing a round manifest, the execution agent must validate
+it but must not start the simulation yet. The agent must ask the user to open
+and verify the exact manifest in their IDE. The request must concisely report:
+
+- the manifest path and checksum;
+- profile, regime, matchup, evaluation-plan, and total-tournament counts;
+- the schedule seed and per-matchup tournament count; and
+- confirmation that equal profile appearances, complete pair coverage, and
+  cyclic seat balance were validated.
+
+The user must explicitly approve that manifest before the agent runs it. If
+the manifest changes after approval, the approval is invalidated: validate the
+new artifact and ask the user to review and approve it again. Record the
+request, the user's response, and the approved checksum in `run_log.md`.
 
 The current `tools/profile-evolution` CLI deliberately creates opaque,
 content-derived candidate IDs such as `candidate_g0_0000_<hash>`. It does not
@@ -115,20 +164,44 @@ artifact. Use English in all files. Preserve unrelated working-tree changes.
    ```
 
 2. Examine the generated genes. Give all ten candidates unique working labels
-   in `candidate_labels.md`. If random initialization failed to cover clearly
+   in `candidate_labels.md` (see the section on naming and descriptive labels).
+   Immutable tool-generated candidate IDs remain authoritative and opaque.
+   If random initialization failed to cover clearly
    different styles, discard the *entire unrun generation* and initialize a
    new one with a new seed; do not edit candidate genes or IDs. Seek broad
    coverage across tight/loose play, initiative, raise tendency, and bluffing,
    while retaining an L1 distance of at least 10 from every incumbent strategy
    profile and from every other candidate where practical.
 3. Build a schema-2 round-1 manifest containing all eight incumbent snapshots
-   and all ten candidate snapshots. Create ten matchups, each made of one
-   candidate plus the same eight incumbents. Use one nine-player, 100bb,
-   5/10, normative-hand-based regime, cyclic rotation, `normal_95`, and 900
-   tournaments per matchup. This gives every participant 100 samples in each
-   seat for every candidate comparison and exceeds the 300-tournament
-   promotion minimum per candidate.
-4. Validate, run, inspect, and replay at least one tournament:
+   and all ten candidate snapshots. With `N = 18` profiles and `K = 9` seats,
+   generate exactly `N` distinct nine-player matchups from a recorded non-zero
+   schedule seed. The schedule must satisfy all of these invariants:
+
+   - every matchup contains exactly `K` distinct profiles;
+   - every profile appears in exactly `K` matchups;
+   - every unordered pair of profiles occurs together in at least one matchup;
+   - matchup IDs and profile order are stable for the recorded seed; and
+   - the complete schedule is rejected and regenerated with a new recorded
+     seed if any invariant fails.
+
+   Preserve the schedule seed, generator version or algorithm description,
+   per-profile appearance counts, and pair-coverage counts in
+   `round1_schedule.md`. Before generating a schedule, verify the necessary
+   feasibility conditions `N >= K` and `K * (K - 1) >= N - 1`.
+
+   Use one nine-player, 100bb, 5/10, normative-hand-based regime. Create one
+   evaluation plan containing all 18 matchup IDs, with cyclic rotation,
+   `normal_95`, `minimum_profile_samples: 300`, and
+   `tournament_count: 1782` (`18 matchups * 99 tournaments`). The planner
+   round-robins the matchup IDs, so each matchup receives exactly 99
+   tournaments. Ninety-nine is used instead of 100 because a nine-player
+   cyclic plan requires a multiple of nine for balanced seats. Each profile
+   therefore receives 891 total tournament samples and 99 samples in each
+   seat across its nine matchups.
+4. Validate the manifest. Report its checksum and schedule summary, then ask
+   the user to inspect `round1_manifest.json` in their IDE. Wait for explicit
+   approval of that exact checksum before running it. After approval, run,
+   inspect, and replay at least one tournament:
 
    ```sh
    godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
@@ -178,15 +251,25 @@ artifact. Use English in all files. Preserve unrelated working-tree changes.
    later lineage reconstruction.
 4. Build one schema-2 round-2 simulation manifest containing the eight
    incumbents, five retained survivors, five fresh-random candidates, and five
-   mutated children: 23 profiles in total. As in round 1, schedule one
-   candidate plus all eight incumbents per nine-player matchup. There must be
-   15 such matchups, cyclic rotation, `normal_95`, and 900 tournaments per
-   matchup. Thus the round contains all 15 new profiles, while each comparison
-   has an identical incumbent field.
-5. Validate, run, inspect, and replay the round-2 report. Evaluate the fresh
-   random generation and the mutated-child generation separately against the
-   complete same report. Retain the round-1 fitness result for survivors and
-   calculate all 15 candidates' common-field round-2 comparison in
+   mutated children: `N = 23` profiles in total. With `K = 9` seats, generate
+   exactly 23 distinct nine-player matchups from a new recorded non-zero
+   schedule seed. Apply the same equal-appearance, complete pair-coverage,
+   deterministic ordering, feasibility, rejection, and audit requirements as
+   round 1, and record the evidence in `round2_schedule.md`.
+
+   Create one evaluation plan containing all 23 matchup IDs, with cyclic
+   rotation, `normal_95`, `minimum_profile_samples: 300`, and
+   `tournament_count: 2277` (`23 matchups * 99 tournaments`). Each matchup
+   receives exactly 99 tournaments; every profile appears in exactly nine
+   matchups and therefore receives 891 total samples, balanced to 99 samples
+   in each seat.
+5. Validate the manifest. Report its checksum and schedule summary, then ask
+   the user to inspect `round2_manifest.json` in their IDE. Wait for explicit
+   approval of that exact checksum before running it. After approval, run,
+   inspect, and replay the round-2 report. Evaluate the fresh random generation
+   and the mutated-child generation separately against the complete same
+   report. Retain the round-1 fitness result for survivors and calculate all
+   15 candidates' mixed-field round-2 comparison in
    `final_ranking.md` from per-tournament report data using the exact six-part
    fitness formula and uncertainty penalty documented in
    `devdocs/how-to/evaluating-bot-performance.md`.
@@ -222,8 +305,8 @@ of the ten proposed profiles:
    reports.
 4. Stop for an independent human reviewer. The reviewer must inspect the
    confirmation evidence and run `review-promotion --approve` with their own
-   identity and a substantive note. The execution agent must not approve its
-   own candidates.
+   identity. A review note is optional. The execution agent must not approve
+   its own candidates.
 5. Only for candidates with eligible confirmation and independent approval,
    run `publish-profile`, choosing the working label as the descriptive
    `--display-name`. Never overwrite an existing published resource.

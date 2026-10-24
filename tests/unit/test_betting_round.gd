@@ -90,6 +90,38 @@ func test_short_all_in_raise_does_not_reopen_prior_callers_raise_rights() -> voi
 	assert_true(round.is_complete())
 
 
+func test_short_all_in_does_not_advertise_an_unaffordable_full_bet() -> void:
+	var players: Array[Player] = _players_with_stacks([5, 100])
+	var round := BettingRound.new(Table.new(players, 5, 10), 0)
+
+	assert_eq(
+		round.legal_actions(0),
+		[
+			PlayerAction.Kind.FOLD,
+			PlayerAction.Kind.CHECK,
+			PlayerAction.Kind.ALL_IN,
+		],
+	)
+	assert_true(round.apply_action(0, PlayerAction.all_in_action()).is_ok())
+	assert_eq(round.current_bet, 5)
+
+
+func test_short_all_in_does_not_advertise_an_unaffordable_full_raise() -> void:
+	var players: Array[Player] = _players_with_stacks([15, 100])
+	var round := BettingRound.new(Table.new(players, 5, 10), 0, 10)
+
+	assert_eq(
+		round.legal_actions(0),
+		[
+			PlayerAction.Kind.FOLD,
+			PlayerAction.Kind.CALL,
+			PlayerAction.Kind.ALL_IN,
+		],
+	)
+	assert_true(round.apply_action(0, PlayerAction.all_in_action()).is_ok())
+	assert_eq(round.current_bet, 15)
+
+
 func test_invalid_action_leaves_round_and_player_unchanged() -> void:
 	var players: Array[Player] = _players(2)
 	var round := BettingRound.new(Table.new(players, 5, 10), 0)

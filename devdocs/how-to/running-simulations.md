@@ -75,13 +75,14 @@ its reports. The default batch ID is `roster_<ROSTER_VERSION>`; use an
 explicit `--batch-id` when the artifact needs a more descriptive experiment
 identity.
 
-The generated manifest contains one `active_roster` matchup with every active
-profile, one `roster_<count>_max` 100bb regime, and a cyclic evaluation plan.
-It is a reproducible baseline, not a promotion result. To test a candidate,
-keep this export unchanged, copy it to a new candidate manifest, add the
-candidate profile, and adjust the regime's `player_count`, matchup profile IDs,
-and plan count so all profiles receive balanced seat rotations. Validate the
-candidate-inclusive manifest before running it.
+For at most nine active profiles, the generated manifest contains one
+`active_roster` matchup and one `roster_<count>_max` 100bb regime. Larger
+catalogs use a `roster_9_max` regime and deterministic translated matchups that
+give every profile equal appearances, complete pair coverage, and aggregate
+cyclic seat balance. This preserves the nine-player simulation limit. The
+manifest is a reproducible baseline, not a promotion result. To test a
+candidate, keep this export unchanged and build a separately validated
+candidate manifest with balanced coverage.
 
 ---
 

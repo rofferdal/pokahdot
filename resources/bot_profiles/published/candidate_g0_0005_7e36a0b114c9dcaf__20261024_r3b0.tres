@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BotProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/agents/bot_profile.gd" id="1_profile"]
+[ext_resource type="Script" path="res://scripts/core/agents/strategy_decision_model_parameters.gd" id="2_params"]
+
+[sub_resource type="Resource" id="StrategyParameters_published"]
+script = ExtResource("2_params")
+tight_vs_loose = 13
+passive_vs_aggressive = 70
+call_vs_raise = 44
+bluff_rate = 88
+
+[resource]
+script = ExtResource("1_profile")
+profile_id = &"candidate_g0_0005_7e36a0b114c9dcaf__20261024_r3b0"
+model_id = &"strategy_parameterized"
+display_name = "Phantom Blaze"
+parameters = SubResource("StrategyParameters_published")

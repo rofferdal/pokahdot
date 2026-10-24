@@ -206,3 +206,37 @@ func test_all_in_actions_are_classified_as_calls_bets_or_raises() -> void:
 	assert_eq(caller.pfr_hands, 0)
 	assert_eq(caller.call_actions, 1)
 	assert_eq(caller.calls_at_call_raise_opportunity, 0)
+
+
+func test_short_all_in_raise_is_an_aggression_opportunity() -> void:
+	var metrics := METRICS_SCRIPT.new({0: &"short_raiser"}, {0: 15})
+	(
+		metrics
+		. observe_hand(
+			[0],
+			{0: 15},
+			{0: 0},
+			10,
+			[PublicActionRecord.new(0, PlayerAction.Kind.ALL_IN, 15)],
+			[DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 0, 15)],
+		)
+	)
+	(
+		metrics
+		. observe_decision(
+			0,
+			[PlayerAction.Kind.FOLD, PlayerAction.Kind.CALL, PlayerAction.Kind.ALL_IN],
+			PlayerAction.all_in_action(),
+			null,
+			PlayerAction.Kind.RAISE,
+		)
+	)
+	metrics.finish({0: 0}, Table.NO_SEAT, 1)
+
+	var metric = metrics.get_seat_metrics()[0]
+	assert_eq(metric.aggressive_actions, 1)
+	assert_eq(metric.bet_raise_opportunities, 1)
+	assert_eq(metric.call_raise_opportunities, 1)
+	assert_eq(metric.raises_at_call_raise_opportunity, 1)
+	assert_almost_eq(metric.bet_raise_frequency, 1.0, 0.0001)
+	assert_almost_eq(metric.raise_share, 1.0, 0.0001)

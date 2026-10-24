@@ -133,7 +133,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--reviewer-id", required=True)
     review.add_argument("--approve", action="store_true")
     review.add_argument("--reject", action="store_true")
-    review.add_argument("--note", required=True)
+    review.add_argument("--note", default="")
     review.add_argument("--output", required=True, type=_artifact_output_path)
 
     publish = commands.add_parser("publish-profile")

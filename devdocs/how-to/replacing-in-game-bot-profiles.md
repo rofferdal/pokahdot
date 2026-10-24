@@ -32,7 +32,7 @@ Never edit or replace in-game bot profiles ad-hoc. All candidate promotions foll
                  │
                  ▼
 [tools/profile-evolution review-promotion --approve]
-                 │ (Human reviewer signs off with note)
+                 │ (Human reviewer signs off; note optional)
                  ▼
      [promotion_review.json]
                  │
@@ -102,12 +102,11 @@ tools/profile-evolution review-promotion \
   --confirmation artifacts/confirmation.json \
   --reviewer-id reviewer_username \
   --approve \
-  --note "Reviewed independent mirrored and mixed benchmark evidence. Candidate shows +140 chip differential and zero fallbacks." \
   --output artifacts/promotion_review.json
 ```
 
 > [!NOTE]
-> If evidence is insufficient, pass `--reject` with an explanatory note. Approval cannot be granted for ineligible confirmation artifacts.
+> If evidence is insufficient, pass `--reject`. `--note "..."` is optional for either decision. Approval cannot be granted for ineligible confirmation artifacts.
 
 ---
 

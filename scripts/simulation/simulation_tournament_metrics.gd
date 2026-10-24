@@ -83,12 +83,15 @@ func observe_decision(
 	legal_actions: Array[PlayerAction.Kind],
 	action: PlayerAction,
 	trace: RefCounted = null,
+	all_in_aggression_kind: int = -1,
 ) -> void:
 	if not _by_seat.has(seat) or action == null:
 		return
 	var metric = _by_seat[seat]
-	var has_bet: bool = PlayerAction.Kind.BET in legal_actions
-	var has_raise: bool = PlayerAction.Kind.RAISE in legal_actions
+	var has_full_bet: bool = PlayerAction.Kind.BET in legal_actions
+	var has_full_raise: bool = PlayerAction.Kind.RAISE in legal_actions
+	var has_bet: bool = has_full_bet or all_in_aggression_kind == PlayerAction.Kind.BET
+	var has_raise: bool = has_full_raise or all_in_aggression_kind == PlayerAction.Kind.RAISE
 	var selected_bet: bool = (
 		action.kind == PlayerAction.Kind.BET
 		or (action.kind == PlayerAction.Kind.ALL_IN and has_bet)
@@ -119,7 +122,10 @@ func observe_decision(
 			metric.raises_at_call_raise_opportunity += 1
 	if trace == null:
 		return
-	if trace.hand_potential_band == StrategyDecisionTrace.WEAK_BAND and (has_bet or has_raise):
+	if (
+		trace.hand_potential_band == StrategyDecisionTrace.WEAK_BAND
+		and (has_full_bet or has_full_raise)
+	):
 		metric.eligible_bluff_opportunities += 1
 		if trace.selected_branch in [&"bluff_bet", &"bluff_raise"]:
 			metric.bluff_actions += 1

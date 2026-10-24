@@ -263,10 +263,12 @@ currently playable personalities. It reads the source-controlled
 `PlayableBotRoster`, takes deep-copy snapshots of every active profile, and
 writes a schema-2 manifest; it never changes the catalog or exposes its live
 Resources to simulation. With no overrides it derives `batch_id` from the
-roster version, uses seed `71001`, a roster-sized 100bb table (1000 chips,
-5/10 blinds), one `active_roster` matchup, cyclic seat rotation, and 2520
-tournaments. The count is divisible by all supported table sizes so rotations
-remain balanced if a valid roster is resized.
+roster version, uses seed `71001`, 100bb play (1000 chips, 5/10 blinds), cyclic
+seat rotation, and 2520 tournaments. Rosters of at most nine profiles use one
+`active_roster` matchup. Larger rosters use deterministic translated
+nine-player matchups with equal appearances and complete pair coverage, so
+the catalog can grow without increasing table capacity. The default count is
+balanced for the current 18-profile roster and every single-table size.
 
 Use `--batch-id`, `--seed`, and `--tournament-count` to name a distinct
 benchmark. The current `standard` regime preset is the documented 100bb 5/10
@@ -369,7 +371,7 @@ profile-evolution <command> [options]
 | `build-lineage` | `--artifact <path>` (repeatable) `--output <path>` | deterministic lineage registry rebuilt from immutable generation, candidate, fitness, and selection history |
 | `inspect-lineage` | `--registry <path> --candidate-id <id>` | read-only ancestry and evidence summary on stdout |
 | `confirm-candidate` | `--registry <path> --candidate-id <id> --legacy-id <id>` (repeatable) `--historical-champion-id <id>` (repeatable) `--mirrored-report <path>` (repeatable) `--mixed-report <path>` (repeatable) `--output <path>` | independent confirmation evidence and promotion-gate result |
-| `review-promotion` | `--confirmation <path> --reviewer-id <id> --approve|--reject --note <text> --output <path>` | immutable human approval or rejection of an exact eligible confirmation; never publishes a profile or roster |
+| `review-promotion` | `--confirmation <path> --reviewer-id <id> --approve|--reject [--note <text>] --output <path>` | immutable human approval or rejection of an exact eligible confirmation, with an optional note; never publishes a profile or roster |
 | `publish-profile` | `--confirmation <path> --review <path> --version <id> [--display-name <text>] [--project-root <path>]` | manually write one approved candidate as a new no-clobber versioned `BotProfile` Resource; never edits the roster |
 | `export-candidates` | `--registry <path> --confirmation <path>` (repeatable) `--candidate-id <id>` (repeatable) `--output <path>` | versioned review-only candidate bundle; never the playable roster |
 
@@ -489,8 +491,8 @@ comparable profile or a smaller distance is ineligible. This is a stable,
 reproducible proxy for personality diversity, not a claim that a parameter
 distance alone proves game-play quality. A passing confirmation explicitly
 requires a separate human `promotion_review` artifact. The reviewer must give
-an immutable approval or rejection with an identity and note; approval is
-rejected unless the exact confirmation is eligible. Neither artifact can
+an immutable approval or rejection with an identity and may include a note;
+approval is rejected unless the exact confirmation is eligible. Neither artifact can
 publish a Resource or modify the playable roster.
 
 Every persisted artifact is a strict JSON object envelope containing exactly

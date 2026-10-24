@@ -144,10 +144,13 @@ dependencies. It obtains fresh deep copies through
 `PlayableBotRoster.get_catalog_profiles()`, duplicates them again into a
 schema-2 manifest, and validates both the manifest and its executable batch
 plan before returning it. Its typed `SimulationRosterManifestSettings` defaults
-to a non-zero seed, 100bb (1000-chip) 5/10 roster-sized table, one all-active
-roster matchup, and a tournament count divisible by every supported table
-size for balanced cyclic rotation. The service performs no argument parsing,
-filesystem work, or terminal output. The simulation CLI's
+to a non-zero seed, 100bb (1000-chip) 5/10 play, and balanced cyclic rotation.
+Catalogs of at most nine profiles use one all-active matchup. Larger catalogs
+use deterministic cyclic translations of a seed-derived difference-covering
+nine-profile block, giving equal appearances, complete pair coverage, and
+aggregate seat balance without increasing the nine-player table limit. The
+tournament count must be divisible by the catalog size. The service performs
+no argument parsing, filesystem work, or terminal output. The simulation CLI's
 `export-roster-manifest` command is the outer adapter: it translates command
 options into these settings and atomically serializes only the validated
 snapshot. Neither a manifest nor an evaluation retains live product Resources.

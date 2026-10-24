@@ -311,7 +311,7 @@ flowchart TD
 - **Manifests (`SimulationManifest`, Schema 2)**: Immutable, JSON-configured batches specifying bot profile snapshots, tournament regimes, cyclic seat rotation, and matchups.
 - **Runner (`SimulationBatchRunner`)**: High-throughput headless execution enforcing zero-human composition contracts.
 - **Reports (`SimulationReport`, Schema 3)**: Checksummed artifacts containing exact manifest snapshots, deterministic roster provenance, ordered `selected_profile_ids` per tournament, outcomes, and recipient-safe traces.
-- **Roster export (`SimulationManifestGenerator`)**: Builds a validated schema-2 baseline from `PlayableBotRoster` without CLI, filesystem, or terminal dependencies. Its standard preset uses the active roster size at 100bb (1000 chips, 5/10 blinds), an `active_roster` matchup, cyclic seats, and balanced defaults. The CLI adapter serializes the returned manifest atomically through `export-roster-manifest`.
+- **Roster export (`SimulationManifestGenerator`)**: Builds a validated schema-2 baseline from `PlayableBotRoster` without CLI, filesystem, or terminal dependencies. Its standard preset uses 100bb play (1000 chips, 5/10 blinds) and cyclic seats. Catalogs through nine profiles use one `active_roster` matchup; larger catalogs use deterministic pair-covering nine-seat matchups with equal appearances and aggregate seat balance. The CLI adapter serializes the returned manifest atomically through `export-roster-manifest`.
 
 ### 2. External Evolution & Promotion (`tools/profile-evolution`)
 - **Decoupled Python Tool**: Keeps evolutionary genetics, lineage registries, and confirmation gates outside the game runtime.
