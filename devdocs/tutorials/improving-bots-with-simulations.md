@@ -8,7 +8,7 @@ In this tutorial, you will learn how to formulate a candidate bot hypothesis, be
 
 By the end of this tutorial, you will be able to:
 1. Understand the 4 strategy parameters of [`StrategyDecisionModel`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/strategy_decision_model.gd).
-2. Author a schema-2 simulation manifest comparing a candidate bot against incumbent baselines.
+2. Export a schema-2 snapshot of the active roster, then author a separate candidate-inclusive manifest.
 3. Run the simulation CLI and inspect the generated schema-3 report.
 4. Interpret the 6-component fitness score, style metrics, and 95% confidence intervals.
 5. Use the external promotion tools to verify eligibility, review approvals, and publish the `.tres` Resource.
@@ -50,10 +50,9 @@ Our hypothesis: *The Solid Tag candidate will achieve a higher composite fitness
 
 ## 4. Step 2: Creating the Simulation Manifest
 
-When benchmarking a candidate against the complete currently playable field,
-first bootstrap an immutable baseline from the curated roster. This avoids
-hand-copying profile parameters and preserves the exact pre-candidate
-snapshots for later comparison:
+When benchmarking a candidate, first snapshot the complete currently playable
+field. This avoids hand-copying incumbent parameters and preserves the exact
+pre-change roster for later comparison:
 
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
@@ -61,10 +60,26 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   --batch-id before_solid_tag --seed 71001 --tournament-count 2520
 ```
 
-The exported matchup contains every active roster profile at a roster-sized
-100bb 5/10 table and cyclically rotates each seat. Keep that manifest as a
-baseline artifact; construct a separate candidate-inclusive manifest for the
-promotion comparisons below.
+The exported manifest contains every active roster profile in a roster-sized
+100bb 5/10 table, with cyclic seat rotation. Its profiles are deep copies, so
+editing a `.tres` later cannot alter this baseline. Validate and run it before
+making the code change, and retain both artifacts:
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  validate --config artifacts/curated_roster_baseline.json
+
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  run --config artifacts/curated_roster_baseline.json \
+  --output artifacts/curated_roster_baseline_report.json
+```
+
+This baseline is not, by itself, promotion evidence: it has no candidate.
+Keep it unchanged. For the candidate experiment, create a new manifest that
+includes the candidate and only the incumbents relevant to the hypothesis (as
+in the example below), or copy the export and add the candidate while changing
+the regime to the new profile count. In either case, make the tournament count
+a multiple of the table size and keep cyclic rotation.
 
 Simulations are configured using a JSON manifest file conforming to schema 2.
 
@@ -140,6 +155,9 @@ Create a manifest file named `solid_tag_manifest.json`:
 ### Key Details:
 - **`tournament_count: 300`**: Cycles each bot through seats 0, 1, and 2 exactly 100 times under cyclic rotation, eliminating positional bias.
 - **`seed_start: 500000`**: Provides reproducible pseudo-random streams.
+- **Separate artifacts**: `curated_roster_baseline.json` captures the whole
+  product field before a change; `solid_tag_manifest.json` answers the focused
+  candidate question. Do not overwrite or silently edit either after its run.
 
 ---
 
@@ -276,6 +294,11 @@ Now bring the published profile into the playable game catalog:
    ]
    ```
 4. Verify that legacy profiles (`random_default`, `tight_passive_default`, `loose_aggressive_default`) are preserved.
+
+After this reviewed source change, export `curated_v2` (or the new roster
+version) as a new baseline. Comparing its report with the retained pre-change
+baseline shows the product-level effect without losing the candidate-specific
+promotion evidence.
 
 ---
 

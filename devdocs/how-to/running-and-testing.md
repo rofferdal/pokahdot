@@ -89,6 +89,11 @@ make profile-evolution-test
 ### Headless Batch Simulation Runner
 To validate manifests, run batch tournaments, inspect metrics, or replay outcomes:
 ```bash
+# Snapshot the currently playable roster before changing a bot or roster membership.
+# This writes isolated profile snapshots; it does not change the product roster.
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  export-roster-manifest --output artifacts/curated_roster_before.json
+
 # Validate manifest
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
   validate --config path/to/manifest.json --format json

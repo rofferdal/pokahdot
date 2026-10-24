@@ -30,7 +30,7 @@ PROBLEM |      HOW-TO GUIDES       |        REFERENCE         |
 ### 1. Tutorials (Learning-Oriented)
 Start here if you are new to the codebase.
 - **[Understanding Pokahdot](tutorials/understanding-pokahdot.md)**: A hands-on walkthrough for developers explaining the mental model, execution flow, card security, and how to step through a live poker hand in code.
-- **[Improving Bot Behavior Through Simulation](tutorials/improving-bots-with-simulations.md)**: A step-by-step tutorial on formulating a candidate bot hypothesis, running benchmark simulations, interpreting fitness metrics, and using the evidence-based promotion pipeline to update the playable roster.
+- **[Improving Bot Behavior Through Simulation](tutorials/improving-bots-with-simulations.md)**: A step-by-step tutorial on exporting an immutable snapshot of the active roster, running comparable candidate benchmarks, interpreting fitness metrics, and using the evidence-based promotion pipeline to update the playable roster.
 
 ### 2. How-To Guides (Problem-Oriented)
 Practical step-by-step instructions to get everyday development tasks done.
@@ -71,7 +71,12 @@ Want to see Pokahdot in action immediately?
    ```bash
    godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- help
    ```
-5. **Inspect the profile evolution CLI**:
+5. **Capture the current roster as a simulation baseline**:
+   ```bash
+   godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+     export-roster-manifest --output artifacts/curated_roster_baseline.json
+   ```
+6. **Inspect the profile evolution CLI**:
    ```bash
    tools/profile-evolution --help
    ```

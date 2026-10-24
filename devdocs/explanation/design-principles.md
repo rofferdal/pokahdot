@@ -141,5 +141,5 @@ The playable product must preserve recognizable, hand-authored legacy archetypes
 - Centralizes bot catalog membership across GUI and CLI presentation front-ends.
 - Enforces legacy profile presence at validation time.
 - Returns deep copies of profiles upon selection so match mutations cannot pollute subsequent games.
+- Returns deep-copied catalog snapshots through `get_catalog_profiles()` for the simulation manifest generator. This is a one-way export boundary: a schema-2 baseline can evaluate the current roster, but it cannot mutate or remain coupled to that roster.
 - Provides source-controlled versioning (`ROSTER_VERSION`) logged in diagnostics to ensure exact reproducibility in player bug reports.
-

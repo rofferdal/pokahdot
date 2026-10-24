@@ -168,6 +168,7 @@ The centralized, curated bot catalog used by GUI and CLI presentation layers.
   - `validate() -> PackedStringArray`: Validates catalog bounds, profile uniqueness, model creation, and legacy profile presence.
   - `select(count: int, rng: RandomNumberGenerator) -> PlayableBotRosterSelection`: Deterministically samples `count` distinct profiles without replacement, returning deep copies.
   - `create_bot(profile: BotProfile, rng: RandomNumberGenerator) -> AgentCreationResult`: Instantiates a concrete `BotAgent` from a profile.
+  - `get_catalog_profiles() -> Array[BotProfile]`: Returns a deep-copied snapshot of every catalog profile. This is the only catalog-reading API used to bootstrap a roster simulation manifest; neither the manifest nor a simulation can retain a live catalog Resource.
   - `get_profile_ids() -> Array[StringName]`: Returns all catalog profile IDs.
   - `get_roster_version() -> StringName`: Returns current roster version.
 
@@ -192,4 +193,3 @@ Custom `Resource` linking a stable profile identifier, model ID, display name, a
 - `model_id: StringName`: e.g. `&"strategy_parameterized"`, `&"random"`.
 - `display_name: String`: Human-readable label.
 - `parameters: DecisionModelParameters`: Typed parameter payload.
-

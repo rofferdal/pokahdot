@@ -66,7 +66,17 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 The output is atomic and refuses to replace an existing file unless
 `--overwrite` is supplied. Immediately validate the exact file with
 `validate --config artifacts/curated_roster_baseline.json` before scheduling
-its reports.
+its reports. The default batch ID is `roster_<ROSTER_VERSION>`; use an
+explicit `--batch-id` when the artifact needs a more descriptive experiment
+identity.
+
+The generated manifest contains one `active_roster` matchup with every active
+profile, one `roster_<count>_max` 100bb regime, and a cyclic evaluation plan.
+It is a reproducible baseline, not a promotion result. To test a candidate,
+keep this export unchanged, copy it to a new candidate manifest, add the
+candidate profile, and adjust the regime's `player_count`, matchup profile IDs,
+and plan count so all profiles receive balanced seat rotations. Validate the
+candidate-inclusive manifest before running it.
 
 ---
 
@@ -87,6 +97,10 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   run --config my_manifest.json --output artifacts/batch_report.json \
   --trace sampled --trace-sample 5 --format json
 ```
+
+For an immutable roster baseline, use a separate report path and retain both
+the manifest and report. A later roster export is a new benchmark; never
+overwrite the pre-change artifact merely because its catalog version changed.
 
 #### Parallel Sharding:
 To parallelize across multiple CPU cores or worker machines, specify `--shard INDEX/COUNT`:

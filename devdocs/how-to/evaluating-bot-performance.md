@@ -91,6 +91,14 @@ Beyond raw fitness, simulation reports provide style metrics that explain **why*
 
 Never evaluate a bot in only one configuration. Before deciding to replace a profile, run verification across two distinct dimensions:
 
+The `export-roster-manifest` command is the right way to capture a
+reproducible whole-roster starting point. Its standard preset deliberately
+creates one roster-sized 100bb regime. Treat that report as a baseline and
+diagnostic, not as proof across regimes or as candidate promotion evidence.
+Build separate candidate-inclusive manifests for the mirrored and mixed runs
+required by the promotion gate; retain their manifest checksums, reports, and
+non-overlapping seed ranges.
+
 ### 1. Positional Neutrality (Cyclic Seat Rotation)
 Because the dealer button acts last postflop, position is a major advantage in Hold'em. 
 - Always specify `"seat_rotation": "cyclic"` in your evaluation plans.

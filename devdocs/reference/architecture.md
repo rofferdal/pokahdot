@@ -277,6 +277,7 @@ flowchart TD
     end
 
     subgraph SimulationHarness["Headless Simulation Harness (Godot)"]
+        EXP["Roster Manifest Export\n(SimulationManifestGenerator)"]
         MAN["SimulationManifest (schema 2)"]
         RUN["SimulationBatchRunner (headless)"]
         REP["SimulationReport (schema 3)"]
@@ -288,7 +289,9 @@ flowchart TD
         MATCH["TournamentMatch (GUI & CLI)"]
     end
 
-    GEN -->|manifest| MAN
+    PBR -->|deep-copied catalog snapshots| EXP
+    EXP -->|baseline manifest| MAN
+    GEN -->|candidate manifest| MAN
     MAN --> RUN
     RUN --> REP
     REP -->|complete shards| FIT
@@ -308,6 +311,7 @@ flowchart TD
 - **Manifests (`SimulationManifest`, Schema 2)**: Immutable, JSON-configured batches specifying bot profile snapshots, tournament regimes, cyclic seat rotation, and matchups.
 - **Runner (`SimulationBatchRunner`)**: High-throughput headless execution enforcing zero-human composition contracts.
 - **Reports (`SimulationReport`, Schema 3)**: Checksummed artifacts containing exact manifest snapshots, deterministic roster provenance, ordered `selected_profile_ids` per tournament, outcomes, and recipient-safe traces.
+- **Roster export (`SimulationManifestGenerator`)**: Builds a validated schema-2 baseline from `PlayableBotRoster` without CLI, filesystem, or terminal dependencies. Its standard preset uses the active roster size at 100bb (1000 chips, 5/10 blinds), an `active_roster` matchup, cyclic seats, and balanced defaults. The CLI adapter serializes the returned manifest atomically through `export-roster-manifest`.
 
 ### 2. External Evolution & Promotion (`tools/profile-evolution`)
 - **Decoupled Python Tool**: Keeps evolutionary genetics, lineage registries, and confirmation gates outside the game runtime.
@@ -320,6 +324,7 @@ flowchart TD
 - **Shared by GUI and CLI**: Centralizes in-game bot selection and creation.
 - **Legacy Invariant**: Enforces permanent retention of hand-authored legacy profiles (`random_default`, `tight_passive_default`, `loose_aggressive_default`).
 - **Deep-Copy Isolation**: Ensures live tournaments receive fresh duplicate copies and cannot mutate shared resource definitions.
+- **Evaluation bridge**: `get_catalog_profiles()` returns independent copies for roster-manifest generation. Exported baselines remain valid when later catalog edits change profiles or membership.
 
 ---
 

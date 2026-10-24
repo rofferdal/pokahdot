@@ -50,7 +50,26 @@ Never edit or replace in-game bot profiles ad-hoc. All candidate promotions foll
 
 ## 3. Step-by-Step Procedure
 
-### Step 1: Confirm Candidate Evidence
+### Step 1: Snapshot the Current Roster
+Before changing a profile Resource or `DEFAULT_PROFILE_PATHS`, export the
+active catalog. The generator calls `get_catalog_profiles()` and deep-copies
+each profile (including nested parameter Resources), so the resulting schema-2
+manifest remains a trustworthy before-state even after the catalog changes.
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  export-roster-manifest --output artifacts/curated_v1_before.json \
+  --batch-id curated_v1_before --seed 71001 --tournament-count 2520
+
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  validate --config artifacts/curated_v1_before.json
+```
+
+Run and retain a report from this exact manifest if it will be used as a
+baseline. Do not add the candidate to this artifact: create a separate,
+candidate-inclusive manifest for mirrored and mixed promotion evidence.
+
+### Step 2: Confirm Candidate Evidence
 Run `confirm-candidate` to verify that your candidate meets all mathematical and behavioral promotion gates:
 
 ```bash
@@ -75,7 +94,7 @@ The tool verifies:
 
 ---
 
-### Step 2: Conduct Human Promotion Review
+### Step 3: Conduct Human Promotion Review
 An independent developer or reviewer inspects the confirmation artifact and records an immutable approval:
 
 ```bash
@@ -92,7 +111,7 @@ tools/profile-evolution review-promotion \
 
 ---
 
-### Step 3: Publish the Profile Resource
+### Step 4: Publish the Profile Resource
 Use `publish-profile` to generate the new Godot `.tres` Resource:
 
 ```bash
@@ -110,7 +129,7 @@ This writes a versioned `.tres` file under `resources/bot_profiles/published/` (
 
 ---
 
-### Step 4: Update `PlayableBotRoster`
+### Step 5: Update `PlayableBotRoster`
 
 Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd):
 
@@ -142,7 +161,7 @@ Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/
 
 ---
 
-### Step 5: Update Test Suites
+### Step 6: Update Test Suites
 
 Update the roster unit tests in [`tests/unit/test_playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/tests/unit/test_playable_bot_roster.gd) to assert the new roster version:
 
@@ -157,21 +176,12 @@ Run the test suite:
 godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_playable_bot_roster.gd
 ```
 
-Before changing the catalog, capture its current evaluation baseline. The
-export contains deep-copied schema-2 snapshots rather than live roster
-Resources, so it remains valid evidence for the pre-change personalities:
-
-```bash
-godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
-  export-roster-manifest --output artifacts/curated_v1_baseline.json
-```
-
 After publishing the new roster version, export a second baseline and compare
-the two reports; do not overwrite the original manifest.
+the two reports; do not overwrite the original manifest. The new default batch
+ID derives from the incremented `ROSTER_VERSION`, which makes the two
+artifacts easy to distinguish.
 
----
-
-### Step 6: Verify in CLI and GUI
+### Step 7: Verify in CLI and GUI
 
 1. **Verify via Interactive CLI**:
    Run the CLI and check the startup diagnostics:

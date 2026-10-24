@@ -155,3 +155,22 @@ Run your test:
 ```bash
 godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_my_bot.gd
 ```
+
+---
+
+## Step 6: Establish an Evaluation Baseline
+
+Before registering a new strategy profile in `PlayableBotRoster`, export the
+current roster so its incumbents are captured as immutable simulation
+snapshots:
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  export-roster-manifest --output artifacts/roster_before_my_bot.json
+```
+
+After registering the model in both registries, create a separate manifest
+that includes `my_aggressive_bot` and representative incumbents, validate it,
+and run simulations. The roster export is intentionally not modified to add
+the candidate; preserving the before-state makes a later product-level
+comparison reproducible.
