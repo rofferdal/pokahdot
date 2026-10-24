@@ -40,6 +40,10 @@ func parse(arguments: PackedStringArray) -> RefCounted:
 				"--trace",
 				"--trace-sample",
 				"--tournament-index",
+				"--batch-id",
+				"--seed",
+				"--tournament-count",
+				"--regime-preset",
 			]
 		):
 			errors.append("Unknown simulation option: %s" % flag)
@@ -89,6 +93,20 @@ func parse(arguments: PackedStringArray) -> RefCounted:
 					errors.append("Tournament index must be an integer.")
 				else:
 					options.tournament_index = value.to_int()
+			"--batch-id":
+				options.batch_id = StringName(value)
+			"--seed":
+				if not value.is_valid_int():
+					errors.append("Roster manifest seed must be an integer.")
+				else:
+					options.seed_start = value.to_int()
+			"--tournament-count":
+				if not value.is_valid_int():
+					errors.append("Roster manifest tournament count must be an integer.")
+				else:
+					options.tournament_count = value.to_int()
+			"--regime-preset":
+				options.regime_preset = StringName(value)
 		index += 2
 	var option_errors := options.validate()
 	errors.append_array(option_errors)

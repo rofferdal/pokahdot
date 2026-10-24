@@ -162,6 +162,7 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 | `run` | `--config <path> --output <path>` | Run one batch or shard and atomically write one report. |
 | `inspect` | `--report <path>` | Print report identity, effective plan, and summary without playing. |
 | `replay` | `--report <path> --tournament-index <index>` | Re-run exactly one stored tournament and compare its outcome digest. |
+| `export-roster-manifest` | `--output <path>` | Export an immutable schema-2 baseline from the active curated roster. |
 
 `run` also accepts `--shard <index>/<count>` (default `0/1`),
 `--format json|text` (default `json`), `--trace none|errors|sampled` (default
@@ -254,6 +255,27 @@ canonical immutable profile snapshots and records its catalog IDs. Each
 tournament also records ordered `selected_profile_ids` matching its seat map,
 so evaluation artifacts remain reproducible without relying on the
 product-curated roster.
+
+### 4.2.1 Curated roster baseline export
+
+`export-roster-manifest` is the reproducible starting point for evaluating the
+currently playable personalities. It reads the source-controlled
+`PlayableBotRoster`, takes deep-copy snapshots of every active profile, and
+writes a schema-2 manifest; it never changes the catalog or exposes its live
+Resources to simulation. With no overrides it derives `batch_id` from the
+roster version, uses seed `71001`, a roster-sized 100bb table (1000 chips,
+5/10 blinds), one `active_roster` matchup, cyclic seat rotation, and 2520
+tournaments. The count is divisible by all supported table sizes so rotations
+remain balanced if a valid roster is resized.
+
+Use `--batch-id`, `--seed`, and `--tournament-count` to name a distinct
+benchmark. The current `standard` regime preset is the documented 100bb 5/10
+baseline; other names are rejected instead of silently producing a different
+structural experiment. The minimum-profile-sample threshold is preserved by
+the generator, so an overridden count must be divisible by the active roster
+size and large enough for every profile's configured minimum. Exported files
+are baseline inputs, not promotion evidence: evaluate and confirm candidates
+with the ordinary independent report workflow.
 
 ### 4.3 Report schema and privacy
 

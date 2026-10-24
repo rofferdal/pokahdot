@@ -10,6 +10,12 @@ const ARGUMENT_PARSER_SCRIPT := preload(
 )
 const MANIFEST_SCRIPT := preload("res://scripts/simulation/simulation_manifest.gd")
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
+const MANIFEST_GENERATOR_SCRIPT := preload(
+	"res://scripts/simulation/simulation_manifest_generator.gd"
+)
+const ROSTER_MANIFEST_SETTINGS_SCRIPT := preload(
+	"res://scripts/simulation/simulation_roster_manifest_settings.gd"
+)
 
 const EXIT_OK: int = 0
 const EXIT_INVALID: int = 2
@@ -33,6 +39,8 @@ func _run_command(options: SimulationCommandOptions) -> int:
 	if options.command == &"help":
 		print(_usage())
 		return EXIT_OK
+	if options.command == &"export-roster-manifest":
+		return _export_roster_manifest(options)
 	if options.command in [&"validate", &"run"]:
 		return _run_manifest_command(options)
 	if options.command == &"inspect":
@@ -40,6 +48,36 @@ func _run_command(options: SimulationCommandOptions) -> int:
 	if options.command == &"replay":
 		return _replay_report(options)
 	return EXIT_INVALID
+
+
+func _export_roster_manifest(options: SimulationCommandOptions) -> int:
+	var roster := PlayableBotRoster.new()
+	var settings: SimulationRosterManifestSettings = ROSTER_MANIFEST_SETTINGS_SCRIPT.new()
+	settings.batch_id = options.batch_id
+	settings.seed_start = options.seed_start
+	settings.tournament_count = options.tournament_count
+	settings.regime_preset = options.regime_preset
+	var generated := MANIFEST_GENERATOR_SCRIPT.new().generate(roster, settings)
+	if not generated.is_ok():
+		_print_errors(generated.errors)
+		return EXIT_INVALID
+	var manifest: SimulationManifest = generated.manifest
+	if not _write_dictionary(
+		options.output_path, manifest.canonical_dictionary(), options.overwrite
+	):
+		return EXIT_IO
+	_print_document(
+		{
+			"manifest_path": options.output_path,
+			"batch_id": String(manifest.batch_id),
+			"schema_version": manifest.schema_version,
+			"manifest_checksum": manifest.checksum(),
+			"profile_count": manifest.profiles.size(),
+			"tournament_count": manifest.evaluation_plans[0].tournament_count,
+		},
+		options.format
+	)
+	return EXIT_OK
 
 
 # gdlint: disable=max-returns
@@ -342,10 +380,13 @@ func _usage() -> String:
 	return (
 		"Usage: godot --headless --path . --script "
 		+ "res://scripts/simulation/simulation_cli_app.gd -- <command> [options]\n"
-		+ "Commands: help, validate, run, inspect, replay\n"
+		+ "Commands: help, validate, run, inspect, replay, export-roster-manifest\n"
 		+ "Options: --config PATH --output PATH --report PATH --format json|text "
 		+ "--shard INDEX/COUNT --trace none|errors|sampled --trace-sample COUNT "
-		+ "--dry-run --overwrite --tournament-index INDEX"
+		+ "--dry-run --overwrite --tournament-index INDEX\n"
+		+ "export-roster-manifest: --output PATH [--overwrite] [--batch-id ID] "
+		+ "[--seed INTEGER] [--tournament-count COUNT] [--regime-preset standard] "
+		+ "[--format json|text]"
 	)
 
 

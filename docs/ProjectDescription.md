@@ -433,7 +433,10 @@ A simulation manifest specifies one or more explicit regimes using the same
 four configurable values and ordinary validation. Every regime uses the
 normative fixed blind progression. Simulation profile parameters for
 `StrategyDecisionModel` are integer percentages in the inclusive range
-0–100.
+0–100. The simulation adapter may export a curated-roster baseline only by
+copying immutable profile snapshots into a manifest; this export must not
+mutate the product roster or relax the exactly-one-human requirement for GUI
+and interactive CLI matches.
 
 ## 9. Testing
 

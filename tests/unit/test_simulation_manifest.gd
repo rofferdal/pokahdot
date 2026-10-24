@@ -120,6 +120,13 @@ func test_roster_generator_accepts_custom_planning_defaults_and_rejects_invalid_
 		generated.errors, "Roster manifest starting small blind cannot exceed the big blind."
 	)
 
+	settings.starting_small_blind = 10
+	settings.regime_preset = &"unsupported"
+	generated = MANIFEST_GENERATOR_SCRIPT.new().generate(PlayableBotRoster.new(), settings)
+	assert_false(generated.is_ok())
+	assert_eq(generated.manifest, null)
+	assert_has(generated.errors, "Roster manifest regime preset must be standard.")
+
 
 func test_manifest_rejects_model_parameter_type_mismatches() -> void:
 	var generated := MANIFEST_GENERATOR_SCRIPT.new().generate(PlayableBotRoster.new())

@@ -136,6 +136,20 @@ derives matchup occurrence and cyclic seat rotation from each plan-local
 occurrence, and applies `SimulationShard` only after global planning.
 `SimulationCommandOptions` is the typed boundary for strict CLI arguments.
 
+`SimulationManifestGenerator` is a simulation-layer export service that bridges
+the curated product catalog to an evaluation baseline without reversing those
+dependencies. It obtains fresh deep copies through
+`PlayableBotRoster.get_catalog_profiles()`, duplicates them again into a
+schema-2 manifest, and validates both the manifest and its executable batch
+plan before returning it. Its typed `SimulationRosterManifestSettings` defaults
+to a non-zero seed, 100bb (1000-chip) 5/10 roster-sized table, one all-active
+roster matchup, and a tournament count divisible by every supported table
+size for balanced cyclic rotation. The service performs no argument parsing,
+filesystem work, or terminal output. The simulation CLI's
+`export-roster-manifest` command is the outer adapter: it translates command
+options into these settings and atomically serializes only the validated
+snapshot. Neither a manifest nor an evaluation retains live product Resources.
+
 `SimulationReport` schema 3 stores the canonical manifest snapshot and checksum beside
 typed outcome mappings, aggregate groups, diagnostics, and recipient-safe
 traces. Report writes use a temporary sibling followed by an atomic rename.

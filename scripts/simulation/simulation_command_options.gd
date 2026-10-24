@@ -16,11 +16,18 @@ var trace_sample_count: int = 0
 var dry_run: bool = false
 var overwrite: bool = false
 var tournament_index: int = -1
+var batch_id: StringName = &""
+var seed_start: int = SimulationRosterManifestSettings.DEFAULT_SEED_START
+var tournament_count: int = SimulationRosterManifestSettings.DEFAULT_TOURNAMENT_COUNT
+var regime_preset: StringName = &"standard"
 
 
 func validate() -> PackedStringArray:
 	var errors := PackedStringArray()
-	if command not in [&"help", &"validate", &"run", &"inspect", &"replay"]:
+	if (
+		command
+		not in [&"help", &"validate", &"run", &"inspect", &"replay", &"export-roster-manifest"]
+	):
 		errors.append("Unknown simulation command.")
 	if shard == null:
 		errors.append("A simulation shard is required.")
@@ -50,6 +57,15 @@ func validate() -> PackedStringArray:
 			errors.append("Replay requires a non-negative tournament index.")
 	if command != &"run" and dry_run:
 		errors.append("Dry-run is supported only by the run command.")
+	if command == &"export-roster-manifest":
+		if output_path.is_empty():
+			errors.append("Exporting a roster manifest requires an output path.")
+		if seed_start == 0:
+			errors.append("Roster manifest seed must be non-zero.")
+		if tournament_count <= 0:
+			errors.append("Roster manifest tournament count must be positive.")
+		if regime_preset != &"standard":
+			errors.append("Roster manifest regime preset must be standard.")
 	return errors
 
 

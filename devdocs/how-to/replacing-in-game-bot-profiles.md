@@ -157,6 +157,18 @@ Run the test suite:
 godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_playable_bot_roster.gd
 ```
 
+Before changing the catalog, capture its current evaluation baseline. The
+export contains deep-copied schema-2 snapshots rather than live roster
+Resources, so it remains valid evidence for the pre-change personalities:
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  export-roster-manifest --output artifacts/curated_v1_baseline.json
+```
+
+After publishing the new roster version, export a second baseline and compare
+the two reports; do not overwrite the original manifest.
+
 ---
 
 ### Step 6: Verify in CLI and GUI

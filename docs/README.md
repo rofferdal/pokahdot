@@ -20,7 +20,7 @@
 
 - [`Simulation_And_Evolutionary_Bot_Strategy.md`](Simulation_And_Evolutionary_Bot_Strategy.md)
   — simulation manifest/report contract, metrics, privacy, and profile
-  evolution.
+  evolution, including curated-roster baseline export.
 - [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md) — interactive CLI card text
   format.
 - [`WEB_SETUP.md`](WEB_SETUP.md) — reproducible Web publishing and device-test

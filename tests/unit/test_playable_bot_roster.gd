@@ -43,13 +43,25 @@ func test_catalog_profiles_cover_the_roster_and_are_deeply_isolated() -> void:
 	var roster := PlayableBotRoster.new()
 	var first_catalog: Array[BotProfile] = roster.get_catalog_profiles()
 	var second_catalog: Array[BotProfile] = roster.get_catalog_profiles()
+	var roster_ids := roster.get_profile_ids()
 
-	assert_eq(_profile_ids(first_catalog), roster.get_profile_ids())
-	assert_eq(_profile_ids(second_catalog), roster.get_profile_ids())
-	assert_ne(first_catalog[0], second_catalog[0])
-	assert_ne(first_catalog[0].parameters, second_catalog[0].parameters)
-	first_catalog[0].profile_id = &"mutated_catalog_profile"
-	first_catalog[0].display_name = "Mutated Catalog Profile"
+	assert_eq(_profile_ids(first_catalog), roster_ids)
+	assert_eq(_profile_ids(second_catalog), roster_ids)
+	assert_eq(first_catalog.size(), roster_ids.size())
+	assert_eq(second_catalog.size(), roster_ids.size())
+	for profile_index: int in range(roster_ids.size()):
+		var first_profile: BotProfile = first_catalog[profile_index]
+		var second_profile: BotProfile = second_catalog[profile_index]
+		assert_ne(first_profile, second_profile)
+		assert_eq(first_profile.profile_id, second_profile.profile_id)
+		assert_eq(first_profile.model_id, second_profile.model_id)
+		assert_eq(first_profile.display_name, second_profile.display_name)
+		assert_ne(first_profile.parameters, second_profile.parameters)
+
+		# Mutating every returned profile must not change the other snapshot or roster.
+		first_profile.profile_id = StringName("mutated_catalog_profile_%d" % profile_index)
+		first_profile.display_name = "Mutated Catalog Profile %d" % profile_index
+	assert_eq(_profile_ids(second_catalog), roster_ids)
 	var first_parameters := first_catalog[0].parameters as RandomDecisionModelParameters
 	first_parameters.fold_weight = 99
 

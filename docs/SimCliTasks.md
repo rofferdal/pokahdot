@@ -69,24 +69,24 @@ interactive player CLI.
 
 ## Milestone 7 — Playable roster manifest export CLI command
 
-- [ ] Extend `SimulationCliArgumentParser` (`scripts/simulation/simulation_cli_argument_parser.gd`)
+- [x] Extend `SimulationCliArgumentParser` (`scripts/simulation/simulation_cli_argument_parser.gd`)
   and `SimulationCommandOptions` (`scripts/simulation/simulation_command_options.gd`) to support
   the `export-roster-manifest` command and options: `--output <path>` (required), `--overwrite`
   (optional flag), `--batch-id <id>` (optional), `--seed <int>` (optional), `--tournament-count <count>`
   (optional), `--regime-preset <preset>` (optional), and `--format json|text` (optional).
-- [ ] Implement `export-roster-manifest` command execution in `scripts/simulation/simulation_cli_app.gd`:
+- [x] Implement `export-roster-manifest` command execution in `scripts/simulation/simulation_cli_app.gd`:
   instantiate and validate `PlayableBotRoster`, call the core manifest generator, serialize the
   manifest to JSON, write the artifact atomically using a temporary sibling file with rename,
   respect `--overwrite` protection, print compact summary to stdout, and output progress/diagnostics
   to stderr.
-- [ ] Update CLI usage documentation and command help in `simulation_cli_app.gd` (`_usage()` and `help`)
+- [x] Update CLI usage documentation and command help in `simulation_cli_app.gd` (`_usage()` and `help`)
   to include `export-roster-manifest` and its accepted command options.
-- [ ] Add unit tests in `tests/unit/test_simulation_cli_arguments.gd` covering `export-roster-manifest`
+- [x] Add unit tests in `tests/unit/test_simulation_cli_arguments.gd` covering `export-roster-manifest`
   argument parsing, flag validation, rejection of duplicate or missing flags, and option validation.
-- [ ] Add integration tests verifying end-to-end execution of `export-roster-manifest`: atomic creation,
+- [x] Add integration tests verifying end-to-end execution of `export-roster-manifest`: atomic creation,
   overwrite refusal when `--overwrite` is absent, output schema validation, and immediate compatibility
   with `simulation_cli_app.gd validate --config <output_path>`.
-- [ ] Update `README.md` and `devdocs/how-to/running-simulations.md` with the command syntax,
+- [x] Update `README.md` and `devdocs/how-to/running-simulations.md` with the command syntax,
   option flags, and practical examples for exporting the main roster manifest.
-- [ ] Update `devdocs/how-to/replacing-in-game-bot-profiles.md` and `devdocs/tutorials/improving-bots-with-simulations.md`
+- [x] Update `devdocs/how-to/replacing-in-game-bot-profiles.md` and `devdocs/tutorials/improving-bots-with-simulations.md`
   demonstrating how developers can bootstrap evaluation manifests directly from the active roster.

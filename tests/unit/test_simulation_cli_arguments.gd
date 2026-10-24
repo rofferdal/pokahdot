@@ -48,3 +48,75 @@ func test_parser_rejects_unknown_flags_missing_values_and_invalid_shards() -> vo
 	result = PARSER_SCRIPT.new().parse(PackedStringArray(["run", "--config"]))
 	assert_false(result.is_ok())
 	assert_has(result.errors, "Option --config requires a value.")
+
+
+func test_parser_accepts_typed_roster_manifest_export_options() -> void:
+	var result := (
+		PARSER_SCRIPT
+		. new()
+		. parse(
+			PackedStringArray(
+				[
+					"export-roster-manifest",
+					"--output",
+					"roster.json",
+					"--overwrite",
+					"--batch-id",
+					"baseline",
+					"--seed",
+					"801",
+					"--tournament-count",
+					"160",
+					"--regime-preset",
+					"standard",
+					"--format",
+					"text",
+				]
+			)
+		)
+	)
+
+	assert_true(result.is_ok())
+	assert_eq(result.options.command, &"export-roster-manifest")
+	assert_eq(result.options.output_path, "roster.json")
+	assert_true(result.options.overwrite)
+	assert_eq(result.options.batch_id, &"baseline")
+	assert_eq(result.options.seed_start, 801)
+	assert_eq(result.options.tournament_count, 160)
+	assert_eq(result.options.regime_preset, &"standard")
+	assert_eq(result.options.format, SimulationCommandOptions.OutputFormat.TEXT)
+
+
+func test_parser_rejects_invalid_or_incomplete_roster_manifest_export_options() -> void:
+	var result := PARSER_SCRIPT.new().parse(PackedStringArray(["export-roster-manifest"]))
+
+	assert_false(result.is_ok())
+	assert_has(result.errors, "Exporting a roster manifest requires an output path.")
+
+	result = (
+		PARSER_SCRIPT
+		. new()
+		. parse(
+			PackedStringArray(
+				[
+					"export-roster-manifest",
+					"--output",
+					"roster.json",
+					"--seed",
+					"zero",
+					"--tournament-count",
+					"-1",
+					"--regime-preset",
+					"heads-up",
+					"--output",
+					"duplicate.json",
+				]
+			)
+		)
+	)
+
+	assert_false(result.is_ok())
+	assert_has(result.errors, "Roster manifest seed must be an integer.")
+	assert_has(result.errors, "Roster manifest tournament count must be positive.")
+	assert_has(result.errors, "Roster manifest regime preset must be standard.")
+	assert_has(result.errors, "Option --output was specified more than once.")

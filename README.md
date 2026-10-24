@@ -100,6 +100,21 @@ Every matchup must provide exactly the number of profiles required by its
 regime. The manifest is the source of profile identity for an evaluation; it
 does not read or mutate the playable product roster.
 
+To establish a benchmark for the presently playable roster, export a baseline
+manifest. The command atomically writes immutable profile snapshots; it does
+not alter the roster. Defaults use the `curated_v1`-derived batch ID, seed
+`71001`, a roster-sized 100bb 5/10 table, and 2520 balanced cyclic rotations.
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  export-roster-manifest --output artifacts/curated_roster_baseline.json \
+  --batch-id curated_baseline_2026 --seed 72001 --tournament-count 2520
+```
+
+`--overwrite` is required to replace an existing export. `--regime-preset
+standard` explicitly selects the current 100bb baseline; no other preset is
+accepted. Validate the exported file unchanged before running it.
+
 Validate a manifest before starting a tournament. This prints the normalized
 manifest and complete deterministic plan without creating an artifact:
 

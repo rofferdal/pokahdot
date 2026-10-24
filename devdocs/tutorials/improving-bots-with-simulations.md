@@ -50,6 +50,22 @@ Our hypothesis: *The Solid Tag candidate will achieve a higher composite fitness
 
 ## 4. Step 2: Creating the Simulation Manifest
 
+When benchmarking a candidate against the complete currently playable field,
+first bootstrap an immutable baseline from the curated roster. This avoids
+hand-copying profile parameters and preserves the exact pre-candidate
+snapshots for later comparison:
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  export-roster-manifest --output artifacts/curated_roster_baseline.json \
+  --batch-id before_solid_tag --seed 71001 --tournament-count 2520
+```
+
+The exported matchup contains every active roster profile at a roster-sized
+100bb 5/10 table and cyclically rotates each seat. Keep that manifest as a
+baseline artifact; construct a separate candidate-inclusive manifest for the
+promotion comparisons below.
+
 Simulations are configured using a JSON manifest file conforming to schema 2.
 
 Create a manifest file named `solid_tag_manifest.json`:

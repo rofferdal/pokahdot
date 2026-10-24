@@ -32,6 +32,7 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 | `run` | Execute tournament batch and write atomic report | `... -- run --config manifest.json --output report.json` |
 | `inspect` | Summarize metrics from a saved report | `... -- inspect --report report.json --format text` |
 | `replay` | Re-run a previous report tournament to verify deterministic reproduction | `... -- replay --report report.json --tournament-index 0` |
+| `export-roster-manifest` | Export the active playable roster as an immutable baseline manifest | `... -- export-roster-manifest --output roster.json` |
 
 ### CLI Options Summary
 
@@ -45,6 +46,27 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 - `--trace none|errors|sampled`: Decision trace recording mode (`none` by default).
 - `--trace-sample COUNT`: Number of decisions to deterministically sample when `--trace sampled` is enabled.
 - `--tournament-index INDEX`: Specific tournament index to reproduce during `replay` (defaults to `0`).
+- `--batch-id ID`: Optional batch identity for `export-roster-manifest`; the default derives from the roster version.
+- `--seed INTEGER`: Non-zero export seed (default `71001`).
+- `--tournament-count COUNT`: Export plan count; it must be divisible by the active roster size and satisfy the configured sample minimum (default `2520`).
+- `--regime-preset standard`: The explicit 100bb, 5/10 roster-table export preset. Other preset names are rejected.
+
+### Exporting a Curated-Roster Baseline
+
+Use this command when the evaluation should begin with every active playable
+profile. It takes deep-copy snapshots, so later catalog edits cannot mutate an
+exported manifest or invalidate its checksum.
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  export-roster-manifest --output artifacts/curated_roster_baseline.json \
+  --batch-id curated_baseline --seed 71001 --tournament-count 2520
+```
+
+The output is atomic and refuses to replace an existing file unless
+`--overwrite` is supplied. Immediately validate the exact file with
+`validate --config artifacts/curated_roster_baseline.json` before scheduling
+its reports.
 
 ---
 

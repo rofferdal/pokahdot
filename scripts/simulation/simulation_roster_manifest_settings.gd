@@ -18,6 +18,7 @@ const DEFAULT_MINIMUM_PROFILE_SAMPLES: int = 100
 var batch_id: StringName
 var seed_start: int = DEFAULT_SEED_START
 var tournament_count: int = DEFAULT_TOURNAMENT_COUNT
+var regime_preset: StringName = &"standard"
 var starting_stack: int = DEFAULT_STARTING_STACK
 var starting_small_blind: int = DEFAULT_SMALL_BLIND
 var starting_big_blind: int = DEFAULT_BIG_BLIND
@@ -30,6 +31,8 @@ func validate() -> PackedStringArray:
 		errors.append("Roster manifest seed_start must be non-zero.")
 	if tournament_count <= 0:
 		errors.append("Roster manifest tournament count must be positive.")
+	if regime_preset != &"standard":
+		errors.append("Roster manifest regime preset must be standard.")
 	if starting_stack <= 0:
 		errors.append("Roster manifest starting stack must be positive.")
 	if starting_small_blind <= 0 or starting_big_blind <= 0:

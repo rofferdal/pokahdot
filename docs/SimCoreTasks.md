@@ -165,18 +165,18 @@ simulation may use zero humans only through its dedicated composition path.
   parameter dictionaries for all archetypes (random, tight_passive, loose_aggressive,
   strategy_parameterized), compute canonical JSON representation and SHA-256 checksum,
   and verify that `SimulationManifest.validate()` passes with zero errors.
-- [ ] Unit-test catalog profile extraction in `tests/unit/test_playable_bot_roster.gd`
+- [x] Unit-test catalog profile extraction in `tests/unit/test_playable_bot_roster.gd`
   to verify deep-copy isolation and complete coverage of active roster profiles.
-- [ ] Unit-test manifest generation in `tests/unit/test_simulation_manifest.gd` (or dedicated
+- [x] Unit-test manifest generation in `tests/unit/test_simulation_manifest.gd` (or dedicated
   unit test) ensuring that the generated manifest is fully valid, can build an executable batch
   plan, and round-trips identically through `SimulationManifest.parse()`.
-- [ ] Update `docs/ARCHITECTURE.md` to document the roster manifest generation service,
+- [x] Update `docs/ARCHITECTURE.md` to document the roster manifest generation service,
   explaining how `PlayableBotRoster` is inspected and how generated manifests bridge product
   profiles to headless simulation without compromising simulation isolation.
-- [ ] Update `docs/Simulation_And_Evolutionary_Bot_Strategy.md` to document manifest generation
+- [x] Update `docs/Simulation_And_Evolutionary_Bot_Strategy.md` to document manifest generation
   from the curated roster, default regime/matchup selection strategies, and how baseline
   manifests are used in evaluation benchmarks.
-- [ ] Review and update `docs/ProjectDescription.md` and `docs/README.md` if any architectural
+- [x] Review and update `docs/ProjectDescription.md` and `docs/README.md` if any architectural
   boundaries or documentation indexes require alignment with the new export capability.
 
 ### Milestone 7 CLI coordination gates
@@ -186,30 +186,30 @@ The generator stays a simulation-layer service: the CLI may request and
 serialize a manifest, but it must not add command-line parsing, filesystem
 writing, or terminal output to `scripts/core/`.
 
-- [ ] Complete and unit-test the roster snapshot, generator, default planning,
+- [x] Complete and unit-test the roster snapshot, generator, default planning,
   and manifest-validation tasks above before beginning the first Milestone 7
   task in `SimCliTasks.md`. Establish the generator as a typed GDScript API
   that returns a validated `SimulationManifest` and structured errors without
   reading arguments or writing files.
-- [ ] Once that API is stable, implement the `export-roster-manifest` command
+- [x] Once that API is stable, implement the `export-roster-manifest` command
   option/parser task in `SimCliTasks.md`. Keep its option values in
   `SimulationCommandOptions`; translate them into typed generator settings in
   the simulation adapter rather than exposing CLI types to the generator.
-- [ ] Implement the CLI command-execution task only after a generator unit
+- [x] Implement the CLI command-execution task only after a generator unit
   test proves that default and overridden settings produce valid manifests and
   executable plans. The adapter must validate the roster and generated
   manifest before it performs atomic output handling.
-- [ ] Add the CLI usage/help and parser unit-test tasks immediately after the
+- [x] Add the CLI usage/help and parser unit-test tasks immediately after the
   command path exists, using the same defaults and validation errors as the
   generator tests so core and CLI contracts cannot drift.
-- [ ] Add the end-to-end export/validate integration task only after the unit
+- [x] Add the end-to-end export/validate integration task only after the unit
   contracts pass. Verify an exported file can be consumed unchanged by the
   existing `validate` command, and preserve the normal interactive CLI and
   GUI exactly-one-human regression coverage.
-- [ ] Update the README and developer guides only after the command,
+- [x] Update the README and developer guides only after the command,
   exported-manifest validation, and integration tests are executable. Document
   the published command behavior and defaults rather than a planned API.
-- [ ] Finish Milestone 7 by running the complete headless suite and one
+- [x] Finish Milestone 7 by running the complete headless suite and one
   checked-in roster-export smoke artifact. Record the generated manifest's
   schema/checksum and confirm that it uses immutable snapshots rather than
   retaining live `PlayableBotRoster` Resources.
