@@ -9,6 +9,8 @@
 
 ## Active backlogs
 
+- [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) — ordered orchestration
+  and completion gates for the remaining product-release work.
 - [`CoreTasks.md`](CoreTasks.md) — shared and core-adjacent unfinished work.
 - [`CliTasks.md`](CliTasks.md) — interactive CLI verification.
 - [`GuiTasks.md`](GuiTasks.md) — GUI, Web, and device work.

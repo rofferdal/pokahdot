@@ -3,7 +3,9 @@
 This backlog contains unfinished GUI, Web presentation, and device-validation
 work. Task status is preserved from the source backlogs. The environment table
 below is the single authoritative Web/device checklist; do not duplicate those
-environment tasks elsewhere.
+environment tasks elsewhere. Follow the phase order in
+[`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md); section position in this
+ownership backlog does not override those dependency gates.
 
 ## Milestone dependency — Strategic default roster and optional legacy heuristics
 
@@ -128,6 +130,117 @@ space for seat annotations, side panels, the central zone, and controls.
 - [ ] **Human verification:** run `godot --path .` and inspect 6- and 7-seat
   tables through preflop, street changes, and showdown. Confirm no player
   details, actions, showdown results, event entries, or controls are obscured.
+
+## Systematic GUI issue detection and remediation
+
+Complete the workflow foundation in this section before implementing the
+small-phone presentation milestone below. Use the same fixtures and defect loop
+for the small-desktop remediation above. These local and automated checks are
+pre-release gates; they do not replace the authoritative hosted browser/device
+matrix.
+
+- [ ] **Define the canonical viewport matrix:** add named logical viewport
+  fixtures for at least 360 x 640, 390 x 844, and 412 x 915 phone portrait;
+  640 x 360 and 844 x 390 phone landscape; the supported iPad orientations;
+  950 x 532 small desktop; and 1280 x 720 and 1920 x 1080 desktop. Include
+  reduced-height phone variants that represent expanded browser chrome, and
+  exercise 2-, 4-, 6-, and 9-player tables where the state applies.
+- [ ] **Build deterministic visual-state fixtures:** provide a presentation-test
+  harness for startup, human turn, bot turn, every street, wager entry, all-in
+  runout, showdown with long summaries, elimination, tournament winner, event
+  history, quit confirmation, and numeric keypad states. Use fixed seeds and
+  recipient-safe `GameView` data; do not read hidden core state or duplicate
+  poker rules in the harness.
+- [ ] **Assert GUI invariants automatically:** for every applicable fixture,
+  check usable-viewport containment, unintended intersections, auxiliary-label
+  clearance, text clipping/wrapping, the 20 px player-facing font floor,
+  minimum touch targets, visible community cards, and reachability of every
+  legal action. Define explicit exceptions for intentional modal overlays
+  instead of weakening the general assertions.
+- [ ] **Cover live viewport changes:** add deterministic regressions for phone
+  rotation, browser-height changes, repeated resize events, opening and closing
+  overlays/keypads, and rerendering after game-state changes. Verify that one
+  current layout result owns each region and no stale deferred geometry is
+  applied after a newer layout pass.
+- [ ] **Create a reproducible screenshot workflow:** capture stable, descriptive
+  images keyed by layout profile, viewport, player count, and state, with a
+  manifest recording the commit and fixture inputs. Use reviewed screenshots
+  to detect hierarchy, density, contrast, and proportion defects that bounds
+  assertions cannot detect; do not make brittle pixel equality the only pass
+  condition.
+- [ ] **Standardize the defect loop:** add a GUI defect-record template with
+  severity, environment, viewport/orientation, player count, state, steps,
+  expected/actual result, before/after evidence, owning layer, regression, and
+  verification fields. For each defect, reproduce it deterministically, add a
+  failing regression where practical, change one layout owner, rerun the
+  affected matrix and complete suite, and attach the corrected evidence.
+- [ ] **Document and enforce the pre-release gate:** update the relevant GUI
+  testing documentation and `WEB_SETUP.md` so an immutable hosted candidate is
+  produced only after the canonical automated matrix passes and all blocker,
+  unreadable, and obstructive defects are closed or explicitly accepted.
+
+## Small-phone presentation mode
+
+Implement a distinct phone experience instead of uniformly shrinking the
+desktop table. Preserve core rules, recipient-safe views, and the 20 px text
+floor. Phone-only visibility and composition decisions belong to the GUI
+presentation layer.
+
+- [ ] **Define and test one layout-profile classifier:** distinguish phone
+  portrait, phone landscape, tablet, small desktop, and desktop from the usable
+  viewport's shortest dimension, aspect ratio, and orientation. Account for
+  browser chrome and safe-area reductions; do not classify solely from OS
+  feature flags, raw pixel resolution, or portrait aspect. Both orientations
+  of the same phone must remain phone layouts.
+- [ ] **Record the phone player-count policy before implementation:** start from
+  continued 2–9 support with a recommended four-player phone default and
+  density tiers for 2–4, 5–6, and 7–9 players. Prototype and test the nine-seat
+  minimal layout. Introduce a phone-only maximum only if the canonical
+  acceptance criteria cannot be met, and then update `ProjectDescription.md`,
+  `ARCHITECTURE.md`, startup messaging/validation, and regression expectations
+  explicitly rather than silently rejecting or altering a tournament.
+- [ ] **Replace full opponent panels with phone seat tokens:** retain the
+  assigned display name, stack, position/acting/folded/all-in state, and compact
+  card backs or legitimately revealed cards. Hide avatars and nonessential
+  decoration on phones, use compact badges such as `D`, `SB`, `BB`, and `AI`,
+  and provide additional seat details on deliberate tap without changing core
+  identity or state.
+- [ ] **Create one bottom human interaction region:** combine the human cards,
+  stack, turn status, and actions; render only currently legal actions rather
+  than reserving space for every disabled desktop control. Keep each action
+  reachable with the supported touch-target size and preserve unambiguous
+  Fold, Check/Call, Bet/Raise, and All-in behavior.
+- [ ] **Move secondary content into phone overlays:** replace the permanently
+  visible event log with a Log drawer, move wager presets and numeric entry to
+  a bottom sheet, present showdown details in a scrollable summary overlay, and
+  place Quit and other secondary commands in an overflow menu. Every overlay
+  must have an obvious close/cancel path, preserve recipient privacy, and
+  restore the unchanged table state.
+- [ ] **Simplify the phone center and action feedback:** keep community cards,
+  pot, current wager, and turn status continuously legible; replace persistent
+  per-seat action sentences with compact, short-lived seat-owned badges. Move
+  blind-level detail and full history behind progressive disclosure without
+  hiding information required to choose a legal action.
+- [ ] **Make phone layout transitions atomic:** debounce resize/orientation
+  changes, calculate all regions from one current usable rectangle, and prevent
+  stale callbacks or competing `Container` and manual geometry owners from
+  restoring obsolete bounds. Preserve an in-progress tournament and open UI
+  state wherever safe across rotation and browser-bar changes.
+- [ ] **Add full phone regression coverage:** run the canonical portrait and
+  landscape fixtures at 2, 4, 6, and 9 players through the representative
+  visual states. Verify bounds, density tiers, long names, text and touch
+  minimums, legal-action reachability, overlay behavior, card privacy, resize
+  stability, and unchanged core outcomes.
+- [ ] **Perform local phone visual acceptance:** inspect the canonical
+  screenshots and interactive local runs for information hierarchy, density,
+  contrast, readability, and one-handed action use. Resolve all blocker,
+  unreadable, and obstructive defects before publishing the authoritative
+  hosted candidate; preserve physical-device sign-off for the existing Web and
+  device matrix.
+- [ ] **Document the implemented contract:** update `ARCHITECTURE.md` and
+  `gui_scaling_best_practice.md` with the final layout profiles, player-count
+  policy, phone information hierarchy, overlay ownership, and automated visual
+  verification workflow.
 
 ## GUI release verification
 
