@@ -7,6 +7,7 @@ const MANIFEST_GENERATOR_SCRIPT := preload(
 const ROSTER_MANIFEST_SETTINGS_SCRIPT := preload(
 	"res://scripts/simulation/simulation_roster_manifest_settings.gd"
 )
+const BATCH_RUNNER_SCRIPT := preload("res://scripts/simulation/simulation_batch_runner.gd")
 
 
 func test_roster_generator_creates_a_valid_schema_two_snapshot_manifest() -> void:
@@ -262,6 +263,44 @@ func test_schema_two_rejects_legacy_or_incomplete_strategy_snapshots() -> void:
 	assert_false(parsed.is_ok())
 	assert_has(parsed.errors, "Unknown parameter field: call_vs_bet")
 	assert_has(parsed.errors, "Missing parameter field: call_vs_raise")
+
+
+func test_simulation_accepts_more_than_the_product_strategic_roster_limit() -> void:
+	var manifest := MANIFEST_SCRIPT.new()
+	manifest.batch_id = &"simulation_over_product_capacity"
+	manifest.seed_start = 2500
+	for index: int in range(26):
+		manifest.profiles.append(_profile(StringName("strategic_%d" % index), 50))
+	manifest.regimes = [SimulationRegime.new(&"heads_up", 2, 20, 5, 10)]
+	manifest.matchups = [
+		SimulationMatchup.new(&"first_two", [manifest.profiles[0], manifest.profiles[1]])
+	]
+	manifest.evaluation_plans = [
+		SimulationEvaluationPlan.new(&"one_match", &"heads_up", [&"first_two"], 1, 1, &"normal_95")
+	]
+
+	var parsed := MANIFEST_SCRIPT.parse(manifest.canonical_dictionary())
+	assert_true(parsed.is_ok())
+	var plan: SimulationBatchPlan = parsed.manifest.build_plan()
+	assert_true(plan.is_valid())
+	assert_eq(plan.inputs.size(), 1)
+	var result := (
+		BATCH_RUNNER_SCRIPT
+		. new()
+		. run(
+			ResolvedTournamentConfig.new(
+				2,
+				20,
+				5,
+				10,
+				2500,
+				&"single_table",
+				{0: &"strategy_parameterized", 1: &"strategy_parameterized"}
+			),
+			plan.inputs,
+		)
+	)
+	assert_true(result.is_success())
 
 
 func test_shard_contract_filters_without_replanning() -> void:

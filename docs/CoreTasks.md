@@ -73,23 +73,23 @@ This core-only milestone caps the product roster's
 CLI or GUI contract and must not impose a profile-count limit on simulation
 manifests, matchups, candidate batches, or profile evolution.
 
-- [ ] Add a named product-roster capacity contract of 25 strategic profiles to
+- [x] Add a named product-roster capacity contract of 25 strategic profiles to
   `PlayableBotRoster`. Count profiles by the same model-family classification
   used for product selection; legacy heuristic profiles do not consume this
   strategic capacity.
-- [ ] Validate the limit during product roster construction with a diagnostic
+- [x] Validate the limit during product roster construction with a diagnostic
   that identifies the 25-profile strategic maximum. Preserve existing
   validation for IDs, model resolution, and required legacy profiles, and do
   not silently discard or reclassify profiles.
-- [ ] Prove through unit tests that rosters with 25 strategic profiles are
+- [x] Prove through unit tests that rosters with 25 strategic profiles are
   valid, 26 are rejected, legacy profiles do not affect the strategic count,
   and normal deterministic product selection continues to work at every 1–8
   bot-seat count.
-- [ ] Add regression coverage proving that simulation manifest parsing,
+- [x] Add regression coverage proving that simulation manifest parsing,
   planning, execution, and profile-evolution inputs accept more than 25
   strategic profiles when otherwise valid. Do not route simulation validation
   through the product-roster capacity check.
-- [ ] Run the relevant headless unit and integration suites, then align
+- [x] Run the relevant headless unit and integration suites, then align
   `ProjectDescription.md` and `ARCHITECTURE.md` with the implemented
   product-only boundary. Do not add CLI or GUI tasks for this milestone.
 

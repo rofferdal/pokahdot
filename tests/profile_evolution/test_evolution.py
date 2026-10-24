@@ -149,6 +149,12 @@ class ContractTests(unittest.TestCase):
 
 
 class EvolutionTests(unittest.TestCase):
+    def test_generation_accepts_more_than_product_strategic_roster_capacity(self) -> None:
+        generation = initialize_generation(full_bounds(), 26, 42)
+
+        validated = validate_candidate_collection(generation["payload"])
+        self.assertEqual(len(validated["candidates"]), 26)
+
     def test_identity_includes_population_and_operation_seeds(self) -> None:
         bounds = full_bounds()
         small = initialize_generation(bounds, 2, 9)

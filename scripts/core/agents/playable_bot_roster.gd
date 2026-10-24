@@ -7,7 +7,9 @@ extends RefCounted
 ## copies, so a match cannot mutate the curated resource or another match.
 
 const MAX_PLAYABLE_BOT_COUNT := 8
-const MAX_CATALOG_PROFILE_COUNT := 32
+## Product games may retain at most this many StrategyDecisionModel profiles.
+## Simulation manifests deliberately do not use this product-roster limit.
+const MAX_STRATEGIC_PROFILE_COUNT := 25
 ## Source-controlled identity for the curated product catalog. Increment this
 ## whenever its membership or an included profile snapshot changes.
 const ROSTER_VERSION: StringName = &"curated_v1"
@@ -68,15 +70,9 @@ func validate() -> PackedStringArray:
 	var errors := PackedStringArray()
 	if _profiles.is_empty():
 		errors.append("The playable bot roster must contain at least one profile.")
-	if _profiles.size() > MAX_CATALOG_PROFILE_COUNT:
-		errors.append(
-			(
-				"The playable bot roster cannot contain more than %d profiles."
-				% MAX_CATALOG_PROFILE_COUNT
-			)
-		)
 
 	var seen_ids: Dictionary[StringName, bool] = {}
+	var strategic_profile_count: int = 0
 	for index: int in range(_profiles.size()):
 		var profile: BotProfile = _profiles[index]
 		if profile == null:
@@ -91,10 +87,19 @@ func validate() -> PackedStringArray:
 		else:
 			seen_ids[profile.profile_id] = true
 
+		if _is_strategic_profile(profile):
+			strategic_profile_count += 1
 		var creation := AgentFactory.new(_registry).create_bot(profile, _validation_rng(index))
 		if not creation.is_ok():
 			for error: String in creation.errors:
 				errors.append("Playable bot roster profile %s: %s" % [profile.profile_id, error])
+	if strategic_profile_count > MAX_STRATEGIC_PROFILE_COUNT:
+		errors.append(
+			(
+				"The playable bot roster cannot contain more than %d strategic profiles."
+				% MAX_STRATEGIC_PROFILE_COUNT
+			)
+		)
 	for legacy_id: StringName in REQUIRED_LEGACY_PROFILE_IDS:
 		if not seen_ids.has(legacy_id):
 			errors.append("Playable bot roster must retain legacy profile: %s." % legacy_id)
@@ -159,6 +164,13 @@ func get_profile_ids() -> Array[StringName]:
 
 func get_roster_version() -> StringName:
 	return ROSTER_VERSION
+
+
+func _is_strategic_profile(profile: BotProfile) -> bool:
+	if profile == null:
+		return false
+	var model := _registry.create_model(profile.model_id)
+	return model is StrategyDecisionModel
 
 
 func _validation_rng(index: int) -> RandomNumberGenerator:

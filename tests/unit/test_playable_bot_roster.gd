@@ -91,6 +91,38 @@ func test_roster_rejects_invalid_profiles_and_selection_larger_than_catalog() ->
 	assert_true(has_size_error)
 
 
+func test_roster_accepts_twenty_five_strategic_profiles_regardless_of_legacy_profiles() -> void:
+	var roster := _roster_with_strategic_profile_count(25)
+
+	assert_eq(roster.validate(), PackedStringArray())
+	for bot_count: int in range(1, PlayableBotRoster.MAX_PLAYABLE_BOT_COUNT + 1):
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 1000 + bot_count
+		assert_true(roster.select(bot_count, rng).is_ok())
+
+
+func test_roster_rejects_more_than_twenty_five_strategic_profiles() -> void:
+	var roster := _roster_with_strategic_profile_count(26)
+
+	assert_has(
+		roster.validate(), "The playable bot roster cannot contain more than 25 strategic profiles."
+	)
+
+
+func _roster_with_strategic_profile_count(strategic_count: int) -> PlayableBotRoster:
+	var profiles: Array[BotProfile] = []
+	for profile: BotProfile in PlayableBotRoster.new().get_catalog_profiles():
+		if profile.model_id != &"strategy_parameterized":
+			profiles.append(profile)
+	for index: int in range(strategic_count):
+		var profile := BotProfile.new()
+		profile.profile_id = StringName("strategic_capacity_%d" % index)
+		profile.model_id = &"strategy_parameterized"
+		profile.parameters = StrategyDecisionModelParameters.new()
+		profiles.append(profile)
+	return PlayableBotRoster.new(profiles, null, false)
+
+
 func _profile_ids(profiles: Array[BotProfile]) -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for profile: BotProfile in profiles:
