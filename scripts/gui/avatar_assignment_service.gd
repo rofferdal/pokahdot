@@ -3,6 +3,8 @@ extends RefCounted
 
 ## Assigns visual avatars without touching tournament or poker RNG streams.
 
+const RNG_STREAM_ID := "gui_avatars"
+
 var _catalog: GuiAvatarCatalog
 
 

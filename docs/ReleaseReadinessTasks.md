@@ -14,15 +14,15 @@ while any linked required task remains open. The Web and device checklist in
 Complete this milestone before changing GUI player-name rendering. It fixes the
 data constraints and presentation-only boundary that the GUI must consume.
 
-- [ ] Complete every task in
+- [x] Complete every task in
   [`CoreTasks.md` — GUI player-name presentation foundation](CoreTasks.md#gui-player-name-presentation-foundation),
   including the stored 50-name catalog, Unicode validation, deterministic
   assignment contract, and tests for uniqueness, stability, and RNG isolation.
-- [ ] Confirm the completed design remains presentation-only: no assigned name,
+- [x] Confirm the completed design remains presentation-only: no assigned name,
   catalog dependency, or `gui_names` RNG state may enter `Player`, `GameView`,
   match configuration, domain events, agent decisions, simulation artifacts,
   or interactive CLI output.
-- [ ] Run the focused foundation tests and the complete headless test suite.
+- [x] Run the focused foundation tests and the complete headless test suite.
   Mark this milestone complete only when both pass with zero errors.
 
 ## Milestone 2 — GUI player-name implementation
