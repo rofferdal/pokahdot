@@ -13,6 +13,11 @@ The simulation runner operates in batch:
 4. **Metrics ([`SimulationTournamentMetrics`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_tournament_metrics.gd))**: Calculates VPIP (voluntarily put chips in pot), PFR (preflop raise), win rates, and chip fitness.
 5. **Report ([`SimulationReport`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_report.gd))**: Schema 3 JSON artifact storing complete outcomes, aggregates, recipient-safe traces, deterministic roster provenance derived from immutable profile snapshots, and ordered `selected_profile_ids` per tournament.
 
+Simulation manifests are not subject to the playable product roster's limit of
+25 `StrategyDecisionModel`-based profiles. Use that freedom for larger
+candidate pools and profile-evolution experiments; the limit is enforced only
+when validating `PlayableBotRoster` for GUI and CLI games.
+
 ---
 
 ## 2. Using the Simulation CLI

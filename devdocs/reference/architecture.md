@@ -323,6 +323,7 @@ flowchart TD
 ### 3. Curated In-Game Catalog (`PlayableBotRoster`)
 - **Shared by GUI and CLI**: Centralizes in-game bot selection and creation.
 - **Legacy Invariant**: Enforces permanent retention of hand-authored legacy profiles (`random_default`, `tight_passive_default`, `loose_aggressive_default`).
+- **Strategic Capacity**: Product roster validation permits at most 25 profiles whose registered model is a `StrategyDecisionModel`; other model types do not consume that capacity. This is an in-game catalog constraint only: simulation manifests and profile-evolution candidate sets remain uncapped.
 - **Deep-Copy Isolation**: Ensures live tournaments receive fresh duplicate copies and cannot mutate shared resource definitions.
 - **Evaluation bridge**: `get_catalog_profiles()` returns independent copies for roster-manifest generation. Exported baselines remain valid when later catalog edits change profiles or membership.
 

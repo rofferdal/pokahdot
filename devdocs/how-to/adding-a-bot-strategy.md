@@ -160,6 +160,12 @@ godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/tes
 
 ## Step 6: Establish an Evaluation Baseline
 
+Each `StrategyDecisionModel`-based profile added to `PlayableBotRoster` uses one
+of the 25 product strategic-roster slots. Replace or remove an existing
+strategic product profile before adding a 26th one. This product constraint
+does not limit profiles in manually authored simulation manifests or
+profile-evolution experiments.
+
 Before registering a new strategy profile in `PlayableBotRoster`, export the
 current roster so its incumbents are captured as immutable simulation
 snapshots:

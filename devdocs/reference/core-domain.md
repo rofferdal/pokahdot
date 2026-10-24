@@ -163,7 +163,7 @@ The centralized, curated bot catalog used by GUI and CLI presentation layers.
   - `REQUIRED_LEGACY_PROFILE_IDS`: Must always include `&"random_default"`, `&"tight_passive_default"`, and `&"loose_aggressive_default"`.
   - `DEFAULT_PROFILE_PATHS`: Array of default `.tres` resource paths loaded into the roster.
   - `MAX_PLAYABLE_BOT_COUNT`: Maximum bots selectable for one tournament (8).
-  - `MAX_CATALOG_PROFILE_COUNT`: Maximum profiles allowed in the catalog (32).
+  - `MAX_STRATEGIC_PROFILE_COUNT`: Maximum `StrategyDecisionModel`-based profiles in the playable product roster (25). This bound does not apply to non-strategic profiles or to simulation manifests.
 - **Key Methods**:
   - `validate() -> PackedStringArray`: Validates catalog bounds, profile uniqueness, model creation, and legacy profile presence.
   - `select(count: int, rng: RandomNumberGenerator) -> PlayableBotRosterSelection`: Deterministically samples `count` distinct profiles without replacement, returning deep copies.

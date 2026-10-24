@@ -158,6 +158,11 @@ Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/
 > - `&"tight_passive_default"`
 > - `&"loose_aggressive_default"`
 > If any of these are omitted, `PlayableBotRoster.validate()` will fail!
+>
+> `PlayableBotRoster` also allows at most 25 profiles backed by
+> `StrategyDecisionModel`. When promoting another strategic profile beyond
+> that capacity, replace or remove an existing strategic product profile.
+> This limit does not apply to simulation manifests used for evaluation.
 
 ---
 
