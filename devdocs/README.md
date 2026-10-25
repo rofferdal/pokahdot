@@ -40,6 +40,10 @@ Practical step-by-step instructions to get everyday development tasks done.
   authoritative visual evidence contract is in
   **[GUI Visual Testing](../docs/GUI_VISUAL_TESTING.md)**, with the standard
   **[GUI Defect Record](../docs/templates/GUI_DEFECT.md)**.
+- **[Switching GitHub Pages to Manual Deployment](how-to/switching-github-pages-to-manual-deployment.md)**:
+  How to replace the default automatic `main` deployment with an explicitly
+  requested manual workflow that always deploys the latest commit on `main`,
+  and how to restore automatic deployment.
 - **[Adding a Bot Strategy](how-to/adding-a-bot-strategy.md)**: How to create a new `DecisionModel`, define validated parameter resources, register models with `PlayableBotRoster`, and write unit tests.
 - **[Running Simulations](how-to/running-simulations.md)**: How to execute non-interactive batch simulations, validate manifests, run parallel shards, inspect reports, and replay runs.
 - **[Evaluating Bot Performance & Statistical Decisions](how-to/evaluating-bot-performance.md)**: How to analyze simulation metrics, interpret 95% confidence intervals, evaluate behavioral style leaks, and verify the 7 automated promotion gates.

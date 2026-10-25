@@ -206,9 +206,8 @@ make web-release
 ```
 *(Requires a clean git working tree and the Godot HTML5 export template installed).*
 
-This is a local export check, not deployment authorization. The manually
-dispatched release workflow checks out one exact candidate SHA, runs
-`make release-candidate-gate web-release` in headless CI, and waits for an
-independent protected-environment reviewer to verify the durable rendered
-evidence before deployment. Follow the authoritative
+This is a local export check. Every push to `main` automatically starts the
+release workflow, which checks out the pushed SHA and runs
+`make release-candidate-gate web-release` in headless CI before deploying to
+GitHub Pages. Follow the authoritative
 [Web publishing and hosted-acceptance runbook](../../docs/WEB_SETUP.md).

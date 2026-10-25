@@ -5,15 +5,15 @@ be tested from a stable HTTPS URL. It is written for a developer who is new to
 Godot and should be followed for the hosted-candidate and browser/device gates
 in [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md). Complete the local
 canonical workflow in [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) before
-publishing the candidate.
+accepting a deployed commit as the formal release candidate. Routine pushes
+are deployed earlier so browser- and device-specific defects can be found.
 
 The outcome is deliberately reproducible:
 
 1. `export_presets.cfg` is committed and contains a **Web** preset.
 2. a release export is generated from a known Git commit;
 3. a static host serves that exact export over HTTPS at a stable URL;
-4. a manually dispatched deployment workflow publishes only the reviewed,
-   exact candidate commit; and
+4. every successful push to `main` is built and published automatically; and
 5. browser and physical-device evidence is recorded against that build.
 
 Do not mark a device test complete based on an editor preview, a local
@@ -122,19 +122,19 @@ The command must exit with status 0. `build/web/index.html` must exist along
 with the files referenced by it. Keep the files together and deploy the
 contents of `build/web`, not the repository root.
 
-`make web-release` verifies a local Web export, but it does not authorize a
-deployment. On the exact manually selected commit,
-`make release-candidate-gate` checks tree cleanliness, runs `make check`, runs
-the applicable GUI invariant matrix, and checks cleanliness again. The
-deployment build then runs `web-release` for the release export and
+`make web-release` verifies a local Web export. After a commit is pushed to
+`main`, the deployment workflow checks out that exact push SHA and runs
+`make release-candidate-gate web-release`. The candidate gate checks tree
+cleanliness, runs `make check`, runs the applicable GUI invariant matrix, and
+checks cleanliness again. `web-release` then owns the release export and
 release-output validation. Both must pass before upload.
 
 The CI runner is headless and cannot create representative rendered
-screenshots. Before dispatch, run `make gui-visual-capture` on a
-rendering-capable machine, review its acceptance-eligible manifest and PNGs,
-and place the immutable manifest, review record, and images in a durable HTTPS
-evidence location. The manual workflow consumes that reviewed evidence; it
-does not regenerate or auto-approve it.
+screenshots. Automatic deployment makes the current `main` build available
+for browser and physical-device discovery; it does not certify the visuals or
+replace human review. For formal release evidence, run
+`make gui-visual-capture` on a rendering-capable machine and keep the reviewed
+manifest, PNGs, and review record tied to the same deployed commit SHA.
 
 For a quick local smoke test, serve the directory with any static-file server,
 then open it in a desktop browser. This only checks that the export is
@@ -150,14 +150,12 @@ deploying.
 
 ## 4. Deploy to the configured stable HTTPS host
 
-This repository contains `.github/workflows/deploy-web.yml`, which is manually
-dispatched with both the exact candidate commit SHA and the durable reviewed
-evidence URL. It builds that commit and deploys it to GitHub Pages only after
-the protected environment is independently approved. A push to `main` must
-not deploy or replace the stable candidate automatically. Treat the successful
-workflow's `page_url` output as authoritative; do not infer deployment status
-or claim a live host from the repository name alone. The configured Pages URL
-normally has this shape:
+This repository contains `.github/workflows/deploy-web.yml`. Every push to
+`main` triggers the validation, Web export, artifact upload, and GitHub Pages
+deployment for the pushed commit. Treat the successful workflow's `page_url`
+output as authoritative; do not infer deployment status or claim a live host
+from the repository name alone. The configured Pages URL normally has this
+shape:
 
 ```text
 https://<owner>.github.io/<repository>/
@@ -170,33 +168,26 @@ allows.
 
 ### GitHub Pages configuration and workflow verification
 
-1. Ensure the candidate is a full, immutable 40-character commit SHA reachable
-   from the protected release branch (normally `main`) and has no uncommitted
-   content.
+1. Ensure the commit intended for hosted testing has been pushed to `main`.
 2. In GitHub, open **Settings > Pages**.
 3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-4. In **Settings > Environments**, configure `github-pages` with at least one
-   independent required reviewer and enable **Prevent self-review**. Restrict
-   deployment branches/tags to the protected release policy. If the repository
-   plan cannot enforce required reviewers and self-review prevention, do not
-   treat a deployment as an approved release candidate.
-5. Review `.github/workflows/deploy-web.yml`. It must have only a manual
-   `workflow_dispatch` deployment trigger with required inputs for the exact
-   `candidate_sha` and `reviewed_local_evidence_url`. It must continue to:
-   - reject anything except a full commit SHA and an HTTPS evidence URL;
-   - check out that exact SHA and verify `git rev-parse HEAD` equals the input;
+4. In **Settings > Environments > github-pages**, ensure no required-reviewer
+   or self-review protection rule pauses automatic deployments. Restrict the
+   environment to `main` if branch protection is desired.
+5. Review `.github/workflows/deploy-web.yml`. It must use a `push` trigger
+   restricted to `main`. It must continue to:
+   - check out and verify the exact pushed SHA;
    - install Godot **4.7.2** and its matching export templates;
    - run `make release-candidate-gate web-release`: the candidate gate owns
      cleanliness, the complete headless suite, and GUI invariant gate, while
      `web-release` owns the Web export and output validation;
    - create `build/web/.nojekyll` so Pages does not apply Jekyll processing;
    - upload only `build/web` with `actions/upload-pages-artifact`; and
-   - expose a build summary containing the candidate SHA, reviewed local
-     evidence URL, and validated provenance; the workflow/step result records
-     whether the candidate gate and Web release passed.
-6. Keep the deployment in a separate `deploy` job bound to the protected
-   `github-pages` environment. The independent approver must verify the checks
-   below before allowing `actions/deploy-pages` to run.
+   - expose a build summary containing the pushed commit SHA and validated
+     provenance; the workflow result records whether the candidate gate and
+     Web release passed.
+6. Keep the deployment in a separate `deploy` job bound to the `github-pages`
+   environment.
 
 Use job-scoped least privilege. The workflow and build job need only repository
 read access; the deploy job receives Pages and identity-token permissions:
@@ -227,34 +218,22 @@ The workflow must pin the Godot version to 4.7.2 and fail rather than falling
 back to another installed Godot version. Treat the workflow itself as release
 code and review workflow changes before they reach the protected branch.
 
-### Dispatch and independent approval
+### Automatic deployment and evidence stability
 
-1. Upload the clean rendered capture bundle and completed review record to the
-   durable evidence location. A local ignored `artifacts/` path is not enough.
-2. Dispatch **Deploy Web release** from the protected branch. Supply the full
-   candidate SHA, never a branch name or abbreviated SHA, and the durable HTTPS
-   review URL.
-3. Wait for the build job, `release-candidate-gate`, and `web-release` to pass.
-   Do not approve the environment while the build is running or failing.
-4. The required reviewer, who must not be the dispatcher, opens the durable
-   evidence and confirms:
-   - workflow input SHA, checked-out SHA, manifest `source_sha`, and review
-     record target SHA are identical;
-   - the independently recorded manifest SHA-256 matches the reviewed
-     manifest, its suite/scope is the required full matrix, and
-     `acceptance_eligible` is `true`;
-   - the rendered review is approved and identifies its reviewer and time;
-   - every blocker, unreadable, and obstructive defect is closed or has an
-     explicit linked acceptance by the proper decision owner; and
-   - the durable URL contains the manifest, screenshots, review, and defect or
-     acceptance records referenced by that review.
-5. Only after those checks does the reviewer approve the `github-pages`
-   environment. Record the approver and approval time in the Web evidence.
+1. Push the commit to `main`.
+2. Open **Actions > Deploy Web release** and wait for the build and deploy jobs
+   to succeed. A failed gate leaves the previously successful site in place.
+3. Record the pushed SHA and workflow-run URL before beginning browser/device
+   testing.
+4. Verify the live site in a private/incognito session as described below.
 
-Do not dispatch another deployment while browser/device evidence is being
-collected. Any source, export, or deployment fix is a new candidate: produce
-and review new rendered evidence, dispatch the new exact SHA, and rerun every
-affected hosted environment.
+The Pages URL is a rolling test environment. Avoid pushing another commit to
+`main` while formal browser/device evidence is being collected. If a later
+push replaces the hosted build, treat it as a new candidate and rerun every
+affected environment. To change the repository to manual deployment in the
+future, follow
+[`devdocs/how-to/switching-github-pages-to-manual-deployment.md`](../devdocs/how-to/switching-github-pages-to-manual-deployment.md);
+do not change the trigger without an explicit project-owner request.
 
 ### First deployment verification
 
@@ -312,8 +291,6 @@ tab. Record this header before testing:
 
 - URL: `https://<owner>.github.io/<repository>/`
 - Commit: `<full 40-character SHA>`
-- Dispatch candidate SHA: `<full 40-character SHA>`
-- Dispatch reviewed-local-evidence URL: `<durable HTTPS URL>`
 - Deployment workflow/run: `<URL>`
 - Release-candidate-gate and Web-release result: `<pass and build-log URL>`
 - Local rendered manifest SHA-256: `<64 lowercase hexadecimal characters>`
@@ -321,7 +298,6 @@ tab. Record this header before testing:
 - Manifest acceptance eligible: `true`
 - Rendered review result/reviewer (UTC): `approved`, `<reviewer>`, `<time>`
 - Open or accepted defect IDs: `<none or linked IDs and decisions>`
-- GitHub environment approver (UTC): `<independent approver>`, `<time>`
 - Tested on (UTC): `<YYYY-MM-DD HH:MM>`
 - Export preset: `Web`, release, threads disabled
 - Console errors at startup: none / `<exact errors>`
@@ -403,14 +379,11 @@ and repeat the affected device/browser test.
 Hosted evidence may be signed off only when all of the following are true:
 
 - `export_presets.cfg` is committed and a `Web` release export succeeds;
-- the manual workflow inputs, checked-out commit, rendered manifest, and
-  review record all identify the same full candidate SHA;
+- the pushed commit, checked-out commit, rendered manifest, and review record
+  all identify the same full candidate SHA;
 - `make release-candidate-gate web-release` passed and the independently
   reviewed rendered manifest checksum identifies a complete
   acceptance-eligible capture;
-- the protected `github-pages` environment was approved by a required reviewer
-  other than the workflow dispatcher after checking the rendered evidence and
-  defect decisions;
 - the deployment workflow publishes the release output, not source files;
 - the stable URL opens over HTTPS in a private/incognito window without console
   errors;

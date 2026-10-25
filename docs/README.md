@@ -25,8 +25,8 @@
   evolution, including curated-roster baseline export.
 - [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md) — interactive CLI card text
   format.
-- [`WEB_SETUP.md`](WEB_SETUP.md) — exact-SHA, reviewed, manually approved Web
-  publishing and authoritative device-test evidence runbook.
+- [`WEB_SETUP.md`](WEB_SETUP.md) — automatic `main`-branch Web publishing and
+  authoritative device-test evidence runbook.
 - [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md) —
   provisional responsive Godot GUI guidance consistent with the architecture.
 - [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) — canonical GUI viewport and

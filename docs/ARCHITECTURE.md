@@ -664,21 +664,24 @@ manifest. Screenshots support human review of hierarchy, density, contrast,
 and proportion; brittle pixel equality is not the sole automated pass
 condition.
 
-Release-candidate promotion deliberately separates rendered review from
-headless CI. A rendering-capable developer machine produces the clean,
-acceptance-eligible screenshot manifest; an identified human reviews that
-immutable bundle and publishes it at a durable HTTPS evidence URL. Deployment
-is manual and bound to an exact full commit SHA plus that evidence URL. CI
-checks out the exact SHA and runs `release-candidate-gate`, which owns the
-clean-tree checks, complete headless suite, and GUI invariant matrix, followed
-by `web-release` for the Web export and export-output validation. Neither
-headless step claims to reproduce representative pixels. The
-`github-pages` deployment environment requires an independent reviewer and
-prevents self-review. That approver verifies the dispatch, checkout, manifest,
-and review SHA identity, manifest checksum and acceptance eligibility, and
-defect decisions before the stable URL can change. A later fix creates a new
-candidate and invalidates affected hosted evidence rather than mixing results
-across commits.
+Rendered review remains separate from headless CI. Every push to `main`
+automatically checks out the pushed SHA and runs `release-candidate-gate`,
+which owns the clean-tree checks, complete headless suite, and GUI invariant
+matrix, followed by `web-release` for the Web export and export-output
+validation. A successful run deploys that exact build to the rolling GitHub
+Pages URL so developers can discover browser- and device-specific defects
+early. Neither headless step claims to reproduce representative pixels.
+
+Formal acceptance still requires a rendering-capable developer machine to
+produce a clean, acceptance-eligible screenshot manifest and an identified
+human to review the immutable bundle. The manifest, review, deployment run,
+and hosted evidence must identify the same full commit SHA. Avoid changing
+`main` while formal hosted evidence is being collected; a later successful
+push replaces the site, creates a new candidate, and invalidates affected
+hosted evidence rather than allowing evidence from different commits to be
+mixed. Manual deployment is an optional operational mode documented in the
+[manual-deployment how-to](../devdocs/how-to/switching-github-pages-to-manual-deployment.md)
+and is enabled only by an explicit project-owner request.
 
 ### CLI adapter
 

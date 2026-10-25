@@ -1,16 +1,8 @@
 name: Deploy Web release
 
 on:
-  workflow_dispatch:
-    inputs:
-      candidate_sha:
-        description: Full lowercase 40-character commit SHA to deploy
-        required: true
-        type: string
-      reviewed_local_evidence_url:
-        description: HTTPS URL for reviewed local GUI evidence
-        required: true
-        type: string
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -34,39 +26,27 @@ jobs:
       - name: Check out release commit
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.candidate_sha }}
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Validate candidate provenance
+      - name: Record deployment provenance
         shell: bash
         env:
-          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
-          REVIEWED_LOCAL_EVIDENCE_URL: ${{ inputs.reviewed_local_evidence_url }}
+          DEPLOYED_SHA: ${{ github.sha }}
           WORKFLOW_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
           test "$WORKFLOW_REF" = "refs/heads/main" || {
-            echo "Deploy Web release must be dispatched from the main branch workflow." >&2
+            echo "Deploy Web release only accepts pushes to main." >&2
             exit 1
           }
-          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
-            echo "candidate_sha must be a full lowercase 40-character commit SHA." >&2
-            exit 1
-          }
-          [[ "$REVIEWED_LOCAL_EVIDENCE_URL" =~ ^https://[^[:space:]]+$ ]] || {
-            echo "reviewed_local_evidence_url must be one non-empty HTTPS URL without whitespace." >&2
-            exit 1
-          }
-          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$(git rev-parse HEAD)" = "$DEPLOYED_SHA"
           test -z "$(git status --porcelain)"
-          git merge-base --is-ancestor "$CANDIDATE_SHA" origin/main
 
           {
-            echo "### Web release candidate"
-            echo "- Candidate SHA: \`$CANDIDATE_SHA\`"
-            echo "- Reviewed local evidence: [$REVIEWED_LOCAL_EVIDENCE_URL]($REVIEWED_LOCAL_EVIDENCE_URL)"
-            echo "- Provenance: main workflow, exact SHA, clean tree, and ancestor of \`origin/main\`"
+            echo "### Web deployment"
+            echo "- Commit SHA: \`$DEPLOYED_SHA\`"
+            echo "- Provenance: push to \`main\`, exact checked-out SHA, and clean tree"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Configure GitHub Pages

@@ -23,25 +23,20 @@ func test_release_candidate_gate_has_one_ordered_recursive_contract() -> void:
 	assert_false("$(MAKE) --no-print-directory require-clean-worktree" in web_release)
 
 
-func test_deploy_workflow_requires_exact_reviewed_main_candidate() -> void:
+func test_deploy_workflow_automatically_deploys_exact_main_push() -> void:
 	var workflow := _read_text(WORKFLOW_PATH)
-	assert_string_contains(workflow, "  workflow_dispatch:")
-	assert_false("  push:" in workflow)
-	assert_string_contains(workflow, "candidate_sha:")
-	assert_string_contains(workflow, "reviewed_local_evidence_url:")
-	assert_gte(workflow.count("required: true"), 2)
-	assert_string_contains(workflow, "ref: ${{ inputs.candidate_sha }}")
+	assert_string_contains(workflow, "  push:")
+	assert_string_contains(workflow, "    branches: [main]")
+	assert_false("  workflow_dispatch:" in workflow)
+	assert_false("candidate_sha:" in workflow)
+	assert_false("reviewed_local_evidence_url:" in workflow)
 	assert_string_contains(workflow, "fetch-depth: 0")
 	assert_string_contains(workflow, "persist-credentials: false")
+	assert_string_contains(workflow, "DEPLOYED_SHA: ${{ github.sha }}")
 	assert_string_contains(workflow, "WORKFLOW_REF: ${{ github.ref }}")
 	assert_string_contains(workflow, 'test "$WORKFLOW_REF" = "refs/heads/main"')
-	assert_string_contains(workflow, '[[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]')
-	assert_string_contains(
-		workflow, '[[ "$REVIEWED_LOCAL_EVIDENCE_URL" =~ ^https://[^[:space:]]+$ ]]'
-	)
-	assert_string_contains(workflow, 'test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"')
+	assert_string_contains(workflow, 'test "$(git rev-parse HEAD)" = "$DEPLOYED_SHA"')
 	assert_string_contains(workflow, 'test -z "$(git status --porcelain)"')
-	assert_string_contains(workflow, 'git merge-base --is-ancestor "$CANDIDATE_SHA" origin/main')
 	assert_string_contains(workflow, "run: make release-candidate-gate web-release")
 	assert_false("gui-visual-capture" in workflow)
 

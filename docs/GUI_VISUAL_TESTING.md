@@ -221,8 +221,9 @@ source SHA, reviewed SHA, and eventual hosted candidate SHA to match.
 
 ## Release-candidate promotion handoff
 
-Rendered capture and review happen on a rendering-capable machine before CI is
-asked to deploy. For an accepted source commit:
+Each push to `main` automatically runs the headless release gates and deploys
+the pushed commit to GitHub Pages. Rendered capture and review remain a
+separate human acceptance activity. For an accepted source commit:
 
 1. Run clean `make gui-visual-capture` and independently compute the completed
    `manifest.json` SHA-256.
@@ -232,22 +233,19 @@ asked to deploy. For an accepted source commit:
 3. Upload the immutable manifest, PNGs, review, and linked decisions to one
    durable HTTPS evidence location. The ignored local `artifacts/` directory
    is not the promotion record.
-4. Manually dispatch the Web deployment with that exact full candidate SHA as
-   `candidate_sha` and the durable review URL as
-   `reviewed_local_evidence_url`.
-5. CI checks out the exact SHA and runs `make release-candidate-gate`. Its
+4. Push the reviewed commit to `main`, then record the automatically triggered
+   **Deploy Web release** run URL and deployed commit SHA.
+5. CI checks out the pushed SHA and runs `make release-candidate-gate`. Its
    headless environment reruns the complete suite and GUI invariant matrix;
    `web-release` then performs the Web export/output checks. CI does not
    regenerate representative screenshots or replace the completed rendered
    review.
-6. An independent required reviewer compares the dispatch SHA, checked-out
-   SHA, manifest source SHA, manifest checksum, review result, and defect
-   decisions before approving the protected `github-pages` environment. The
-   dispatcher cannot approve their own deployment.
+6. Confirm the checked-out SHA, manifest source SHA, reviewed SHA, and live
+   Pages build are identical before accepting hosted evidence.
 
-The stable URL is frozen while hosted evidence is collected. Any change
-requires a new clean capture, review, exact-SHA dispatch, environment approval,
-and affected hosted-environment rerun. See
+Avoid pushing to `main` while hosted evidence is collected. Any successful new
+deployment requires a new clean capture and review for formal acceptance, plus
+an affected hosted-environment rerun. See
 [`WEB_SETUP.md`](WEB_SETUP.md) for the GitHub configuration and evidence fields.
 
 ## Review and hosted-evidence boundary
