@@ -1,11 +1,14 @@
 class_name GuiViewportFixtures
 extends RefCounted
 
+const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
+
 ## Canonical logical viewport inputs shared by GUI matrix and visual tests.
 ##
 ## Sizes describe the usable Godot canvas rather than physical device pixels.
 ## The observed iPad landscape case is retained as a regression surface in
-## addition to the canonical logical iPad orientations.
+## addition to the canonical logical iPad orientations and explicitly
+## overrides geometry classification because the same size may be a desktop.
 
 const PROFILE_PHONE_PORTRAIT: StringName = &"phone_portrait"
 const PROFILE_PHONE_LANDSCAPE: StringName = &"phone_landscape"
@@ -46,6 +49,7 @@ static func all() -> Array[Dictionary]:
 			PROFILE_TABLET,
 			false,
 			true,
+			GuiLayoutProfileScript.Kind.TABLET,
 		),
 		_fixture(&"small_desktop_950x532", Vector2i(950, 532), PROFILE_SMALL_DESKTOP),
 		_fixture(&"desktop_1280x720", Vector2i(1280, 720), PROFILE_DESKTOP),
@@ -76,6 +80,7 @@ static func _fixture(
 	profile: StringName,
 	reduced_height: bool = false,
 	observed_regression: bool = false,
+	profile_override: int = GuiLayoutProfileScript.AUTOMATIC,
 ) -> Dictionary:
 	return {
 		"key": key,
@@ -84,4 +89,5 @@ static func _fixture(
 		"orientation": ORIENTATION_PORTRAIT if size.y > size.x else ORIENTATION_LANDSCAPE,
 		"reduced_height": reduced_height,
 		"observed_regression": observed_regression,
+		"profile_override": profile_override,
 	}

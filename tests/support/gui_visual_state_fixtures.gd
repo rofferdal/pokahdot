@@ -10,7 +10,7 @@ extends RefCounted
 
 const FIXED_SEED: int = 424242
 const DEFAULT_PLAYER_COUNT: int = 6
-const SUPPORTED_PLAYER_COUNTS: Array[int] = [2, 4, 6, 9]
+const SUPPORTED_PLAYER_COUNTS: Array[int] = [2, 4, 6, 7, 9]
 
 const KIND_STARTUP: StringName = &"startup"
 const KIND_TABLE: StringName = &"table"

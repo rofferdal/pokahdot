@@ -57,6 +57,11 @@ or rebuy.
 
 - Startup accepts **2–9 tournament participants**. The default is **6 seats**
   (1 human and 5 bots).
+- The small-phone GUI accepts **2–7 tournament participants**. It keeps 6 as
+  the actual default and may recommend 4 for comfort. Counts 8–9 remain valid
+  on tablet, small-desktop, desktop, CLI, and simulation surfaces. Changing
+  layout profile never clamps an entered count or mutates an active tournament;
+  the phone GUI instead explains that a larger layout is required.
 - Chips are integers; fractional chips are not permitted.
 - Startup accepts positive integer starting small and big blinds, with the
   small blind no greater than the big blind. Defaults are **small blind = 5**

@@ -96,9 +96,10 @@ and defects in the evidence record described by the runbook.
   9-seat games. Rotate during startup and live play; record scrolling,
   clipping, overlap, readability, stale-layout, and touch results.
 - [-] (no available iPhone for testing) **Physical iPhone Safari:** in both
-  orientations, test a 9-seat game. Verify wrapped controls, event-history
-  scrolling, Fold/Call/Raise/All-in taps, and one mid-play rotation with
-  before/after screenshots.
+  orientations, test a 7-seat game. Verify the phone event log is absent,
+  required seat information remains legible, Fold/Call/Raise/All-in taps work,
+  and one mid-play rotation preserves state without overlap; capture before/
+  after screenshots.
 - [ ] **Physical Android Chrome:** repeat the iPhone flow with the browser
   address bar expanded and collapsed. Record touch, clipping, contrast,
   text-size, and orientation results.
@@ -347,61 +348,132 @@ desktop table. Preserve core rules, recipient-safe views, and the 20 px text
 floor. Phone-only visibility and composition decisions belong to the GUI
 presentation layer.
 
-- [ ] **Define and test one layout-profile classifier:** distinguish phone
+- [x] **Define and test one layout-profile classifier:** distinguish phone
   portrait, phone landscape, tablet, small desktop, and desktop from the usable
   viewport's shortest dimension, aspect ratio, and orientation. Account for
   browser chrome and safe-area reductions; do not classify solely from OS
   feature flags, raw pixel resolution, or portrait aspect. Both orientations
-  of the same phone must remain phone layouts.
-- [ ] **Record the phone player-count policy before implementation:** start from
-  continued 2–9 support with a recommended four-player phone default and
-  density tiers for 2–4, 5–6, and 7–9 players. Prototype and test the nine-seat
-  minimal layout. Introduce a phone-only maximum only if the canonical
-  acceptance criteria cannot be met, and then update `ProjectDescription.md`,
-  `ARCHITECTURE.md`, startup messaging/validation, and regression expectations
-  explicitly rather than silently rejecting or altering a tournament.
-- [ ] **Replace full opponent panels with phone seat tokens:** retain the
+  of the same phone must remain phone layouts. `GuiLayoutProfile` now owns the
+  geometry contract and canonical fixtures exercise every profile, browser-
+  chrome reductions, rotation, and safe invalid-size fallback. The observed
+  2388 x 1450 iPad regression declares an explicit tablet override; without
+  that device evidence, the same usable geometry correctly remains desktop.
+- [x] **Apply the approved phone player-count policy:** keep six as the actual
+  default, support 2–7 players on small-phone profiles, and retain 2–9 support
+  on tablet, small-desktop, and desktop profiles. Update startup validation and
+  guidance, `ProjectDescription.md`, `ARCHITECTURE.md`, and regression
+  expectations explicitly; never silently clamp or alter an entered value or
+  an in-progress tournament when the layout profile changes. The startup GUI
+  now advertises and enforces 2–7 only for phone profiles, retains entered
+  values across profile changes, and directs 8–9 player configurations to a
+  larger layout. Shared core validation and larger GUI profiles remain 2–9;
+  the default remains 6. Focused GUI coverage passes.
+- [x] **Replace full opponent panels with legible phone seat tokens:** retain the
   assigned display name, stack, position/acting/folded/all-in state, and compact
   card backs or legitimately revealed cards. Hide avatars and nonessential
   decoration on phones, use compact badges such as `D`, `SB`, `BB`, and `AI`,
   and provide additional seat details on deliberate tap without changing core
-  identity or state.
-- [ ] **Create one bottom human interaction region:** combine the human cards,
+  identity or state. Size and space the tokens for the approved seven-player
+  maximum so the required information is readable without overlap; do not use
+  the rejected nine-player minimal-density presentation as the acceptance
+  baseline. Phone opponents now render recipient-safe avatar-free tokens with
+  each full catalog display name, a numeric stack, two compact hole-card
+  fields, 20 px text, seat/state badges, and a full-token detail target.
+  Short-lived action feedback uses the state-badge cell instead of covering a
+  required field. Seven-player tokens are larger than the state-preserving 8–9
+  player emergency geometry, and the focused layout, token, and manifest
+  regressions pass.
+- [x] **Create one bottom human interaction region:** combine the human cards,
   stack, turn status, and actions; render only currently legal actions rather
   than reserving space for every disabled desktop control. Keep each action
   reachable with the supported touch-target size and preserve unambiguous
-  Fold, Check/Call, Bet/Raise, and All-in behavior.
-- [ ] **Move secondary content into phone overlays:** replace the permanently
-  visible event log with a Log drawer, move wager presets and numeric entry to
-  a bottom sheet, present showdown details in a scrollable summary overlay, and
-  place Quit and other secondary commands in an overflow menu. Every overlay
-  must have an obvious close/cancel path, preserve recipient privacy, and
-  restore the unchanged table state.
-- [ ] **Simplify the phone center and action feedback:** keep community cards,
+  Fold, Check/Call, Bet/Raise, and All-in behavior. Phones now replace the
+  separate human seat with one bottom region containing recipient-safe cards,
+  stack, turn status, and only the current legal actions. Bet/Raise launches
+  the existing validated wager-entry seam, every visible action is at least
+  48 x 48 px, and leaving the phone profile restores the unchanged desktop and
+  tablet control reservation. Focused legal-action, waiting-state, wager-entry,
+  touch-target, and profile-restoration coverage passes.
+- [x] **Remove phone event history and keep only required overlays:** do not
+  render an event log field, drawer, menu entry, or phone event-history fixture.
+  Preserve the event history in game state and leave non-phone event-log
+  behavior unchanged. Keep wager presets and numeric entry in a bottom sheet,
+  showdown details in a scrollable summary overlay, and Quit and other required
+  secondary commands in an overflow menu. Every retained overlay must have an
+  obvious close/cancel path, preserve recipient privacy, and restore unchanged
+  table state. The phone log drawer, menu entry, controller path, and capture
+  state are removed. Wager, showdown, quit, seat-detail, and overflow surfaces
+  retain explicit close/cancel behavior; desktop event history and recipient-
+  safe game-state history remain unchanged. Focused overlay, resize, and
+  capture-manifest regressions pass.
+- [x] **Simplify the phone center and action feedback:** keep community cards,
   pot, current wager, and turn status continuously legible; replace persistent
-  per-seat action sentences with compact, short-lived seat-owned badges. Move
-  blind-level detail and full history behind progressive disclosure without
-  hiding information required to choose a legal action.
-- [ ] **Make phone layout transitions atomic:** debounce resize/orientation
+  per-seat action sentences with compact, short-lived seat-owned badges. Keep
+  blind-level detail behind progressive disclosure, but remove full event
+  history from the phone presentation. Do not hide information required to
+  choose a legal action. Public actions appear in the acting seat token, or the
+  bottom human region, for a presentation-configured duration with stale-
+  expiry protection; Fold remains durable seat state. Focused coverage must
+  verify center and decision copy, badge ownership, expiry, refresh, privacy,
+  absence of phone event history, and restoration of the unchanged desktop
+  presentation. The center continuously presents board, pot, current wager,
+  and turn/legality copy; blind progression lives in More. Seat-owned action
+  badges use generation-guarded expiry, while Fold remains durable. Focused
+  center, privacy, expiry, overlay-absence, and desktop-restoration regressions
+  pass.
+- [x] **Make phone layout transitions atomic:** debounce resize/orientation
   changes, calculate all regions from one current usable rectangle, and prevent
   stale callbacks or competing `Container` and manual geometry owners from
   restoring obsolete bounds. Preserve an in-progress tournament and open UI
-  state wherever safe across rotation and browser-bar changes.
-- [ ] **Add full phone regression coverage:** run the canonical portrait and
-  landscape fixtures at 2, 4, 6, and 9 players through the representative
+  state wherever safe across rotation and browser-bar changes. Phone table
+  regions now consume one immutable per-generation geometry plan, resize bursts
+  invalidate every older deferred callback, and layout-profile exits rebuild
+  full panels so compact minima cannot leak into restored desktop/tablet bounds.
+  Deterministic regressions rotate and vary browser height with overflow,
+  showdown, seat details, and a transactional wager sheet open; they verify
+  safe state preservation, stale-plan rejection, draft cancellation on desktop
+  exit, and unchanged tournament/view state. A larger match begun on a 2–9
+  profile retains its view and emergency geometry if resized to phone, displays
+  explicit larger-layout guidance, and restores the supported full composition
+  on exit. All focused resize regressions pass.
+- [x] **Add full phone regression coverage:** run the canonical portrait and
+  landscape fixtures at 2, 4, 6, and 7 players through the representative
   visual states. Verify bounds, density tiers, long names, text and touch
   minimums, legal-action reachability, overlay behavior, card privacy, resize
-  stability, and unchanged core outcomes.
-- [ ] **Perform local phone visual acceptance:** inspect the canonical
+  stability, the absence of every phone event-log surface, and unchanged core
+  outcomes. Keep the historical 348-case Milestone 3 suite unchanged. The
+  Milestone 4 phone matrix must verify larger readable seat-token rectangles,
+  full eight-character display names directly in each token, numeric stacks,
+  two hole-card fields, the 20 px font and 48 px target floors, reachable legal
+  actions, retained phone overlays,
+  recipient-safe hidden/revealed cards, portrait/landscape resize cycles, and
+  presentation-only core snapshots. The separate 378-case phone manifest uses
+  2, 4, 6, and 7 players across seven canonical phone viewports and excludes
+  the removed event-history state; the historical 348-case Milestone 3 matrix
+  remains unchanged. The gate measures every rendered bot name and stack,
+  requires exactly two card fields even for folded or busted bots, and rejects
+  action badges that cover required fields. `make gui-phone-invariant-gate`
+  passes after correcting seven-player reduced-height landscape clearance.
+- [x] **Perform local phone visual acceptance:** inspect the canonical
   screenshots and interactive local runs for information hierarchy, density,
   contrast, readability, and one-handed action use. Resolve all blocker,
   unreadable, and obstructive defects before publishing the authoritative
   hosted candidate; preserve physical-device sign-off for the existing Web and
-  device matrix.
-- [ ] **Document the implemented contract:** update `ARCHITECTURE.md` and
+  device matrix. The complete 378-image development capture at
+  `artifacts/gui_visual/development/8f398a1620188f60491c06629d10f618dc2b2ba3-dbd2ad282b13`
+  was reviewed at 100%. The densest seven-player 360 x 640, 640 x 360, and
+  844 x 330 cases keep every bot's full display name, numeric stack, and two
+  card fields visible, with readable center status and unobstructed actions.
+  Manifest SHA-256:
+  `2587a10479f4a945915d89628e415fb6a926717c9bbe9ae5169f6ceb5287ec9a`.
+  This dirty-tree local evidence is not physical-device or candidate sign-off.
+- [x] **Document the implemented contract:** update `ARCHITECTURE.md` and
   `ProvisionalGUILayoutGuidance.md` with the final layout profiles, player-count
   policy, phone information hierarchy, overlay ownership, and automated visual
-  verification workflow.
+  verification workflow. `README.md`, `ProjectDescription.md`,
+  `GUI_VISUAL_TESTING.md`, `WEB_SETUP.md`, and affected developer guidance now
+  consistently describe the same 2–7 phone policy, required seat information,
+  absent phone event history, input-source policy, and 378-case workflow.
 
 ## GUI release verification
 

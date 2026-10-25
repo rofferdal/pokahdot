@@ -110,25 +110,57 @@ stress surface for this milestone.
 
 Build a dedicated phone composition after the shared visual-test workflow is
 available. This milestone simplifies presentation without changing poker rules
-or recipient-safe core state.
+or recipient-safe core state. The six-player tournament default remains
+unchanged. Small-phone profiles support 2–7 players, while larger profiles
+retain 2–9 support. Do not render an event log field, drawer, or other event-
+history surface on small phones; use the recovered space to make every bot seat
+large enough to communicate its required public information without overlap.
 
-- [ ] Complete every task in
+- [x] Complete every task in
   [`GuiTasks.md` — Small-phone presentation mode](GuiTasks.md#small-phone-presentation-mode),
   including layout-profile classification, the explicit player-count policy,
   compact opponent tokens, the bottom human action region, progressive
-  disclosure overlays, atomic resize behavior, and documentation.
-- [ ] Use the canonical visual fixtures and defect loop from Milestone 3 for
-  phone portrait and landscape at 2, 4, 6, and 9 players. Make the full phone
+  disclosure overlays, atomic resize behavior, and documentation. All source
+  tasks are complete with the local development-evidence limitations recorded
+  in `GuiTasks.md`.
+- [x] Use the canonical visual fixtures and defect loop from Milestone 3 for
+  phone portrait and landscape at 2, 4, 6, and 7 players. Make the full phone
   fixture subset pass here, and close or explicitly accept every blocker,
-  unreadable, and obstructive defect before proceeding.
-- [ ] Decide the nine-player phone result from evidence. Prefer the tested
-  density-tier design; if it cannot meet the documented readability, touch,
-  bounds, and action-reachability criteria, make any phone-only player cap an
-  explicit product-specification and startup-contract change with matching
-  tests and user-facing explanation.
-- [ ] Run the focused GUI tests, canonical screenshot review, complete headless
+  unreadable, and obstructive defect before proceeding. The 378-case phone
+  invariant gate passes, and the reviewed development manifest has SHA-256
+  `2587a10479f4a945915d89628e415fb6a926717c9bbe9ae5169f6ceb5287ec9a`.
+- [x] Implement the approved seven-player maximum for small-phone profiles.
+  Keep six as the actual startup default, retain 2–9 validation on tablet,
+  small-desktop, and desktop profiles, and provide clear phone-specific
+  validation and user-facing guidance instead of silently altering an entered
+  value or an in-progress tournament. Focused startup and resize tests pass.
+- [x] Remove the event log from the small-phone composition, including its
+  drawer/menu entry and phone visual fixtures. Preserve event history in the
+  game state and keep existing non-phone event-log behavior unchanged. Reclaim
+  the phone space for larger opponent seats rather than replacing the log with
+  another persistent surface. Phone overlay and capture-manifest tests pass;
+  the historical non-phone invariant matrix remains green.
+- [x] Define and implement one responsive numeric-input policy for startup
+  configuration fields and the live-table wager field. On keyboard-capable
+  small-desktop and desktop profiles, mouse focus and ordinary field
+  interaction must accept physical-keyboard digits and editing keys without
+  automatically opening or requiring the in-canvas numeric keypad. Preserve
+  the in-canvas keypad for touch-driven phone and tablet interaction, and do
+  not infer physical-keyboard availability from viewport size alone. Dispatch
+  now follows touch versus pointer events on every layout profile.
+- [x] Add automated regressions for numeric input across layout profiles and
+  input methods. Cover physical-keyboard entry, correction, cancellation, and
+  submission on desktop; touch opening and closing of the in-canvas keypad;
+  unchanged minimum/maximum validation; and transitions between touch and
+  keyboard input without losing or submitting a value unexpectedly. The 60
+  focused startup, wager, and keypad tests pass.
+- [x] Run the focused GUI tests, canonical screenshot review, complete headless
   suite, lint, and formatting checks. Local phone acceptance is required here;
-  authoritative physical-device evidence remains in Milestone 8.
+  verify the responsive numeric-input matrix here as well. Authoritative
+  physical-device evidence remains in Milestone 8. `make check` passes 489 GUT
+  tests and 72 Python tests; lint and formatting pass; both the historical
+  Milestone 3 and 378-case phone invariant gates pass. The local phone capture
+  review is development evidence, not Milestone 8 device sign-off.
 
 ## Milestone 5 — Cross-interface behavioral verification
 

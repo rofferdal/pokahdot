@@ -142,6 +142,44 @@ theme_override_constants/margin_bottom = 6
 layout_mode = 2
 theme_override_constants/separation = 2
 
+[node name="PhoneHeroSummary" type="HBoxContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="PhoneHeroCards" type="HBoxContainer" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/PhoneHeroSummary"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="PhoneHeroStack" type="Label" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/PhoneHeroSummary"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "You · 0 chips"
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneHeroActionBadge" type="Label" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content/PhoneHeroSummary"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Call 10"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="PhonePlayerCountNotice" type="Label" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "This tournament needs a larger layout. Resize to continue with full support."
+horizontal_alignment = 1
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 20
+
 [node name="ActionStatus" type="Label" parent="TableMargin/Felt/TableSurface/ActionPanel/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -223,6 +261,146 @@ fit_content = false
 scroll_active = true
 mouse_filter = 2
 theme_override_font_sizes/normal_font_size = 20
+
+[node name="PhoneMoreButton" type="Button" parent="TableMargin/Felt/TableSurface"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+z_index = 500
+text = "More"
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneQuitConfirmation" type="PanelContainer" parent="TableMargin/Felt/TableSurface"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+z_index = 700
+
+[node name="Margin" type="MarginContainer" parent="TableMargin/Felt/TableSurface/PhoneQuitConfirmation"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="TableMargin/Felt/TableSurface/PhoneQuitConfirmation/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="TableMargin/Felt/TableSurface/PhoneQuitConfirmation/Margin/Content"]
+layout_mode = 2
+text = "Quit tournament?"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="Message" type="Label" parent="TableMargin/Felt/TableSurface/PhoneQuitConfirmation/Margin/Content"]
+layout_mode = 2
+text = "Your current tournament will end."
+horizontal_alignment = 1
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="Actions" type="HBoxContainer" parent="TableMargin/Felt/TableSurface/PhoneQuitConfirmation/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="PhoneQuitContinueButton" type="Button" parent="TableMargin/Felt/TableSurface/PhoneQuitConfirmation/Margin/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Continue"
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneQuitConfirmButton" type="Button" parent="TableMargin/Felt/TableSurface/PhoneQuitConfirmation/Margin/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Quit"
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneShowdownOverlay" type="PanelContainer" parent="TableMargin/Felt/TableSurface"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+z_index = 600
+
+[node name="Content" type="VBoxContainer" parent="TableMargin/Felt/TableSurface/PhoneShowdownOverlay"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="TableMargin/Felt/TableSurface/PhoneShowdownOverlay/Content"]
+layout_mode = 2
+text = "Showdown summary"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="Scroll" type="ScrollContainer" parent="TableMargin/Felt/TableSurface/PhoneShowdownOverlay/Content"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PhoneShowdownSummary" type="Label" parent="TableMargin/Felt/TableSurface/PhoneShowdownOverlay/Content/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneShowdownCloseButton" type="Button" parent="TableMargin/Felt/TableSurface/PhoneShowdownOverlay/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Close summary"
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneOverflowMenu" type="PanelContainer" parent="TableMargin/Felt/TableSurface"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+z_index = 600
+
+[node name="Content" type="VBoxContainer" parent="TableMargin/Felt/TableSurface/PhoneOverflowMenu"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="TableMargin/Felt/TableSurface/PhoneOverflowMenu/Content"]
+layout_mode = 2
+text = "Table menu"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneMenuShowdownButton" type="Button" parent="TableMargin/Felt/TableSurface/PhoneOverflowMenu/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Showdown summary"
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneBlindLevelDetail" type="Label" parent="TableMargin/Felt/TableSurface/PhoneOverflowMenu/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Blinds 5 / 10 · Level 1"
+horizontal_alignment = 1
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneMenuQuitButton" type="Button" parent="TableMargin/Felt/TableSurface/PhoneOverflowMenu/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Quit tournament"
+theme_override_font_sizes/font_size = 20
+
+[node name="PhoneMenuCloseButton" type="Button" parent="TableMargin/Felt/TableSurface/PhoneOverflowMenu/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Close menu"
+theme_override_font_sizes/font_size = 20
 
 [node name="QuitButton" type="Button" parent="TableMargin/Felt/TableSurface"]
 unique_name_in_owner = true

@@ -1,5 +1,6 @@
 extends "res://tests/support/poker_gut_test.gd"
 
+const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 const GuiViewportFixturesScript := preload("res://tests/support/gui_viewport_fixtures.gd")
 
 const EXPECTED_VIEWPORTS: Dictionary = {
@@ -76,17 +77,22 @@ func test_each_viewport_has_a_consistent_profile_and_orientation() -> void:
 func test_browser_chrome_and_observed_regression_metadata_is_explicit() -> void:
 	var reduced_height_keys: Array[StringName] = []
 	var observed_regression_keys: Array[StringName] = []
+	var override_keys: Array[StringName] = []
 	for fixture: Dictionary in GuiViewportFixturesScript.all():
 		if fixture.reduced_height:
 			reduced_height_keys.append(fixture.key)
 		if fixture.observed_regression:
 			observed_regression_keys.append(fixture.key)
+		if fixture.profile_override != GuiLayoutProfileScript.AUTOMATIC:
+			override_keys.append(fixture.key)
+			assert_eq(fixture.profile_override, GuiLayoutProfileScript.Kind.TABLET)
 
 	assert_eq(
 		reduced_height_keys,
 		[&"phone_portrait_390x744_chrome", &"phone_landscape_844x330_chrome"],
 	)
 	assert_eq(observed_regression_keys, [&"ipad_landscape_2388x1450_observed"])
+	assert_eq(override_keys, [&"ipad_landscape_2388x1450_observed"])
 
 
 func test_table_cases_cover_every_required_viewport_and_player_count() -> void:

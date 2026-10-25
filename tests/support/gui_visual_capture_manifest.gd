@@ -8,7 +8,12 @@ const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_st
 
 const SCHEMA_VERSION: int = 1
 const SUITE_VERSION: String = "milestone-3-v1"
+const PHONE_SUITE_VERSION: String = "milestone-4-phone-v1"
 const MILESTONE_3_CAPTURE_COUNT: int = 348
+const PHONE_CAPTURE_COUNT: int = 378
+const MILESTONE_3_PLAYER_COUNTS: Array[int] = [2, 4, 6, 9]
+const PHONE_PLAYER_COUNTS: Array[int] = [2, 4, 6, 7]
+const PHONE_EXCLUDED_STATE_IDS: Array[StringName] = [&"event-history-full"]
 const MATRIX_SOURCE_PATHS: PackedStringArray = [
 	"res://tests/support/gui_viewport_fixtures.gd",
 	"res://tests/support/gui_visual_state_fixtures.gd",
@@ -22,6 +27,15 @@ const MILESTONE_3_VIEWPORT_IDS: Array[StringName] = [
 	&"desktop_1280x720",
 	&"desktop_1920x1080",
 ]
+const PHONE_VIEWPORT_IDS: Array[StringName] = [
+	&"phone_portrait_360x640",
+	&"phone_portrait_390x844",
+	&"phone_portrait_412x915",
+	&"phone_portrait_390x744_chrome",
+	&"phone_landscape_640x360",
+	&"phone_landscape_844x390",
+	&"phone_landscape_844x330_chrome",
+]
 
 
 static func milestone_three_cases(
@@ -33,8 +47,49 @@ static func milestone_three_cases(
 			continue
 		if not viewport_id.is_empty() and viewport.key != viewport_id:
 			continue
-		for count: int in GuiVisualStateFixturesScript.SUPPORTED_PLAYER_COUNTS:
+		for count: int in MILESTONE_3_PLAYER_COUNTS:
 			for descriptor: Dictionary in GuiVisualStateFixturesScript.all(count):
+				if descriptor.player_count == 0 and count != 2:
+					continue
+				if player_count >= 0 and descriptor.player_count != player_count:
+					continue
+				if not state_id.is_empty() and descriptor.id != state_id:
+					continue
+				cases.append({"viewport": viewport, "descriptor": descriptor})
+	return cases
+
+
+static func phone_cases(
+	viewport_id: StringName = &"", state_id: StringName = &"", player_count: int = -1
+) -> Array[Dictionary]:
+	return _cases_for_viewports(
+		PHONE_VIEWPORT_IDS,
+		PHONE_PLAYER_COUNTS,
+		PHONE_EXCLUDED_STATE_IDS,
+		viewport_id,
+		state_id,
+		player_count,
+	)
+
+
+static func _cases_for_viewports(
+	viewport_ids: Array[StringName],
+	player_counts: Array[int],
+	excluded_state_ids: Array[StringName],
+	viewport_id: StringName,
+	state_id: StringName,
+	player_count: int,
+) -> Array[Dictionary]:
+	var cases: Array[Dictionary] = []
+	for viewport: Dictionary in GuiViewportFixturesScript.all():
+		if viewport.key not in viewport_ids:
+			continue
+		if not viewport_id.is_empty() and viewport.key != viewport_id:
+			continue
+		for count: int in player_counts:
+			for descriptor: Dictionary in GuiVisualStateFixturesScript.all(count):
+				if descriptor.id in excluded_state_ids:
+					continue
 				if descriptor.player_count == 0 and count != 2:
 					continue
 				if player_count >= 0 and descriptor.player_count != player_count:
@@ -114,10 +169,11 @@ static func base_manifest(
 	captured_at_utc: String,
 	matrix_sha256: String,
 	development: bool,
+	suite_version: String = SUITE_VERSION,
 ) -> Dictionary:
 	return {
 		"schema_version": SCHEMA_VERSION,
-		"visual_suite_version": SUITE_VERSION,
+		"visual_suite_version": suite_version,
 		"source_sha": source_sha,
 		"source_tree_state": tree_state,
 		"dirty_paths": dirty_paths,
@@ -137,6 +193,19 @@ static func acceptance_eligible(
 	if tree_state != "clean" or development or not full_m3:
 		return false
 	if captures.size() != MILESTONE_3_CAPTURE_COUNT:
+		return false
+	for capture: Dictionary in captures:
+		if not capture.invariants.passed:
+			return false
+	return true
+
+
+static func phone_acceptance_eligible(
+	tree_state: String, development: bool, full_phone: bool, captures: Array
+) -> bool:
+	if tree_state != "clean" or development or not full_phone:
+		return false
+	if captures.size() != PHONE_CAPTURE_COUNT:
 		return false
 	for capture: Dictionary in captures:
 		if not capture.invariants.passed:

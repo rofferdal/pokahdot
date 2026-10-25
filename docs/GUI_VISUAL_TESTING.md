@@ -33,14 +33,17 @@ The reduced-height fixtures are deterministic browser-chrome stress surfaces.
 They do not substitute for testing both expanded and collapsed browser chrome
 on a physical Android device. The observed 2388 x 1450 iPad fixture preserves
 a previously reported regression surface; it does not redefine the canonical
-iPad logical sizes. When a supported iPad exposes a different usable viewport,
-record that actual size in hosted evidence without renaming these canonical
-local fixtures.
+iPad logical sizes. It carries an explicit tablet profile override because the
+same geometry without observed-device evidence is a valid desktop window and
+is classified as desktop. When a supported iPad exposes a different usable
+viewport, record that actual size in hosted evidence without renaming these
+canonical local fixtures.
 
-Table fixtures exercise 2, 4, 6, and 9 players wherever the state supports
-those counts. Startup uses player count `0` because no table exists yet. A
-fixture may declare a narrower applicable set, but it must state why; silently
-omitting a difficult viewport, player count, or state is not allowed.
+The historical Milestone 3 non-phone table fixtures exercise 2, 4, 6, and 9
+players wherever the state supports those counts. The Milestone 4 phone suite
+uses 2, 4, 6, and 7. Startup uses player count `0` because no table exists yet.
+A fixture may declare a narrower applicable set, but it must state why;
+silently omitting a difficult viewport, player count, or state is not allowed.
 
 ## Canonical visual states
 
@@ -61,7 +64,7 @@ Use these stable state IDs in tests, manifests, filenames, and defect records:
 | `showdown-long` | revealed cards and up-to-two-line hand text in the shared below-seat status bands, while seats without hand text retain a relevant action |
 | `elimination` | at least one player has been eliminated |
 | `tournament-winner` | final winner presentation |
-| `event-history-full` | event history filled enough to require scrolling |
+| `event-history-full` | non-phone event history filled enough to require scrolling; excluded from the phone suite |
 | `quit-confirmation` | quit confirmation modal is open |
 | `keypad-open` | numeric keypad is open |
 
@@ -86,9 +89,10 @@ applicable Milestone 3 invariant matrix must pass before rendered visual
 acceptance begins.
 
 Milestone 4 activates the phone portrait, phone landscape, and reduced-height
-fixtures for the completed phone composition. Defining those fixtures during
-Milestone 3 does not imply that the pre-Milestone-4 desktop composition passes
-phone acceptance.
+fixtures for the completed phone composition at 2, 4, 6, and 7 players. The
+378-case phone suite excludes `event-history-full` because phones expose no
+event-history surface. Defining those fixtures during Milestone 3 does not
+imply that the pre-Milestone-4 desktop composition passes phone acceptance.
 
 Before an immutable hosted candidate is produced, every implemented scope must
 pass its canonical automated matrix and rendered review. Every known blocker,
@@ -123,7 +127,9 @@ the editor binary is not on `PATH`, for example
 | --- | --- |
 | `make gui-visual-capture-smoke` | Render only the 1280 x 720, six-player `human-turn-preflop` case. It accepts a dirty tree, writes development-only output, and checks the renderer/capture pipeline without running the complete matrix or ordinary test suite. It is never acceptance evidence. |
 | `make gui-visual-invariant-gate` | Run the complete applicable Milestone 3 tablet, small-desktop, and desktop matrix through the reusable scene harness and invariant assertions under GUT. It writes no screenshot evidence and may remain red while documented geometry remediation is unfinished. |
+| `make gui-phone-invariant-gate` | Run the distinct 378-case Milestone 4 phone matrix across all canonical portrait, landscape, and reduced-height fixtures at 2, 4, 6, and 7 players. It verifies full bot names, numeric stacks, two hole-card fields, phone overlays, absent event history, and resize cycles without altering the historical Milestone 3 matrix. |
 | `make gui-visual-capture-development` | Render the complete Milestone 3 capture matrix with `--development`. It accepts a dirty tree, records dirty paths and their fingerprint, and always produces non-acceptance evidence. It does not implicitly run `make check` or the standalone invariant gate. |
+| `make gui-phone-capture-development` | Render the complete Milestone 4 phone matrix as development-only evidence. Human review of this output is required by the separate local phone visual-acceptance task. |
 | `make gui-visual-capture` | Produce clean candidate evidence. It refuses a dirty tree, runs `make check` and `gui-visual-invariant-gate`, checks cleanliness again, then renders the complete Milestone 3 matrix. Its manifest is acceptance-eligible only when all 348 expected captures settle and pass their recorded invariants. |
 
 All rendered commands require a real display and the Compatibility renderer;

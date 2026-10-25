@@ -17,6 +17,7 @@ const MILESTONE_3_VIEWPORT_IDS: Array[StringName] = [
 	&"desktop_1280x720",
 	&"desktop_1920x1080",
 ]
+const MILESTONE_3_PLAYER_COUNTS: Array[int] = [2, 4, 6, 9]
 
 
 func test_milestone_three_visual_matrix_satisfies_gui_invariants() -> void:
@@ -24,13 +25,15 @@ func test_milestone_three_visual_matrix_satisfies_gui_invariants() -> void:
 	for viewport_fixture: Dictionary in GuiViewportFixturesScript.all():
 		if viewport_fixture.key not in MILESTONE_3_VIEWPORT_IDS:
 			continue
-		for player_count: int in GuiVisualStateFixturesScript.SUPPORTED_PLAYER_COUNTS:
+		for player_count: int in MILESTONE_3_PLAYER_COUNTS:
 			for descriptor: Dictionary in GuiVisualStateFixturesScript.all(player_count):
 				if descriptor.player_count == 0 and player_count != 2:
 					continue
 				var harness: Node = GuiSceneHarnessScript.new()
 				add_child(harness)
-				var rendered: Dictionary = harness.render(descriptor, viewport_fixture.size)
+				var rendered: Dictionary = harness.render(
+					descriptor, viewport_fixture.size, viewport_fixture.profile_override
+				)
 				var settled: bool = await harness.settle_layout()
 				var context := (
 					"%s / p%d / %s" % [viewport_fixture.key, descriptor.player_count, descriptor.id]

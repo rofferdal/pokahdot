@@ -3,6 +3,7 @@ extends "res://tests/support/poker_gut_test.gd"
 
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
 const GuiActionTimingConfigScript := preload("res://scripts/gui/gui_action_timing_config.gd")
+const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 
 
 func test_acting_seat_uses_a_white_frame_three_times_thicker_than_ordinary_seats() -> void:
@@ -53,12 +54,92 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	table.show_wager_keypad()
 	assert_true(table.get_node("WagerKeypad").visible)
 	table.get_node("WagerKeypad/Content/Keys/Key2").emit_signal("pressed")
-	assert_eq(wager_input.text, "2")
+	assert_eq(wager_input.text, "")
+	assert_eq(table.get_node("WagerKeypad/Content/Value").text, "2")
+	table.get_node("WagerKeypad/Content/Cancel").emit_signal("pressed")
 
 	table.submit_wager_total(view.minimum_wager_total)
 
 	assert_gt(match_instance.get_view_for(0).pot_amount, 15)
 	assert_true(_event_texts(table).any(func(text: String) -> bool: return "action" in text))
+
+
+func test_live_wager_input_uses_touch_keypad_and_pointer_keyboard_across_profiles() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+	var input := table.get_node("%WagerInput") as LineEdit
+	var keypad := table.get_node("WagerKeypad") as WagerKeypad
+
+	for profile: int in [
+		GuiLayoutProfileScript.Kind.PHONE_LANDSCAPE,
+		GuiLayoutProfileScript.Kind.TABLET,
+		GuiLayoutProfileScript.Kind.SMALL_DESKTOP,
+		GuiLayoutProfileScript.Kind.DESKTOP,
+	]:
+		table.set_layout_profile_override(profile)
+		input.gui_input.emit(_left_mouse_press())
+		assert_false(keypad.visible, "mouse profile %d" % profile)
+		input.gui_input.emit(_touch_press())
+		assert_true(keypad.visible, "touch profile %d" % profile)
+		keypad.cancel()
+
+
+func test_live_wager_touch_done_submits_across_layout_profiles() -> void:
+	for profile: int in [
+		GuiLayoutProfileScript.Kind.PHONE_LANDSCAPE,
+		GuiLayoutProfileScript.Kind.TABLET,
+		GuiLayoutProfileScript.Kind.SMALL_DESKTOP,
+		GuiLayoutProfileScript.Kind.DESKTOP,
+	]:
+		var match_instance := _waiting_match([PlayerAction.call_action()])
+		var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+		add_child_autofree(table)
+		_disable_action_pacing(table)
+		table.bind_match(match_instance, 0, _empty_assignments())
+		table.set_layout_profile_override(profile)
+		var input := table.get_node("%WagerInput") as LineEdit
+		var keypad := table.get_node("WagerKeypad") as WagerKeypad
+		input.text = str(match_instance.get_view_for(0).minimum_wager_total)
+		input.gui_input.emit(_touch_press())
+		assert_true(keypad.visible, "touch profile %d" % profile)
+		keypad.get_node("Content/Done").emit_signal("pressed")
+		assert_gt(match_instance.get_view_for(0).pot_amount, 15, "touch profile %d" % profile)
+
+
+func test_live_wager_touch_cancel_and_keyboard_correction_submission_preserve_bounds() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+	table.set_layout_profile_override(GuiLayoutProfileScript.Kind.DESKTOP)
+	var input := table.get_node("%WagerInput") as LineEdit
+	var keypad := table.get_node("WagerKeypad") as WagerKeypad
+	var view: GameView = match_instance.get_view_for(0)
+
+	input.text = str(view.minimum_wager_total)
+	input.gui_input.emit(_touch_press())
+	keypad.get_node("Content/Keys/Key9").emit_signal("pressed")
+	assert_eq(input.text, str(view.minimum_wager_total))
+	input.gui_input.emit(_left_mouse_press())
+	assert_false(keypad.visible)
+	assert_eq(input.text, str(view.minimum_wager_total))
+
+	# Invalid keyboard text and out-of-range totals retain the human turn.
+	input.text = "2x"
+	input.text_submitted.emit(input.text)
+	assert_eq((table.get_node("%ActionStatus") as Label).text, "Enter a whole-number wager total.")
+	input.text = str(view.maximum_wager_total + 1)
+	input.text_submitted.emit(input.text)
+	assert_eq(match_instance.get_view_for(0).acting_seat, 0)
+
+	# Backspace/correction is native LineEdit behavior; submit the corrected value with Enter.
+	input.text = str(view.minimum_wager_total)
+	input.text_submitted.emit(input.text)
+	assert_gt(match_instance.get_view_for(0).pot_amount, 15)
 
 
 func test_pot_raise_uses_displayed_pot_and_respects_minimum_and_stack_bounds() -> void:
@@ -890,3 +971,16 @@ func _action_view(player_count: int) -> GameView:
 		var player := Player.new(&"action_%d" % seat, "Player %d" % (seat + 1), seat, 100, agent)
 		view._seats.append(PlayerView.new(player))
 	return view
+
+
+func _touch_press() -> InputEventScreenTouch:
+	var event := InputEventScreenTouch.new()
+	event.pressed = true
+	return event
+
+
+func _left_mouse_press() -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = true
+	return event

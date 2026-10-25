@@ -17,6 +17,10 @@ Prosjektet er tidlig i utviklingen. Grafisk UI og terminal-UI er under oppbyggin
    use those defaults, or change any value before starting.
 3. The form validates whole-number input and the tournament constraints inline.
    A match is created only after all values are valid.
+   Small-phone layouts support 2–7 players; tablet, small-desktop, desktop,
+   CLI, and core configuration retain 2–9 support. Touch presses open the
+   in-canvas number pad, while pointer focus leaves ordinary physical-keyboard
+   entry available regardless of layout size.
 4. **Use legacy heuristic models** is unchecked by default. Leave it unchecked
    to select only strategic `StrategyDecisionModel` profiles. Select it to
    include legacy heuristic profiles; this choice resets when returning to the

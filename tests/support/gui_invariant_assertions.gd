@@ -5,6 +5,7 @@ extends RefCounted
 
 const MINIMUM_FONT_SIZE: int = 20
 const MINIMUM_TOUCH_SIZE := Vector2(48.0, 48.0)
+const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 
 
 static func validate(rendered: Dictionary) -> PackedStringArray:
@@ -21,6 +22,9 @@ static func validate(rendered: Dictionary) -> PackedStringArray:
 
 static func _validate_table(rendered: Dictionary, failures: PackedStringArray) -> void:
 	var table: PokerTableController = rendered.table
+	if GuiLayoutProfileScript.is_phone(rendered.layout_profile):
+		_validate_phone_table(rendered, failures)
+		return
 	var surface := table.get_node("TableMargin/Felt/TableSurface") as Control
 	var surface_rect := Rect2(Vector2.ZERO, surface.size)
 	var regions: Dictionary[StringName, Rect2] = table.get_resolved_region_rects()
@@ -89,6 +93,105 @@ static func _validate_table(rendered: Dictionary, failures: PackedStringArray) -
 	_validate_community_cards(table, failures)
 	_validate_legal_actions(table, rendered.descriptor.view, failures)
 	_validate_overlay_controls(rendered, failures)
+
+
+static func _validate_phone_table(rendered: Dictionary, failures: PackedStringArray) -> void:
+	var table: PokerTableController = rendered.table
+	var surface := table.get_node("TableMargin/Felt/TableSurface") as Control
+	var surface_rect := Rect2(surface.global_position, surface.size)
+	var regions: Dictionary[StringName, Rect2] = table.get_resolved_region_rects()
+	for region_name: StringName in [&"center", &"action"]:
+		var region_global := Rect2(
+			regions[region_name].position + surface.global_position, regions[region_name].size
+		)
+		_require(
+			surface_rect.encloses(region_global),
+			"containment: %s %s is outside %s" % [region_name, region_global, surface_rect],
+			failures,
+		)
+	var visible_seats: Array[Rect2] = []
+	var more_button := table.get_node("%PhoneMoreButton") as Button
+	var more_rect: Rect2 = more_button.get_global_rect()
+	_require(
+		(
+			(table.get_node("TableMargin/Felt/TableSurface/ActionPanel") as Control)
+			. get_global_rect()
+			. encloses(more_rect)
+		),
+		"containment: More is outside the reserved action region",
+		failures,
+	)
+	for seat: int in table.get_seat_rects():
+		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
+		if not panel.visible:
+			continue
+		var seat_rect := panel.get_global_rect()
+		_require(surface_rect.encloses(seat_rect), "containment: seat_%d" % seat, failures)
+		for placed: Rect2 in visible_seats:
+			_require(not seat_rect.intersects(placed), "intersection: seat_%d" % seat, failures)
+		visible_seats.append(seat_rect)
+		_require(
+			not seat_rect.intersects(more_rect),
+			"intersection: More intersects seat_%d" % seat,
+			failures,
+		)
+		_validate_phone_token_content(panel, seat, failures)
+		for major_name: StringName in [&"center", &"action"]:
+			var major_global := Rect2(
+				regions[major_name].position + surface.global_position, regions[major_name].size
+			)
+			_require(
+				not seat_rect.intersects(major_global),
+				(
+					"intersection: seat_%d %s intersects %s %s"
+					% [seat, seat_rect, major_name, major_global]
+				),
+				failures,
+			)
+	var center_global := Rect2(
+		regions.center.position + surface.global_position, regions.center.size
+	)
+	var action_global := Rect2(
+		regions.action.position + surface.global_position, regions.action.size
+	)
+	_require(
+		not center_global.intersects(action_global),
+		"intersection: action intersects center",
+		failures
+	)
+	var center_control := table.get_node("TableMargin/Felt/TableSurface/CenterZone") as Control
+	for child_name: String in ["BoardZone", "PotZone", "WagerZone"]:
+		var child := center_control.get_node(child_name) as Control
+		_require(
+			center_control.get_global_rect().encloses(child.get_global_rect()),
+			"containment: center does not enclose %s" % child_name,
+			failures,
+		)
+	_validate_control_tree(table, table.get_global_rect(), failures)
+	_validate_community_cards(table, failures)
+	_validate_legal_actions(table, rendered.descriptor.view, failures)
+	_validate_overlay_controls(rendered, failures)
+
+
+static func _validate_phone_token_content(
+	panel: Control, seat: int, failures: PackedStringArray
+) -> void:
+	var name_label := panel.find_child("Name", true, false) as Label
+	var stack_label := panel.find_child("Stack", true, false) as Label
+	var badge := panel.find_child("Badge", true, false) as Label
+	var cards := panel.find_child("HoleCards", true, false) as Control
+	if name_label == null or stack_label == null or badge == null or cards == null:
+		return
+	_require(
+		not name_label.get_global_rect().intersects(badge.get_global_rect()),
+		"seat-content: seat_%d name intersects state/position badge" % seat,
+		failures,
+	)
+	_require(
+		not stack_label.get_global_rect().intersects(cards.get_global_rect()),
+		"seat-content: seat_%d stack intersects cards" % seat,
+		failures,
+	)
 
 
 static func _validate_compact_seat_content(
@@ -213,6 +316,8 @@ static func _validate_text_fit(control: Control, path: String, failures: PackedS
 		return
 	if text.is_empty() or font_size <= 0:
 		return
+	if control is Label and control.text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING:
+		return
 	var rendered_width: float = (
 		control
 		. get_theme_font("font")
@@ -277,9 +382,19 @@ static func _validate_explicit_overlay(rendered: Dictionary, failures: PackedStr
 	var expected: Array = []
 	match rendered.descriptor.id:
 		&"quit-confirmation":
-			expected = [&"QuitConfirmation"]
+			expected = (
+				[&"PhoneQuitConfirmation"]
+				if GuiLayoutProfileScript.is_phone(rendered.layout_profile)
+				else [&"QuitConfirmation"]
+			)
 		&"keypad-open":
 			expected = [&"StartupNumberKeypad"]
+		&"wager-entry":
+			if GuiLayoutProfileScript.is_phone(rendered.layout_profile):
+				expected = [&"WagerKeypad"]
+		&"showdown-long":
+			if GuiLayoutProfileScript.is_phone(rendered.layout_profile):
+				expected = [&"PhoneShowdownOverlay"]
 	_require(
 		allowed == expected,
 		"overlay-exception: expected %s, got %s" % [expected, allowed],
@@ -306,6 +421,12 @@ static func _validate_overlay_controls(rendered: Dictionary, failures: PackedStr
 			_require(
 				control.size.x >= MINIMUM_TOUCH_SIZE.x and control.size.y >= MINIMUM_TOUCH_SIZE.y,
 				"touch-target: overlay %s has size %s" % [control.name, control.size],
+				failures,
+			)
+		if overlay is Control:
+			_require(
+				(overlay as Control).get_global_rect().encloses(control.get_global_rect()),
+				"containment: overlay does not enclose %s" % control.name,
 				failures,
 			)
 

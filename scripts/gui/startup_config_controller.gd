@@ -2,6 +2,7 @@ class_name StartupConfigController
 extends Control
 
 const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_config_adapter.gd")
+const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_layout.gd")
 const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
 const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
@@ -20,22 +21,40 @@ const COMPACT_LANDSCAPE_MAX_HEIGHT := 800.0
 const DEFAULT_FORM_FONT_SIZE := 32
 const DEFAULT_TITLE_FONT_SIZE := 64
 const STARTUP_TOUCH_TARGET_HEIGHT := 64.0
+const PHONE_MAX_PLAYER_COUNT := 7
+const PHONE_PLAYER_COUNT_ERROR := (
+	"Phone layouts support 2–7 players. " + "Enlarge the window to start with 8 or 9."
+)
+const STARTUP_DESCRIPTION := (
+	"Strategic models are used by default. Enable legacy heuristic models below "
+	+ "to include them."
+)
 
 ## Binds the startup controls to the GUI configuration adapter.
 
 var startup_adapter
 var _number_keypad: WagerKeypad
+var _layout_profile_override: int = GuiLayoutProfileScript.AUTOMATIC
+var _guidance_field_parent: VBoxContainer
 
 @onready var _player_count_input: LineEdit = %PlayerCountInput
+@onready var _title: Label = %Title
+@onready var _description: Label = %Description
+@onready var _player_count_label: Label = %PlayerCountLabel
+@onready var _starting_stack_label: Label = %StartingStackLabel
+@onready var _small_blind_label: Label = %SmallBlindLabel
+@onready var _big_blind_label: Label = %BigBlindLabel
 @onready var _starting_stack_input: LineEdit = %StartingStackInput
 @onready var _small_blind_input: LineEdit = %SmallBlindInput
 @onready var _big_blind_input: LineEdit = %BigBlindInput
 @onready var _use_legacy_models_checkbox: CheckBox = %UseLegacyModelsCheckBox
 @onready var _player_count_error: Label = %PlayerCountError
+@onready var _phone_player_count_guidance: Label = %PhonePlayerCountGuidance
 @onready var _starting_stack_error: Label = %StartingStackError
 @onready var _small_blind_error: Label = %SmallBlindError
 @onready var _big_blind_error: Label = %BigBlindError
 @onready var _form_status: Label = %FormStatus
+@onready var _start_button: Button = %StartButton
 @onready var _startup_panel: CenterContainer = $Center
 @onready var _startup_form_panel: PanelContainer = %Panel
 @onready var _startup_form: VBoxContainer = %Form
@@ -45,6 +64,7 @@ var _number_keypad: WagerKeypad
 
 
 func _ready() -> void:
+	_guidance_field_parent = _phone_player_count_guidance.get_parent() as VBoxContainer
 	startup_adapter = GuiStartupConfigAdapterScript.new(
 		load("res://resources/default_tournament_config.tres") as TournamentConfig
 	)
@@ -68,6 +88,11 @@ func _on_start_pressed() -> void:
 	startup_adapter.small_blind_text = _small_blind_input.text
 	startup_adapter.big_blind_text = _big_blind_input.text
 	startup_adapter.use_legacy_models = _use_legacy_models_checkbox.button_pressed
+	if not _phone_player_count_is_valid():
+		startup_adapter.field_errors.clear()
+		startup_adapter.field_errors[&"player_count"] = PHONE_PLAYER_COUNT_ERROR
+		_render_errors()
+		return
 	if startup_adapter.try_start():
 		_clear_errors()
 		(
@@ -110,7 +135,35 @@ func _on_quit_application_pressed() -> void:
 func _refresh_startup_layout() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
+	var layout_profile: int = GuiLayoutProfileScript.classify(size, _layout_profile_override)
+	var phone_layout: bool = GuiLayoutProfileScript.is_phone(layout_profile)
 	var is_portrait: bool = size.y / size.x >= PORTRAIT_ASPECT_RATIO_THRESHOLD
+	var full_width_guidance: bool = phone_layout and is_portrait
+	var guidance_parent: Node = _startup_form if full_width_guidance else _guidance_field_parent
+	if _phone_player_count_guidance.get_parent() != guidance_parent:
+		_phone_player_count_guidance.reparent(guidance_parent)
+	if full_width_guidance:
+		_startup_form.move_child(_phone_player_count_guidance, _startup_fields.get_index() + 1)
+	_phone_player_count_guidance.visible = phone_layout and is_portrait
+	_phone_player_count_guidance.text = "Phone supports 2–7 players; 4 recommended. Default: 6."
+	_phone_player_count_guidance.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title.visible = not (phone_layout and not is_portrait)
+	_title.text = "Poker" if phone_layout else "Start a tournament"
+	_description.visible = not phone_layout or not is_portrait
+	_description.text = (
+		"Phone supports 2–7 players; 4 recommended. Default: 6."
+		if phone_layout
+		else STARTUP_DESCRIPTION
+	)
+	_use_legacy_models_checkbox.text = (
+		"Use legacy bots" if phone_layout else "Use legacy heuristic models"
+	)
+	_player_count_label.text = "Players (2–7)" if phone_layout else "Participants (2–9)"
+	_starting_stack_label.text = "Stack" if phone_layout else "Starting stack"
+	_small_blind_label.text = "Small blind"
+	_big_blind_label.text = "Big blind"
+	_start_button.text = "Start" if phone_layout else "Start tournament"
+	_quit_application_button.text = "Quit" if phone_layout else "Quit game"
 	var is_compact_landscape: bool = (
 		not is_portrait
 		and size.x < COMPACT_LANDSCAPE_MAX_WIDTH
@@ -119,17 +172,24 @@ func _refresh_startup_layout() -> void:
 	var is_compact_portrait: bool = is_portrait and (size.x < 960.0 or size.y < 1200.0)
 	var compact_form: bool = is_compact_landscape or is_compact_portrait
 	var form_margin := _startup_form_panel.get_node("Margin") as MarginContainer
-	var compact_margin: int = 14 if compact_form else 28
+	var compact_margin: int = 8 if phone_layout else (14 if compact_form else 28)
 	for side: StringName in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
 		form_margin.add_theme_constant_override(side, compact_margin)
 	_startup_form.add_theme_constant_override("separation", 8 if compact_form else 18)
 	_startup_fields.add_theme_constant_override("v_separation", 6 if compact_form else 10)
-	_startup_fields.columns = 1 if is_portrait else 2
+	_startup_fields.columns = (
+		(2 if is_portrait else 4) if phone_layout else (1 if is_portrait else 2)
+	)
+	_startup_fields.add_theme_constant_override("h_separation", 6 if phone_layout else 24)
 	if is_compact_landscape:
-		_startup_form_panel.custom_minimum_size.x = size.x * PORTRAIT_FORM_WIDTH_RATIO
+		_startup_form_panel.custom_minimum_size.x = (
+			size.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
+		)
 		_set_startup_form_font_sizes(COMPACT_FONT_SCALE)
 	elif is_portrait:
-		_startup_form_panel.custom_minimum_size.x = size.x * PORTRAIT_FORM_WIDTH_RATIO
+		_startup_form_panel.custom_minimum_size.x = (
+			size.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
+		)
 		var portrait_scale: float = (
 			COMPACT_FONT_SCALE
 			if is_compact_portrait
@@ -145,6 +205,25 @@ func _refresh_startup_layout() -> void:
 		_set_startup_form_font_sizes(1.0)
 	if _number_keypad != null and _number_keypad.visible:
 		_number_keypad.refresh_layout(GuiMobileTableLayoutScript.content_scale(size))
+
+
+## Supplies explicit device evidence to presentation tests and platform adapters.
+func set_layout_profile_override(profile_override: int) -> void:
+	if _layout_profile_override == profile_override:
+		return
+	_layout_profile_override = profile_override
+	if is_node_ready():
+		_refresh_startup_layout()
+
+
+func _phone_player_count_is_valid() -> bool:
+	var layout_profile: int = GuiLayoutProfileScript.classify(size, _layout_profile_override)
+	if not GuiLayoutProfileScript.is_phone(layout_profile):
+		return true
+	var candidate: String = _player_count_input.text.strip_edges()
+	if candidate.is_empty() or not candidate.is_valid_int():
+		return true
+	return candidate.to_int() <= PHONE_MAX_PLAYER_COUNT
 
 
 func _set_startup_form_font_sizes(scale_factor: float) -> void:
@@ -176,6 +255,7 @@ func _configure_numeric_inputs_for_mobile() -> void:
 		input.virtual_keyboard_show_on_focus = false
 		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 		input.gui_input.connect(_on_numeric_input_gui_input.bind(input))
+		input.text_submitted.connect(_on_numeric_input_submitted)
 
 
 func _configure_startup_control_visuals() -> void:
@@ -229,16 +309,23 @@ func show_numeric_keypad(input: LineEdit) -> void:
 
 
 func _on_numeric_input_gui_input(event: InputEvent, input: LineEdit) -> void:
-	if (
-		event is InputEventScreenTouch and event.pressed
-		or (
-			event is InputEventMouseButton
-			and event.pressed
-			and event.button_index == MOUSE_BUTTON_LEFT
-		)
-	):
+	if event is InputEventScreenTouch and event.pressed:
 		show_numeric_keypad(input)
 		accept_event()
+		return
+	if (
+		event is InputEventMouseButton
+		and event.pressed
+		and event.button_index == MOUSE_BUTTON_LEFT
+		and _number_keypad.visible
+	):
+		# Pointer focus signals a transition back to ordinary LineEdit editing.
+		# Cancel the touch draft and let Godot deliver the click to the field.
+		_number_keypad.cancel()
+
+
+func _on_numeric_input_submitted(_submitted_text: String) -> void:
+	_on_start_pressed()
 
 
 func _apply_defaults() -> void:

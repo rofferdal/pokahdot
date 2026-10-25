@@ -209,9 +209,10 @@ digest so JSON integer/float representation cannot change reproducibility.
 | Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
 | Use responsive Control layout guidance | `canvas_items` with `expand`, containers, anchors, and responsive margins govern layout adaptation; font and texture crispness is not assumed from stretch mode alone. |
+| Classify GUI layout from usable geometry with explicit supplemental overrides | Phone portrait, phone landscape, tablet, small-desktop, and desktop profiles derive from the canvas remaining after browser chrome and safe areas. Known device evidence may override ambiguous geometry; in particular, the observed 2388 x 1450 iPad fixture declares a tablet override instead of making every desktop window of that size a tablet. |
 | Give manually positioned GUI regions one layout owner | The central board/pot/wager stack uses a plain `Control`; `PokerTableController` atomically assigns its centered bounds and its three child panel rectangles. A Godot `Container` must not compete with those explicit rectangles or resize the stack from late child minimum-size notifications. |
 | Preserve mobile usability targets | Interactive controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows. |
-| Share one in-canvas numeric keypad between startup and live-table inputs | Web and iPad number entry remains consistent, preserves the canvas viewport, and avoids browser keyboard behavior. |
+| Select numeric entry from the input source, not viewport geometry | A touch press opens the shared transactional in-canvas keypad on every layout profile; pointer focus leaves the native `LineEdit` available for physical-keyboard digits and editing keys, including on phone-sized windows. Done commits a touch draft and Cancel preserves the previously committed value. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
 
 ## 5. Core module responsibilities
@@ -569,7 +570,42 @@ The table view uses a green felt surface. Its layout has explicit, visually dist
 
 `GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls nonblocking GUI pacing. Its default action pause is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. The same pause is used after each community-card reveal. Milestone 3 requires the completed-hand presentation pause to use `showdown_pause_seconds`, which defaults to five seconds, both after showdown and when one player wins before showdown because every opponent folded. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
 
-The default game viewport is 1920 by 1080, while the `Control` layout must reflow without overlap at supported desktop and mobile aspect ratios. The human recipient is visually anchored at the bottom; this is a presentation mapping only and must not alter core seat identities or poker positions. Desktop seat panels use equal wide dimensions across 2–9 seats, with mirrored left/right placement where applicable; compact layouts may change dimensions but retain readable names, stacks, markers, and cards. Tall mobile portrait surfaces are detected from their aspect ratio, not just logical canvas width, then scale seats, cards, table zones, event history, and action controls from the available surface so a high-DPI Web canvas does not retain desktop-sized controls inside unused felt.
+The default game viewport is 1920 by 1080, while the `Control` layout must reflow without overlap at supported desktop and mobile aspect ratios. The human recipient is visually anchored at the bottom; this is a presentation mapping only and must not alter core seat identities or poker positions. Desktop seat panels use equal wide dimensions across 2–9 seats, with mirrored left/right placement where applicable; compact layouts may change dimensions but retain readable names, stacks, markers, and cards. Tall mobile portrait surfaces are detected from their aspect ratio, not just logical canvas width, then scale seats, cards, table zones, and action controls from the available surface so a high-DPI Web canvas does not retain desktop-sized controls inside unused felt. Event history remains visible on non-phone layouts but has no phone field, drawer, menu entry, or capture state.
+
+Phone startup supports 2–7 participants and does not alter the resolved product
+default of 6. Startup may show non-binding guidance that 4 participants are
+recommended on a phone, but accepting defaults still creates a 6-player
+tournament. Counts 8–9 remain valid on larger GUI profiles and other product
+interfaces. The startup controller enforces the phone-only limit at its
+presentation boundary without changing `ConfigResolver`: resizing preserves
+entered text and active tournament state, and the phone form tells the user to
+use a larger layout for 8 or 9 players. Phone composition uses standard density
+for 2–4, compact density for 5–6, and minimal density for 7. The pure
+`GuiPhoneSeatLayout` owns only presentation geometry. `PokerTableController`
+consumes its rectangles for
+phone opponent tokens while keeping the human seat at the bottom. Tokens omit
+avatars but reserve readable width for the full assigned display name, numeric
+stack, compact position and public-state badge, and two recipient-safe hidden
+or legitimately revealed hole-card fields. A short-lived compact action badge
+temporarily occupies the state-badge cell and never covers those required
+fields. A deliberate
+tap opens a closeable detail panel whose selection is stored as a core seat ID,
+not a node reference, so rerenders cannot attach details to the wrong player.
+The phone composition does not instantiate or expose event history; the
+underlying recipient-safe history remains unchanged for core state and larger
+profiles. Numeric entry is selected from the actual input event: touch opens
+the transactional in-canvas keypad on every profile, while pointer focus and
+physical-keyboard editing remain native even in a phone-sized window.
+The phone More control occupies reserved space in the bottom action region,
+never a perimeter seat slot. Phone quit confirmation uses a bounded in-canvas
+panel with two explicit 48 px actions; desktop retains the native confirmation
+dialog. The phone center plan owns the complete board, pot, and current-wager
+stack so its declared rectangle cannot hide child-panel overlap.
+Profile changes rebuild the presentation from the unchanged `GameView`; full
+desktop and tablet panels are restored when the current usable viewport is no
+longer a phone. A presentation-only profile override supports device-backed
+fixtures such as the observed high-resolution iPad without changing automatic
+geometry classification, player limits, core seat IDs, or poker position.
 
 `resources/gui_theme.tres` uses Godot's built-in plain non-serif UI font for both the startup screen and the table. Startup labels, numeric inputs, validation feedback, and the on-canvas keypad inherit that face, as do table labels and controls; presentation code must not introduce a serif face. Desktop table typography and line-art are configured at their source sizes rather than post-render scaled.
 
@@ -649,10 +685,12 @@ acceptance of the pre-phone layout.
 The canonical tablet fixtures use logical viewports of 768 x 1024 in portrait
 and 1024 x 768 in landscape. The existing 2388 x 1450 landscape case remains
 an additional observed-device regression, not a replacement for either
-canonical logical size. The canonical reduced-height browser-chrome fixtures
-are 390 x 744 in portrait and 844 x 330 in landscape. These named sizes are
-shared by geometry regressions and screenshot capture so the two forms of
-evidence describe the same inputs.
+canonical logical size. Its fixture metadata supplies an explicit tablet
+profile override: geometry alone classifies 2388 x 1450 as desktop because an
+ordinary desktop window can have exactly those usable dimensions. The
+canonical reduced-height browser-chrome fixtures are 390 x 744 in portrait and
+844 x 330 in landscape. These named sizes are shared by geometry regressions
+and screenshot capture so the two forms of evidence describe the same inputs.
 
 Geometry, visibility, font, touch-target, and intersection assertions run in
 the ordinary headless GUT suite. Rendered screenshots use a separate

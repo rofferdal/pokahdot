@@ -118,6 +118,19 @@ This records dirty paths and their fingerprint and is never acceptance
 evidence. It does not run the ordinary complete suite or the standalone
 invariant gate first.
 
+Run the dedicated 378-case small-phone invariant matrix and render its
+development screenshots with:
+
+```bash
+make gui-phone-invariant-gate
+make gui-phone-capture-development
+```
+
+The phone matrix covers 2, 4, 6, and 7 players across canonical portrait,
+landscape, and reduced-height viewports. It excludes the event-history state
+because the phone composition has no event-history surface. The development
+capture remains non-acceptance evidence and requires 100% visual review.
+
 Produce candidate evidence only from a clean committed tree:
 
 ```bash

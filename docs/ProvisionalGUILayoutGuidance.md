@@ -87,20 +87,17 @@ the only mobile-layout signal: desktop windows can be phone-sized, and Web
 canvases on mobile devices may expose large logical dimensions.
 
 ```gdscript
-enum DeviceType { PHONE, TABLET, DESKTOP }
+const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 
-func get_device_type() -> DeviceType:
-    var size: Vector2 = get_viewport().get_visible_rect().size
-    var min_dim: float = min(size.x, size.y)
-    var max_dim: float = max(size.x, size.y)
-    var aspect: float = max_dim / max(min_dim, 1.0)
-
-    if min_dim < 600.0 and aspect >= 1.5:
-        return DeviceType.PHONE
-    if min_dim < 900.0 or max_dim < 1300.0:
-        return DeviceType.TABLET
-    return DeviceType.DESKTOP
+func get_layout_profile() -> GuiLayoutProfile.Kind:
+    var usable_size: Vector2 = get_viewport().get_visible_rect().size
+    return GuiLayoutProfileScript.classify(usable_size)
 ```
+
+The shared classifier returns one of five profiles: phone portrait, phone
+landscape, tablet, small desktop, or desktop. Pass geometry after safe-area and
+browser-chrome reductions. Use an explicit profile override only for recorded
+device evidence whose usable geometry is otherwise ambiguous.
 
 Use `OS.has_feature("mobile")` separately only when a platform-specific input
 or browser workaround is required. It does not override viewport classification.
@@ -110,6 +107,34 @@ or browser workaround is required. It does not override viewport classification.
 ## 5. Principles for Content Simplification on Small Screens
 
 When scaling down to a phone viewport, space is at a premium. Rather than forcing desktop complexity onto a small screen, follow these progressive disclosure and simplification principles:
+
+Phone startup has an explicit 2–7 participant limit while continuing to resolve
+an omitted participant count to 6 on every device. A phone startup screen may
+recommend 4 participants as non-binding guidance, but must not preselect or
+silently substitute it. Counts 8–9 remain valid on tablet, small-desktop, and
+desktop layouts. Preserve entered values and active tournament state across
+profile changes, and explain that a larger layout is required. Use these
+presentation tiers:
+
+* **2–4 players:** standard phone density.
+* **5–6 players:** compact phone density.
+* **7 players:** minimal phone density.
+
+The minimal tier must retain seven distinct, tappable seat identities around a
+reserved center table region, with the human position anchored at the bottom.
+Every bot token keeps the full assigned display name, numeric chip stack, and
+two hole-card fields visible at once; short-lived action feedback may replace
+only the compact state-badge cell. Additional details may move behind
+deliberate interaction; the underlying seat identity and recipient-safe state
+remain unchanged. Do not render event history as a phone field, drawer, menu
+entry, or fixture. Preserve it in recipient-safe game state and retain the
+existing event log on larger profiles.
+
+Choose numeric input from the input event, not the layout profile. A touch
+press opens the shared transactional in-canvas keypad on phone, tablet, or
+desktop. A pointer click keeps the native field focused for physical-keyboard
+digits and editing keys, including in a phone-sized desktop window. Canceling
+a touch draft preserves the last committed field value.
 
 ### A. Progressive Disclosure
 * **Collapse Sidebars into Modals/Drawers:** Replace fixed desktop sidebars or multi-column inspectors with slide-out hamburger menus or overlay drawers (`AcceptDialog` / `Window` / animated `Panel`).

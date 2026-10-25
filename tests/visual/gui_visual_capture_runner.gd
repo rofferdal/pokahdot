@@ -46,11 +46,17 @@ func _run() -> void:
 		quit(EXIT_TREE_STATE)
 		return
 
-	var cases: Array[Dictionary] = CaptureManifestScript.milestone_three_cases(
-		options.viewport_id, options.state_id, options.player_count
+	var cases: Array[Dictionary] = (
+		CaptureManifestScript.phone_cases(
+			options.viewport_id, options.state_id, options.player_count
+		)
+		if options.full_phone
+		else CaptureManifestScript.milestone_three_cases(
+			options.viewport_id, options.state_id, options.player_count
+		)
 	)
 	if cases.is_empty():
-		printerr("No canonical Milestone 3 capture cases match the selection.")
+		printerr("No canonical capture cases match the selection.")
 		quit(EXIT_USAGE)
 		return
 	var output_directory: String = options.output_directory
@@ -105,13 +111,20 @@ func _run() -> void:
 			Time.get_datetime_string_from_system(true),
 			CaptureManifestScript.matrix_checksum(cases),
 			options.development,
+			(
+				CaptureManifestScript.PHONE_SUITE_VERSION
+				if options.full_phone
+				else CaptureManifestScript.SUITE_VERSION
+			),
 		)
 	)
 	manifest.display_server = display_server
 	manifest.rendering_driver = RenderingServer.get_current_rendering_driver_name()
 	manifest.video_adapter = RenderingServer.get_video_adapter_name()
 	manifest.matrix_source_sha256 = CaptureManifestScript.matrix_source_checksums()
-	manifest.capture_scope = "full_m3" if options.full_m3 else "selection"
+	manifest.capture_scope = (
+		"full_phone" if options.full_phone else ("full_m3" if options.full_m3 else "selection")
+	)
 	manifest.dirty_fingerprint = git_state.dirty_fingerprint
 	for case: Dictionary in cases:
 		var capture_result: Dictionary = await _capture_case(
@@ -122,10 +135,20 @@ func _run() -> void:
 			quit(EXIT_CAPTURE)
 			return
 		manifest.captures.append(capture_result.record)
-	manifest.acceptance_eligible = CaptureManifestScript.acceptance_eligible(
-		git_state.tree_state, options.development, options.full_m3, manifest.captures
+	manifest.acceptance_eligible = (
+		CaptureManifestScript.phone_acceptance_eligible(
+			git_state.tree_state, options.development, options.full_phone, manifest.captures
+		)
+		if options.full_phone
+		else CaptureManifestScript.acceptance_eligible(
+			git_state.tree_state, options.development, options.full_m3, manifest.captures
+		)
 	)
-	if options.full_m3 and not options.development and not manifest.acceptance_eligible:
+	if (
+		(options.full_m3 or options.full_phone)
+		and not options.development
+		and not manifest.acceptance_eligible
+	):
 		printerr("Gate capture failed: every canonical case must settle and pass its invariants.")
 		quit(EXIT_CAPTURE)
 		return
@@ -162,7 +185,7 @@ func _capture_case(case: Dictionary, source_sha: String, output_directory: Strin
 	var descriptor: Dictionary = case.descriptor
 	var harness: Node = GuiSceneHarnessScript.new()
 	get_root().add_child(harness)
-	var rendered: Dictionary = harness.render(descriptor, viewport.size)
+	var rendered: Dictionary = harness.render(descriptor, viewport.size, viewport.profile_override)
 	var settled: bool = await harness.settle_layout()
 	await RenderingServer.frame_post_draw
 	var image: Image = rendered.viewport.get_texture().get_image()
@@ -237,6 +260,7 @@ func _parse_arguments(arguments: PackedStringArray) -> Dictionary:
 		"error": "",
 		"help": false,
 		"full_m3": false,
+		"full_phone": false,
 		"development": false,
 		"viewport_id": &"",
 		"state_id": &"",
@@ -251,6 +275,8 @@ func _parse_arguments(arguments: PackedStringArray) -> Dictionary:
 				options.help = true
 			"--full-m3":
 				options.full_m3 = true
+			"--full-phone":
+				options.full_phone = true
 			"--development":
 				options.development = true
 			"--viewport", "--state", "--player-count", "--output":
@@ -280,8 +306,11 @@ func _parse_arguments(arguments: PackedStringArray) -> Dictionary:
 			or not options.state_id.is_empty()
 			or options.player_count >= 0
 		)
-		if options.full_m3 == has_selection:
-			options.error = "Choose either --full-m3 or at least one selection filter."
+		var full_suite_count: int = int(options.full_m3) + int(options.full_phone)
+		if full_suite_count > 1:
+			options.error = "--full-m3 and --full-phone are mutually exclusive."
+		elif (full_suite_count == 1) == has_selection:
+			options.error = "Choose one full suite or at least one selection filter."
 		elif has_selection and not options.development:
 			options.error = "Filtered captures require --development and are never gate evidence."
 		elif not options.output_directory.is_empty() and not options.development:
@@ -347,5 +376,6 @@ func _print_usage() -> void:
 	print(
 		"GUI visual capture:\n",
 		"  --full-m3 [--development] [--output PATH]\n",
+		"  --full-phone [--development] [--output PATH]\n",
 		"  [--viewport ID] [--state ID] [--player-count N] [--development] [--output PATH]"
 	)

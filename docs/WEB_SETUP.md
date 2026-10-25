@@ -275,7 +275,7 @@ underscores between fields:
 <sha12>__<environment-id>__<device-os-browser>__<width>x<height>-<orientation>__p<count>__<state-id>.png
 88122bd46ef0__desktop-chrome__macos14-chrome130__1920x1080-landscape__p9__showdown-long.png
 88122bd46ef0__ipad-safari__ipadpro-ipados18-safari18__1024x768-landscape__p9__human-turn-flop__after-rotation.png
-88122bd46ef0__iphone-safari__iphone15-ios18-safari18__390x744-portrait__p9__keypad-open.png
+88122bd46ef0__iphone-safari__iphone15-ios18-safari18__390x744-portrait__p7__keypad-open.png
 ```
 
 The width and height are the actual usable CSS viewport for hosted evidence,
@@ -324,13 +324,13 @@ rotation or browser-chrome change produces a different usable viewport:
 
 Then add one row per test environment:
 
-| Environment | Device and OS | Browser and version | Session details | 2-player result | 9-player result | Screenshots / defects |
+| Environment | Device and OS | Browser and version | Session details | 2-player result | Profile-maximum result | Screenshots / defects |
 | --- | --- | --- | --- | --- | --- | --- |
 | Desktop Chrome or Edge | `<model, OS>` | `<version>` | `<session anchors for 1920x1080 and 1280x720>` | `<pass/fail>` | `<pass/fail>` | `<links>` |
 | Desktop Firefox | `<model, OS>` | `<version>` | `<session anchors for 1920x1080 and 1280x720>` | `<pass/fail>` | `<pass/fail>` | `<links>` |
 | iPad Safari | `<model, iPadOS>` | `<version>` | `<portrait and landscape session anchors>` | `<pass/fail>` | `<pass/fail>` | `<links>` |
-| iPhone Safari | `<model, iOS>` | `<version>` | `<portrait and landscape session anchors>` | `n/a` | `<pass/fail>` | `<links>` |
-| Android Chrome | `<model, Android>` | `<version>` | `<orientation and browser-chrome session anchors>` | `n/a` | `<pass/fail>` | `<links>` |
+| iPhone Safari | `<model, iOS>` | `<version>` | `<portrait and landscape session anchors>` | `n/a` | `<7-player pass/fail>` | `<links>` |
+| Android Chrome | `<model, Android>` | `<version>` | `<orientation and browser-chrome session anchors>` | `n/a` | `<7-player pass/fail>` | `<links>` |
 
 ### Required representative flow
 
@@ -357,9 +357,10 @@ On a **physical iPad**, test Safari in portrait and landscape for 2-player and
 there is no horizontal page scroll, clipped control, overlap, unreadable text,
 stale layout, or lost touch input.
 
-On a **physical iPhone**, test Safari in both orientations with a 9-player
-game. Verify the wrapped Fold, Call, Raise, and All-in controls are fully
-tappable, scroll the event history, rotate once during play, and check that
+On a **physical iPhone**, test Safari in both orientations with a 7-player
+game. Verify every bot's display name, numeric stack, and two hole-card fields,
+and verify that Fold, Call, Raise, and All-in are fully tappable. Confirm that
+no event-history surface is present, rotate once during play, and check that
 the required states remain legible without zooming.
 
 On a **physical Android phone**, repeat the iPhone flow in current Chrome.

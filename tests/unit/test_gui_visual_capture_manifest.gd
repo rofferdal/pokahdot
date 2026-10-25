@@ -39,6 +39,24 @@ func test_milestone_three_capture_matrix_is_complete_unique_and_deterministic() 
 	assert_eq(CaptureManifestScript.milestone_three_cases(&"", &"startup", 2).size(), 0)
 
 
+func test_phone_capture_matrix_is_separate_complete_unique_and_deterministic() -> void:
+	var cases: Array[Dictionary] = CaptureManifestScript.phone_cases()
+	assert_eq(cases.size(), CaptureManifestScript.PHONE_CAPTURE_COUNT)
+	var ids: Dictionary = {}
+	for case: Dictionary in cases:
+		ids[CaptureManifestScript.capture_id(case)] = true
+		assert_true(case.viewport.key in CaptureManifestScript.PHONE_VIEWPORT_IDS)
+		assert_ne(case.descriptor.id, &"event-history-full")
+	assert_eq(ids.size(), cases.size())
+	assert_eq(
+		CaptureManifestScript.matrix_checksum(cases),
+		CaptureManifestScript.matrix_checksum(CaptureManifestScript.phone_cases()),
+	)
+	assert_eq(CaptureManifestScript.phone_cases(&"", &"startup", 0).size(), 7)
+	assert_eq(CaptureManifestScript.phone_cases(&"", &"keypad-open", 0).size(), 7)
+	assert_eq(CaptureManifestScript.milestone_three_cases().size(), 348)
+
+
 func test_manifest_marks_only_clean_gate_evidence_as_acceptance_eligible() -> void:
 	var clean: Dictionary = CaptureManifestScript.base_manifest(
 		"abcdef", "clean", PackedStringArray(), "4.7.2", "gl_compatibility", "utc", "matrix", false
@@ -71,3 +89,20 @@ func test_manifest_marks_only_clean_gate_evidence_as_acceptance_eligible() -> vo
 	assert_false(dirty.acceptance_eligible)
 	assert_true(dirty.development_capture)
 	assert_eq(dirty.dirty_paths, PackedStringArray([" M example.gd"]))
+
+
+func test_phone_manifest_requires_the_complete_distinct_phone_gate() -> void:
+	var passing_captures: Array = []
+	for _index: int in range(CaptureManifestScript.PHONE_CAPTURE_COUNT):
+		passing_captures.append({"invariants": {"passed": true}})
+	assert_true(
+		CaptureManifestScript.phone_acceptance_eligible("clean", false, true, passing_captures)
+	)
+	assert_false(
+		CaptureManifestScript.phone_acceptance_eligible("clean", false, false, passing_captures)
+	)
+	assert_false(CaptureManifestScript.acceptance_eligible("clean", false, true, passing_captures))
+	passing_captures[0].invariants.passed = false
+	assert_false(
+		CaptureManifestScript.phone_acceptance_eligible("clean", false, true, passing_captures)
+	)

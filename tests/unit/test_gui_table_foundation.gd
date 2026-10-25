@@ -3,6 +3,7 @@ extends "res://tests/support/poker_gut_test.gd"
 
 const AvatarAssignmentServiceScript := preload("res://scripts/gui/avatar_assignment_service.gd")
 const GuiAvatarCatalogScript := preload("res://scripts/gui/gui_avatar_catalog.gd")
+const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 const MainScene := preload("res://scenes/main.tscn")
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
 
@@ -78,6 +79,53 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 	assert_false(main.get_node("%FormStatus").visible)
 
 
+func test_phone_explains_its_limit_without_changing_the_six_player_default() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	main.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	var player_count_input := main.get_node("%PlayerCountInput") as LineEdit
+	var guidance := main.get_node("%PhonePlayerCountGuidance") as Label
+
+	main.size = Vector2(390, 844)
+	main._refresh_startup_layout()
+	assert_true(guidance.visible)
+	assert_eq(guidance.text, "Phone supports 2–7 players; 4 recommended. Default: 6.")
+	assert_eq(main.get_node("%PlayerCountLabel").text, "Players (2–7)")
+	assert_same(guidance.get_parent(), main.get_node("%Form"))
+	assert_eq(player_count_input.text, "6")
+
+	main.size = Vector2(1920, 1080)
+	main._refresh_startup_layout()
+	assert_false(guidance.visible)
+	assert_eq(guidance.get_parent().name, &"PlayerCountField")
+	assert_eq(player_count_input.text, "6")
+	assert_eq(main.get_node("%PlayerCountLabel").text, "Participants (2–9)")
+
+
+func test_phone_rejects_eight_players_without_clamping_the_entered_value() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	main.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	var input := main.get_node("%PlayerCountInput") as LineEdit
+	var error := main.get_node("%PlayerCountError") as Label
+
+	main.size = Vector2(390, 844)
+	main._refresh_startup_layout()
+	input.text = "8"
+	main._on_start_pressed()
+	assert_eq(input.text, "8")
+	assert_eq(
+		error.text,
+		"Phone layouts support 2–7 players. Enlarge the window to start with 8 or 9.",
+	)
+	assert_true(main.get_node("Center").visible)
+
+	main.size = Vector2(1920, 1080)
+	main._refresh_startup_layout()
+	assert_eq(input.text, "8")
+	assert_eq(main.get_node("%PlayerCountLabel").text, "Participants (2–9)")
+
+
 func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_table() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)
@@ -100,7 +148,56 @@ func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_tab
 	assert_eq(keypad.get_node("Content/Title").text, "Enter number")
 	assert_false(keypad.get_node("Content/Range").visible)
 	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	assert_eq(player_count_input.text, "6")
+	assert_eq(keypad.get_node("Content/Value").text, "62")
+	keypad.get_node("Content/Done").emit_signal("pressed")
 	assert_eq(player_count_input.text, "62")
+
+
+func test_startup_numeric_input_dispatch_depends_on_touch_not_layout_profile() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	var input := main.get_node("%PlayerCountInput") as LineEdit
+	var keypad := main.get_node("StartupNumberKeypad") as WagerKeypad
+	var profiles: Array[int] = [
+		GuiLayoutProfileScript.Kind.PHONE_PORTRAIT,
+		GuiLayoutProfileScript.Kind.TABLET,
+		GuiLayoutProfileScript.Kind.SMALL_DESKTOP,
+		GuiLayoutProfileScript.Kind.DESKTOP,
+	]
+
+	for profile: int in profiles:
+		main.set_layout_profile_override(profile)
+		input.gui_input.emit(_left_mouse_press())
+		assert_false(keypad.visible, "mouse profile %d" % profile)
+		input.gui_input.emit(_touch_press())
+		assert_true(keypad.visible, "touch profile %d" % profile)
+		keypad.cancel()
+
+
+func test_startup_touch_to_keyboard_transition_cancels_only_the_draft() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	var input := main.get_node("%PlayerCountInput") as LineEdit
+	var keypad := main.get_node("StartupNumberKeypad") as WagerKeypad
+	main.set_layout_profile_override(GuiLayoutProfileScript.Kind.DESKTOP)
+
+	input.gui_input.emit(_touch_press())
+	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	assert_eq(input.text, "6")
+	assert_eq(keypad.get_node("Content/Value").text, "62")
+
+	input.gui_input.emit(_left_mouse_press())
+	assert_false(keypad.visible)
+	assert_eq(input.text, "6")
+	# Godot owns physical-keyboard editing once pointer focus is allowed through.
+	input.text = "10"
+	input.text_submitted.emit(input.text)
+	assert_eq(
+		(main.get_node("%PlayerCountError") as Label).text,
+		"Player count must be between 2 and 9.",
+	)
+	input.text = "6"
 
 
 func test_return_to_startup_reveals_the_completion_status() -> void:
@@ -185,6 +282,16 @@ func test_hidden_table_lays_out_seats_after_showing_at_desktop_and_mobile_sizes(
 			var seat_rect: Rect2 = seat_rects[seat]
 			var context := "seat %d at %d players in %s" % [seat, player_count, viewport_size]
 			distinct_positions[seat_rect.position] = true
+			var seat_node: Control = table.get_node(
+				"TableMargin/Felt/TableSurface/Seats/Seat%d" % seat
+			)
+			var phone_layout: bool = table.get_layout_profile() in [0, 1]
+			if phone_layout and seat == 0:
+				assert_false(
+					seat_node.is_visible_in_tree(), "%s uses bottom human region" % context
+				)
+				assert_true(table.get_node("%PhoneHeroSummary").is_visible_in_tree())
+				continue
 			assert_true(surface_rect.encloses(seat_rect), context)
 			for placed_rect: Rect2 in placed_rects:
 				assert_false(
@@ -192,12 +299,13 @@ func test_hidden_table_lays_out_seats_after_showing_at_desktop_and_mobile_sizes(
 					"%s: %s intersects %s" % [context, seat_rect, placed_rect]
 				)
 			placed_rects.append(seat_rect)
-			var seat_node: Control = table.get_node(
-				"TableMargin/Felt/TableSurface/Seats/Seat%d" % seat
-			)
 			var avatar := seat_node.find_child("Avatar", true, false) as TextureRect
-			assert_true(seat_node.is_visible_in_tree(), context)
-			assert_not_null(avatar.texture, context)
+			if phone_layout:
+				assert_true(seat_node.is_visible_in_tree(), context)
+				assert_null(avatar, "%s phone opponents hide avatars" % context)
+			else:
+				assert_true(seat_node.is_visible_in_tree(), context)
+				assert_not_null(avatar.texture, context)
 		assert_eq(distinct_positions.size(), player_count)
 
 
@@ -652,15 +760,23 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 		var hero_name: Label = hero_panel.find_child("Name", true, false)
 		var hero_card: PanelContainer = hero_panel.find_child("HeroCard1", true, false)
 		var hero_status: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status")
-		assert_gt(
-			(
-				Rect2(hero_panel.position, hero_panel.size)
-				. merge(hero_status.get_rect())
-				. get_center()
-				. y
-			),
-			_surface_size(table).y * 0.75,
-		)
+		if table.get_layout_profile() in [0, 1]:
+			var action_panel: PanelContainer = table.get_node(
+				"TableMargin/Felt/TableSurface/ActionPanel"
+			)
+			assert_false(hero_panel.visible)
+			assert_true(table.get_node("%PhoneHeroSummary").visible)
+			assert_gt(action_panel.get_rect().get_center().y, _surface_size(table).y * 0.75)
+		else:
+			assert_gt(
+				(
+					Rect2(hero_panel.position, hero_panel.size)
+					. merge(hero_status.get_rect())
+					. get_center()
+					. y
+				),
+				_surface_size(table).y * 0.75,
+			)
 		assert_eq(hero_name.text, "Human")
 		assert_eq(hero_card.get_node("Content/Rank").text, "A")
 		assert_eq(
@@ -668,9 +784,10 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 		)
 		assert_not_null(hero_card.get_theme_stylebox("panel"))
 		for seat: int in range(1, player_count):
-			var name_label: Label = table.get_node(
-				"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Header/Identity/Name" % seat
+			var opponent: PanelContainer = table.get_node(
+				"TableMargin/Felt/TableSurface/Seats/Seat%d" % seat
 			)
+			var name_label: Label = opponent.find_child("Name", true, false)
 			assert_eq(name_label.text, _visual_name_assignments(player_count)[seat])
 
 
@@ -812,3 +929,16 @@ func _assert_minimum_gui_font_size(node: Node) -> void:
 		assert_gte(node.get_theme_font_size("normal_font_size"), 20, str(node.get_path()))
 	for child: Node in node.get_children():
 		_assert_minimum_gui_font_size(child)
+
+
+func _touch_press() -> InputEventScreenTouch:
+	var event := InputEventScreenTouch.new()
+	event.pressed = true
+	return event
+
+
+func _left_mouse_press() -> InputEventMouseButton:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = true
+	return event
