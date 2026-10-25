@@ -23,7 +23,7 @@ Complete the core configuration and roster-selection gates in
 
 ## CLI bot-profile startup presentation
 
-- [ ] **Show each assigned bot profile name at tournament start:** in the
+- [x] **Show each assigned bot profile name at tournament start:** in the
   existing `Seat agents:` startup report, include every bot seat's selected
   `BotProfile.display_name` while preserving the human-seat row and the
   existing roster version, profile-ID, and model-family diagnostics. Render
@@ -33,12 +33,20 @@ Complete the core configuration and roster-selection gates in
   Add deterministic integration coverage for default strategic and optional
   mixed legacy/strategic rosters, asserting that every bot seat appears once
   with the display name of its assigned profile and the human seat never
-  receives a bot profile name.
+  receives a bot profile name. `CliMatchCreationResult` now carries the match
+  and startup diagnostics from one profile-selection pass. Deterministic
+  default and mixed-roster integration coverage verifies exact seat rows,
+  created-agent profile/model identity, stable mapping, and the preserved
+  diagnostics; the focused 11-test CLI integration suite passes.
 
 ## Cross-interface release verification
 
-- [ ] Verify GUI and CLI produce equivalent core outcomes for the same seed
-  and scripted actions.
-- [ ] Verify both GUI and CLI expose the optional startup overrides and
+- [x] Verify GUI and CLI produce equivalent core outcomes for the same seed
+  and scripted actions. Seed `9123` and four explicit check-or-call actions
+  now run through the CLI parser and GUI action control, with core cards,
+  seats, pots, actions, events, and match state compared after every action.
+- [x] Verify both GUI and CLI expose the optional startup overrides and
   produce identical validated core configuration from equivalent omissions and
-  selections.
+  selections. Automated cases cover all-default omission, full explicit
+  selection with legacy models, and each numeric field selected independently
+  while the other three are omitted.

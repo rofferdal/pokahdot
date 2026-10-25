@@ -1,6 +1,6 @@
 # Pokahdot Architecture
 
-Status: Core, interactive CLI tournament play, the simulation CLI introduction, GUI work through archived Milestone 4.6b plus player-name implementation, and strategy work through archived Stratmilestone3 are implemented. GUI naming visual acceptance, remaining device/small-viewport verification, and profile-evolution backlogs remain unfinished.
+Status: Core, interactive CLI tournament play, cross-interface release verification, the simulation CLI introduction, GUI work through archived Milestone 4.6b plus player-name implementation, and strategy work through archived Stratmilestone3 are implemented. GUI naming visual acceptance, remaining device/small-viewport verification, and profile-evolution backlogs remain unfinished.
 Last updated: 2026-10-25
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
@@ -54,6 +54,12 @@ GUI composition root   Interactive CLI root   Simulation CLI root
 Dependencies point inward. `scripts/core/` may use Godot base types such as `RefCounted`, `Resource`, `RandomNumberGenerator`, and typed signals or value containers, but it must not depend on `Control`, scenes, GUI nodes, stdin, or stdout.
 
 There are three composition roots. GUI and interactive CLI each construct exactly one human plus bots. The non-interactive simulation root may construct all-bot tournaments. No other composition path may bypass the exactly-one-human product invariant. Each root creates validated configuration, players, agents, named RNG streams, and `TournamentMatch`, then drives the same public API.
+
+Interactive CLI composition returns a `CliMatchCreationResult` containing the
+constructed match, human seat, and startup diagnostics captured from the same
+bot-profile selection pass. The `Seat agents:` report can therefore show each
+bot's profile display name without reselecting profiles or changing the core's
+stable in-hand `Player N` labels.
 
 `TournamentConstructionContract` makes the composition distinction explicit at
 the match boundary. `TournamentMatch` defaults to the product contract and
@@ -560,7 +566,7 @@ The completed implementation history proceeded through the interactive CLI first
 1. Show a startup panel prefilled with 6 participants, 1000 chips, small blind 5, and big blind 10; starting immediately without editing is valid.
 2. Validate edits locally for immediate feedback, then create a fresh validated match configuration and construct `TournamentMatch`; do not create players, chips, or cards while the input is invalid.
 3. Call `start()` and render the returned human `GameView`: board, pots, stacks, current blinds, level progress, acting seat, hero cards, active/eliminated participants, and final winner when applicable. Opponent cards remain hidden unless the view explicitly reveals them.
-4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, minimum Bet/Raise, a Pot raise target, All-in, and free-entry amounts as applicable. The Pot raise control sends the displayed pot amount through the ordinary wager-validation path and is disabled unless that target is a legal raise the hero can cover.
+4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, minimum Bet/Raise, a Pot bet/raise target, All-in, and free-entry amounts as applicable. The Pot wager control sends the displayed pot amount through the ordinary wager-validation path and is disabled unless that target is a legal bet or raise the hero can cover.
 5. On a button press, create `PlayerAction`, submit it, and render the next result.
 6. Keep `Quit` available at all times; confirm in the GUI and then call `request_quit()`.
 

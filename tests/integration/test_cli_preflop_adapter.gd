@@ -1,6 +1,7 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 const CliMatchFactoryScript = preload("res://scripts/cli/cli_match_factory.gd")
+const CliMatchCreationResultScript = preload("res://scripts/cli/cli_match_creation_result.gd")
 const CliCardFormatterScript = preload("res://scripts/cli/cli_card_formatter.gd")
 
 
@@ -134,6 +135,38 @@ func test_match_factory_repeats_legacy_profile_selection_for_a_fixed_seed() -> v
 	assert_eq(factory.diagnostics(first_config), factory.diagnostics(second_config))
 
 
+func test_default_startup_diagnostics_name_each_bot_from_the_created_match_assignment() -> void:
+	var config := _config(6, 240, 12, 24)
+	var factory := CliMatchFactoryScript.new()
+	var creation := factory.create_with_diagnostics(config)
+
+	_assert_startup_profile_names_match_created_agents(config, creation)
+	assert_has(creation.diagnostics, "Legacy heuristic models: not included")
+	for model_family: String in _selected_model_families(creation.diagnostics):
+		assert_eq(model_family, "strategy_parameterized")
+	assert_eq(
+		creation.diagnostics,
+		factory.create_with_diagnostics(config).diagnostics,
+		"A fixed seed must preserve the startup seat-to-profile mapping.",
+	)
+
+
+func test_mixed_startup_diagnostics_name_each_bot_from_the_created_match_assignment() -> void:
+	var config := _config(7, 240, 12, 24, true)
+	var factory := CliMatchFactoryScript.new()
+	var creation := factory.create_with_diagnostics(config)
+
+	_assert_startup_profile_names_match_created_agents(config, creation)
+	assert_has(creation.diagnostics, "Legacy heuristic models: included")
+	var model_families := _selected_model_families(creation.diagnostics)
+	assert_has(model_families, "strategy_parameterized")
+	var has_legacy_family := false
+	for model_family: String in model_families:
+		if model_family != "strategy_parameterized":
+			has_legacy_family = true
+	assert_true(has_legacy_family)
+
+
 func test_default_and_non_default_tables_mark_exactly_one_human_across_snapshots() -> void:
 	for count: int in [TournamentConfig.new().player_count, 3]:
 		var io := FakeCliIO.new()
@@ -241,3 +274,74 @@ func _selected_model_families(diagnostics: PackedStringArray) -> PackedStringArr
 		if line.begins_with("Selected bot model families: "):
 			return line.trim_prefix("Selected bot model families: ").split(",", false)
 	return PackedStringArray()
+
+
+func _assert_startup_profile_names_match_created_agents(
+	config: ResolvedTournamentConfig, creation: CliMatchCreationResultScript
+) -> void:
+	var roster := PlayableBotRoster.new()
+	var streams := RngStreamFactory.new().create(config)
+	var selection := (
+		roster
+		. select(
+			config.player_count - 1,
+			streams.get_seat_profile_assignment_rng(),
+			config.use_legacy_models,
+		)
+	)
+	assert_true(selection.is_ok())
+	var profiles := selection.get_profiles()
+	var selected_profile_ids := PackedStringArray()
+	var selected_model_families := PackedStringArray()
+	for profile: BotProfile in profiles:
+		selected_profile_ids.append(String(profile.profile_id))
+		selected_model_families.append(String(profile.model_id))
+	assert_has(creation.diagnostics, "Bot roster version: %s" % roster.get_roster_version())
+	assert_has(
+		creation.diagnostics,
+		"Selected bot profile IDs: %s" % ",".join(selected_profile_ids),
+	)
+	assert_has(
+		creation.diagnostics,
+		"Selected bot model families: %s" % ",".join(selected_model_families),
+	)
+
+	var seat_row_count := 0
+	for line: String in creation.diagnostics:
+		if line.begins_with("Seat "):
+			seat_row_count += 1
+		assert_false(line.contains("parameters"))
+		assert_false(line.contains("rng"))
+	assert_eq(seat_row_count, config.player_count)
+
+	var profile_index := 0
+	for seat: int in range(config.player_count):
+		var seat_prefix := "Seat %d:" % seat
+		var matching_row := ""
+		var matching_row_count := 0
+		for line: String in creation.diagnostics:
+			if line.begins_with(seat_prefix):
+				matching_row = line
+				matching_row_count += 1
+		assert_eq(matching_row_count, 1, "Each seat must have exactly one startup row.")
+		var agent: Agent = creation.match_instance.get_agent_for_simulation(seat)
+		if seat == creation.human_seat:
+			assert_eq(matching_row, "Seat %d: human" % seat)
+			assert_false(matching_row.contains("name="))
+			assert_true(agent is HumanAgent)
+			continue
+
+		var profile: BotProfile = profiles[profile_index]
+		profile_index += 1
+		assert_false(profile.display_name.is_empty())
+		assert_eq(
+			matching_row,
+			(
+				"Seat %d: model=%s profile=%s name=%s"
+				% [seat, profile.model_id, profile.profile_id, profile.display_name]
+			),
+		)
+		assert_true(agent is BotAgent)
+		assert_eq((agent as BotAgent).profile_id, profile.profile_id)
+		assert_eq((agent as BotAgent).model_id, profile.model_id)
+	assert_eq(profile_index, profiles.size())

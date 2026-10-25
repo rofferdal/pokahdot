@@ -167,28 +167,35 @@ large enough to communicate its required public information without overlap.
 Verify that presentation work has not changed shared game behavior or startup
 configuration.
 
-- [ ] Complete
+- [x] Complete
   [`GuiTasks.md` — Pot wager shortcut correctness](GuiTasks.md#pot-wager-shortcut-correctness),
   including deterministic bet and raise reproductions, ordinary core legality
   and bounds validation, and regression coverage for enabled and disabled
-  shortcut states.
+  shortcut states. Seeded live-match regressions now exercise both wager
+  kinds through the ordinary core submission path; the focused 32-test GUI
+  action suite passes.
 
-- [ ] Complete
+- [x] Complete
   [`CliTasks.md` — CLI bot-profile startup presentation](CliTasks.md#cli-bot-profile-startup-presentation),
   including one startup row per bot seat with its assigned
   `BotProfile.display_name`, stable seat-to-profile mapping, preserved human
   labeling and existing diagnostics, and deterministic default/mixed-roster
-  regression coverage.
+  regression coverage. The CLI now constructs the match and startup report
+  from one selection result; the focused 11-test integration suite passes.
 
-- [ ] Complete both tasks in
+- [x] Complete both tasks in
   [`CliTasks.md` — Cross-interface release verification](CliTasks.md#cross-interface-release-verification),
   comparing GUI and CLI core outcomes for the same seed and scripted actions,
   and comparing resolved configuration for equivalent omissions and selections.
-- [ ] Record the fixed seeds, scripted actions, and configuration cases in the
+  The focused cross-interface suite passes all five tests.
+- [x] Record the fixed seeds, scripted actions, and configuration cases in the
   relevant automated tests so failures can be reproduced without relying on a
-  manual session.
-- [ ] Run the complete headless suite after the cross-interface coverage is in
-  place.
+  manual session. The tests record outcome seed `9123`, four check-or-call
+  actions, startup-default seed `20261026`, full explicit selections, and four
+  single-field selection/three-field omission cases.
+- [x] Run the complete headless suite after the cross-interface coverage is in
+  place. `make check` passes 497 GUT tests and 72 Python tests; repository-wide
+  GDScript lint and formatting checks pass.
 
 ## Milestone 6 — Documentation and export audit
 

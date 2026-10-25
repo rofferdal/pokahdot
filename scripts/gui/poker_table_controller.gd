@@ -1205,7 +1205,7 @@ func _refresh_action_controls() -> void:
 		PlayerAction.Kind.CHECK in legal or PlayerAction.Kind.CALL in legal
 	)
 	_min_wager_button.disabled = not can_wager
-	_pot_raise_button.disabled = not _can_submit_pot_raise(legal, is_human_turn)
+	_pot_raise_button.disabled = not _can_submit_pot_wager(legal, is_human_turn)
 	_wager_input.editable = can_wager
 	_wager_button.disabled = not can_wager
 	_all_in_button.disabled = not (PlayerAction.Kind.ALL_IN in legal)
@@ -1259,7 +1259,9 @@ func _configure_action_control_copy(legal: Array) -> void:
 		if compact_copy
 		else "Min %s %d" % [wager_name, _bound_view.minimum_wager_total]
 	)
-	_pot_raise_button.text = "Pot" if compact_copy else "Pot raise"
+	_pot_raise_button.text = (
+		"Pot" if compact_copy else "Pot bet" if PlayerAction.Kind.BET in legal else "Pot raise"
+	)
 	_wager_button.text = wager_name
 	_wager_input.placeholder_text = "Total" if compact_copy else "Wager total"
 	_wager_input.custom_minimum_size.x = 72.0 if compact_copy else 200.0
@@ -1418,8 +1420,10 @@ func _uses_compact_table_copy() -> bool:
 	)
 
 
-func _can_submit_pot_raise(legal: Array, is_human_turn: bool) -> bool:
-	if not is_human_turn or PlayerAction.Kind.RAISE not in legal:
+func _can_submit_pot_wager(legal: Array, is_human_turn: bool) -> bool:
+	if not is_human_turn:
+		return false
+	if PlayerAction.Kind.BET not in legal and PlayerAction.Kind.RAISE not in legal:
 		return false
 	var target: int = displayed_pot_amount
 	return target >= _bound_view.minimum_wager_total and target <= _bound_view.maximum_wager_total
@@ -1445,7 +1449,7 @@ func _on_min_wager_pressed() -> void:
 func _on_pot_raise_pressed() -> void:
 	if _bound_view == null:
 		return
-	if not _can_submit_pot_raise(
+	if not _can_submit_pot_wager(
 		_bound_view.legal_actions, _bound_view.acting_seat == _bound_view.hero_seat
 	):
 		return

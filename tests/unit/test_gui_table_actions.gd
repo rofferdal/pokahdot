@@ -1,4 +1,5 @@
 # gdlint: disable=max-public-methods
+# gdlint: disable=max-file-lines
 extends "res://tests/support/poker_gut_test.gd"
 
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
@@ -142,39 +143,88 @@ func test_live_wager_touch_cancel_and_keyboard_correction_submission_preserve_bo
 	assert_gt(match_instance.get_view_for(0).pot_amount, 15)
 
 
-func test_pot_raise_uses_displayed_pot_and_respects_minimum_and_stack_bounds() -> void:
-	var match_instance := _waiting_match([PlayerAction.call_action()])
+func test_pot_bet_submits_the_displayed_pot_total_through_the_live_match() -> void:
+	var match_instance := _waiting_match([PlayerAction.check_action(), PlayerAction.check_action()])
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
 	_disable_action_pacing(table)
 	table.bind_match(match_instance, 0, _empty_assignments())
-	assert_true(table.get_node("%PotRaiseButton").text in ["Pot raise", "Pot"])
-	assert_true(table.get_node("%PotRaiseButton").disabled)
 
+	table.get_node("%CheckCallButton").emit_signal("pressed")
 	var view: GameView = match_instance.get_view_for(0)
-	view.pot_amount = 25
+	assert_eq(view.street, &"flop")
+	assert_true(PlayerAction.Kind.BET in view.legal_actions)
+	assert_eq(view.pot_amount, 20)
+	assert_eq(view.minimum_wager_total, 10)
+	assert_true(table.get_node("%PotRaiseButton").text in ["Pot bet", "Pot"])
+	assert_false(table.get_node("%PotRaiseButton").disabled)
+
+	table.get_node("%PotRaiseButton").emit_signal("pressed")
+	var submitted_view: GameView = match_instance.get_view_for(0)
+	var submitted_action: PublicActionRecord = _latest_player_action_for(submitted_view, 0)
+	assert_not_null(submitted_action)
+	assert_eq(submitted_action.seat, 0)
+	assert_eq(submitted_action.kind, PlayerAction.Kind.BET)
+	assert_eq(submitted_action.amount, 20)
+
+
+func test_pot_raise_submits_the_displayed_pot_total_through_the_live_match() -> void:
+	var match_instance := _waiting_match([PlayerAction.check_action(), PlayerAction.bet_to(10)])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	table.get_node("%CheckCallButton").emit_signal("pressed")
+	var view: GameView = match_instance.get_view_for(0)
+	assert_eq(view.street, &"flop")
+	assert_true(PlayerAction.Kind.RAISE in view.legal_actions)
+	assert_eq(view.pot_amount, 30)
+	assert_eq(view.minimum_wager_total, 20)
+	assert_true(table.get_node("%PotRaiseButton").text in ["Pot raise", "Pot"])
+	assert_false(table.get_node("%PotRaiseButton").disabled)
+
+	table.get_node("%PotRaiseButton").emit_signal("pressed")
+	var submitted_view: GameView = match_instance.get_view_for(0)
+	var submitted_action: PublicActionRecord = _latest_player_action_for(submitted_view, 0)
+	assert_not_null(submitted_action)
+	assert_eq(submitted_action.seat, 0)
+	assert_eq(submitted_action.kind, PlayerAction.Kind.RAISE)
+	assert_eq(submitted_action.amount, 30)
+
+
+func test_pot_wager_shortcut_respects_legal_action_and_inclusive_total_bounds() -> void:
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var view := _action_view(2)
+	view.acting_seat = 0
+	view._legal_actions = [PlayerAction.Kind.CHECK, PlayerAction.Kind.BET]
 	view.minimum_wager_total = 20
 	view.maximum_wager_total = 100
-	view._legal_actions = [
-		PlayerAction.Kind.FOLD,
-		PlayerAction.Kind.CALL,
-		PlayerAction.Kind.RAISE,
-		PlayerAction.Kind.ALL_IN,
-	]
-	table.bind_view(view, _empty_assignments())
-	assert_eq(table.displayed_pot_amount, 25)
-	assert_false(table.get_node("%PotRaiseButton").disabled)
-	table.get_node("%PotRaiseButton").emit_signal("pressed")
-	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Raise 25" in text))
 
-	view.pot_amount = 120
+	for case: Dictionary in [
+		{"target": 19, "disabled": true, "label": "below minimum"},
+		{"target": 20, "disabled": false, "label": "at minimum"},
+		{"target": 100, "disabled": false, "label": "at maximum"},
+		{"target": 101, "disabled": true, "label": "above maximum"},
+	]:
+		view.pot_amount = case.target
+		table.bind_view(view, _empty_assignments())
+		assert_eq(table.get_node("%PotRaiseButton").disabled, case.disabled, case.label)
+
+	view.pot_amount = 15
+	view.maximum_wager_total = 15
+	view._legal_actions = [PlayerAction.Kind.CHECK, PlayerAction.Kind.ALL_IN]
 	table.bind_view(view, _empty_assignments())
-	assert_true(table.get_node("%PotRaiseButton").disabled)
-	assert_eq(table.get_node("%WagerInput").text, "")
-	view.pot_amount = 10
+	assert_true(table.get_node("%PotRaiseButton").disabled, "insufficient stack")
+	assert_true(table.get_node("%PotRaiseButton").text in ["Pot raise", "Pot"])
+
+	view.pot_amount = 30
 	view.minimum_wager_total = 20
+	view.maximum_wager_total = 100
+	view._legal_actions = [PlayerAction.Kind.FOLD, PlayerAction.Kind.CALL]
 	table.bind_view(view, _empty_assignments())
-	assert_true(table.get_node("%PotRaiseButton").disabled)
+	assert_true(table.get_node("%PotRaiseButton").disabled, "wager action unavailable")
 
 
 func test_gui_renders_an_action_before_its_configured_nonblocking_pause_advances_a_bot() -> void:
@@ -959,6 +1009,14 @@ func _event_texts(table: PokerTableController) -> Array[String]:
 	for event_text: String in (table.get_node("%EventLog") as RichTextLabel).text.split("\n"):
 		event_texts.append(event_text)
 	return event_texts
+
+
+func _latest_player_action_for(view: GameView, seat: int) -> PublicActionRecord:
+	var latest: PublicActionRecord = null
+	for record: PublicActionRecord in view.action_history:
+		if record.record_kind == PublicActionRecord.Kind.ACTION and record.seat == seat:
+			latest = record
+	return latest
 
 
 func _action_view(player_count: int) -> GameView:

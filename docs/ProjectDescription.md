@@ -343,10 +343,10 @@ cards were actually shown.
   frame, the human's cards,
   active/eliminated players, and the tournament winner.
 - Hide opponent cards until legitimately revealed at showdown.
-- Provide Fold, Check/Call, and Bet/Raise controls with minimum, Pot raise,
-  all-in, and free-entry amounts. `Pot raise` uses the displayed pot total
-  through ordinary wager validation and is disabled when that target is not a
-  legal raise the human can cover.
+- Provide Fold, Check/Call, and Bet/Raise controls with minimum, Pot bet/raise,
+  all-in, and free-entry amounts. The Pot wager shortcut uses the displayed pot
+  total through ordinary wager validation and is disabled when that target is
+  not a legal bet or raise the human can cover.
 - Provide a clearly visible `Quit` control at all times and request
   confirmation before quitting.
 - Use one main table scene. The default window is 1920 × 1080, and the table

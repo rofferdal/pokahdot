@@ -2,7 +2,7 @@
 
 Pokahdot er et poker-spill laget i [Godot](https://godotengine.org/) 4. Spillreglene ligger i en felles kjerne (`scripts/core/`), slik at det samme spillet kan vises både grafisk og i terminalen.
 
-Prosjektet er tidlig i utviklingen. Grafisk UI og terminal-UI er under oppbygging.
+Prosjektet er under utvikling.
 
 ## Krav
 
@@ -56,7 +56,7 @@ The terminal interface supports a complete tournament with optional startup
 overrides, poker actions, `help`, `quit`, and `exit`. Game rules remain in
 `scripts/core/`, not in either presentation layer.
 
-## Blind levels and Pot raise
+## Blind levels and Pot wager
 
 The selected blinds are the first level's blinds. A level that begins with five
 or more active players lasts twice that starting player count in completed
@@ -66,10 +66,10 @@ previous big blind, rounded upward to an even integer, and the small blind is
 half of it (for example, 5/10 becomes 7/14, then 9/18). The CLI and table show
 the current blinds, level, completed hands, and hands remaining in the level.
 
-When it is a legal raise and the hero can cover it, the GUI's **Pot raise**
-button submits the currently displayed pot amount through the normal wager
-validation path. It is disabled if that target is not a legal raise; **All-in**
-and the free wager entry remain separate controls.
+When it is a legal bet or raise and the hero can cover it, the GUI's **Pot
+bet** or **Pot raise** button submits the currently displayed pot amount
+through the normal wager-validation path. It is disabled if that target is not
+a legal wager; **All-in** and the free wager entry remain separate controls.
 
 ### Bot roster selection
 

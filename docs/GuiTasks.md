@@ -62,7 +62,7 @@ Complete the core configuration and roster-selection gates in
 
 ## Pot wager shortcut correctness
 
-- [ ] **Repair legal Pot bet and Pot raise availability:** add deterministic
+- [x] **Repair legal Pot bet and Pot raise availability:** add deterministic
   reproductions for both an unopened postflop `Pot bet` and a `Pot raise`
   facing an existing wager. Cover targets at and around the minimum and
   maximum wager totals, insufficient-stack cases, and cases where the
@@ -71,7 +71,10 @@ Complete the core configuration and roster-selection gates in
   core wager-validation path rather than duplicating betting rules in the GUI.
   Add regression tests for the enabled target, submitted total, disabled
   illegal states, and correct button wording. Keep this task separate from the
-  Milestone 3 geometry coupled group.
+  Milestone 3 geometry coupled group. Seeded live-match regressions cover an
+  unopened flop Pot bet to 20 and a Pot raise to 30, plus inclusive wager
+  bounds, insufficient-stack and unavailable-action states, and responsive
+  button wording. The focused 32-test action suite passes.
 
 ## Authoritative Web and device acceptance matrix
 
