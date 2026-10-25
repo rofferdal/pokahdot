@@ -5,7 +5,7 @@ GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd
 WEB_EXPORT_PATH := build/web/index.html
 WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 
-.PHONY: check profile-evolution-test web-release verify-web-release-output require-clean-worktree
+.PHONY: check profile-evolution-test gui-visual-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
 
 check:
 	$(MAKE) --no-print-directory profile-evolution-test
@@ -17,6 +17,24 @@ check:
 profile-evolution-test:
 	python3 -B -m unittest discover -s tests/profile_evolution -t . -v
 
+gui-visual-invariant-gate:
+	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_invariant_matrix_runner.gd -gexit
+
+release-candidate-gate:
+	$(MAKE) --no-print-directory require-clean-worktree
+	$(MAKE) --no-print-directory check
+	$(MAKE) --no-print-directory gui-visual-invariant-gate
+	$(MAKE) --no-print-directory require-clean-worktree
+
+gui-visual-capture: release-candidate-gate
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_visual_capture_runner.gd -- --full-m3
+
+gui-visual-capture-development:
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_visual_capture_runner.gd -- --full-m3 --development
+
+gui-visual-capture-smoke:
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_visual_capture_runner.gd -- --viewport desktop_1280x720 --state human-turn-preflop --player-count 6 --development
+
 require-clean-worktree:
 	@test -z "$$(git status --porcelain)" || { \
 		echo "Release build refused: commit or discard all working-tree changes first."; \
@@ -24,9 +42,7 @@ require-clean-worktree:
 		exit 1; \
 	}
 
-web-release: require-clean-worktree
-	$(MAKE) --no-print-directory check
-	$(MAKE) --no-print-directory require-clean-worktree
+web-release: release-candidate-gate
 	mkdir -p $(WEB_OUTPUT_DIR)
 	$(GODOT) --headless --path . --export-release "Web" $(WEB_EXPORT_PATH)
 	$(MAKE) --no-print-directory verify-web-release-output

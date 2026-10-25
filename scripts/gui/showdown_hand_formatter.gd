@@ -38,6 +38,27 @@ static func format(showdown_result: ShowdownResult) -> String:
 	return description
 
 
+static func format_compact(showdown_result: ShowdownResult) -> String:
+	if showdown_result == null:
+		return ""
+	var ranks: Array[int] = showdown_result.tie_break_values
+	if ranks.is_empty():
+		return ""
+	match showdown_result.category:
+		HandRank.Category.TWO_PAIR:
+			return "Two pair\n%s / %s" % [_rank_name(ranks[0], true), _rank_name(ranks[1], true)]
+		HandRank.Category.THREE_OF_A_KIND:
+			return "Three of a kind\n%s" % _rank_name(ranks[0], true)
+		HandRank.Category.FULL_HOUSE:
+			return "Full house\n%s / %s" % [_rank_name(ranks[0], true), _rank_name(ranks[1], true)]
+		HandRank.Category.FOUR_OF_A_KIND:
+			return "Four of a kind\n%s" % _rank_name(ranks[0], true)
+		HandRank.Category.STRAIGHT_FLUSH:
+			return "Straight flush\n%s-high" % _rank_name(ranks[0])
+		_:
+			return format(showdown_result)
+
+
 static func _rank_name(rank: int, plural: bool = false) -> String:
 	var singular_names: PackedStringArray = [
 		"",

@@ -13,8 +13,9 @@ const SEAT_TEXT_FONT_SIZE: int = 40
 const HERO_SEAT_TEXT_FONT_SIZE: int = 46
 const TABLE_TEXT_FONT_SIZE: int = 32
 const ACTION_TEXT_FONT_SIZE: int = 21
-const LANDSCAPE_TABLET_ACTION_LABEL_HEIGHT: float = 48.0
-const LANDSCAPE_TABLET_SHOWDOWN_LABEL_HEIGHT: float = 64.0
+const STATUS_BAND_HEIGHT: float = 64.0
+const COMPACT_STATUS_BAND_HEIGHT: float = 64.0
+const STATUS_BAND_GAP: float = 2.0
 const MOBILE_PORTRAIT_ASPECT_RATIO: float = 1.2
 const LANDSCAPE_TABLET_MIN_WIDTH: float = 1600.0
 const LANDSCAPE_TABLET_MIN_HEIGHT: float = 1200.0
@@ -24,10 +25,18 @@ const MOBILE_TOUCH_TARGET_HEIGHT: float = 48.0
 # Desktop source sizes.  These are authored at their final display point size;
 # keeping them as integer values avoids fractional post-render scaling on HiDPI.
 const DESKTOP_SEAT_TEXT_FONT_SIZE: int = 30
+const DESKTOP_STATUS_TEXT_FONT_SIZE: int = 26
 const DESKTOP_HERO_SEAT_TEXT_FONT_SIZE: int = 34
 const DESKTOP_CHIP_FONT_SIZE: int = 33
 const DESKTOP_OPPONENT_CARD_RANK_FONT_SIZE: int = 30
 const DESKTOP_HERO_CARD_RANK_FONT_SIZE: int = 44
+const STANDARD_PANEL_MARGIN_HORIZONTAL: float = 8.0
+const STANDARD_PANEL_MARGIN_VERTICAL: float = 5.0
+const STANDARD_OPPONENT_HEADER_SEPARATION: int = 5
+const STANDARD_HERO_HEADER_SEPARATION: int = 7
+const COMPACT_AVATAR_REGION_SIZE := Vector2(48.0, 56.0)
+const COMPACT_MARKER_WIDTH: float = 48.0
+const COMPACT_MARKER_SINGLE_LINE_HEIGHT: float = 32.0
 
 
 static func is_mobile_portrait(surface_size: Vector2) -> bool:
@@ -42,9 +51,13 @@ static func is_landscape_tablet(surface_size: Vector2) -> bool:
 	return surface_size.x / surface_size.y < LANDSCAPE_TABLET_MAX_ASPECT_RATIO
 
 
+static func is_portrait_tablet(surface_size: Vector2) -> bool:
+	return is_mobile_portrait(surface_size) and surface_size.x >= 680.0 and surface_size.x <= 900.0
+
+
 static func is_small_desktop(surface_size: Vector2) -> bool:
 	return (
-		not is_mobile_portrait(surface_size) and surface_size.x < 1200.0 and surface_size.y < 760.0
+		not is_mobile_portrait(surface_size) and surface_size.x < 1300.0 and surface_size.y < 760.0
 	)
 
 
@@ -107,10 +120,15 @@ static func apply_seat_typography(
 		else roundi(OPPONENT_CHIP_FONT_SIZE * content_scale * typography_scale)
 	)
 	var avatar := panel.find_child("Avatar", true, false) as TextureRect
+	var avatar_region := panel.find_child("AvatarRegion", true, false) as Control
+	var resolved_avatar_size: Vector2 = (
+		(HERO_AVATAR_SIZE if is_hero else OPPONENT_AVATAR_SIZE) * content_scale
+	)
+	if avatar_region != null:
+		avatar_region.custom_minimum_size = resolved_avatar_size
 	if avatar != null:
-		avatar.custom_minimum_size = (
-			(HERO_AVATAR_SIZE if is_hero else OPPONENT_AVATAR_SIZE) * content_scale
-		)
+		avatar.custom_minimum_size = Vector2.ZERO
+		avatar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var name_label := panel.find_child("Name", true, false) as Label
 	if name_label != null:
 		(
@@ -129,6 +147,115 @@ static func apply_seat_typography(
 		marker_label.add_theme_font_size_override("font_size", seat_font_size)
 
 
+static func apply_small_desktop_seat_footprint(panel: PanelContainer) -> void:
+	var panel_style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	panel_style.content_margin_left = 2.0
+	panel_style.content_margin_top = 2.0
+	panel_style.content_margin_right = 2.0
+	panel_style.content_margin_bottom = 2.0
+	panel.add_theme_stylebox_override("panel", panel_style)
+	var header := panel.find_child("Header", true, false) as HBoxContainer
+	if header != null:
+		header.add_theme_constant_override("separation", 6)
+	var avatar_region := panel.find_child("AvatarRegion", true, false) as Control
+	var marker := panel.find_child("Marker", true, false) as Label
+	var winner_star := panel.find_child("MainPotWinnerStar", true, false) as TextureRect
+	if avatar_region != null:
+		avatar_region.custom_minimum_size = COMPACT_AVATAR_REGION_SIZE
+	if marker != null:
+		if avatar_region != null and marker.get_parent() != avatar_region:
+			marker.reparent(avatar_region)
+		if not marker.has_meta("standard_text"):
+			marker.set_meta("standard_text", marker.text)
+			marker.set_meta("standard_style", marker.get_theme_stylebox("normal").duplicate())
+		marker.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+		marker.add_theme_color_override("font_color", Color("f5f0dc"))
+		marker.add_theme_color_override("font_outline_color", Color("172331"))
+		marker.add_theme_constant_override("outline_size", 4)
+		marker.text = _compact_marker_text(marker.get_meta("standard_text", ""))
+		var marker_size := Vector2(COMPACT_MARKER_WIDTH, COMPACT_MARKER_SINGLE_LINE_HEIGHT)
+		marker.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		marker.custom_minimum_size = marker_size
+		marker.position = Vector2.ZERO
+		marker.size = marker_size
+		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_make_marker_background_transparent(marker)
+	if winner_star != null and avatar_region != null:
+		if winner_star.get_parent() != avatar_region:
+			winner_star.reparent(avatar_region)
+		winner_star.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		winner_star.position = Vector2.ZERO
+		winner_star.size = Vector2(16.0, 16.0)
+		winner_star.custom_minimum_size = Vector2(16.0, 16.0)
+	for label_name: String in ["Name", "Stack"]:
+		var label := panel.find_child(label_name, true, false) as Label
+		if label != null:
+			label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	for card: Control in panel.find_children("*", "Control", true, false):
+		if card.name.begins_with("CardBack") or card.name.begins_with("ShowdownCard"):
+			_scale_card_face(card, Vector2(28.0, 34.0), GUI_MINIMUM_FONT_SIZE)
+
+
+static func _make_marker_background_transparent(marker: Label) -> void:
+	var marker_style := marker.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	marker_style.bg_color = Color.TRANSPARENT
+	marker_style.border_color = Color.TRANSPARENT
+	marker.add_theme_stylebox_override("normal", marker_style)
+
+
+static func _compact_marker_text(standard_text: String) -> String:
+	var compact_markers := PackedStringArray()
+	for marker: String in standard_text.split(" ", false):
+		compact_markers.append("S" if marker == "SB" else "B" if marker == "BB" else marker)
+	return "/".join(compact_markers)
+
+
+static func restore_standard_seat_overlays(panel: PanelContainer, is_hero: bool) -> void:
+	var header := panel.find_child("Header", true, false) as HBoxContainer
+	if header == null:
+		return
+	var panel_style := panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	panel_style.content_margin_left = STANDARD_PANEL_MARGIN_HORIZONTAL
+	panel_style.content_margin_top = STANDARD_PANEL_MARGIN_VERTICAL
+	panel_style.content_margin_right = STANDARD_PANEL_MARGIN_HORIZONTAL
+	panel_style.content_margin_bottom = STANDARD_PANEL_MARGIN_VERTICAL
+	panel.add_theme_stylebox_override("panel", panel_style)
+	(
+		header
+		. add_theme_constant_override(
+			"separation",
+			STANDARD_HERO_HEADER_SEPARATION if is_hero else STANDARD_OPPONENT_HEADER_SEPARATION,
+		)
+	)
+	var marker := panel.find_child("Marker", true, false) as Label
+	var winner_star := panel.find_child("MainPotWinnerStar", true, false) as TextureRect
+	var avatar_region := panel.find_child("AvatarRegion", true, false) as Control
+	if marker != null:
+		if marker.get_parent() != header:
+			marker.reparent(header)
+		marker.text = marker.get_meta("standard_text", marker.text)
+		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		marker.add_theme_color_override("font_color", Color("172331"))
+		marker.remove_theme_color_override("font_outline_color")
+		marker.remove_theme_constant_override("outline_size")
+		if marker.has_meta("standard_style"):
+			var standard_style: Variant = marker.get_meta("standard_style")
+			if standard_style is StyleBox:
+				marker.add_theme_stylebox_override("normal", standard_style)
+	if winner_star != null:
+		if avatar_region != null and winner_star.get_parent() != avatar_region:
+			winner_star.reparent(avatar_region)
+		winner_star.custom_minimum_size = (
+			HERO_AVATAR_SIZE * 0.5 if is_hero else OPPONENT_AVATAR_SIZE * 0.5
+		)
+		winner_star.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		winner_star.position = Vector2.ZERO
+	if avatar_region != null:
+		header.move_child(avatar_region, 0)
+	if marker != null:
+		header.move_child(marker, header.get_child_count() - 1)
+
+
 static func apply_scale(
 	mobile_portrait: bool,
 	content_scale: float,
@@ -141,8 +268,7 @@ static func apply_scale(
 	action_controls: Array[Control],
 	card_slots: HBoxContainer,
 	seat_widgets: Dictionary[int, PanelContainer],
-	seat_action_widgets: Dictionary[int, Label],
-	seat_showdown_widgets: Dictionary[int, Label],
+	seat_status_widgets: Dictionary[int, Label],
 	seat_content_scale: float = -1.0,
 	seat_visual_scale: float = -1.0,
 ) -> void:
@@ -198,27 +324,14 @@ static func apply_scale(
 						else roundi(58 * seat_scale_value)
 					),
 				)
-		var action_label: Label = seat_action_widgets.get(seat)
-		if action_label != null:
+		var status_label: Label = seat_status_widgets.get(seat)
+		if status_label != null:
 			(
-				action_label
+				status_label
 				. add_theme_font_size_override(
 					"font_size",
 					(
-						DESKTOP_SEAT_TEXT_FONT_SIZE
-						if desktop_source_sizes
-						else roundi(SEAT_TEXT_FONT_SIZE * seat_scale_value)
-					),
-				)
-			)
-		var showdown_label: Label = seat_showdown_widgets.get(seat)
-		if showdown_label != null:
-			(
-				showdown_label
-				. add_theme_font_size_override(
-					"font_size",
-					(
-						DESKTOP_SEAT_TEXT_FONT_SIZE
+						DESKTOP_STATUS_TEXT_FONT_SIZE
 						if desktop_source_sizes
 						else roundi(SEAT_TEXT_FONT_SIZE * seat_scale_value)
 					),
@@ -226,7 +339,7 @@ static func apply_scale(
 			)
 
 
-static func layout_seat_action_label(
+static func layout_seat_status_band(
 	label: Label,
 	panel: PanelContainer,
 	compact_layout: bool,
@@ -234,48 +347,12 @@ static func layout_seat_action_label(
 ) -> void:
 	if label == null:
 		return
-	label.size = Vector2(panel.size.x, (40.0 if not compact_layout else 32.0) * scale)
-	label.position = Vector2(panel.position.x, panel.position.y + panel.size.y + 2.0)
-
-
-static func layout_landscape_tablet_action_label(
-	label: Label,
-	panel: PanelContainer,
-	scale: float,
-) -> void:
-	if label == null:
-		return
-	label.size = Vector2(panel.size.x, LANDSCAPE_TABLET_ACTION_LABEL_HEIGHT * scale)
+	var band_height: float = COMPACT_STATUS_BAND_HEIGHT if compact_layout else STATUS_BAND_HEIGHT
+	label.size = Vector2(panel.size.x, band_height * scale)
 	label.position = Vector2(
 		panel.position.x,
-		panel.position.y + panel.size.y + 6.0 * scale,
+		panel.position.y + panel.size.y + STATUS_BAND_GAP * scale,
 	)
-
-
-static func layout_landscape_tablet_showdown_label(
-	label: Label,
-	panel: PanelContainer,
-	scale: float,
-) -> void:
-	if label == null:
-		return
-	label.size = Vector2(panel.size.x, LANDSCAPE_TABLET_SHOWDOWN_LABEL_HEIGHT * scale)
-	label.position = Vector2(
-		panel.position.x,
-		panel.position.y - label.size.y - 10.0 * scale,
-	)
-
-
-static func layout_seat_showdown_label(
-	label: Label,
-	panel: PanelContainer,
-	compact_layout: bool,
-	scale: float,
-) -> void:
-	if label == null or not label.visible:
-		return
-	label.size = Vector2(panel.size.x, (40.0 if compact_layout else 48.0) * scale)
-	label.position = Vector2(panel.position.x, maxf(0.0, panel.position.y - label.size.y - 12.0))
 
 
 static func layout_human_adjacent_panels(
@@ -364,18 +441,17 @@ static func _layout_small_desktop_human_panels(
 ) -> void:
 	var bottom_margin: float = 8.0
 	hero_panel.position.y = surface_size.y - hero_panel.size.y - bottom_margin
-	var side_width: float = clampf((surface_size.x - hero_panel.size.x - 72.0) * 0.5, 210.0, 300.0)
-	var side_height: float = 96.0 * minf(content_scale, 1.0)
+	var side_width: float = clampf((surface_size.x - hero_panel.size.x - 44.0) * 0.5, 210.0, 306.0)
+	var side_height: float = 125.0 * minf(content_scale, 1.0)
 	# Keep side panels between the central stack and the lower seat row.
-	var panel_y: float = maxf(8.0, surface_size.y * 0.46)
 	var panel_size := Vector2(side_width, side_height)
 	action_panel.size = panel_size
 	action_panel.position = Vector2(
 		surface_size.x - action_panel.size.x - 12.0,
-		panel_y,
+		surface_size.y - action_panel.size.y,
 	)
 	event_log.size = panel_size
-	event_log.position = Vector2(12.0, panel_y)
+	event_log.position = Vector2(12.0, surface_size.y - event_log.size.y)
 
 
 static func _layout_compact_human_panels(

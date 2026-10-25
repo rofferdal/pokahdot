@@ -52,9 +52,26 @@ Complete the core configuration and roster-selection gates in
   injected-RNG assignment, uniqueness, stable rerenders, human labeling, RNG
   isolation, and seat-panel rendering at representative 2-, 6-, and 9-seat
   layouts.
-- [ ] Perform a visual acceptance pass verifying that bot names stay paired
+- [x] Perform a visual acceptance pass verifying that bot names stay paired
   with avatars through hands, eliminations, street transitions, showdown, and
-  layout reflow, with `Human` always shown for the human seat.
+  layout reflow, with `Human` always shown for the human seat. The complete
+  348-capture Milestone 3 development corpus was independently reviewed across
+  2-, 4-, 6-, and 9-seat states; names remained readable and paired with the
+  same avatars through ordinary, showdown, elimination, winner, and compact
+  layout states.
+
+## Pot wager shortcut correctness
+
+- [ ] **Repair legal Pot bet and Pot raise availability:** add deterministic
+  reproductions for both an unopened postflop `Pot bet` and a `Pot raise`
+  facing an existing wager. Cover targets at and around the minimum and
+  maximum wager totals, insufficient-stack cases, and cases where the
+  displayed pot target is genuinely illegal. Enable and submit the shortcut
+  whenever the displayed-pot target is available and legal, using the ordinary
+  core wager-validation path rather than duplicating betting rules in the GUI.
+  Add regression tests for the enabled target, submitted total, disabled
+  illegal states, and correct button wording. Keep this task separate from the
+  Milestone 3 geometry coupled group.
 
 ## Authoritative Web and device acceptance matrix
 
@@ -102,66 +119,123 @@ normal betting, all-in runout, showdown, elimination, tournament winner, Quit
 confirmation, and `player_quit`. No environment passes on editor preview,
 `file://`, LAN-only hosting, simulator-only evidence, or a different commit.
 
+## Unified seat status row and stable geometry
+
+Replace the separate below-seat latest-action and above-seat showdown regions
+with one permanently reserved, fixed-height status band below every human and
+bot seat. During play it shows the latest action on one line. At showdown it
+shows recipient-safe showdown hand text when available, otherwise retaining a
+relevant latest action such as `Fold`. The visually blank state remains
+geometrically reserved. Size the shared band for readable showdown summaries
+of up to two lines without changing its rectangle. For a hand won before
+showdown, show exactly `Winner` in the winning seat's same shared band and hold
+that completed-hand state for the configured showdown pause. Establish this
+production geometry ownership before the small-desktop footprint remediation,
+then run the combined regression and visual gates against the corrected layout.
+
+The three tasks in this section, the small-desktop remediation tasks, and the
+unified-status regression below form one validation group. Their focused
+tests, the strict Milestone 3 matrix, and the complete suite pass together,
+including the exact `Winner` text and shared completed-hand pause.
+
+- [x] **Implement every player's unified status row:** give each human and bot
+  seat one fixed-height below-seat band shared by latest-action and showdown
+  text, and remove the separate above-seat showdown-description region. Keep
+  action text to one line and permit showdown summaries up to two lines without
+  reducing player-facing text below 20 px. At showdown, prefer available
+  showdown hand text; otherwise retain the relevant latest action. Do not
+  synthesize placeholder text when the band should be visually blank.
+- [x] **Keep one geometry owner for the lower-table regions:** derive the event
+  feed, human seat panel, human action panel, seat panels, and their fixed
+  status bands in the same layout pass. Changing among blank, one-line action,
+  retained-fold-at-showdown, and up-to-two-line showdown content must not move
+  any of those rectangles or leave stale deferred geometry. A dedicated
+  six- and seven-player regression also compares layout-owned seat rectangles
+  on desktop and the observed landscape-tablet surface while active, folded,
+  and showdown-winner content changes.
+- [x] **Retain Fold through street transitions:** keep each seat's most recent
+  `Fold` visible in its shared status band after the preflop, flop, turn, and
+  river action-round resets, while clearing other prior-round actions. Cover
+  both six- and seven-player tables and verify that a new hand clears the
+  retained fold.
+- [x] **Present a pre-showdown winner for the completed-hand pause:** when all
+  opponents have folded, show exactly `Winner` in the winning seat's shared
+  status band and retain the completed-hand presentation for the same
+  `showdown_pause_seconds` duration used after showdown (five seconds by
+  default) before starting any next hand. Add deterministic controller tests
+  for the displayed seat and text, configurable pause, and next-hand boundary;
+  do not infer hidden state or add timing to the core. The controller now uses
+  the recipient-safe completed-hand winner seat only when no showdown results
+  exist, and the focused action suite verifies the exact label, retained
+  losing-seat `Fold`, configurable pause, and next-hand cleanup.
+
 ## Small desktop viewport table collision remediation
 
-The reference surface is approximately 950 × 532. The remaining tasks reserve
-space for seat annotations, side panels, the central zone, and controls.
+The reference surface is approximately 950 × 532. Treat each seat plus its
+fixed-height below-seat status band as one footprint while reserving space for
+side panels, the central zone, and controls.
 
 - [x] Remove the redundant textual `ACT` seat marker while retaining the white,
   three-times-thicker acting-seat frame and explicit action-status wording.
-- [ ] **Reserve all auxiliary-text clearance:** include each seat's below-seat
-  latest-action label and above-seat showdown-summary label in the layout
-  bounds before placing seats. The left-middle and right-middle layout
-  positions must retain space below their panels; the two upper layout
-  positions must retain space above their panels.
-- [ ] **Prevent side-panel occlusion:** ensure the event feed and human action
-  panel do not intersect any seat panel, latest-action label, or showdown
-  summary at small desktop sizes. If full panels do not fit, reflow or reduce
-  their presentation-only footprint while preserving all events and controls.
-- [ ] **Preserve central-zone visibility:** keep the community-card, pot, and
-  wager zones fully visible and separated from seats, auxiliary labels, event
-  feed, and action controls at the reference viewport.
-- [ ] **Preserve readable controls and touch targets:** prevent action-button
+- [x] **Reserve every unified status-band footprint:** include each seat's
+  fixed-height below-seat band in layout bounds before placing seats. Reserve
+  the same band height for blank, one-line action, and up-to-two-line showdown
+  states at every layout position; do not retain a separate above-seat
+  showdown footprint.
+- [x] **Prevent side-panel occlusion:** ensure the event feed and human action
+  panel do not intersect any seat panel or unified status band at small
+  desktop sizes. If full panels do not fit, reflow or reduce their
+  presentation-only footprint while preserving all events and controls.
+- [x] **Preserve central-zone visibility:** keep the community-card, pot, and
+  wager zones fully visible and separated from seats, unified status bands,
+  event feed, and action controls at the reference viewport.
+- [x] **Preserve readable controls and touch targets:** prevent action-button
   and wager-input text from wrapping or clipping while retaining distinct
   controls and the minimum supported interaction target size.
-- [ ] **Add small-desktop regression coverage:** test the reference viewport
-  and nearby sizes for 2–9 seats, checking bounds, non-intersection, label
-  clearance, central-zone visibility, and readable controls in preflop and
-  showdown states. Assert using stable core seat IDs or named layout
-  positions, never transient display labels.
-- [ ] **Human verification:** run `godot --path .` and inspect 6- and 7-seat
-  tables through preflop, street changes, and showdown. Confirm no player
-  details, actions, showdown results, event entries, or controls are obscured.
+- [x] **Add small-desktop regression coverage:** test the reference viewport
+  and nearby sizes for 2–9 seats, checking bounds, non-intersection,
+  status-band clearance, central-zone visibility, and readable controls in
+  blank, one-line action, retained-fold-at-showdown, and two-line showdown
+  states. Assert using stable core seat IDs or named layout positions, never
+  transient display labels.
 
-## Stable seat alignment across player action states
+## Unified status-row and footprint regression
 
-Reserve permanent space below every GUI player seat for its latest-action
-description, whether or not that player currently has description text. The
-occupied latest-action state is the positional reference: an empty description
-must retain the same one-line row instead of allowing seats or neighboring
-regions to shift vertically.
+Run this gate after the small-desktop remediation above so the 950 x 532
+containment and non-intersection requirements validate the complete corrected
+seat-plus-band footprint.
 
-- [ ] **Reserve every player's latest-action row:** give each human and bot
-  seat's below-seat description a stable one-line layout slot whose height and
-  spacing do not collapse when its text is empty or hidden. Preserve the
-  existing occupied-state positions and do not synthesize placeholder text for
-  the player.
-- [ ] **Keep one geometry owner for the lower-table regions:** derive the event
-  feed, human seat panel, and human action panel rectangles from the reserved
-  row in the same layout pass. Toggling only the latest-action description
-  must not change any of those three rectangles or leave stale deferred
-  geometry.
-- [ ] **Add automated paired-state regressions:** at the approximately
-  950 x 532 reference viewport, render otherwise identical states with
-  representative latest actions and with no latest actions across 2–9 player
-  layouts. Assert equal seat positions and sizes, an available one-line slot
-  below every seat, viewport containment, and non-intersection. For the human
-  seat pair, also assert equal positions and sizes for the event feed, human
-  seat panel, and human action panel.
-- [ ] **Verify the correction visually:** capture the paired reference states
-  and confirm every seat remains aligned with the occupied-description
-  reference, the three lower-table regions remain fixed, and each empty
-  reserved row remains visually blank.
+- [x] **Add automated unified-status-state regressions:** at the approximately
+  950 x 532 reference viewport, render otherwise identical blank, one-line
+  latest-action, retained-fold-at-showdown, and up-to-two-line showdown states
+  across 2–9 player layouts. Assert equal seat and band positions, equal
+  fixed-band height, one-line action and two-line showdown limits, readable
+  text, viewport containment, and non-intersection. For the human-seat cases,
+  also assert equal positions and sizes for the event feed, human seat panel,
+  and human action panel.
+
+## Startup form hierarchy and responsive sizing
+
+The startup form is a separate GUI composition and must remain readable at the
+canonical desktop, small-desktop, and tablet fixtures. Its title and
+description occupy the full form width, fields remain a deliberate label/input
+grid, and the action buttons form one clearly grouped row.
+
+- [x] **Correct startup hierarchy and sizing:** use the deliberate startup
+  hierarchy at 1920 x 1080 instead of pairing unrelated controls in one flat
+  grid, keep normal desktop typography at the canonical desktop sizes, and
+  retain compact scaling only for genuinely constrained surfaces. Verify
+  portrait rotation, 950 x 532 small desktop, and iPad startup layout with
+  focused controller/readability tests.
+- [x] **Review corrected startup captures:** inspect the targeted development
+  captures for 1920 x 1080, 1280 x 720, 950 x 532, and iPad portrait startup.
+  The captures are dirty-tree development evidence and remain separate from
+  clean release-candidate evidence.
+- [x] **Give the startup actions explicit button affordances:** render Start
+  Tournament and Quit with visible borders and distinct normal, hover,
+  pressed, focus, and disabled states while retaining their grouped row. A
+  focused style regression and a rendered 1920 x 1080 development capture
+  verify that both controls read as buttons.
 
 ## Systematic GUI issue detection and remediation
 
@@ -169,47 +243,102 @@ Complete the workflow foundation in this section before implementing the
 small-phone presentation milestone below. Use the same fixtures and defect loop
 for the small-desktop remediation above. These local and automated checks are
 pre-release gates; they do not replace the authoritative hosted browser/device
-matrix.
+matrix. Milestone 3 defines phone fixtures so the workflow has stable inputs,
+but its passing gate covers desktop, tablet, and small-desktop cases. The full
+phone subset becomes a required passing gate only after the dedicated phone
+composition is implemented in Milestone 4.
 
-- [ ] **Define the canonical viewport matrix:** add named logical viewport
+Follow [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) for the canonical
+fixture IDs, capture manifest, evidence naming/storage, review boundary, and
+Milestone 3/Milestone 4 gate split. Record each discovered issue with
+[`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md).
+
+- [x] **Define the canonical viewport matrix:** add named logical viewport
   fixtures for at least 360 x 640, 390 x 844, and 412 x 915 phone portrait;
-  640 x 360 and 844 x 390 phone landscape; the supported iPad orientations;
-  950 x 532 small desktop; and 1280 x 720 and 1920 x 1080 desktop. Include
-  reduced-height phone variants that represent expanded browser chrome, and
-  exercise 2-, 4-, 6-, and 9-player tables where the state applies.
-- [ ] **Build deterministic visual-state fixtures:** provide a presentation-test
+  640 x 360 and 844 x 390 phone landscape; 768 x 1024 iPad portrait and
+  1024 x 768 iPad landscape; 950 x 532 small desktop; and 1280 x 720 and
+  1920 x 1080 desktop. Include 390 x 744 portrait and 844 x 330 landscape as
+  the reduced-height phone variants representing expanded browser chrome.
+  Retain 2388 x 1450 landscape as an additional observed-iPad regression, not
+  as a canonical logical viewport. Exercise 2-, 4-, 6-, and 9-player tables
+  where the state applies.
+- [x] **Build deterministic visual-state fixtures:** provide a presentation-test
   harness for startup, human turn, bot turn, every street, wager entry, all-in
   runout, showdown with long summaries, elimination, tournament winner, event
   history, quit confirmation, and numeric keypad states. Use fixed seeds and
   recipient-safe `GameView` data; do not read hidden core state or duplicate
   poker rules in the harness.
-- [ ] **Assert GUI invariants automatically:** for every applicable fixture,
-  check usable-viewport containment, unintended intersections, auxiliary-label
-  clearance, text clipping/wrapping, the 20 px player-facing font floor,
-  minimum touch targets, visible community cards, and reachability of every
-  legal action. Define explicit exceptions for intentional modal overlays
-  instead of weakening the general assertions.
-- [ ] **Cover live viewport changes:** add deterministic regressions for phone
+- [x] **Implement the reusable scene harness and invariant assertions:** bind
+  each applicable deterministic state fixture to the real GUI scene and add
+  reusable checks for usable-viewport containment, unintended intersections,
+  auxiliary-label clearance, text clipping/wrapping, the 20 px player-facing
+  font floor, minimum touch targets, visible community cards, and reachability
+  of every legal action. Define explicit exceptions for intentional modal
+  overlays instead of weakening the general assertions. Add focused support
+  tests that prove the harness and assertions detect representative violations
+  and honor only the named exceptions. This foundation task is complete only
+  when those support tests pass; it does not require known Milestone 3 geometry
+  defects to pass the complete matrix before their remediation tasks run.
+- [x] **Cover live viewport changes:** add deterministic regressions for phone
   rotation, browser-height changes, repeated resize events, opening and closing
   overlays/keypads, and rerendering after game-state changes. Verify that one
   current layout result owns each region and no stale deferred geometry is
   applied after a newer layout pass.
-- [ ] **Create a reproducible screenshot workflow:** capture stable, descriptive
+- [x] **Create a reproducible screenshot workflow:** capture stable, descriptive
   images keyed by layout profile, viewport, player count, and state, with a
   manifest recording the commit and fixture inputs. Use reviewed screenshots
   to detect hierarchy, density, contrast, and proportion defects that bounds
   assertions cannot detect; do not make brittle pixel equality the only pass
-  condition.
-- [ ] **Standardize the defect loop:** add a GUI defect-record template with
+  condition. Keep headless geometry assertions in GUT, and run screenshot
+  capture separately with rendering enabled because the headless display
+  driver cannot produce representative pixels.
+- [x] **Standardize the defect loop:** add a GUI defect-record template with
   severity, environment, viewport/orientation, player count, state, steps,
   expected/actual result, before/after evidence, owning layer, regression, and
   verification fields. For each defect, reproduce it deterministically, add a
   failing regression where practical, change one layout owner, rerun the
   affected matrix and complete suite, and attach the corrected evidence.
-- [ ] **Document and enforce the pre-release gate:** update the relevant GUI
+- [x] **Document and enforce the pre-release gate:** update the relevant GUI
   testing documentation and `WEB_SETUP.md` so an immutable hosted candidate is
-  produced only after the canonical automated matrix passes and all blocker,
+  produced only after the applicable automated matrix passes and all blocker,
   unreadable, and obstructive defects are closed or explicitly accepted.
+  Milestone 3 requires the desktop, tablet, and small-desktop subsets; after
+  Milestone 4 implements the phone composition, the complete phone subset is
+  required as well.
+- [x] **Make the applicable Milestone 3 invariant matrix pass:** after the
+  unified-status-row and small-desktop footprint remediations, run every
+  applicable tablet, small-desktop, and desktop fixture and require passing
+  usable-viewport containment, unintended-intersection, status-band clearance,
+  text clipping/wrapping, 20 px player-facing font-floor, minimum touch-target,
+  visible-community-card, and legal-action-reachability results.
+  Permit only the named intentional-modal exceptions. Exercise the required
+  2-, 4-, 6-, and 9-player cases and all applicable canonical states. This is
+  the final combined automated geometry gate before Milestone 3 visual
+  acceptance; the complete phone matrix remains a Milestone 4 gate.
+  Verification: `make gui-visual-invariant-gate` passes every applicable
+  2-, 4-, 6-, and 9-player tablet, small-desktop, and desktop fixture, and
+  `make check` passes 445/445 tests and 13,805 GDScript assertions plus 72
+  Python tests, lint, and formatting checks.
+
+## Milestone 3 combined visual verification
+
+Run these human checks only after the applicable Milestone 3 invariant matrix
+passes against the corrected geometry.
+
+- [x] **Verify the unified status row visually:** capture the blank, one-line
+  action, retained-fold-at-showdown, and two-line showdown reference states.
+  Confirm every seat and shared band remains aligned, the three lower-table
+  regions remain fixed, action and showdown text remains readable, and each
+  empty reserved band remains visually blank. Independent review of all 348
+  rendered development captures found no remaining blocker across the required
+  tablet, small-desktop, and desktop viewports. This is dirty-tree development
+  evidence, not the later clean release-candidate capture.
+- [x] **Verify the small-desktop correction interactively:** run
+  `godot --path .` and inspect 6- and 7-seat tables through preflop, street
+  changes, and showdown. Confirm no player details, actions, showdown results,
+  event entries, or controls are obscured. User verification on 2026-10-25
+  confirmed that gameplay is satisfactory after the seat-stability and
+  retained-`Fold` corrections.
 
 ## Small-phone presentation mode
 

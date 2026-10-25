@@ -219,7 +219,7 @@ func _assert_seat_presentations(
 	for seat: int in names:
 		assert_eq(_name_label(table, seat).text, names[seat])
 		var avatar: TextureRect = table.get_node(
-			"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Header/Avatar" % seat
+			"TableMargin/Felt/TableSurface/Seats/Seat%d/Content/Header/AvatarRegion/Avatar" % seat
 		)
 		assert_not_null(avatar.texture)
 		assert_eq(avatar.texture.resource_path, avatars[seat])

@@ -40,10 +40,10 @@ func test_desktop_seats_are_widened_and_non_overlapping_for_two_to_nine_players(
 			seat_rects.append(seat_rect)
 
 
-func test_six_player_lowest_bot_action_label_is_visible_above_action_panel() -> void:
+func test_six_player_lowest_bot_status_band_is_visible_above_action_panel() -> void:
 	var table := _table_for(6)
 	await _settle_layout()
-	var action_label := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat5Action") as Label
+	var action_label := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat5Status") as Label
 	assert_eq(action_label.text, "Big blind 10")
 	assert_true(action_label.visible)
 	var action_label_rect := action_label.get_global_rect()
@@ -51,15 +51,15 @@ func test_six_player_lowest_bot_action_label_is_visible_above_action_panel() -> 
 	var event_log := table.get_node("%EventLog") as Control
 	assert_false(
 		action_label_rect.intersects(action_panel.get_global_rect()),
-		"Player 6 latest action must not be covered by the action area",
+		"Player 6 status must not be covered by the action area",
 	)
 	assert_false(
 		action_label_rect.intersects(event_log.get_global_rect()),
-		"Player 6 latest action must not be covered by the event log",
+		"Player 6 status must not be covered by the event log",
 	)
 	assert_true(
 		action_label_rect.end.y <= action_panel.get_global_rect().position.y,
-		"Player 6 latest action must remain above the action area",
+		"Player 6 status must remain above the action area",
 	)
 
 
@@ -119,7 +119,7 @@ func test_seven_player_ipad_landscape_reserves_action_and_showdown_clearance() -
 	for seat: int in [1, 6]:
 		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
 		var label := (
-			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dAction" % seat) as Label
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dStatus" % seat) as Label
 		)
 		assert_true(label.visible)
 		assert_true(surface_rect.encloses(Rect2(panel.position, panel.size)))
@@ -136,13 +136,13 @@ func test_seven_player_ipad_landscape_reserves_action_and_showdown_clearance() -
 	for seat: int in [3, 4]:
 		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
 		var label := (
-			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dShowdown" % seat) as Label
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dStatus" % seat) as Label
 		)
 		assert_true(label.visible)
-		assert_lte(
-			label.get_global_rect().end.y,
-			panel.get_global_rect().position.y,
-			"Player %d showdown result must be above its seat" % (seat + 1),
+		assert_gte(
+			label.get_global_rect().position.y,
+			panel.get_global_rect().end.y,
+			"Player %d showdown result must be below its seat" % (seat + 1),
 		)
 		assert_true(surface_rect.encloses(Rect2(panel.position, panel.size)))
 		assert_true(surface_rect.encloses(Rect2(label.position, label.size)))
@@ -158,9 +158,9 @@ func test_seven_player_ipad_details_remain_visible_with_or_without_latest_action
 	table.bind_view(without_actions, _avatar_assignments(7))
 	await _settle_layout()
 	var player_one_rect: Rect2 = table.get_seat_rects()[0]
-	var empty_action_rect: Rect2 = table.get_resolved_region_rects()[&"action_1"]
+	var empty_action_rect: Rect2 = table.get_resolved_region_rects()[&"status_1"]
 	assert_gt(empty_action_rect.size.y, 0.0)
-	assert_gt(table.get_resolved_region_rects()[&"action_6"].size.y, 0.0)
+	assert_gt(table.get_resolved_region_rects()[&"status_6"].size.y, 0.0)
 
 	var with_actions := _view(7)
 	with_actions._action_history = [
@@ -173,7 +173,7 @@ func test_seven_player_ipad_details_remain_visible_with_or_without_latest_action
 	var surface_rect := Rect2(Vector2.ZERO, _surface(table).size)
 	for seat: int in [1, 6]:
 		var seat_rect: Rect2 = regions[StringName("seat_%d" % seat)]
-		var action_rect: Rect2 = regions[StringName("action_%d" % seat)]
+		var action_rect: Rect2 = regions[StringName("status_%d" % seat)]
 		assert_true(surface_rect.encloses(seat_rect))
 		assert_true(surface_rect.encloses(action_rect))
 		assert_gte(action_rect.position.y, seat_rect.end.y)
@@ -182,7 +182,7 @@ func test_seven_player_ipad_details_remain_visible_with_or_without_latest_action
 	assert_eq(player_one_rect, table.get_seat_rects()[0])
 
 	var player_two_action := (
-		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label
 	)
 	player_two_action.text = "Raise 999999 • long status text remains in its reserved line"
 	table._queue_layout()
@@ -208,9 +208,9 @@ func test_seven_player_ipad_showdown_summaries_have_dedicated_clearance() -> voi
 	var regions := table.get_resolved_region_rects()
 	for seat: int in [3, 4]:
 		var panel_rect: Rect2 = regions[StringName("seat_%d" % seat)]
-		var summary_rect: Rect2 = regions[StringName("showdown_%d" % seat)]
+		var summary_rect: Rect2 = regions[StringName("status_%d" % seat)]
 		assert_true(surface_rect.encloses(summary_rect))
-		assert_lte(summary_rect.end.y, panel_rect.position.y)
+		assert_gte(summary_rect.position.y, panel_rect.end.y)
 		assert_false(summary_rect.intersects(regions[&"center"]))
 		assert_false(summary_rect.intersects(regions[&"event"]))
 		assert_false(summary_rect.intersects(regions[&"action"]))
@@ -422,7 +422,7 @@ func test_desktop_regions_are_reserved_and_cannot_cover_the_center_or_side_panel
 				seat_rect.intersects(regions[&"center"]),
 				"%d seat %d center %s / %s" % [player_count, seat, seat_rect, regions[&"center"]]
 			)
-			var action_rect: Rect2 = regions[StringName("action_%d" % seat)]
+			var action_rect: Rect2 = regions[StringName("status_%d" % seat)]
 			if action_rect.size.y > 0.0:
 				assert_true(
 					surface_rect.encloses(action_rect),
@@ -449,7 +449,7 @@ func test_six_player_action_labels_are_owned_by_their_seats() -> void:
 	table.bind_view(view, _avatar_assignments(6))
 	await _settle_layout()
 	for seat: int in range(6):
-		var label := table.find_child("Seat%dAction" % seat, true, false) as Label
+		var label := table.find_child("Seat%dStatus" % seat, true, false) as Label
 		if not label.visible:
 			continue
 		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
@@ -520,9 +520,7 @@ func test_small_desktop_seven_player_regions_do_not_occlude_each_other() -> void
 		assert_false(seat_rect.intersects(regions[&"center"]), "seat %d center" % seat)
 		assert_false(seat_rect.intersects(regions[&"action"]), "seat %d action" % seat)
 		assert_false(seat_rect.intersects(regions[&"event"]), "seat %d event" % seat)
-		for auxiliary_name: StringName in [
-			StringName("action_%d" % seat), StringName("showdown_%d" % seat)
-		]:
+		for auxiliary_name: StringName in [StringName("status_%d" % seat)]:
 			var auxiliary_rect: Rect2 = regions[auxiliary_name]
 			if auxiliary_rect.size.y <= 0.0:
 				continue
@@ -559,7 +557,7 @@ func test_desktop_browser_keeps_active_betting_actions_visible_after_refresh() -
 	}
 	for seat: int in [1, 2, 5]:
 		var label := (
-			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dAction" % seat) as Label
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dStatus" % seat) as Label
 		)
 		var label_rect := label.get_global_rect()
 		assert_true(label.visible, "seat %d action must be visible" % seat)
@@ -570,7 +568,7 @@ func test_desktop_browser_keeps_active_betting_actions_visible_after_refresh() -
 			"seat actions must remain plain text like the approved iPad reference",
 		)
 		assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_OFF)
-		assert_true(surface_rect.encloses(regions[StringName("action_%d" % seat)]))
+		assert_true(surface_rect.encloses(regions[StringName("status_%d" % seat)]))
 		assert_true(
 			(
 				label_rect.position.y
@@ -616,7 +614,7 @@ func test_real_match_binding_keeps_blind_action_visible_after_table_show() -> vo
 	table.show()
 	await _settle_layout()
 	var big_blind_label := (
-		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label
 	)
 	assert_false(big_blind_label.text.is_empty())
 	assert_true(big_blind_label.visible)
@@ -643,11 +641,11 @@ func test_event_action_matching_keeps_latest_action_on_its_owning_seat() -> void
 		)
 	)
 	assert_eq(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).text,
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).text,
 		"Call 10",
 	)
 	assert_true(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).visible
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).visible
 	)
 
 
@@ -661,13 +659,13 @@ func test_action_labels_are_rebuilt_from_recipient_history_during_refresh() -> v
 		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
 	]
 	table.bind_view(view, _avatar_assignments(6))
-	table._refresh_seat_action_labels()
+	table._refresh_seat_status_labels()
 	assert_eq(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).text,
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).text,
 		"Call 10",
 	)
 	assert_true(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label).visible
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).visible
 	)
 
 

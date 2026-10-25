@@ -25,10 +25,14 @@
   evolution, including curated-roster baseline export.
 - [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md) — interactive CLI card text
   format.
-- [`WEB_SETUP.md`](WEB_SETUP.md) — reproducible Web publishing and device-test
-  evidence runbook.
-- [`gui_scaling_best_practice.md`](gui_scaling_best_practice.md) — responsive
-  Godot GUI guidance consistent with the architecture.
+- [`WEB_SETUP.md`](WEB_SETUP.md) — exact-SHA, reviewed, manually approved Web
+  publishing and authoritative device-test evidence runbook.
+- [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md) —
+  provisional responsive Godot GUI guidance consistent with the architecture.
+- [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) — canonical GUI viewport and
+  state fixtures, screenshot evidence, review, and pre-release gate workflow.
+- [`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md) — standard record for GUI
+  visual, layout, reachability, and hosted-presentation defects.
 
 ## Archived history
 

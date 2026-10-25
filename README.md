@@ -274,9 +274,25 @@ Run the Godot tests headlessly:
 godot --headless --path . -s addons/gut/gut_cmdln.gd
 ```
 
+For GUI layout work, start with the rendering-enabled capture smoke test:
+
+```bash
+make gui-visual-capture-smoke
+```
+
+The invariant gate, dirty-tree development capture, and clean candidate
+capture have different evidence semantics. Follow
+[`docs/GUI_VISUAL_TESTING.md`](docs/GUI_VISUAL_TESTING.md) and use
+[`docs/templates/GUI_DEFECT.md`](docs/templates/GUI_DEFECT.md) for every GUI
+defect. The complete command reference is also available in
+[`devdocs/how-to/running-and-testing.md`](devdocs/how-to/running-and-testing.md).
+`make web-release` creates a local export only. Release-candidate deployment is
+an exact-SHA manual workflow with independent approval; follow
+[`docs/WEB_SETUP.md`](docs/WEB_SETUP.md).
+
 ## GUI action pace
 
-The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after showdown before starting the next hand. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.
+The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after any completed hand before starting the next hand. At showdown the shared seat-status band displays the winning hand; when one player wins before showdown, that band displays exactly `Winner`. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.
 
 ## Mappestruktur
 

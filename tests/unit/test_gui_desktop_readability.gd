@@ -66,8 +66,8 @@ func test_desktop_seat_typography_is_reduced_after_scale_correction() -> void:
 	)
 	assert_eq(hero.get_node("Content/Header/Identity/Name").get_theme_font_size("font_size"), 34)
 	assert_eq(opponent.get_node("Content/Header/Marker").get_theme_font_size("font_size"), 30)
-	var opponent_action: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action")
-	assert_eq(opponent_action.get_theme_font_size("font_size"), 30)
+	var opponent_action: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status")
+	assert_eq(opponent_action.get_theme_font_size("font_size"), 26)
 
 
 func test_desktop_action_and_quit_fonts_match_community_cards_without_resizing_board() -> void:
@@ -111,31 +111,98 @@ func test_startup_form_collapses_empty_errors_and_uses_visible_input_controls() 
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	var form := main.get_node("Center/Panel/Margin/Form") as VBoxContainer
+	var form := main.get_node("%Form") as VBoxContainer
+	var fields := main.get_node("%Fields") as GridContainer
 	var panel := main.get_node("Center/Panel") as PanelContainer
 	assert_true(Rect2(Vector2.ZERO, main.size).encloses(panel.get_rect()))
-	assert_eq(form.get_theme_constant("separation"), 6)
+	assert_eq(form.get_theme_constant("separation"), 18)
+	assert_eq(fields.columns, 2)
+	assert_eq(main.get_node("%Title").get_parent(), form)
+	assert_eq(main.get_node("%Description").get_parent(), form)
+	assert_eq(main.get_node("%Actions").get_parent(), form)
+	assert_true(is_equal_approx(panel.custom_minimum_size.x, 883.2))
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 64)
 	for error_path: NodePath in [
-		^"Center/Panel/Margin/Form/PlayerCountError",
-		^"Center/Panel/Margin/Form/StartingStackError",
-		^"Center/Panel/Margin/Form/SmallBlindError",
-		^"Center/Panel/Margin/Form/BigBlindError",
+		^"%PlayerCountError",
+		^"%StartingStackError",
+		^"%SmallBlindError",
+		^"%BigBlindError",
 	]:
 		assert_false((main.get_node(error_path) as Label).visible, str(error_path))
 	for input_path: NodePath in [
-		^"Center/Panel/Margin/Form/PlayerCountInput",
-		^"Center/Panel/Margin/Form/StartingStackInput",
-		^"Center/Panel/Margin/Form/SmallBlindInput",
-		^"Center/Panel/Margin/Form/BigBlindInput",
+		^"%PlayerCountInput",
+		^"%StartingStackInput",
+		^"%SmallBlindInput",
+		^"%BigBlindInput",
 	]:
 		var input := main.get_node(input_path) as LineEdit
 		assert_gte(input.get_theme_stylebox("normal").border_width_left, 2, str(input_path))
-	var use_legacy_models := (
-		main.get_node("Center/Panel/Margin/Form/UseLegacyModelsCheckBox") as CheckBox
-	)
+	var use_legacy_models := main.get_node("%UseLegacyModelsCheckBox") as CheckBox
 	assert_eq(use_legacy_models.text, "Use legacy heuristic models")
 	assert_false(use_legacy_models.button_pressed)
 	assert_not_null(use_legacy_models.get_theme_icon("unchecked"))
+
+
+func test_startup_actions_are_grouped_and_have_distinct_button_states() -> void:
+	var main := MainScene.instantiate()
+	add_child_autofree(main)
+	main.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	main.size = Vector2(1920, 1080)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var actions := main.get_node("%Actions") as HBoxContainer
+	var start_button := main.get_node("%StartButton") as Button
+	var quit_button := main.get_node("%QuitApplicationButton") as Button
+	assert_eq(start_button.get_parent(), actions)
+	assert_eq(quit_button.get_parent(), actions)
+	assert_false(start_button.get_rect().intersects(quit_button.get_rect()))
+	var action_bounds := Rect2(Vector2.ZERO, actions.size)
+	assert_true(action_bounds.encloses(Rect2(start_button.position, start_button.size)))
+	assert_true(action_bounds.encloses(Rect2(quit_button.position, quit_button.size)))
+	assert_true(start_button.position.x < quit_button.position.x)
+	assert_true(is_equal_approx(start_button.position.y, quit_button.position.y))
+
+	for button: Button in [start_button, quit_button]:
+		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
+		var hover := button.get_theme_stylebox("hover") as StyleBoxFlat
+		var pressed := button.get_theme_stylebox("pressed") as StyleBoxFlat
+		var focus := button.get_theme_stylebox("focus") as StyleBoxFlat
+		assert_not_null(normal, button.name + " needs an explicit normal button style")
+		assert_not_null(hover, button.name + " needs an explicit hover button style")
+		assert_not_null(pressed, button.name + " needs an explicit pressed button style")
+		assert_not_null(focus, button.name + " needs an explicit focus button style")
+		for style: StyleBoxFlat in [normal, hover, pressed, focus]:
+			assert_gte(style.border_width_left, 2, button.name)
+			assert_gte(style.border_width_top, 2, button.name)
+			assert_gte(style.border_width_right, 2, button.name)
+			assert_gte(style.border_width_bottom, 2, button.name)
+			assert_gte(
+				_color_difference(style.bg_color, style.border_color),
+				0.15,
+				button.name + " needs visible border contrast",
+			)
+		assert_ne(_style_signature(normal), _style_signature(hover), button.name)
+		assert_ne(_style_signature(hover), _style_signature(pressed), button.name)
+		assert_ne(_style_signature(normal), _style_signature(focus), button.name)
+
+
+func _style_signature(style: StyleBoxFlat) -> String:
+	return (
+		"%s|%s|%d|%d|%d|%d"
+		% [
+			style.bg_color.to_html(true),
+			style.border_color.to_html(true),
+			style.border_width_left,
+			style.border_width_top,
+			style.border_width_right,
+			style.border_width_bottom,
+		]
+	)
+
+
+func _color_difference(first: Color, second: Color) -> float:
+	return absf(first.r - second.r) + absf(first.g - second.g) + absf(first.b - second.b)
 
 
 func _hero_table_view(player_count: int) -> GameView:

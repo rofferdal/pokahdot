@@ -37,8 +37,8 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_false(table.get_node("%MinWagerButton").disabled)
 	assert_false(table.get_node("%WagerButton").disabled)
 	assert_false(table.get_node("%AllInButton").disabled)
-	assert_string_contains(table.get_node("%MinWagerButton").text, "Min Raise")
-	assert_eq(table.get_node("%PotRaiseButton").text, "Pot raise")
+	assert_true(table.get_node("%MinWagerButton").text in ["Min Raise 20", "Min 20"])
+	assert_true(table.get_node("%PotRaiseButton").text in ["Pot raise", "Pot"])
 	assert_eq(table.get_node("%WagerButton").text, "Raise")
 	assert_eq(table.get_node("%AllInButton").text, "All-in")
 	var wager_input: LineEdit = table.get_node("%WagerInput")
@@ -67,7 +67,7 @@ func test_pot_raise_uses_displayed_pot_and_respects_minimum_and_stack_bounds() -
 	add_child_autofree(table)
 	_disable_action_pacing(table)
 	table.bind_match(match_instance, 0, _empty_assignments())
-	assert_eq(table.get_node("%PotRaiseButton").text, "Pot raise")
+	assert_true(table.get_node("%PotRaiseButton").text in ["Pot raise", "Pot"])
 	assert_true(table.get_node("%PotRaiseButton").disabled)
 
 	var view: GameView = match_instance.get_view_for(0)
@@ -148,33 +148,27 @@ func test_seat_action_labels_reset_at_each_new_betting_round_without_clearing_hi
 	table.get_node("%CheckCallButton").emit_signal("pressed")
 	var flop_view: GameView = match_instance.get_view_for(0)
 	assert_eq(flop_view.street, &"flop")
-	assert_false(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Action") as Label).visible
-	)
+	assert_eq((table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status") as Label).text, "")
 	assert_eq(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label).text, "Check"
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label).text, "Check"
 	)
 	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Call" in text))
 
 	table.get_node("%CheckCallButton").emit_signal("pressed")
 	var turn_view: GameView = match_instance.get_view_for(0)
 	assert_eq(turn_view.street, &"turn")
-	assert_false(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Action") as Label).visible
-	)
+	assert_eq((table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status") as Label).text, "")
 	assert_eq(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label).text, "Check"
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label).text, "Check"
 	)
 	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Flop begins" in text))
 
 	table.get_node("%CheckCallButton").emit_signal("pressed")
 	var river_view: GameView = match_instance.get_view_for(0)
 	assert_eq(river_view.street, &"river")
-	assert_false(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Action") as Label).visible
-	)
+	assert_eq((table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status") as Label).text, "")
 	assert_eq(
-		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action") as Label).text, "Check"
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label).text, "Check"
 	)
 	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Turn begins" in text))
 
@@ -225,7 +219,9 @@ func test_tournament_winner_and_eliminated_seat_are_rendered_from_the_match_view
 	var visual_names: Dictionary[int, String] = {0: "Human", 1: "Youssef"}
 	table.bind_view(view, _empty_assignments(), visual_names)
 
-	assert_eq(table.get_node("%ActionStatus").text, "Player 1 wins the tournament!")
+	assert_true(
+		table.get_node("%ActionStatus").text in ["Player 1 wins the tournament!", "Player 1 wins"]
+	)
 	assert_eq(
 		(
 			table
@@ -283,7 +279,10 @@ func test_event_log_preserves_domain_event_order_and_fold_settlement() -> void:
 	var match_instance := _waiting_match([PlayerAction.fold_action()])
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
-	_disable_action_pacing(table)
+	var timing_config := GuiActionTimingConfigScript.new()
+	timing_config.default_pause_seconds = 0.0
+	timing_config.showdown_pause_seconds = 1.0
+	table.set_action_timing_config(timing_config)
 	table.bind_match(match_instance, 0, _empty_assignments())
 	table.get_node("%FoldButton").emit_signal("pressed")
 
@@ -342,6 +341,69 @@ func test_showdown_remains_visible_for_its_configured_pause_before_next_hand() -
 	assert_true(table.is_action_advance_pending())
 	await get_tree().create_timer(0.15).timeout
 	assert_false(match_instance.get_view_for(0).hand_complete)
+
+
+func test_pre_showdown_winner_remains_visible_for_completed_hand_pause() -> void:
+	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var timing_config := GuiActionTimingConfigScript.new()
+	timing_config.default_pause_seconds = 0.0
+	timing_config.showdown_pause_seconds = 0.1
+	table.set_action_timing_config(timing_config)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	var completed_hand_number: int = match_instance.get_view_for(0).hand_number
+	table.get_node("%FoldButton").emit_signal("pressed")
+
+	assert_true(match_instance.get_view_for(0).hand_complete)
+	assert_eq(match_instance.get_view_for(0).hand_winner_seat, 1)
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label).text,
+		"Winner",
+	)
+	assert_true(table.is_action_advance_pending())
+	await get_tree().create_timer(0.05).timeout
+	assert_eq(match_instance.get_view_for(0).hand_number, completed_hand_number)
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label).text,
+		"Winner",
+	)
+
+	await get_tree().create_timer(0.1).timeout
+	assert_gt(match_instance.get_view_for(0).hand_number, completed_hand_number)
+	assert_false(match_instance.get_view_for(0).hand_complete)
+	assert_ne(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label).text,
+		"Winner",
+	)
+
+
+func test_completed_non_showdown_view_labels_only_the_winning_seat() -> void:
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	var view := _action_view(3)
+	view.acting_seat = Table.NO_SEAT
+	view.hand_complete = true
+	view.hand_winner_seat = 1
+	view._action_history = [
+		PublicActionRecord.new(1, PlayerAction.Kind.CHECK, 0),
+		PublicActionRecord.new(2, PlayerAction.Kind.FOLD, 0),
+	]
+	table.bind_view(view, _empty_assignments())
+
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label).text,
+		"Winner",
+	)
+	assert_eq(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).text,
+		"Fold",
+	)
+	assert_ne(
+		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status") as Label).text,
+		"Winner",
+	)
 
 
 func test_controller_starts_the_next_hand_and_updates_the_button_after_a_hand_boundary() -> void:
@@ -546,12 +608,12 @@ func test_each_seat_displays_its_latest_public_action_below_its_panel() -> void:
 	table.bind_view(view, _empty_assignments())
 
 	assert_eq(
-		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Action").text, "Small blind 5"
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status").text, "Small blind 5"
 	)
 	assert_eq(
-		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action").text, "Big blind 10"
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status").text, "Big blind 10"
 	)
-	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action").text, "Raise 30")
+	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status").text, "Raise 30")
 	assert_eq(
 		(
 			table
@@ -570,15 +632,55 @@ func test_new_hand_view_clears_previous_hand_action_labels() -> void:
 		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
 	]
 	table.bind_view(first_hand_view, _empty_assignments())
-	var action_label := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label
+	var action_label := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label
 	assert_eq(action_label.text, "Call 10")
 	assert_true(action_label.visible)
 
 	var next_hand_view := _action_view(3)
 	table.bind_view(next_hand_view, _empty_assignments())
-	action_label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Action") as Label
+	action_label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label
 	assert_eq(action_label.text, "")
-	assert_false(action_label.visible)
+	assert_true(action_label.visible)
+
+
+func test_fold_status_survives_street_transitions_for_six_and_seven_players() -> void:
+	for player_count: int in [6, 7]:
+		var table := PokerTableScene.instantiate() as PokerTableController
+		add_child_autofree(table)
+		var folded_seat: int = player_count - 1
+		var view := _action_view(player_count)
+		view.street = &"flop"
+		view._seats[folded_seat].folded = true
+		view._action_history = [
+			PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+			PublicActionRecord.new(folded_seat, PlayerAction.Kind.FOLD, 0),
+			PublicActionRecord.new(1, PlayerAction.Kind.CHECK, 0),
+		]
+		table.bind_view(view, _empty_assignments())
+		var events: Array[DomainEvent] = [
+			DomainEvent.new(DomainEvent.Kind.HAND_STARTED),
+			DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 2, 10),
+			DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, folded_seat, 0),
+			DomainEvent.new(DomainEvent.Kind.STREET_CHANGED),
+			DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 1, 0),
+		]
+		table._render_events(events)
+
+		assert_eq(
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%dStatus" % folded_seat).text,
+			"Fold",
+			"%d-player folded seat" % player_count,
+		)
+		assert_eq(
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status").text,
+			"Check",
+			"%d-player current-street action" % player_count,
+		)
+		assert_eq(
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status").text,
+			"",
+			"%d-player non-Fold action clears" % player_count,
+		)
 
 
 func test_folded_seat_stays_visible_grayscale_and_hides_hole_cards() -> void:
@@ -593,9 +695,9 @@ func test_folded_seat_stays_visible_grayscale_and_hides_hole_cards() -> void:
 	var hole_cards: HBoxContainer = folded_seat.get_node("Content/Footer/HoleCards")
 	assert_true(folded_seat.visible)
 	assert_true(folded_seat.material is ShaderMaterial)
-	assert_true(folded_seat.get_node("Content/Header/Avatar").use_parent_material)
+	assert_true(folded_seat.get_node("Content/Header/AvatarRegion/Avatar").use_parent_material)
 	assert_eq(hole_cards.get_child_count(), 0)
-	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action").text, "Fold")
+	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status").text, "Fold")
 
 
 func test_seat_identity_keeps_stack_below_name_and_all_in_outside_the_panel() -> void:
@@ -617,11 +719,11 @@ func test_seat_identity_keeps_stack_below_name_and_all_in_outside_the_panel() ->
 	assert_eq(identity.get_child(1).name, "Stack")
 	assert_eq(stack_label.text, "100 chips")
 	assert_false(stack_label.text.contains("ALL-IN"))
-	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Action").text, "All-in 100")
+	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status").text, "All-in 100")
 	assert_eq(marker.custom_minimum_size.x, 96.0)
 
 
-func test_showdown_summaries_use_recipient_safe_results_above_revealed_seats() -> void:
+func test_showdown_summaries_use_recipient_safe_results_in_shared_status_bands() -> void:
 	var table = PokerTableScene.instantiate()
 	table.hide()
 	add_child_autofree(table)
@@ -637,16 +739,15 @@ func test_showdown_summaries_use_recipient_safe_results_above_revealed_seats() -
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	var pair_label: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Showdown")
-	var full_house_label: Label = table.get_node(
-		"TableMargin/Felt/TableSurface/Seats/Seat1Showdown"
-	)
+	var pair_label: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status")
+	var full_house_label: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status")
 	var hero_panel: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0")
 	assert_eq(pair_label.text, "Pair of Kings")
 	assert_eq(full_house_label.text, "Full house: Aces full of Tens")
+	assert_ne(full_house_label.text, "Winner")
 	assert_true(pair_label.visible)
-	assert_false(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Showdown").visible)
-	assert_lte(pair_label.position.y + pair_label.size.y, hero_panel.position.y)
+	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status").text, "")
+	assert_gte(pair_label.position.y, hero_panel.position.y + hero_panel.size.y)
 
 
 func test_showdown_renders_revealed_losing_opponent_hole_cards() -> void:
@@ -681,7 +782,12 @@ func test_showdown_renders_revealed_losing_opponent_hole_cards() -> void:
 	)
 	assert_true(losing_card.visible)
 	assert_false(
-		table.has_node("TableMargin/Felt/TableSurface/Seats/Seat2/Content/Header/MainPotWinnerStar")
+		(
+			table
+			. has_node(
+				"TableMargin/Felt/TableSurface/Seats/Seat2/Content/Header/AvatarRegion/MainPotWinnerStar"
+			)
+		)
 	)
 
 
@@ -701,13 +807,18 @@ func test_main_pot_showdown_winner_has_a_yellow_half_avatar_star_without_marking
 	table.bind_view(view, _empty_assignments())
 
 	var winner_star: TextureRect = table.get_node(
-		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/MainPotWinnerStar"
+		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/AvatarRegion/MainPotWinnerStar"
 	)
 	assert_eq(winner_star.texture.resource_path, "res://assets/ui/winner_star.svg")
 	assert_eq(winner_star.custom_minimum_size, Vector2(56, 56))
-	assert_eq(winner_star.get_parent().name, "Header")
+	assert_eq(winner_star.get_parent().name, "AvatarRegion")
 	assert_false(
-		table.has_node("TableMargin/Felt/TableSurface/Seats/Seat0/Content/Header/MainPotWinnerStar")
+		(
+			table
+			. has_node(
+				"TableMargin/Felt/TableSurface/Seats/Seat0/Content/Header/AvatarRegion/MainPotWinnerStar"
+			)
+		)
 	)
 
 

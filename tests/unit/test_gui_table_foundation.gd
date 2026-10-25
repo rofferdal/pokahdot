@@ -16,17 +16,10 @@ func test_startup_and_table_fonts_are_scaled_by_one_point_eight() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)
 	assert_eq(main.theme.default_font_size, 29)
-	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 50)
-	assert_eq(
-		main.get_node("Center/Panel/Margin/Form/Description").get_theme_font_size("font_size"), 29
-	)
-	assert_eq(
-		main.get_node("Center/Panel/Margin/Form/PlayerCountInput").get_theme_font_size("font_size"),
-		29
-	)
-	assert_eq(
-		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 29
-	)
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 50)
+	assert_eq(main.get_node("%Description").get_theme_font_size("font_size"), 29)
+	assert_eq(main.get_node("%PlayerCountInput").get_theme_font_size("font_size"), 29)
+	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 29)
 
 	var table = main.get_node("PokerTable")
 	table.bind_view(_table_view(2), _avatar_assignments(2))
@@ -49,27 +42,40 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 
 	var panel: PanelContainer = main.get_node("Center/Panel")
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 1612.8))
-	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 128)
-	assert_eq(
-		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 64
-	)
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 128)
+	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 64)
+	assert_eq(main.get_node("%Fields").columns, 1)
 
 	main.size = Vector2(1920, 1080)
 	main._refresh_startup_layout()
 
-	assert_eq(panel.custom_minimum_size.x, 0.0)
-	assert_eq(main.get_node("Center/Panel/Margin/Form/Title").get_theme_font_size("font_size"), 64)
-	assert_eq(
-		main.get_node("Center/Panel/Margin/Form/StartButton").get_theme_font_size("font_size"), 32
-	)
+	assert_true(is_equal_approx(panel.custom_minimum_size.x, 883.2))
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 64)
+	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 32)
+	assert_eq(main.get_node("%Fields").columns, 2)
 	for input_path: NodePath in [
-		^"Center/Panel/Margin/Form/PlayerCountInput",
-		^"Center/Panel/Margin/Form/StartingStackInput",
-		^"Center/Panel/Margin/Form/SmallBlindInput",
-		^"Center/Panel/Margin/Form/BigBlindInput",
-		^"Center/Panel/Margin/Form/StartButton",
+		^"%PlayerCountInput",
+		^"%StartingStackInput",
+		^"%SmallBlindInput",
+		^"%BigBlindInput",
+		^"%StartButton",
 	]:
-		assert_gte(main.get_node(input_path).custom_minimum_size.y, 64.0, str(input_path))
+		assert_gte(main.get_node(input_path).custom_minimum_size.y, 48.0, str(input_path))
+
+	main.size = Vector2(950, 532)
+	main._refresh_startup_layout()
+	assert_true(is_equal_approx(panel.custom_minimum_size.x, 798.0))
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 40)
+	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 20)
+	assert_eq(main.get_node("%Form").get_theme_constant("separation"), 8)
+	assert_eq(main.get_node("%Fields").columns, 2)
+
+	main.size = Vector2(768, 1024)
+	main._refresh_startup_layout()
+	assert_true(is_equal_approx(panel.custom_minimum_size.x, 645.12))
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 40)
+	assert_eq(main.get_node("%Fields").columns, 1)
+	assert_false(main.get_node("%FormStatus").visible)
 
 
 func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_table() -> void:
@@ -77,10 +83,10 @@ func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_tab
 	add_child_autofree(main)
 
 	for input_path: NodePath in [
-		^"Center/Panel/Margin/Form/PlayerCountInput",
-		^"Center/Panel/Margin/Form/StartingStackInput",
-		^"Center/Panel/Margin/Form/SmallBlindInput",
-		^"Center/Panel/Margin/Form/BigBlindInput",
+		^"%PlayerCountInput",
+		^"%StartingStackInput",
+		^"%SmallBlindInput",
+		^"%BigBlindInput",
 	]:
 		var input := main.get_node(input_path) as LineEdit
 		assert_false(input.virtual_keyboard_enabled, str(input_path))
@@ -95,6 +101,17 @@ func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_tab
 	assert_false(keypad.get_node("Content/Range").visible)
 	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
 	assert_eq(player_count_input.text, "62")
+
+
+func test_return_to_startup_reveals_the_completion_status() -> void:
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	main._return_to_startup("Tournament complete.")
+
+	var form_status := main.get_node("%FormStatus") as Label
+	assert_true(main.get_node("Center").visible)
+	assert_eq(form_status.text, "Tournament complete.")
+	assert_true(form_status.visible)
 
 
 func test_default_avatar_catalog_has_sixteen_distinct_loadable_pixel_portraits() -> void:
@@ -420,7 +437,7 @@ func test_community_cards_keep_fixed_equal_bounds_when_wide_ranks_are_revealed()
 		await get_tree().process_frame
 
 		assert_eq(card_slots.size, preflop_size, str(viewport_size))
-		var expected_card_size := Vector2(56, 57) if viewport_size.x < 1200.0 else Vector2(68, 76)
+		var expected_card_size := Vector2(52, 57) if viewport_size.x < 1200.0 else Vector2(68, 76)
 		var board_zone: Panel = table.get_node("TableMargin/Felt/TableSurface/CenterZone/BoardZone")
 		var board_rect := board_zone.get_global_rect()
 		for card: Control in card_slots.get_children():
@@ -584,7 +601,7 @@ func test_gui_startup_displays_the_initial_read_only_table() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)
 
-	main.get_node("Center/Panel/Margin/Form/StartButton").emit_signal("pressed")
+	main.get_node("%StartButton").emit_signal("pressed")
 
 	var table = main.get_node("PokerTable")
 	assert_true(table.visible)
@@ -600,7 +617,7 @@ func test_gui_startup_displays_the_initial_read_only_table() -> void:
 		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/Identity/Name"
 	)
 	var bot_avatar: TextureRect = table.get_node(
-		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/Avatar"
+		"TableMargin/Felt/TableSurface/Seats/Seat1/Content/Header/AvatarRegion/Avatar"
 	)
 	assert_eq(hero_name.text, "Human")
 	assert_eq(bot_name.text, assigned_names[1])
@@ -634,7 +651,16 @@ func test_human_seat_is_bottom_anchored_with_card_faces_and_full_name() -> void:
 		var hero_panel: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0")
 		var hero_name: Label = hero_panel.find_child("Name", true, false)
 		var hero_card: PanelContainer = hero_panel.find_child("HeroCard1", true, false)
-		assert_gt(hero_panel.get_rect().get_center().y, _surface_size(table).y * 0.75)
+		var hero_status: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status")
+		assert_gt(
+			(
+				Rect2(hero_panel.position, hero_panel.size)
+				. merge(hero_status.get_rect())
+				. get_center()
+				. y
+			),
+			_surface_size(table).y * 0.75,
+		)
 		assert_eq(hero_name.text, "Human")
 		assert_eq(hero_card.get_node("Content/Rank").text, "A")
 		assert_eq(
@@ -672,10 +698,10 @@ func test_live_seat_panels_show_stacks_positions_and_hidden_opponent_cards() -> 
 		assert_false("ACT" in marker.text, "seat %d must not show a redundant ACT marker" % seat)
 	assert_eq(table.get_node(seat_prefix % 1 + "Header/Identity/Stack").text, "990 chips")
 	var chip_detail: Label = table.get_node(seat_prefix % 1 + "Header/Identity/Stack")
-	var avatar: TextureRect = table.get_node(seat_prefix % 1 + "Header/Avatar")
+	var avatar_region: Control = table.get_node(seat_prefix % 1 + "Header/AvatarRegion")
 	var card_back: Label = table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack1")
 	assert_eq(chip_detail.get_theme_font_size("font_size"), 44)
-	assert_eq(avatar.custom_minimum_size, Vector2(112, 112))
+	assert_eq(avatar_region.custom_minimum_size, Vector2(112, 112))
 	assert_eq(card_back.custom_minimum_size, Vector2(60, 76))
 	assert_not_null(card_back)
 	assert_not_null(table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack2"))

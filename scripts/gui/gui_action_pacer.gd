@@ -18,7 +18,7 @@ func schedule_after_action(actor_seat: int, advance_callback: Callable) -> void:
 	schedule_delay(_pause_seconds_for(actor_seat), advance_callback)
 
 
-func schedule_after_showdown(advance_callback: Callable) -> void:
+func schedule_after_completed_hand(advance_callback: Callable) -> void:
 	var pause_seconds: float = 5.0 if _timing_config == null else _timing_config.showdown_pause()
 	schedule_delay(pause_seconds, advance_callback)
 

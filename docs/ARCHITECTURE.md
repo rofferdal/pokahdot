@@ -1,7 +1,7 @@
 # Pokahdot Architecture
 
 Status: Core, interactive CLI tournament play, the simulation CLI introduction, GUI work through archived Milestone 4.6b plus player-name implementation, and strategy work through archived Stratmilestone3 are implemented. GUI naming visual acceptance, remaining device/small-viewport verification, and profile-evolution backlogs remain unfinished.
-Last updated: 2026-10-24
+Last updated: 2026-10-25
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -205,7 +205,7 @@ digest so JSON integer/float representation cannot change reproducibility.
 | Keep avatar selection in the GUI presentation layer | Avatar identity is visual-only and must not affect `Player`, `GameView`, tournament configuration, or core RNG streams. |
 | Keep GUI display names in the GUI presentation layer | A validated 50-name catalog and tournament-local assignment map affect rendering only; the GUI human label is `Human`, while interactive CLI labeling remains unchanged. |
 | Separate presentation RNG streams | GUI name selection uses `gui_names` and avatar selection uses `gui_avatars`; neither may perturb the other or any game RNG stream. |
-| Keep GUI action pacing in a Resource | Per-seat visual pauses are configurable without putting timers or presentation policy in poker rules. |
+| Keep GUI action pacing in a Resource | Per-seat action pauses and the shared completed-hand pause for showdown or a pre-showdown winner are configurable without putting timers or presentation policy in poker rules. |
 | Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
 | Use responsive Control layout guidance | `canvas_items` with `expand`, containers, anchors, and responsive margins govern layout adaptation; font and texture crispness is not assumed from stretch mode alone. |
@@ -567,7 +567,7 @@ The startup panel and table are views in one scalable `Control`-based main scene
 
 The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer and blind markers. The acting player is identified by a white seat frame three times thicker than an ordinary frame, without a redundant textual `ACT` marker. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to `PokerTableController` and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
 
-`GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls nonblocking GUI pacing. Its default action pause is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. The same pause is used after each community-card reveal, while `showdown_pause_seconds` defaults to five seconds before a new hand begins. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
+`GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls nonblocking GUI pacing. Its default action pause is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. The same pause is used after each community-card reveal. Milestone 3 requires the completed-hand presentation pause to use `showdown_pause_seconds`, which defaults to five seconds, both after showdown and when one player wins before showdown because every opponent folded. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
 
 The default game viewport is 1920 by 1080, while the `Control` layout must reflow without overlap at supported desktop and mobile aspect ratios. The human recipient is visually anchored at the bottom; this is a presentation mapping only and must not alter core seat identities or poker positions. Desktop seat panels use equal wide dimensions across 2–9 seats, with mirrored left/right placement where applicable; compact layouts may change dimensions but retain readable names, stacks, markers, and cards. Tall mobile portrait surfaces are detected from their aspect ratio, not just logical canvas width, then scale seats, cards, table zones, event history, and action controls from the available surface so a high-DPI Web canvas does not retain desktop-sized controls inside unused felt.
 
@@ -600,7 +600,85 @@ defensive copies of both visual mappings in `GuiMatchCreationResult`.
 pass. This also gives an unseeded GUI tournament one shared nonzero effective
 seed without placing `gui_names` or `gui_avatars` state in the core.
 
-Live seat panels show stacks directly below player names, position badges, and two visible card backs for opponents until cards are legitimately revealed. The current public action appears on its own line below the seat. Folded or outbid seats remain visible in grayscale and hide their cards. The centered board/pot/wager zone is visually separate from seats. Human action controls are framed, explicit two-row controls beside the human seat; the ordered event feed is a high-contrast scrollable viewport on the other side. Showdown summaries are rendered above the corresponding revealed seat from the recipient-safe result, never from hidden core state.
+Live seat panels show stacks directly below player names, position badges, and
+two visible card backs for opponents until cards are legitimately revealed.
+The Milestone 3 table uses one fixed-height status band permanently reserved
+below every seat. During play it renders the current public action on one
+line. At showdown, recipient-safe hand text replaces that action when available
+and may use up to two lines; a seat without hand text retains a relevant latest
+action such as `Fold`. With neither value, the band remains reserved and visually
+blank. The band height never changes with its content, and its text retains the
+20 px player-facing font floor. Folded or outbid seats remain visible in
+grayscale and hide their cards. The centered board/pot/wager zone is visually
+separate from seats and status bands. Human action controls are framed,
+explicit two-row controls beside the human seat; the ordered event feed is a
+high-contrast scrollable viewport on the other side. Status content comes only
+from recipient-safe public actions and showdown results, never hidden core
+state.
+
+Small-desktop geometry treats each seat and status band as one footprint,
+places the compact opponent seats around a bounded central board/pot/wager
+stack, and reserves independent event, human-seat, and action regions. The
+logical 768 x 1024 iPad portrait fixture has a dedicated tablet composition:
+opponents occupy two side columns, the central stack is top-aligned, the event
+feed and action panel stack below it, and the human seat remains at the bottom.
+Both compositions use compact seat content and concise control copy such as
+`Call`, `Min <total>`, `Pot`, and `Total`, while retaining the 20 px text floor
+and 48 px interactive-control height. The strict Milestone 3 matrix validates
+these layouts alongside landscape tablet and desktop layouts for 2, 4, 6, and
+9 players.
+
+When a hand completes before showdown because every opponent has folded, the
+GUI must render exactly `Winner` in the winning seat's shared status band, the
+same location otherwise used for showdown hand text. That presentation remains
+visible for the `showdown_pause_seconds` completed-hand pause before any next
+hand begins. The GUI derives the winning seat from recipient-safe completed-hand
+state and owns the display text and timer; neither concern enters the core.
+
+### GUI visual-verification workflow
+
+The reusable GUI verification harness owns named logical-viewports and
+deterministic presentation-state fixtures. Milestone 3 defines the complete
+fixture catalog, including phone portrait, phone landscape, and browser-chrome
+height changes, while requiring the desktop, tablet, and small-desktop cases
+to pass. Milestone 4 implements the dedicated phone composition and is the
+gate at which the full phone fixture subset must pass. Defining a phone fixture
+in Milestone 3 therefore records a stable future input; it does not represent
+acceptance of the pre-phone layout.
+
+The canonical tablet fixtures use logical viewports of 768 x 1024 in portrait
+and 1024 x 768 in landscape. The existing 2388 x 1450 landscape case remains
+an additional observed-device regression, not a replacement for either
+canonical logical size. The canonical reduced-height browser-chrome fixtures
+are 390 x 744 in portrait and 844 x 330 in landscape. These named sizes are
+shared by geometry regressions and screenshot capture so the two forms of
+evidence describe the same inputs.
+
+Geometry, visibility, font, touch-target, and intersection assertions run in
+the ordinary headless GUT suite. Rendered screenshots use a separate
+rendering-enabled workflow because Godot's headless display driver uses the
+dummy rendering driver and cannot produce representative pixels. The rendered
+workflow uses the Compatibility renderer, waits for the completed draw before
+reading the viewport texture, and records the commit plus fixture inputs in a
+manifest. Screenshots support human review of hierarchy, density, contrast,
+and proportion; brittle pixel equality is not the sole automated pass
+condition.
+
+Release-candidate promotion deliberately separates rendered review from
+headless CI. A rendering-capable developer machine produces the clean,
+acceptance-eligible screenshot manifest; an identified human reviews that
+immutable bundle and publishes it at a durable HTTPS evidence URL. Deployment
+is manual and bound to an exact full commit SHA plus that evidence URL. CI
+checks out the exact SHA and runs `release-candidate-gate`, which owns the
+clean-tree checks, complete headless suite, and GUI invariant matrix, followed
+by `web-release` for the Web export and export-output validation. Neither
+headless step claims to reproduce representative pixels. The
+`github-pages` deployment environment requires an independent reviewer and
+prevents self-review. That approver verifies the dispatch, checkout, manifest,
+and review SHA identity, manifest checksum and acceptance eligibility, and
+defect decisions before the stable URL can change. A later fix creates a new
+candidate and invalidates affected hosted evidence rather than mixing results
+across commits.
 
 ### CLI adapter
 
@@ -933,14 +1011,17 @@ docs/
   CliTasks.md
   CoreTasks.md
   GuiTasks.md
+  GUI_VISUAL_TESTING.md
   POKERCARDS_IN_CLI.md
+  ProvisionalGUILayoutGuidance.md
   ProjectDescription.md
   README.md
   SimCliTasks.md
   SimCoreTasks.md
   Simulation_And_Evolutionary_Bot_Strategy.md
   WEB_SETUP.md
-  gui_scaling_best_practice.md
+  templates/
+    GUI_DEFECT.md
   arkiv/                  # superseded completed-history documents
 scripts/
   core/

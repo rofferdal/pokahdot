@@ -21,6 +21,20 @@ Complete the core configuration and roster-selection gates in
   selects the exact shared legacy/strategic seat split for 2–9 participants;
   fixed seeds reproduce selection; and one human remains required.
 
+## CLI bot-profile startup presentation
+
+- [ ] **Show each assigned bot profile name at tournament start:** in the
+  existing `Seat agents:` startup report, include every bot seat's selected
+  `BotProfile.display_name` while preserving the human-seat row and the
+  existing roster version, profile-ID, and model-family diagnostics. Render
+  the names from the same seat-to-profile assignment used to construct the
+  match; do not reselect profiles for display, replace the CLI's in-hand
+  `Player N` labels, expose model parameters/RNG state, or reveal hidden cards.
+  Add deterministic integration coverage for default strategic and optional
+  mixed legacy/strategic rosters, asserting that every bot seat appears once
+  with the display name of its assigned profile and the human seat never
+  receives a bot profile name.
+
 ## Cross-interface release verification
 
 - [ ] Verify GUI and CLI produce equivalent core outcomes for the same seed

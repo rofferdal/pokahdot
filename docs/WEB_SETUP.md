@@ -1,16 +1,19 @@
-# Web publishing and pre-human test runbook
+# Web publishing and hosted-acceptance runbook
 
 This runbook explains how to turn the Godot project into a Web build that can
 be tested from a stable HTTPS URL. It is written for a developer who is new to
-Godot and should be followed before the Milestone 4.6 pre-human tests in
-[`GuiTasks.md`](GuiTasks.md) are checked off.
+Godot and should be followed for the hosted-candidate and browser/device gates
+in [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md). Complete the local
+canonical workflow in [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) before
+publishing the candidate.
 
 The outcome is deliberately reproducible:
 
 1. `export_presets.cfg` is committed and contains a **Web** preset.
 2. a release export is generated from a known Git commit;
 3. a static host serves that exact export over HTTPS at a stable URL;
-4. a deployment workflow publishes later commits in the same way; and
+4. a manually dispatched deployment workflow publishes only the reviewed,
+   exact candidate commit; and
 5. browser and physical-device evidence is recorded against that build.
 
 Do not mark a device test complete based on an editor preview, a local
@@ -119,6 +122,20 @@ The command must exit with status 0. `build/web/index.html` must exist along
 with the files referenced by it. Keep the files together and deploy the
 contents of `build/web`, not the repository root.
 
+`make web-release` verifies a local Web export, but it does not authorize a
+deployment. On the exact manually selected commit,
+`make release-candidate-gate` checks tree cleanliness, runs `make check`, runs
+the applicable GUI invariant matrix, and checks cleanliness again. The
+deployment build then runs `web-release` for the release export and
+release-output validation. Both must pass before upload.
+
+The CI runner is headless and cannot create representative rendered
+screenshots. Before dispatch, run `make gui-visual-capture` on a
+rendering-capable machine, review its acceptance-eligible manifest and PNGs,
+and place the immutable manifest, review record, and images in a durable HTTPS
+evidence location. The manual workflow consumes that reviewed evidence; it
+does not regenerate or auto-approve it.
+
 For a quick local smoke test, serve the directory with any static-file server,
 then open it in a desktop browser. This only checks that the export is
 loadable; it does not count as HTTPS or device evidence. For example:
@@ -133,11 +150,14 @@ deploying.
 
 ## 4. Deploy to the configured stable HTTPS host
 
-This repository contains `.github/workflows/deploy-web.yml`, which builds the
-release and deploys it to GitHub Pages. Treat the successful workflow's
-`page_url` output as authoritative; do not infer deployment status or claim a
-live host from the repository name alone. The configured Pages URL normally
-has this shape:
+This repository contains `.github/workflows/deploy-web.yml`, which is manually
+dispatched with both the exact candidate commit SHA and the durable reviewed
+evidence URL. It builds that commit and deploys it to GitHub Pages only after
+the protected environment is independently approved. A push to `main` must
+not deploy or replace the stable candidate automatically. Treat the successful
+workflow's `page_url` output as authoritative; do not infer deployment status
+or claim a live host from the repository name alone. The configured Pages URL
+normally has this shape:
 
 ```text
 https://<owner>.github.io/<repository>/
@@ -150,27 +170,46 @@ allows.
 
 ### GitHub Pages configuration and workflow verification
 
-1. Push the committed Web preset to the repository's protected release branch
-   (normally `main`).
+1. Ensure the candidate is a full, immutable 40-character commit SHA reachable
+   from the protected release branch (normally `main`) and has no uncommitted
+   content.
 2. In GitHub, open **Settings > Pages**.
 3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-4. Review the existing `.github/workflows/deploy-web.yml`. It must continue to
-   do all of the following on every approved push to `main`:
-   - check out that commit;
+4. In **Settings > Environments**, configure `github-pages` with at least one
+   independent required reviewer and enable **Prevent self-review**. Restrict
+   deployment branches/tags to the protected release policy. If the repository
+   plan cannot enforce required reviewers and self-review prevention, do not
+   treat a deployment as an approved release candidate.
+5. Review `.github/workflows/deploy-web.yml`. It must have only a manual
+   `workflow_dispatch` deployment trigger with required inputs for the exact
+   `candidate_sha` and `reviewed_local_evidence_url`. It must continue to:
+   - reject anything except a full commit SHA and an HTTPS evidence URL;
+   - check out that exact SHA and verify `git rev-parse HEAD` equals the input;
    - install Godot **4.7.2** and its matching export templates;
-   - run the three checks in section 3;
-   - export the exact commit with `--export-release "Web" build/web/index.html`;
+   - run `make release-candidate-gate web-release`: the candidate gate owns
+     cleanliness, the complete headless suite, and GUI invariant gate, while
+     `web-release` owns the Web export and output validation;
    - create `build/web/.nojekyll` so Pages does not apply Jekyll processing;
    - upload only `build/web` with `actions/upload-pages-artifact`; and
-   - deploy that artifact with `actions/deploy-pages`.
+   - expose a build summary containing the candidate SHA, reviewed local
+     evidence URL, and validated provenance; the workflow/step result records
+     whether the candidate gate and Web release passed.
+6. Keep the deployment in a separate `deploy` job bound to the protected
+   `github-pages` environment. The independent approver must verify the checks
+   below before allowing `actions/deploy-pages` to run.
 
-The workflow needs these permissions:
+Use job-scoped least privilege. The workflow and build job need only repository
+read access; the deploy job receives Pages and identity-token permissions:
 
 ```yaml
 permissions:
   contents: read
-  pages: write
-  id-token: write
+
+jobs:
+  deploy:
+    permissions:
+      pages: write
+      id-token: write
 ```
 
 Use the official Pages deployment actions and expose the deployed address from
@@ -186,8 +225,36 @@ The GitHub Pages guide shows the required artifact and deployment actions:
 [Deploying a website automatically](https://docs.github.com/en/get-started/start-your-journey/deploying-your-website-automatically).
 The workflow must pin the Godot version to 4.7.2 and fail rather than falling
 back to another installed Godot version. Treat the workflow itself as release
-code: review it, run it on a test branch first, and record its run URL in the
-release evidence.
+code and review workflow changes before they reach the protected branch.
+
+### Dispatch and independent approval
+
+1. Upload the clean rendered capture bundle and completed review record to the
+   durable evidence location. A local ignored `artifacts/` path is not enough.
+2. Dispatch **Deploy Web release** from the protected branch. Supply the full
+   candidate SHA, never a branch name or abbreviated SHA, and the durable HTTPS
+   review URL.
+3. Wait for the build job, `release-candidate-gate`, and `web-release` to pass.
+   Do not approve the environment while the build is running or failing.
+4. The required reviewer, who must not be the dispatcher, opens the durable
+   evidence and confirms:
+   - workflow input SHA, checked-out SHA, manifest `source_sha`, and review
+     record target SHA are identical;
+   - the independently recorded manifest SHA-256 matches the reviewed
+     manifest, its suite/scope is the required full matrix, and
+     `acceptance_eligible` is `true`;
+   - the rendered review is approved and identifies its reviewer and time;
+   - every blocker, unreadable, and obstructive defect is closed or has an
+     explicit linked acceptance by the proper decision owner; and
+   - the durable URL contains the manifest, screenshots, review, and defect or
+     acceptance records referenced by that review.
+5. Only after those checks does the reviewer approve the `github-pages`
+   environment. Record the approver and approval time in the Web evidence.
+
+Do not dispatch another deployment while browser/device evidence is being
+collected. Any source, export, or deployment fix is a new candidate: produce
+and review new rendered evidence, dispatch the new exact SHA, and rerun every
+affected hosted environment.
 
 ### First deployment verification
 
@@ -214,16 +281,28 @@ console decompression error.
 
 Create one evidence record per deployed commit in the release issue, pull
 request, or a committed Markdown file such as
-`docs/test-evidence/web/<short-sha>.md`. Store screenshots in the associated
-issue/release attachment area or under an agreed repository evidence folder.
-Every screenshot filename must identify the commit, browser/device, viewport,
-orientation, and state, for example:
+`docs/test-evidence/web/<short-sha>.md`. Follow the screenshot naming and
+storage contract in [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md). In
+particular, local files under ignored `artifacts/` are working evidence, not a
+durable hosted record. Attach the immutable hosted evidence to the associated
+issue or release, or place it in another agreed durable evidence store, and
+link that location from the record.
+
+Hosted screenshot names use the exact field order below. Use the first 12
+characters of the tested commit, lowercase ASCII identifiers, and double
+underscores between fields:
 
 ```text
-88122bd-chrome-macos-1920x1080-showdown.png
-88122bd-ipad-safari-portrait-startup.png
-88122bd-iphone-safari-landscape-after-rotation.png
+<sha12>__<environment-id>__<device-os-browser>__<width>x<height>-<orientation>__p<count>__<state-id>.png
+88122bd46ef0__desktop-chrome__macos14-chrome130__1920x1080-landscape__p9__showdown-long.png
+88122bd46ef0__ipad-safari__ipadpro-ipados18-safari18__1024x768-landscape__p9__human-turn-flop__after-rotation.png
+88122bd46ef0__iphone-safari__iphone15-ios18-safari18__390x744-portrait__p9__keypad-open.png
 ```
+
+The width and height are the actual usable CSS viewport for hosted evidence,
+not the device's physical panel resolution. A stable suffix such as
+`__before-rotation` or `__after-rotation` may follow the canonical state ID
+when one state requires multiple images.
 
 Start every session at the stable URL in a private/incognito window or private
 tab. Record this header before testing:
@@ -233,21 +312,49 @@ tab. Record this header before testing:
 
 - URL: `https://<owner>.github.io/<repository>/`
 - Commit: `<full 40-character SHA>`
+- Dispatch candidate SHA: `<full 40-character SHA>`
+- Dispatch reviewed-local-evidence URL: `<durable HTTPS URL>`
 - Deployment workflow/run: `<URL>`
+- Release-candidate-gate and Web-release result: `<pass and build-log URL>`
+- Local rendered manifest SHA-256: `<64 lowercase hexadecimal characters>`
+- Manifest source SHA, suite, and scope: `<SHA>`, `<suite>`, `<full scope>`
+- Manifest acceptance eligible: `true`
+- Rendered review result/reviewer (UTC): `approved`, `<reviewer>`, `<time>`
+- Open or accepted defect IDs: `<none or linked IDs and decisions>`
+- GitHub environment approver (UTC): `<independent approver>`, `<time>`
 - Tested on (UTC): `<YYYY-MM-DD HH:MM>`
 - Export preset: `Web`, release, threads disabled
 - Console errors at startup: none / `<exact errors>`
+- Durable hosted evidence location: `<issue/release/archive URL>`
+```
+
+Record these details for each browser/device session. Repeat the block when a
+rotation or browser-chrome change produces a different usable viewport:
+
+```markdown
+### Session: `<environment-id>`
+
+- Device and OS/version: `<model and version>`
+- Browser and version: `<browser and version>`
+- Orientation: `portrait` / `landscape`
+- Logical/CSS viewport: `<width>x<height>`
+- Usable viewport: `<x>,<y> <width>x<height>`
+- Device-pixel ratio: `<value>`
+- Safe-area insets (top/right/bottom/left): `<values in CSS px>`
+- Browser chrome: `expanded` / `collapsed` / `not applicable`
+- Private/incognito session: `yes`
+- Screenshot and defect links: `<durable links>`
 ```
 
 Then add one row per test environment:
 
-| Environment | Device and OS | Browser and version | Viewport / orientation | 2-player result | 9-player result | Screenshots / defects |
+| Environment | Device and OS | Browser and version | Session details | 2-player result | 9-player result | Screenshots / defects |
 | --- | --- | --- | --- | --- | --- | --- |
-| Desktop Chrome or Edge | `<model, OS>` | `<version>` | `1920x1080`, `1280x720` | `<pass/fail>` | `<pass/fail>` | `<links>` |
-| Desktop Firefox | `<model, OS>` | `<version>` | `1920x1080`, `1280x720` | `<pass/fail>` | `<pass/fail>` | `<links>` |
-| iPad Safari | `<model, iPadOS>` | `<version>` | portrait and landscape | `<pass/fail>` | `<pass/fail>` | `<links>` |
-| iPhone Safari | `<model, iOS>` | `<version>` | portrait and landscape | `n/a` | `<pass/fail>` | `<links>` |
-| Android Chrome | `<model, Android>` | `<version>` | portrait and landscape | `n/a` | `<pass/fail>` | `<links>` |
+| Desktop Chrome or Edge | `<model, OS>` | `<version>` | `<session anchors for 1920x1080 and 1280x720>` | `<pass/fail>` | `<pass/fail>` | `<links>` |
+| Desktop Firefox | `<model, OS>` | `<version>` | `<session anchors for 1920x1080 and 1280x720>` | `<pass/fail>` | `<pass/fail>` | `<links>` |
+| iPad Safari | `<model, iPadOS>` | `<version>` | `<portrait and landscape session anchors>` | `<pass/fail>` | `<pass/fail>` | `<links>` |
+| iPhone Safari | `<model, iOS>` | `<version>` | `<portrait and landscape session anchors>` | `n/a` | `<pass/fail>` | `<links>` |
+| Android Chrome | `<model, Android>` | `<version>` | `<orientation and browser-chrome session anchors>` | `n/a` | `<pass/fail>` | `<links>` |
 
 ### Required representative flow
 
@@ -286,23 +393,39 @@ text-size, and rotation defects.
 
 ## 6. Defect handling and completion criteria
 
-If any test fails, do not check off the pre-human task. Create a defect report
-with the evidence header, exact reproduction steps, screenshots, and console
+If any required test fails, do not check off its browser/device task. Create a
+defect report using [`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md), with
+the evidence header, exact reproduction steps, screenshots, and console
 output. Fix the issue in the appropriate presentation-layer code, add or
 update a regression test, run the checks from section 3, deploy a new commit,
 and repeat the affected device/browser test.
 
-The Milestone 4.6 pre-human checks may be marked complete only when all of
-the following are true:
+Hosted evidence may be signed off only when all of the following are true:
 
 - `export_presets.cfg` is committed and a `Web` release export succeeds;
+- the manual workflow inputs, checked-out commit, rendered manifest, and
+  review record all identify the same full candidate SHA;
+- `make release-candidate-gate web-release` passed and the independently
+  reviewed rendered manifest checksum identifies a complete
+  acceptance-eligible capture;
+- the protected `github-pages` environment was approved by a required reviewer
+  other than the workflow dispatcher after checking the rendered evidence and
+  defect decisions;
 - the deployment workflow publishes the release output, not source files;
 - the stable URL opens over HTTPS in a private/incognito window without console
   errors;
 - the evidence record identifies the URL, exact commit, browser/device/OS
-  versions, viewport/orientation, screenshots, and any fixed defects; and
-- every environment in the authoritative matrix in
-  [`GuiTasks.md`](GuiTasks.md) has a recorded
-  passing result.
+  versions, logical and usable viewports, orientation, device-pixel ratio,
+  safe-area insets, browser-chrome state, durable screenshots, and any fixed
+  defects; and
+- every supported required environment in the authoritative matrix in
+  [`GuiTasks.md`](GuiTasks.md) has a recorded passing result; and
+- each environment that remains unavailable has an explicit linked product
+  decision stating that support is deferred or that the release remains
+  blocked.
 
-Only then is the final Milestone 4.6 human test ready to begin.
+An unavailable environment is never a pass. A support-deferral decision may
+remove that environment from the release's support claim; a `release blocked`
+decision cannot satisfy release readiness. After the accepted environment
+matrix is resolved, complete the final representative human flow in
+Milestone 8.

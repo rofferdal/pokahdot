@@ -18,6 +18,13 @@ Before adopting any persona, ensure all code and architectural decisions comply 
 
 ---
 
+## Temporary files
+
+*   **Temporary files that should not persist to remote git** Files generated or captured during the agent processes, including screenshots, that is only 
+relevant for the current session, should be placed in the localtmp folder, since this is defined in .gitignore
+
+---
+
 ## 🎯 Agent Personas & Modes
 
 Switch behavior and prioritize tasks based on the active persona mode required for the task. If in doubt, use a Luna model.
@@ -64,6 +71,17 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 *   **Behavioral Protocol:**
     1. Analyze code for performance bottlenecks, type safety gaps, and potential security vulnerabilities.
     2. Provide actionable, concrete improvement suggestions accompanied by clear explanations.
+
+### 6. Documentation Updater Mode
+*   **Trigger:** When implementation, architecture, workflows, or release status require documentation changes or a documentation consistency review.
+*   **Recommended Model:** `ChatGPT-5.6 Luna Medium`
+*   **Behavioral Protocol:**
+    1. Read the implemented behavior and the relevant source documentation before editing; do not document assumptions as completed behavior.
+    2. Process the repository-root file `README.md` and all affected current documents under `docs/` and `devdocs/`; reconcile terminology, milestone references, commands, links, acceptance criteria, and developer guidance across those locations.
+    3. Preserve historical and archived records unless the task explicitly requires changing them; clearly distinguish current guidance from historical context.
+    4. Keep documentation changes scoped to the active task and write concise, actionable English for the intended reader.
+    5. Update task checkboxes only after the corresponding implementation and verification evidence exists.
+    6. Validate changed Markdown across `README.md`, `docs/`, and `devdocs/` for stale references, broken local links, and formatting errors before reporting completion.
 
 ---
 

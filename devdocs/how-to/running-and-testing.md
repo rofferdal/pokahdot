@@ -87,6 +87,49 @@ python3 -B -m unittest discover -s tests/profile_evolution -t . -v
 make profile-evolution-test
 ```
 
+### Run GUI Visual Verification
+
+These commands have deliberately different scopes and evidence status. They
+require a rendering-capable display except for the invariant gate. See the
+authoritative [GUI visual testing workflow](../../docs/GUI_VISUAL_TESTING.md)
+for the viewport/state matrix, manifest fields, storage, and review rules, and
+use the [GUI defect record](../../docs/templates/GUI_DEFECT.md) for failures.
+
+Verify the rendering and capture pipeline with one development-only case:
+
+```bash
+make gui-visual-capture-smoke
+```
+
+Run the complete applicable Milestone 3 invariant matrix without producing
+screenshots:
+
+```bash
+make gui-visual-invariant-gate
+```
+
+Capture the complete matrix while developing, including from a dirty tree:
+
+```bash
+make gui-visual-capture-development
+```
+
+This records dirty paths and their fingerprint and is never acceptance
+evidence. It does not run the ordinary complete suite or the standalone
+invariant gate first.
+
+Produce candidate evidence only from a clean committed tree:
+
+```bash
+make gui-visual-capture
+```
+
+The clean target runs `make check`, runs the invariant gate, rechecks tree
+cleanliness, and renders all 348 Milestone 3 captures. Its manifest is
+acceptance-eligible only if every expected capture settles and passes its
+recorded invariants. Capture commands refuse to overwrite existing evidence.
+Use `make GODOT=/full/path/to/godot <target>` when Godot is not on `PATH`.
+
 ---
 
 ## 4. Running Simulations & Profile Evolution
@@ -162,3 +205,10 @@ To export the web release target to `build/web/index.html`:
 make web-release
 ```
 *(Requires a clean git working tree and the Godot HTML5 export template installed).*
+
+This is a local export check, not deployment authorization. The manually
+dispatched release workflow checks out one exact candidate SHA, runs
+`make release-candidate-gate web-release` in headless CI, and waits for an
+independent protected-environment reviewer to verify the durable rendered
+evidence before deployment. Follow the authoritative
+[Web publishing and hosted-acceptance runbook](../../docs/WEB_SETUP.md).

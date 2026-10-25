@@ -355,14 +355,27 @@ cards were actually shown.
   or poker position. Opponents show two card backs until showdown. Folded or
   eliminated seats remain visible in grayscale without hole cards.
 - Seat panels show readable names, stack immediately below the name, dealer and
-  blind position markers, and the latest public action from the **active
-  betting round** on a separate line. Clear all prior seat action text at the
-  start of preflop and each transition to flop, turn, and river; retain the
-  complete public history in the event log. Center community cards, wagers,
-  and pots as one group.
+  blind position markers, and one permanently reserved status band below each
+  seat. During play, that band shows the latest public action from the
+  **active betting round** on one line. At showdown, it shows the recipient-safe
+  showdown hand summary when available, otherwise retaining a relevant latest
+  action such as `Fold`. If neither applies, the band remains geometrically
+  reserved and visually blank. The fixed-height band supports showdown text
+  of up to two lines without moving seats or neighboring regions. Clear prior
+  action text at the start of preflop and each transition to flop, turn, and
+  river, except that a player's most recent `Fold` remains available as that
+  seat's showdown fallback when no recipient-safe hand summary exists; retain
+  the complete public history in the event log. Center community cards,
+  wagers, and pots as one group.
+- When one player wins a hand before showdown because every opponent has
+  folded, show exactly `Winner` in that winning seat's shared status band, in
+  the same location used for a showdown hand summary. Keep that completed-hand
+  presentation visible for the configured showdown pause (five seconds by
+  default) before starting any next hand.
 - Place compact, explicit two-row action controls beside the human seat. The
-  event log is scrollable, high contrast, and cannot cover seats. At showdown,
-  show each revealed player's best hand above that player's seat.
+  event log is scrollable, high contrast, and cannot cover seats or their
+  reserved status bands. At showdown, show each revealed player's best hand in
+  that player's shared below-seat status band.
 - All player-facing text is at least 20 px and uses Godot's built-in plain
   non-serif UI font. Compact layouts reflow or simplify rather than shrinking
   below the minimum.
@@ -373,7 +386,8 @@ cards were actually shown.
   buttons target approximately 160 × 50 px where space permits.
 - Prefer viewport dimensions and aspect ratio for responsive layout decisions;
   OS feature flags may supplement but must not replace viewport detection.
-- Follow [`gui_scaling_best_practice.md`](gui_scaling_best_practice.md) when
+- Follow
+  [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md) when
   resolving GUI scaling issues.
 
 #### GUI display-name contract
@@ -509,9 +523,15 @@ Automated Godot tests or pure GDScript assertions cover at least:
 9. Every visible CLI card uses rank plus Unicode suit and every collection
    uses brackets and ` | ` as defined in `POKERCARDS_IN_CLI.md`.
 10. Every CLI player overview marks exactly the human with `(you)` and no bot.
-11. GUI seat action text contains only the active betting round and clears at
-    preflop and each street transition; the event log retains full public hand
-    history.
+11. During active play, GUI seat action text contains only the active betting
+    round and clears at preflop and each street transition. `Fold` is the sole
+    exception: a seat's most recent fold remains available as its showdown
+    fallback when no recipient-safe hand summary exists. The event log retains
+    full public hand history.
 12. GUI bots use the validated 50-name catalog without replacement; the human
     is labeled exactly `Human`; name selection cannot perturb avatars or game
     randomness.
+13. When a hand ends before showdown with one remaining player, the GUI shows
+    exactly `Winner` in that player's shared status band and waits for the same
+    configured completed-hand pause used after showdown, five seconds by
+    default, before starting any next hand.

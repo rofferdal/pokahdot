@@ -48,29 +48,63 @@ Resolve known layout risk before collecting release or device evidence. The
 approximately 950 x 532 reference viewport is the minimum explicit desktop
 stress surface for this milestone.
 
-- [ ] Complete the reusable foundation tasks in
+- [x] Complete the reusable foundation tasks in
   [`GuiTasks.md` — Systematic GUI issue detection and remediation](GuiTasks.md#systematic-gui-issue-detection-and-remediation):
-  canonical viewport and state fixtures, automatic GUI invariants, resize
-  coverage, reproducible screenshots, and the standard defect record/loop.
-- [ ] Complete every task in
-  [`GuiTasks.md` — Stable seat alignment across player action states](GuiTasks.md#stable-seat-alignment-across-player-action-states).
-  Treat each occupied latest-action row as the positional reference and require
-  paired automated and visual evidence across 2–9 players that an empty row
-  does not move its seat or neighboring regions. Explicitly verify that the
-  human row does not move the event feed, human seat panel, or action panel.
-- [ ] Complete every automated implementation and regression task in
-  [`GuiTasks.md` — Small desktop viewport table collision remediation](GuiTasks.md#small-desktop-viewport-table-collision-remediation),
-  covering auxiliary labels, side panels, the central zone, controls, and all
-  2–9 seat counts required by that section.
-- [ ] Run the section's human verification with `godot --path .` through
-  preflop, street changes, and showdown for 6- and 7-seat tables.
-- [ ] Complete the visual-acceptance task in
+  canonical viewport and state fixtures, the reusable GUI scene harness and
+  invariant assertions, resize coverage, reproducible screenshots, the
+  standard defect record/loop, and gate documentation. Complete the harness
+  task only after its focused support tests pass. This step establishes the
+  reusable mechanism; known geometry failures are resolved by the coupled
+  validation group below before the combined matrix must pass. Define the phone
+  fixtures here for reuse, but defer the complete phone pass until Milestone 4.
+- [x] Complete the unified status-row and small-desktop footprint work as one
+  coupled validation group, in this order:
+  1. complete all production presentation and geometry tasks in
+     [`GuiTasks.md` — Unified seat status row and stable geometry](GuiTasks.md#unified-seat-status-row-and-stable-geometry),
+     replacing the separate action and showdown-description regions with one
+     permanently reserved fixed-height band below every seat, showing exactly
+     `Winner` there for a hand won before showdown, and retaining either type
+     of completed-hand presentation for the same configured pause;
+  2. complete every incomplete implementation and regression task in
+     [`GuiTasks.md` — Small desktop viewport table collision remediation](GuiTasks.md#small-desktop-viewport-table-collision-remediation),
+     treating each seat and band as one footprint and removing the obsolete
+     above-seat showdown clearance; and
+  3. complete **Add automated unified-status-state regressions** in
+     [`GuiTasks.md` — Unified status-row and footprint regression](GuiTasks.md#unified-status-row-and-footprint-regression),
+     comparing blank, one-line action, retained-fold-at-showdown, and
+     up-to-two-line showdown states across 2–9 players.
+  Require stable seat and band rectangles, fixed band height, the documented
+  line limits, readable text, viewport containment, non-intersection, and
+  unchanged lower-table regions. The geometry, footprint, and regression
+  constituents, including the exact `Winner` status and shared completed-hand
+  pause, pass the strict matrix and complete suite together.
+- [x] Complete **Make the applicable Milestone 3 invariant matrix pass** in
+  [`GuiTasks.md` — Systematic GUI issue detection and remediation](GuiTasks.md#systematic-gui-issue-detection-and-remediation).
+  Require the tablet, small-desktop, and desktop subsets to pass every listed
+  invariant across the applicable canonical states and required player counts.
+  Do not require the complete phone matrix before the dedicated phone
+  composition in Milestone 4. `make gui-visual-invariant-gate` passes the full
+  required 2-, 4-, 6-, and 9-player subset.
+- [x] Complete both tasks in
+  [`GuiTasks.md` — Milestone 3 combined visual verification](GuiTasks.md#milestone-3-combined-visual-verification):
+  confirm the blank, one-line action, retained-fold-at-showdown, and two-line
+  showdown states keep every seat, shared status band, and all three
+  lower-table regions fixed and readable, then inspect 6- and 7-seat tables
+  with `godot --path .` through preflop, street changes, and showdown. The
+  rendered matrix passed independent review, and the user confirmed on
+  2026-10-25 that 6- and 7-seat gameplay is satisfactory after correction.
+- [x] Complete the visual-acceptance task in
   [`GuiTasks.md` — GUI player display names](GuiTasks.md#gui-player-display-names)
   against the final layout. Verify that names remain paired with avatars
-  through rerenders, eliminations, showdown, and layout reflow.
-- [ ] Run the full headless suite, lint, and formatting checks after the final
+  through rerenders, eliminations, showdown, and layout reflow. Independent
+  review of the 348-capture development corpus passed this scope; clean
+  candidate evidence remains a later release gate.
+- [x] Run the full headless suite, lint, and formatting checks after the final
   layout correction. Do not begin release-candidate evidence collection until
-  all checks pass.
+  all checks pass. `make check` passes 445/445 tests and 13,805 GDScript
+  assertions plus 72 Python tests, lint, and formatting. The strict applicable
+  Milestone 3 invariant gate also passes, and the user confirmed the corrected
+  6-/7-seat gameplay interactively.
 
 ## Milestone 4 — Small-phone presentation experience
 
@@ -84,8 +118,9 @@ or recipient-safe core state.
   compact opponent tokens, the bottom human action region, progressive
   disclosure overlays, atomic resize behavior, and documentation.
 - [ ] Use the canonical visual fixtures and defect loop from Milestone 3 for
-  phone portrait and landscape at 2, 4, 6, and 9 players. Close or explicitly
-  accept every blocker, unreadable, and obstructive defect before proceeding.
+  phone portrait and landscape at 2, 4, 6, and 9 players. Make the full phone
+  fixture subset pass here, and close or explicitly accept every blocker,
+  unreadable, and obstructive defect before proceeding.
 - [ ] Decide the nine-player phone result from evidence. Prefer the tested
   density-tier design; if it cannot meet the documented readability, touch,
   bounds, and action-reachability criteria, make any phone-only player cap an
@@ -99,6 +134,19 @@ or recipient-safe core state.
 
 Verify that presentation work has not changed shared game behavior or startup
 configuration.
+
+- [ ] Complete
+  [`GuiTasks.md` — Pot wager shortcut correctness](GuiTasks.md#pot-wager-shortcut-correctness),
+  including deterministic bet and raise reproductions, ordinary core legality
+  and bounds validation, and regression coverage for enabled and disabled
+  shortcut states.
+
+- [ ] Complete
+  [`CliTasks.md` — CLI bot-profile startup presentation](CliTasks.md#cli-bot-profile-startup-presentation),
+  including one startup row per bot seat with its assigned
+  `BotProfile.display_name`, stable seat-to-profile mapping, preserved human
+  labeling and existing diagnostics, and deterministic default/mixed-roster
+  regression coverage.
 
 - [ ] Complete both tasks in
   [`CliTasks.md` — Cross-interface release verification](CliTasks.md#cross-interface-release-verification),
