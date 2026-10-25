@@ -633,8 +633,6 @@ func _create_phone_action_badge(seat: int) -> Label:
 	badge.visible = not badge.text.is_empty()
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	# The action owns the remainder of the second text row. The marker cell and
-	# both card fields stay independently visible at the token's right edge.
 	badge.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	badge.offset_left = 62.0
 	badge.offset_top = 29.0
@@ -644,6 +642,33 @@ func _create_phone_action_badge(seat: int) -> Label:
 		"normal", GuiTableStyleScript.compact_box(Color("172331f2"), Color("e7d39b"), 1, 5)
 	)
 	return badge
+
+
+func _layout_phone_opponent_action_badges(landscape: bool) -> void:
+	for seat: int in _seat_widgets:
+		var seat_widget: Control = _seat_widgets[seat]
+		var action_badge := seat_widget.find_child("ActionBadge", true, false) as Label
+		if action_badge == null:
+			continue
+		# Portrait divides the second row exactly between the stack, action,
+		# and cards so the complete compact amount remains readable.
+		action_badge.offset_left = 62.0 if landscape else 48.0
+		action_badge.offset_top = 29.0 if landscape else 30.0
+		action_badge.offset_right = -45.0 if landscape else -40.0
+		action_badge.offset_bottom = 59.0 if landscape else 60.0
+		action_badge.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+		var state_badge := seat_widget.find_child("Badge", true, false) as Label
+		state_badge.offset_bottom = 30.0
+		var stack := seat_widget.find_child("Stack", true, false) as Label
+		stack.offset_left = 4.0 if landscape else 0.0
+		stack.offset_top = 23.0 if landscape else 30.0
+		stack.offset_right = 62.0 if landscape else 48.0
+		stack.offset_bottom = 47.0 if landscape else 60.0
+		var cards := seat_widget.find_child("HoleCards", true, false) as Control
+		cards.offset_left = -42.0 if landscape else -40.0
+		cards.offset_top = 30.0
+		cards.offset_right = -2.0 if landscape else 0.0
+		cards.offset_bottom = cards.offset_top + PHONE_CARD_SIZE.y
 
 
 func _compact_phone_action_for_seat(seat: int) -> String:
@@ -2209,6 +2234,7 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 	var action_content := _action_panel.get_node("Margin/Content") as VBoxContainer
 	action_content.add_theme_constant_override("separation", 2)
 	_configure_phone_action_rows(landscape)
+	_layout_phone_opponent_action_badges(landscape)
 	if _phone_more_button.get_parent() != _surface:
 		_phone_more_button.reparent(_surface)
 	_phone_more_button.show()
@@ -2245,9 +2271,7 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 		)
 	):
 		return
-	var phone_status_font_size: int = GuiMobileTableLayoutScript.TABLE_TEXT_FONT_SIZE
-	if landscape and plan.center_rect.size.x < 280.0:
-		phone_status_font_size = 24
+	var phone_status_font_size: int = GUI_MINIMUM_FONT_SIZE
 	_pot_label.add_theme_font_size_override("font_size", phone_status_font_size)
 	_wager_label.add_theme_font_size_override("font_size", phone_status_font_size)
 	_applied_phone_layout_plan = plan

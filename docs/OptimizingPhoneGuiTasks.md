@@ -1,7 +1,7 @@
 # Optimizing the Phone GUI
 
-Status: Active — portrait follow-up found clipped wager/action amounts and
-asymmetric opponent placement; physical verification remains
+Status: Active — portrait amount and symmetry remediation passes automated
+verification; physical verification remains
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -178,7 +178,7 @@ complete only when its acceptance evidence has been recorded.
   stack, position marker, or two card fields; do not change poker-core rules or
   leak private information. Acceptance: each player's most recent action is
   continuously attributable to that player until the proper reset boundary.
-- [ ] **Add portrait regressions for amount visibility and symmetric opponent
+- [x] **Add portrait regressions for amount visibility and symmetric opponent
   placement.** Reproduce
   `localtmp/from_real_tests/Screenshot_20261026_001503_Chrome.jpg` with a
   six-player turn-state fixture. Assert that the complete current-wager amount
@@ -187,14 +187,14 @@ complete only when its acceptance evidence has been recorded.
   Linh lower-left, Bao upper-left, Lior top-center, Haruto upper-right, and
   Kwame lower-right. Acceptance: the tests fail on the captured composition
   before production layout changes and retain the 20 px logical font floor.
-- [ ] **Restore complete pot, current-wager, and latest-action amounts.** Use
+- [x] **Restore complete pot, current-wager, and latest-action amounts.** Use
   the same phone text size as the player-seat copy for `Pot` and `Current
   wager`, as suggested by the physical review, and reserve enough width for
   their numeric values. Reflow or widen the seat-owned action cell so full bet
   and raise amounts remain visible instead of collapsing to copy such as
   `B1`. Acceptance: representative small, large, and all-in amounts remain
   unambiguous without hiding names, stacks, markers, cards, or legal actions.
-- [ ] **Make the six-player portrait opponent arc symmetric.** Preserve the
+- [x] **Make the six-player portrait opponent arc symmetric.** Preserve the
   clockwise seat order while assigning mirrored fixed footprints around the
   center: Linh and Kwame form the lower pair, Bao and Haruto form the upper
   pair, and Lior is centered at the top. Generalize the same symmetry rule to
@@ -353,6 +353,25 @@ complete only when its acceptance evidence has been recorded.
   or horizontally balanced. For the clockwise order Linh, Bao, Lior, Haruto,
   Kwame, the requested composition is Linh lower-left, Bao upper-left, Lior
   centered at the top, Haruto upper-right, and Kwame lower-right.
-- No implementation or physical acceptance is claimed. The new regression,
-  amount-layout, symmetry, and subsequent physical-verification tasks remain
-  unchecked.
+- No implementation or physical acceptance was claimed by this capture entry;
+  the subsequent automated remediation is recorded below.
+
+### 2026-10-26 — Automated amount and symmetry remediation
+
+- The six-player turn regression first reproduced the missing numeric content:
+  the 32 px center status copy did not fit `Current wager: 240`, and `B120`,
+  `C120`, and `R240` did not fit the former 29 px action cell.
+- Phone `Pot` and `Current wager` now use the same 20 px size as player-seat
+  copy. Portrait opponent tokens divide their second row into non-overlapping
+  numeric-stack, complete compact-action, and two-card cells while retaining
+  the 20 px font floor. Landscape restores its original compact cell geometry.
+- Supported portrait counts now receive deterministic mirrored footprints.
+  The five-opponent order is Linh lower-left, Bao upper-left, Lior top-center,
+  Haruto upper-right, and Kwame lower-right; 2-, 4-, and 7-player symmetry is
+  covered by the same regression policy. The center position accounts for the
+  selected player count and remains clear of the opponent arc.
+- Focused phone suites pass 20/20 tests with 1,465 assertions. `make check`
+  passes 517/517 GUT tests with 17,370 assertions and all 72 Python tests;
+  GDScript lint and formatting pass. Phone, iPad, desktop, and historical
+  visual invariant gates pass.
+- Physical-phone verification remains unchecked pending the user's results.

@@ -44,10 +44,10 @@ func test_phone_seats_fit_without_overlap_and_preserve_the_center() -> void:
 			continue
 		var usable_size := Vector2(fixture.size)
 		var bounds := Rect2(Vector2.ZERO, usable_size)
-		var center: Rect2 = GuiPhoneSeatLayoutScript.center_rect(usable_size)
-		assert_true(bounds.encloses(center), "%s center" % fixture.key)
 		for player_count: int in REPRESENTATIVE_PLAYER_COUNTS:
 			var context := "%s_%d_players" % [fixture.key, player_count]
+			var center: Rect2 = GuiPhoneSeatLayoutScript.center_rect(usable_size, player_count)
+			assert_true(bounds.encloses(center), "%s center" % context)
 			var rects: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(
 				usable_size, player_count
 			)
@@ -79,6 +79,46 @@ func test_supported_seven_seat_tokens_are_larger_than_the_emergency_fallback() -
 		var emergency: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(usable_size, 9)
 		assert_gt(supported[1].size.x, emergency[1].size.x)
 		assert_gt(supported[1].size.y, emergency[1].size.y)
+
+
+func test_six_player_portrait_uses_a_symmetric_five_opponent_arc() -> void:
+	var usable_size := Vector2(296.0, 724.0)
+	var rects: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(usable_size, 6)
+	var linh: Rect2 = rects[1]
+	var bao: Rect2 = rects[2]
+	var lior: Rect2 = rects[3]
+	var haruto: Rect2 = rects[4]
+	var kwame: Rect2 = rects[5]
+	assert_almost_eq(linh.get_center().x, bao.get_center().x, 0.001)
+	assert_almost_eq(haruto.get_center().x, kwame.get_center().x, 0.001)
+	assert_almost_eq(linh.get_center().y, kwame.get_center().y, 0.001)
+	assert_almost_eq(bao.get_center().y, haruto.get_center().y, 0.001)
+	assert_lt(bao.get_center().y, linh.get_center().y)
+	assert_lt(lior.get_center().y, bao.get_center().y)
+	assert_almost_eq(lior.get_center().x, usable_size.x * 0.5, 0.001)
+	for mirrored_pair: Array in [[1, 5], [2, 4]]:
+		assert_almost_eq(
+			rects[mirrored_pair[0]].get_center().x + rects[mirrored_pair[1]].get_center().x,
+			usable_size.x,
+			0.001,
+		)
+
+
+func test_supported_portrait_counts_use_mirrored_fixed_seat_footprints() -> void:
+	var usable_size := Vector2(296.0, 724.0)
+	for player_count: int in [2, 4, 7]:
+		var rects: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(
+			usable_size, player_count
+		)
+		var opponent_count: int = player_count - 1
+		for opponent_index: int in range(floori(float(opponent_count) / 2.0)):
+			var left: Rect2 = rects[opponent_index + 1]
+			var right: Rect2 = rects[player_count - 1 - opponent_index]
+			assert_almost_eq(left.get_center().x + right.get_center().x, usable_size.x, 0.001)
+			assert_almost_eq(left.get_center().y, right.get_center().y, 0.001)
+		if opponent_count % 2 == 1:
+			var center_seat: int = 1 + floori(float(opponent_count) / 2.0)
+			assert_almost_eq(rects[center_seat].get_center().x, usable_size.x * 0.5, 0.001)
 
 
 func test_invalid_layout_inputs_return_no_geometry() -> void:

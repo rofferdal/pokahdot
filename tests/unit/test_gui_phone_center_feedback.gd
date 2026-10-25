@@ -54,6 +54,39 @@ func test_short_landscape_keeps_center_status_and_human_summary_readable() -> vo
 		assert_lte(rendered_width, label.size.x, "%s must render in full" % label.name)
 
 
+func test_turn_capture_keeps_complete_center_and_seat_action_amounts() -> void:
+	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-turn", 6)
+	var view: GameView = descriptor.view
+	view.pot_amount = 360
+	view._seats[1].bet_this_round = 120
+	view._seats[2].bet_this_round = 120
+	view._seats[3].bet_this_round = 240
+	view._action_history = [
+		PublicActionRecord.new(1, PlayerAction.Kind.BET, 120),
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 120),
+		PublicActionRecord.new(3, PlayerAction.Kind.RAISE, 240),
+	]
+	var table: PokerTableController = await _phone_view_table(view, Vector2(360.0, 780.0))
+	var pot_label := table.get_node("%PotLabel") as Label
+	var wager_label := table.get_node("%WagerLabel") as Label
+	var seat_name := _seat(table, 1).find_child("Name", true, false) as Label
+	assert_eq(pot_label.text, "Pot: 360")
+	assert_eq(wager_label.text, "Current wager: 240")
+	assert_eq(
+		pot_label.get_theme_font_size("font_size"), seat_name.get_theme_font_size("font_size")
+	)
+	assert_eq(
+		wager_label.get_theme_font_size("font_size"), seat_name.get_theme_font_size("font_size")
+	)
+	_assert_label_text_fits(pot_label)
+	_assert_label_text_fits(wager_label)
+	var expected_actions: Dictionary[int, String] = {1: "B120", 2: "C120", 3: "R240"}
+	for seat: int in expected_actions:
+		var action_badge := _action_badge(table, seat)
+		assert_eq(action_badge.text, expected_actions[seat], "seat %d action copy" % seat)
+		_assert_label_text_fits(action_badge)
+
+
 func test_phone_keeps_each_seats_latest_round_action_visible_until_street_change() -> void:
 	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-preflop", 4)
 	var view: GameView = descriptor.view
@@ -183,6 +216,23 @@ func _action_badge(table: PokerTableController, seat: int) -> Label:
 func _visible_action_text(table: PokerTableController, seat: int) -> String:
 	var badge := _action_badge(table, seat)
 	return badge.text if badge.visible else ""
+
+
+func _assert_label_text_fits(label: Label) -> void:
+	var rendered_width: float = (
+		label
+		. get_theme_font("font")
+		. get_string_size(
+			label.text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			label.get_theme_font_size("font_size"),
+		)
+		. x
+	)
+	assert_lte(
+		rendered_width, label.size.x, "%s must render '%s' in full" % [label.name, label.text]
+	)
 
 
 func _settle() -> void:

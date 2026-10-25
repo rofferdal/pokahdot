@@ -1,7 +1,7 @@
 # Optimizing the Desktop GUI
 
-Status: Active — automated remediation passes; exact browser evidence and visual acceptance remain
-Evidence baseline: desktop-browser screenshot supplied by the user on 2026-10-25
+Status: Active — new browser typography cropping requires remediation; exact browser evidence and visual acceptance remain
+Evidence baseline: desktop-browser screenshots supplied by the user on 2026-10-25 and 2026-10-26
 
 ## Scope
 
@@ -14,6 +14,13 @@ The supplied image is a 1853 x 916 raster of a six-player preflop human turn.
 It does not show browser chrome, so its raster dimensions must not yet be treated
 as the measured CSS viewport. The deployed commit, browser/OS versions, browser
 zoom, device-pixel ratio, and canvas dimensions have not been recorded.
+
+The follow-up `desktop01.png` evidence is a 1489 x 912 raster of a six-player
+turn state. Several opponent and human stack lines lose the final `s` in
+`chips`, while the action controls are crowded and their labels sit close to
+the button edges. `Quit` is no longer covering the human seat, but its text is
+oversized relative to its reserved control. This raster also lacks the CSS
+viewport and browser measurements needed for an exact fixture.
 
 ## Screenshot assessment
 
@@ -48,6 +55,27 @@ human identity region and violates the documented non-overlap contract.
   Provisional evidence: the supplied 1853 x 916 raster now has a real-scene
   regression, which failed against the previous layout before the fix. Repeat
   it at the measured CSS viewport after the evidence task above is complete.
+- [ ] **Add desktop-browser typography clipping regressions.** Reproduce the
+  six-player turn shown in `desktop01.png` at its measured CSS viewport and
+  assert that every player name and complete numeric `chips` line fits its seat,
+  and that every visible action label plus `Quit` fits inside its button with
+  deliberate horizontal padding. Acceptance: the tests fail against the
+  captured browser geometry before typography changes and cover long names,
+  four-digit stacks, all legal-action combinations, disabled wager controls,
+  and browser resize/zoom restoration.
+- [ ] **Reduce constrained-desktop player-seat typography.** Introduce a
+  responsive desktop seat font tier for the affected browser width so full
+  names and stack text remain visible without widening, moving, or overlapping
+  fixed seat footprints. Keep player-facing text at or above the established
+  20 px readability floor and preserve avatar, marker, card, acting-frame, and
+  status ownership. Acceptance: complete seat text renders at the measured
+  viewport and at 950 x 532, 1280 x 720, and 1920 x 1080.
+- [ ] **Reduce constrained-desktop action and Quit typography.** Apply the same
+  responsive policy to all action buttons and the standalone `Quit` control,
+  including dynamic call/bet amounts and disabled wager-entry states. Preserve
+  touch targets, keyboard focus, confirmation behavior, and legal-action
+  semantics. Acceptance: labels have visible edge padding, never wrap or clip,
+  and remain at or above 20 px through resize and browser zoom cycles.
 - [x] **Give desktop Quit an owned, continuously available rectangle.** Place
   the standalone desktop Quit control in a reserved region managed by the same
   layout pass as the center, event log, human seat, action panel, and status

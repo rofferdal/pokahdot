@@ -39,7 +39,7 @@ func configure(
 
 	usable_rect = Rect2(Vector2.ZERO, usable_size)
 	seat_rects = resolved_seats
-	center_rect = GuiPhoneSeatLayoutScript.center_rect(usable_size)
+	center_rect = GuiPhoneSeatLayoutScript.center_rect(usable_size, player_count)
 	var landscape: bool = usable_size.x > usable_size.y
 	var rendered_center_width: float = minf(usable_size.x, maxf(center_rect.size.x, 280.0))
 	if landscape:
