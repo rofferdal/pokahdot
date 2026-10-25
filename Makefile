@@ -5,7 +5,7 @@ GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd
 WEB_EXPORT_PATH := build/web/index.html
 WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 
-.PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
+.PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate gui-ipad-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
 
 check:
 	$(MAKE) --no-print-directory profile-evolution-test
@@ -22,6 +22,9 @@ gui-visual-invariant-gate:
 
 gui-phone-invariant-gate:
 	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_phone_invariant_matrix_runner.gd -gexit
+
+gui-ipad-invariant-gate:
+	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_ipad_invariant_matrix_runner.gd -gexit
 
 release-candidate-gate:
 	$(MAKE) --no-print-directory require-clean-worktree

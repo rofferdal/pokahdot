@@ -1701,10 +1701,14 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	# Re-resolve viewport-dependent compact/full copy in the same pass that owns
 	# its geometry so showing or resizing cannot leave stale status text behind.
 	_refresh_seat_status_labels()
+	var tablet_layout: bool = layout_profile == GuiLayoutProfileScript.Kind.TABLET
 	var mobile_portrait_layout: bool = GuiMobileTableLayoutScript.is_mobile_portrait(surface_size)
-	var portrait_tablet_layout: bool = GuiMobileTableLayoutScript.is_portrait_tablet(surface_size)
-	var landscape_tablet_layout: bool = GuiMobileTableLayoutScript.is_landscape_tablet(surface_size)
-	var small_desktop_layout: bool = GuiMobileTableLayoutScript.is_small_desktop(surface_size)
+	var portrait_tablet_layout: bool = tablet_layout and surface_size.y > surface_size.x
+	var landscape_tablet_layout: bool = tablet_layout and surface_size.x >= surface_size.y
+	var compact_tablet_layout: bool = tablet_layout and surface_size.x < 1600.0
+	var small_desktop_layout: bool = (
+		GuiMobileTableLayoutScript.is_small_desktop(surface_size) and not tablet_layout
+	)
 	var is_human_turn: bool = _bound_view.acting_seat == _bound_view.hero_seat
 	var active_legal: Array = _bound_view.legal_actions if is_human_turn else []
 	_configure_action_control_copy(active_legal)
@@ -1730,7 +1734,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	var mobile_content_scale: float = GuiMobileTableLayoutScript.content_scale(surface_size)
 	var seat_content_scale: float = GuiMobileTableLayoutScript.seat_scale(surface_size)
 	_card_slots.add_theme_constant_override(
-		"separation", 2 if small_desktop_layout or portrait_tablet_layout else 6
+		"separation", 2 if small_desktop_layout or compact_tablet_layout else 6
 	)
 	# Desktop controls use source dimensions directly.  The previous 0.75
 	# post-render correction scaled fonts, card faces, avatars, and border
@@ -1784,13 +1788,14 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	var primary_buttons := action_rows.get_node("PrimaryButtons") as HBoxContainer
 	action_content.add_theme_constant_override("separation", 0 if small_desktop_layout else 2)
 	action_rows.add_theme_constant_override("separation", 0 if small_desktop_layout else 2)
-	if small_desktop_layout or portrait_tablet_layout:
+	if small_desktop_layout or compact_tablet_layout:
 		_board_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		_pot_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		_wager_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		_action_status.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		_action_status.autowrap_mode = TextServer.AUTOWRAP_OFF
 		_action_status.clip_text = true
+		_action_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		_action_status.max_lines_visible = 1
 		_quit_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		for control: Control in [
@@ -1805,16 +1810,26 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			control.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 			if control is Button or control is LineEdit:
 				control.custom_minimum_size.y = 48.0
+				if compact_tablet_layout:
+					control.custom_minimum_size.x = maxf(control.custom_minimum_size.x, 48.0)
 		for button: Button in [
 			_fold_button, _check_call_button, _min_wager_button, _pot_raise_button
 		]:
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for status_label: Label in _seat_status_widgets.values():
 			status_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+			if compact_tablet_layout:
+				status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+				status_label.clip_text = true
+				status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+				status_label.max_lines_visible = 1
 		for card: Control in _card_slots.get_children():
 			GuiMobileTableLayoutScript._scale_card_face(card, Vector2(52.0, 57.0), 22)
 	_quit_button.custom_minimum_size.y = 48.0
 	_reserve_status_zone_height()
+	if compact_tablet_layout:
+		_pot_zone.custom_minimum_size.y = 42.0
+		_wager_zone.custom_minimum_size.y = 42.0
 	var center_width: float = clampf(
 		surface_size.x * (0.56 if mobile_portrait_layout else 0.48),
 		230.0,
@@ -1826,6 +1841,15 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	)
 	if portrait_tablet_layout:
 		center_width = 306.0
+	elif compact_tablet_layout:
+		var required_side_width: float = maxf(
+			_action_panel.get_combined_minimum_size().x,
+			_event_log.get_combined_minimum_size().x,
+		)
+		center_width = minf(
+			center_width,
+			maxf(230.0, surface_size.x - 2.0 * (required_side_width + 8.0)),
+		)
 	var board_style: StyleBox = _board_zone.get_theme_stylebox("panel")
 	var board_style_height: float = board_style.get_minimum_size().y if board_style != null else 0.0
 	var board_height: float = maxf(
@@ -1850,7 +1874,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		),
 	)
 	var center_position: Vector2 = (surface_size - center_size) * 0.5
-	if small_desktop_layout or portrait_tablet_layout:
+	if small_desktop_layout:
 		# Use the top safety edge so the compact side panels can begin directly
 		# after the central stack without entering its bounds.
 		center_position.y = 0.0
@@ -1870,7 +1894,10 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	if _seat_widgets.is_empty():
 		return
 	var compact_layout: bool = (
-		surface_size.x < 600.0 or mobile_portrait_layout or small_desktop_layout
+		surface_size.x < 600.0
+		or mobile_portrait_layout
+		or small_desktop_layout
+		or compact_tablet_layout
 	)
 	var seat_width: float = (
 		clampf(
@@ -1895,7 +1922,13 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	# stacks, markers, and card backs do not crowd the avatar at desktop sizes.
 	if not mobile_portrait_layout:
 		seat_width += maxf(OPPONENT_AVATAR_SIZE.x, HERO_AVATAR_SIZE.x) * 0.5 * seat_visual_scale
+	var compact_tablet_seat_width: float = maxf(160.0, (surface_size.x - center_width) * 0.5 - 8.0)
+	if compact_tablet_layout:
+		seat_width = compact_tablet_seat_width
 	var seat_count: int = _seat_widgets.size()
+	if compact_tablet_layout and not portrait_tablet_layout and seat_count == 9:
+		compact_tablet_seat_width = minf(compact_tablet_seat_width, (surface_size.x - 24.0) * 0.25)
+		seat_width = compact_tablet_seat_width
 	var full_ring_desktop_layout: bool = (
 		seat_count == 9 and not compact_layout and not landscape_tablet_layout
 	)
@@ -1912,8 +1945,6 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		(small_desktop_side_width - small_desktop_column_gap) * 0.5
 	)
 	var small_desktop_cell_order: Array[int] = [1, 2, 0, 3, 5, 6, 4, 7]
-	var portrait_tablet_opponent_index: int = 0
-	var portrait_tablet_seat_width: float = (surface_size.x - center_width) * 0.5 - 8.0
 	for seat: int in _seat_widgets:
 		var is_hero: bool = seat == _bound_view.hero_seat
 		var hero_minimum_height: float = maxf(
@@ -1933,25 +1964,34 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 				),
 				80.0 * seat_visual_scale,
 			)
-		if portrait_tablet_layout:
-			seat_size.x = center_width if is_hero else portrait_tablet_seat_width
+		if compact_tablet_layout:
+			seat_size.x = center_width if is_hero else compact_tablet_seat_width
 		var visual_slot: int = _visual_slot_for_seat(seat, seat_count)
 		var normalized_position: Vector2 = (
 			Vector2(0.5, 0.91)
 			if is_hero
 			else (
-				TableSeatLayoutScript.landscape_tablet_positions(seat_count)[visual_slot]
-				if landscape_tablet_layout
+				(
+					TableSeatLayoutScript.compact_tablet_portrait_positions(seat_count)[visual_slot]
+					if portrait_tablet_layout
+					else TableSeatLayoutScript.compact_tablet_positions(seat_count)[visual_slot]
+				)
+				if compact_tablet_layout
 				else (
-					(
-						TableSeatLayoutScript.small_desktop_positions(seat_count)[visual_slot]
-						if small_desktop_layout
-						else (
-							TableSeatLayoutScript.compact_desktop_positions(seat_count)[visual_slot]
+					TableSeatLayoutScript.landscape_tablet_positions(seat_count)[visual_slot]
+					if landscape_tablet_layout
+					else (
+						(
+							TableSeatLayoutScript.small_desktop_positions(seat_count)[visual_slot]
+							if small_desktop_layout
+							else (
+								TableSeatLayoutScript
+								. compact_desktop_positions(seat_count)[visual_slot]
+							)
 						)
+						if not mobile_portrait_layout and surface_size.x < 1200.0
+						else TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
 					)
-					if not mobile_portrait_layout and surface_size.x < 1200.0
-					else TableSeatLayoutScript.symmetric_positions(seat_count)[visual_slot]
 				)
 			)
 		)
@@ -1964,7 +2004,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			)
 		)
 		var panel: PanelContainer = _seat_widgets[seat]
-		if not small_desktop_layout and not portrait_tablet_layout:
+		if not small_desktop_layout and not compact_tablet_layout:
 			GuiMobileTableLayoutScript.restore_standard_seat_overlays(panel, is_hero)
 		GuiMobileTableLayoutScript.apply_seat_typography(
 			panel,
@@ -1973,9 +2013,11 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			1.0,
 			not mobile_portrait_layout and not small_desktop_layout
 		)
-		if small_desktop_layout or portrait_tablet_layout:
+		if small_desktop_layout:
 			GuiMobileTableLayoutScript.apply_small_desktop_seat_footprint(panel)
-		_reserve_full_name_width(panel, small_desktop_layout or portrait_tablet_layout)
+		elif compact_tablet_layout:
+			GuiMobileTableLayoutScript.apply_compact_tablet_seat_footprint(panel)
+		_reserve_full_name_width(panel, small_desktop_layout or compact_tablet_layout)
 		var minimum_size: Vector2 = panel.get_combined_minimum_size()
 		var standard_desktop_layout: bool = not compact_layout and not landscape_tablet_layout
 		var resolved_seat_size := (
@@ -1999,8 +2041,8 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			resolved_seat_size.y = minf(resolved_seat_size.y, 170.0)
 		if small_desktop_layout and not is_hero:
 			resolved_seat_size = Vector2(small_desktop_column_width, 88.0)
-		elif portrait_tablet_layout and not is_hero:
-			resolved_seat_size = Vector2(portrait_tablet_seat_width, 102.0)
+		elif compact_tablet_layout and not is_hero:
+			resolved_seat_size = Vector2(compact_tablet_seat_width, 102.0)
 		elif full_ring_desktop_layout and not is_hero:
 			resolved_seat_size.y = full_ring_opponent_height
 		panel.size = resolved_seat_size
@@ -2053,27 +2095,12 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 				]
 				panel.position = Vector2(cell_x_positions[column], row * 172.0)
 				small_desktop_opponent_index += 1
-		elif portrait_tablet_layout:
-			if is_hero:
-				panel.position = Vector2(
-					(surface_size.x - panel.size.x) * 0.5,
-					(
-						surface_size.y
-						- panel.size.y
-						- GuiMobileTableLayoutScript.COMPACT_STATUS_BAND_HEIGHT
-						- GuiMobileTableLayoutScript.STATUS_BAND_GAP
-					),
-				)
-			else:
-				var column: int = portrait_tablet_opponent_index % 2
-				var row: int = portrait_tablet_opponent_index / 2
-				panel.position = Vector2(
-					0.0 if column == 0 else surface_size.x - panel.size.x,
-					row * 168.0,
-				)
-				portrait_tablet_opponent_index += 1
 		var status_label: Label = _seat_status_widgets.get(seat)
-		var status_scale: float = 1.0 if small_desktop_layout else seat_visual_scale
+		var status_scale: float = (
+			GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+			if compact_tablet_layout
+			else (1.0 if small_desktop_layout else seat_visual_scale)
+		)
 		GuiMobileTableLayoutScript.layout_seat_status_band(
 			status_label, panel, compact_layout, status_scale
 		)
@@ -2114,24 +2141,8 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			- GuiMobileTableLayoutScript.COMPACT_STATUS_BAND_HEIGHT
 			- GuiMobileTableLayoutScript.STATUS_BAND_GAP
 		)
-	elif portrait_tablet_layout:
-		var portrait_hero: PanelContainer = _seat_widgets.get(_bound_view.hero_seat)
-		var portrait_side_size := Vector2(center_width, 125.0)
-		_event_log.size = portrait_side_size
-		_event_log.position = Vector2(center_position.x, center_size.y + 4.0)
-		_action_panel.size = portrait_side_size
-		_action_panel.position = Vector2(
-			center_position.x, _event_log.position.y + _event_log.size.y + 4.0
-		)
-		portrait_hero.position = Vector2(
-			center_position.x,
-			(
-				surface_size.y
-				- portrait_hero.size.y
-				- GuiMobileTableLayoutScript.COMPACT_STATUS_BAND_HEIGHT
-				- GuiMobileTableLayoutScript.STATUS_BAND_GAP
-			),
-		)
+	elif compact_tablet_layout:
+		_layout_compact_tablet_lower_regions(surface_size, center_width)
 	if compact_layout:
 		for seat: int in _seat_widgets:
 			(
@@ -2140,19 +2151,31 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 					_seat_status_widgets[seat],
 					_seat_widgets[seat],
 					true,
-					1.0 if small_desktop_layout or portrait_tablet_layout else seat_visual_scale,
+					(
+						GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+						if compact_tablet_layout
+						else (1.0 if small_desktop_layout else seat_visual_scale)
+					),
 				)
 			)
 	if not mobile_portrait_layout:
 		_resolve_status_band_clearance(
 			surface_size,
 			compact_layout,
-			1.0 if small_desktop_layout else seat_visual_scale,
+			(
+				GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+				if compact_tablet_layout
+				else (1.0 if small_desktop_layout else seat_visual_scale)
+			),
 		)
 	if not mobile_portrait_layout and not small_desktop_layout:
 		_resolve_seat_panel_intersections(
 			compact_layout,
-			1.0 if small_desktop_layout else seat_visual_scale,
+			(
+				GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+				if compact_tablet_layout
+				else (1.0 if small_desktop_layout else seat_visual_scale)
+			),
 		)
 	if not compact_layout:
 		# Containers can report a larger minimum after their children resolve.
@@ -2176,6 +2199,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		center_position,
 		center_size,
 		portrait_tablet_layout,
+		compact_tablet_layout,
 	)
 	if _wager_keypad != null and _wager_keypad.visible:
 		_wager_keypad.refresh_layout(mobile_content_scale)
@@ -2357,20 +2381,74 @@ func _layout_phone_quit_confirmation(plan: RefCounted = _applied_phone_layout_pl
 	_phone_quit_confirmation.size = plan.phone_quit_rect.size
 
 
+func _layout_compact_tablet_lower_regions(surface_size: Vector2, center_width: float) -> void:
+	var hero_panel: PanelContainer = _seat_widgets.get(_bound_view.hero_seat)
+	if hero_panel == null:
+		push_error("Compact tablet layout requires a human seat panel.")
+		return
+	var status_reservation: float = (
+		(
+			GuiMobileTableLayoutScript.COMPACT_STATUS_BAND_HEIGHT
+			* GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+		)
+		+ (
+			GuiMobileTableLayoutScript.STATUS_BAND_GAP
+			* GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+		)
+	)
+	var required_side_height: float = maxf(
+		125.0,
+		maxf(
+			_action_panel.get_combined_minimum_size().y,
+			_event_log.get_combined_minimum_size().y,
+		),
+	)
+	hero_panel.size.y = maxf(hero_panel.size.y, required_side_height)
+	hero_panel.size.x = center_width
+	if surface_size.y > surface_size.x:
+		var portrait_side_height: float = required_side_height
+		var portrait_side_y: float = surface_size.y - portrait_side_height
+		hero_panel.position = Vector2(
+			(surface_size.x - hero_panel.size.x) * 0.5,
+			portrait_side_y - status_reservation - hero_panel.size.y - 8.0,
+		)
+		hero_panel.position.y = maxf(hero_panel.position.y, _center_zone.get_rect().end.y + 4.0)
+		_event_log.size = Vector2(center_width, portrait_side_height)
+		_event_log.position = Vector2(0.0, portrait_side_y)
+		_action_panel.size = Vector2(center_width, portrait_side_height)
+		_action_panel.position = Vector2(surface_size.x - center_width, portrait_side_y)
+		return
+	hero_panel.position = Vector2(
+		(surface_size.x - hero_panel.size.x) * 0.5,
+		surface_size.y - hero_panel.size.y - status_reservation,
+	)
+	var side_width: float = maxf(0.0, (surface_size.x - hero_panel.size.x) * 0.5 - 8.0)
+	var side_height: float = required_side_height
+	var side_y: float = hero_panel.position.y + hero_panel.size.y - side_height
+	_event_log.size = Vector2(side_width, side_height)
+	_event_log.position = Vector2(0.0, side_y)
+	_action_panel.size = Vector2(side_width, side_height)
+	_action_panel.position = Vector2(surface_size.x - side_width, side_y)
+
+
 func _layout_quit_button(
 	center_position: Vector2,
 	center_size: Vector2,
 	portrait_tablet_layout: bool,
+	compact_tablet_layout: bool = false,
 ) -> void:
 	_quit_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_quit_button.size = Vector2(72.0, 48.0)
 	var top: float = center_position.y + center_size.y + 4.0
-	if portrait_tablet_layout:
+	var left: float = center_position.x + (center_size.x - _quit_button.size.x) * 0.5
+	if compact_tablet_layout and portrait_tablet_layout:
+		left = (_event_log.size.x - _quit_button.size.x) * 0.5
+		top = _event_log.position.y - _quit_button.size.y - 4.0
+	elif compact_tablet_layout:
+		top = maxf(0.0, center_position.y - _quit_button.size.y - 4.0)
+	elif portrait_tablet_layout:
 		top = _action_panel.position.y + _action_panel.size.y + 4.0
-	_quit_button.position = Vector2(
-		center_position.x + (center_size.x - _quit_button.size.x) * 0.5,
-		top,
-	)
+	_quit_button.position = Vector2(left, top)
 
 
 func _reserve_full_name_width(panel: PanelContainer, should_reserve: bool) -> void:

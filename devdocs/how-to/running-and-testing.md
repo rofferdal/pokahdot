@@ -131,6 +131,18 @@ landscape, and reduced-height viewports. It excludes the event-history state
 because the phone composition has no event-history surface. The development
 capture remains non-acceptance evidence and requires 100% visual review.
 
+Run the dedicated iPad geometry and full-state matrix with landscape as the
+primary orientation and portrait as secondary regression coverage:
+
+```bash
+make gui-ipad-invariant-gate
+```
+
+This includes canonical 1024 x 768 landscape and 768 x 1024 portrait, the
+1194 x 696 reduced-height Chrome regression, and the 2388 x 1450 observed
+surface at 2, 4, 6, 7, and 9 players. It does not expand the frozen Milestone 3
+capture count.
+
 Produce candidate evidence only from a clean committed tree:
 
 ```bash

@@ -676,11 +676,15 @@ state.
 
 Small-desktop geometry treats each seat and status band as one footprint,
 places the compact opponent seats around a bounded central board/pot/wager
-stack, and reserves independent event, human-seat, and action regions. The
-logical 768 x 1024 iPad portrait fixture has a dedicated tablet composition:
-opponents occupy two side columns, the central stack is top-aligned, the event
-feed and action panel stack below it, and the human seat remains at the bottom.
-Both compositions use compact seat content and concise control copy such as
+stack, and reserves independent event, human-seat, and action regions. Tablet
+composition is landscape-first but retains portrait regression support. Its
+board/pot/wager stack stays centered on the usable table surface, the human is
+bottom-center, and one layout owner places opponents on a deterministic
+left/right-symmetric arc. A six-player table therefore has one bot at the upper
+apex and two mirrored bot pairs. Compact tablet event history and actions own
+balanced lower regions around the human; position markers remain in seat header
+cells, and short-canvas status bands stay attached to their seats. These
+compositions use compact seat content and concise control copy such as
 `Call`, `Min <total>`, `Pot`, and `Total`, while retaining the 20 px text floor
 and 48 px interactive-control height. The strict Milestone 3 matrix validates
 these layouts alongside landscape tablet and desktop layouts for 2, 4, 6, and
@@ -705,7 +709,11 @@ in Milestone 3 therefore records a stable future input; it does not represent
 acceptance of the pre-phone layout.
 
 The canonical tablet fixtures use logical viewports of 768 x 1024 in portrait
-and 1024 x 768 in landscape. The existing 2388 x 1450 landscape case remains
+and 1024 x 768 in landscape. Landscape is the primary iPad orientation. The
+1194 x 696 reduced-height landscape regression models the logical game area
+inferred from the reported Chrome screenshot and automatically classifies as
+tablet; physical browser metrics remain required acceptance evidence. The
+existing 2388 x 1450 landscape case remains
 an additional observed-device regression, not a replacement for either
 canonical logical size. Its fixture metadata supplies an explicit tablet
 profile override: geometry alone classifies 2388 x 1450 as desktop because an

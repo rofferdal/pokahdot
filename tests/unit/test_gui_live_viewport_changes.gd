@@ -154,11 +154,24 @@ func test_compact_seat_styling_is_restored_after_returning_to_desktop() -> void:
 		assert_true(await harness.settle_layout(), str(compact_size))
 		for seat: int in range(6):
 			var compact_marker := _seat_marker(table, seat)
-			assert_eq(compact_marker.get_parent().name, &"AvatarRegion")
+			var tablet_compact: bool = compact_size == Vector2i(768, 1024)
+			assert_eq(
+				compact_marker.get_parent().name,
+				&"Header" if tablet_compact else &"AvatarRegion",
+			)
 			assert_false("SB" in compact_marker.text)
 			assert_false("BB" in compact_marker.text)
 			var compact_style := compact_marker.get_theme_stylebox("normal") as StyleBoxFlat
-			assert_eq(compact_style.bg_color, Color.TRANSPARENT)
+			if tablet_compact:
+				var avatar := (
+					table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat).find_child(
+						"AvatarRegion", true, false
+					)
+					as Control
+				)
+				assert_false(compact_marker.get_global_rect().intersects(avatar.get_global_rect()))
+			else:
+				assert_eq(compact_style.bg_color, Color.TRANSPARENT)
 		harness.resize_viewport(Vector2i(1920, 1080))
 		assert_true(await harness.settle_layout(), "desktop after %s" % compact_size)
 		assert_eq(table.get_seat_rects(), desktop_seat_rects, str(compact_size))

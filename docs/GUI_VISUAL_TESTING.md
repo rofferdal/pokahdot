@@ -24,6 +24,7 @@ viewport, device-pixel ratio, safe-area effects, and browser-chrome state.
 | `phone_landscape_844x330_chrome` | 844 x 330 | landscape | phone landscape, reduced height |
 | `ipad_portrait_768x1024` | 768 x 1024 | portrait | tablet |
 | `ipad_landscape_1024x768` | 1024 x 768 | landscape | tablet |
+| `ipad_landscape_1194x696_chrome` | 1194 x 696 | landscape | tablet, reduced-height regression |
 | `ipad_landscape_2388x1450_observed` | 2388 x 1450 | landscape | tablet regression |
 | `small_desktop_950x532` | 950 x 532 | landscape | small desktop |
 | `desktop_1280x720` | 1280 x 720 | landscape | desktop |
@@ -31,9 +32,13 @@ viewport, device-pixel ratio, safe-area effects, and browser-chrome state.
 
 The reduced-height fixtures are deterministic browser-chrome stress surfaces.
 They do not substitute for testing both expanded and collapsed browser chrome
-on a physical Android device. The observed 2388 x 1450 iPad fixture preserves
-a previously reported regression surface; it does not redefine the canonical
-iPad logical sizes. It carries an explicit tablet profile override because the
+on a physical Android device. The 1194 x 696 iPad landscape fixture models the
+logical game area inferred from a browser screenshot and is automatic tablet
+classification coverage; physical browser metrics must still confirm it. iPad
+landscape is the primary orientation and portrait remains secondary regression
+coverage. The observed 2388 x 1450 iPad fixture preserves a previously reported
+regression surface; it does not redefine the canonical iPad logical sizes. It
+carries an explicit tablet profile override because the
 same geometry without observed-device evidence is a valid desktop window and
 is classified as desktop. When a supported iPad exposes a different usable
 viewport, record that actual size in hosted evidence without renaming these
@@ -128,6 +133,7 @@ the editor binary is not on `PATH`, for example
 | `make gui-visual-capture-smoke` | Render only the 1280 x 720, six-player `human-turn-preflop` case. It accepts a dirty tree, writes development-only output, and checks the renderer/capture pipeline without running the complete matrix or ordinary test suite. It is never acceptance evidence. |
 | `make gui-visual-invariant-gate` | Run the complete applicable Milestone 3 tablet, small-desktop, and desktop matrix through the reusable scene harness and invariant assertions under GUT. It writes no screenshot evidence and may remain red while documented geometry remediation is unfinished. |
 | `make gui-phone-invariant-gate` | Run the distinct 378-case Milestone 4 phone matrix across all canonical portrait, landscape, and reduced-height fixtures at 2, 4, 6, and 7 players. It verifies full bot names, numeric stacks, two hole-card fields, phone overlays, absent event history, and resize cycles without altering the historical Milestone 3 matrix. |
+| `make gui-ipad-invariant-gate` | Run the iPad-specific full-state matrix at canonical portrait and landscape sizes, the 1194 x 696 reduced-height Chrome regression, and the 2388 x 1450 observed surface for 2, 4, 6, 7, and 9 players. It adds centering and symmetric-arc coverage without changing the frozen 348-case Milestone 3 capture matrix. |
 | `make gui-visual-capture-development` | Render the complete Milestone 3 capture matrix with `--development`. It accepts a dirty tree, records dirty paths and their fingerprint, and always produces non-acceptance evidence. It does not implicitly run `make check` or the standalone invariant gate. |
 | `make gui-phone-capture-development` | Render the complete Milestone 4 phone matrix as development-only evidence. Human review of this output is required by the separate local phone visual-acceptance task. |
 | `make gui-visual-capture` | Produce clean candidate evidence. It refuses a dirty tree, runs `make check` and `gui-visual-invariant-gate`, checks cleanliness again, then renders the complete Milestone 3 matrix. Its manifest is acceptance-eligible only when all 348 expected captures settle and pass their recorded invariants. |

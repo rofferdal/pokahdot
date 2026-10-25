@@ -1,6 +1,7 @@
 # Optimizing the Phone GUI
 
-Status: Active — portrait is functional; visual polish and deferred landscape policy remain
+Status: Active — portrait works; betting-round action persistence and the
+deferred landscape policy remain
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -160,6 +161,27 @@ complete only when its acceptance evidence has been recorded.
   stack, and turn copy without overlap. It also exposed a clipped `Fold` badge
   and empty framed badge cells; the working tree now uses an intentional `F`
   state badge and hides empty badge cells without narrowing names.
+- [ ] **Add a failing phone regression for per-seat action persistence.** Drive
+  several players through one betting round and require every seat to retain
+  its own latest public action after later players act and after any transient
+  notification timer expires. A later action by the same player must replace
+  only that seat's previous action. Actions must clear at the defined new-
+  street or new-hand boundary, while durable fold presentation remains clear.
+  Acceptance: the regression fails on the current behavior and uses only
+  recipient-safe public action history.
+- [ ] **Keep each phone seat's latest betting-round action visible.** Make the
+  compact seat-owned action/status presentation persist for the whole current
+  betting round instead of expiring as a transient message. Fit Check, Call,
+  Bet, Raise, All-in, and Fold states without hiding the full name, numeric
+  stack, position marker, or two card fields; do not change poker-core rules or
+  leak private information. Acceptance: each player's most recent action is
+  continuously attributable to that player until the proper reset boundary.
+- [ ] **Verify persistent actions on the physical phone.** Deploy one clean SHA
+  and exercise 2-, 4-, 6-, and 7-player portrait tables across preflop, flop,
+  turn, and river, including repeated actions by one player, folds, all-ins,
+  and street transitions. Acceptance: the user confirms the latest action for
+  every player remains legible and correctly resets, with no loss of touch
+  usability; record screenshots and deployment provenance here.
 - [ ] **Validate browser bars, safe areas, and Android navigation behavior.**
   Exercise the address bar expanded and collapsed, page scroll prevention,
   fullscreen if supported, keyboard/keypad opening, back navigation, and
@@ -265,3 +287,13 @@ complete only when its acceptance evidence has been recorded.
   portrait transition does not reproduce the deferred rotation path.
 - Current automated result: 505/505 GUT tests and 16,831 assertions pass; the
   complete phone invariant gate also passes.
+
+### 2026-10-25 — Physical-phone action-persistence follow-up
+
+- The user confirms that the portrait phone interface otherwise behaves as
+  described.
+- Remaining portrait defect: each player's latest action is not retained and
+  visible for the duration of the current betting round.
+- The phone backlog therefore remains active. The next work is the regression,
+  implementation, and physical verification sequence added to Phase 3 above;
+  no fix or verification is claimed by this entry.

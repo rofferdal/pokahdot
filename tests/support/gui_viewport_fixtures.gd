@@ -44,6 +44,13 @@ static func all() -> Array[Dictionary]:
 		_fixture(&"ipad_portrait_768x1024", Vector2i(768, 1024), PROFILE_TABLET),
 		_fixture(&"ipad_landscape_1024x768", Vector2i(1024, 768), PROFILE_TABLET),
 		_fixture(
+			&"ipad_landscape_1194x696_chrome",
+			Vector2i(1194, 696),
+			PROFILE_TABLET,
+			true,
+			true,
+		),
+		_fixture(
 			&"ipad_landscape_2388x1450_observed",
 			Vector2i(2388, 1450),
 			PROFILE_TABLET,

@@ -36,7 +36,9 @@ const STANDARD_OPPONENT_HEADER_SEPARATION: int = 5
 const STANDARD_HERO_HEADER_SEPARATION: int = 7
 const COMPACT_AVATAR_REGION_SIZE := Vector2(48.0, 56.0)
 const COMPACT_MARKER_WIDTH: float = 48.0
+const COMPACT_TABLET_MARKER_WIDTH: float = 36.0
 const COMPACT_MARKER_SINGLE_LINE_HEIGHT: float = 32.0
+const COMPACT_TABLET_STATUS_SCALE: float = 0.5
 
 
 static func is_mobile_portrait(surface_size: Vector2) -> bool:
@@ -194,6 +196,28 @@ static func apply_small_desktop_seat_footprint(panel: PanelContainer) -> void:
 	for card: Control in panel.find_children("*", "Control", true, false):
 		if card.name.begins_with("CardBack") or card.name.begins_with("ShowdownCard"):
 			_scale_card_face(card, Vector2(28.0, 34.0), GUI_MINIMUM_FONT_SIZE)
+
+
+static func apply_compact_tablet_seat_footprint(panel: PanelContainer) -> void:
+	apply_small_desktop_seat_footprint(panel)
+	var header := panel.find_child("Header", true, false) as HBoxContainer
+	var marker := panel.find_child("Marker", true, false) as Label
+	if header == null or marker == null:
+		return
+	if marker.get_parent() != header:
+		marker.reparent(header)
+	marker.add_theme_color_override("font_color", Color("172331"))
+	marker.remove_theme_color_override("font_outline_color")
+	marker.remove_theme_constant_override("outline_size")
+	marker.custom_minimum_size = Vector2(
+		COMPACT_TABLET_MARKER_WIDTH, COMPACT_MARKER_SINGLE_LINE_HEIGHT
+	)
+	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if marker.has_meta("standard_style"):
+		var standard_style: Variant = marker.get_meta("standard_style")
+		if standard_style is StyleBox:
+			marker.add_theme_stylebox_override("normal", standard_style)
+	header.move_child(marker, header.get_child_count() - 1)
 
 
 static func _make_marker_background_transparent(marker: Label) -> void:

@@ -105,6 +105,95 @@ static func landscape_tablet_positions(seat_count: int) -> Array[Vector2]:
 	return symmetric_positions(seat_count)
 
 
+static func compact_tablet_positions(seat_count: int) -> Array[Vector2]:
+	# Compact logical iPad canvases need the same table-shaped ordering as the
+	# full layout, but side seats must stay outside the centered board. Values
+	# are mirrored around x=0.5 and rise toward the upper center.
+	match seat_count:
+		2:
+			return [Vector2(0.5, 0.05), Vector2(0.5, 0.91)]
+		3:
+			return [Vector2(0.87, 0.28), Vector2(0.5, 0.91), Vector2(0.13, 0.28)]
+		4:
+			return [
+				Vector2(0.5, 0.05),
+				Vector2(0.87, 0.34),
+				Vector2(0.5, 0.91),
+				Vector2(0.13, 0.34),
+			]
+		5:
+			return [
+				Vector2(0.68, 0.06),
+				Vector2(0.87, 0.40),
+				Vector2(0.5, 0.91),
+				Vector2(0.13, 0.40),
+				Vector2(0.32, 0.06),
+			]
+		6:
+			return [
+				Vector2(0.5, 0.04),
+				Vector2(0.87, 0.27),
+				Vector2(0.87, 0.58),
+				Vector2(0.5, 0.91),
+				Vector2(0.13, 0.58),
+				Vector2(0.13, 0.27),
+			]
+		7:
+			return [
+				Vector2(0.68, 0.06),
+				Vector2(0.87, 0.32),
+				Vector2(0.87, 0.59),
+				Vector2(0.5, 0.91),
+				Vector2(0.13, 0.59),
+				Vector2(0.13, 0.32),
+				Vector2(0.32, 0.06),
+			]
+		8:
+			return [
+				Vector2(0.5, 0.04),
+				Vector2(0.72, 0.16),
+				Vector2(0.87, 0.38),
+				Vector2(0.87, 0.61),
+				Vector2(0.5, 0.91),
+				Vector2(0.13, 0.61),
+				Vector2(0.13, 0.38),
+				Vector2(0.28, 0.16),
+			]
+		9:
+			return [
+				Vector2(0.625, 0.04),
+				Vector2(0.875, 0.04),
+				Vector2(0.875, 0.32),
+				Vector2(0.875, 0.58),
+				Vector2(0.5, 0.91),
+				Vector2(0.125, 0.58),
+				Vector2(0.125, 0.32),
+				Vector2(0.125, 0.04),
+				Vector2(0.375, 0.04),
+			]
+		_:
+			push_error("TableSeatLayout does not support %d compact tablet seats." % seat_count)
+			return []
+
+
+static func compact_tablet_portrait_positions(seat_count: int) -> Array[Vector2]:
+	if seat_count == 9:
+		# Portrait has enough vertical room for four mirrored arc levels. Avoid
+		# shrinking four panels into one top row as required on short landscape.
+		return [
+			Vector2(0.87, 0.05),
+			Vector2(0.87, 0.23),
+			Vector2(0.87, 0.41),
+			Vector2(0.87, 0.59),
+			Vector2(0.5, 0.91),
+			Vector2(0.13, 0.59),
+			Vector2(0.13, 0.41),
+			Vector2(0.13, 0.23),
+			Vector2(0.13, 0.05),
+		]
+	return compact_tablet_positions(seat_count)
+
+
 static func small_desktop_positions(seat_count: int) -> Array[Vector2]:
 	if seat_count == 7:
 		# Short desktop surfaces need the upper pair and side seats outside the

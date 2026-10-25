@@ -1,15 +1,15 @@
 # Optimizing the iPad GUI
 
-Status: Deferred — record only; do not start while phone GUI work is active  
+Status: Awaiting physical iPad verification — automated landscape remediation complete
 Evidence baseline: iPad Chrome screenshot supplied by the user on 2026-10-25
 
 ## Scope
 
-This backlog records the iPad layout regression separately from the active
-phone work. Do not implement, test, or mark any remediation task complete until
-the user explicitly resumes iPad GUI work. Future iPad changes must preserve
-the phone and desktop compositions, recipient privacy, poker behavior, and the
-active tournament across browser resize or orientation changes.
+This backlog records the iPad layout regression separately from the phone
+work. Landscape is the iPad's primary orientation and therefore leads visual
+acceptance; portrait remains required secondary regression coverage. Changes
+must preserve the phone and desktop compositions, recipient privacy, poker
+behavior, and the active tournament across browser resize or orientation changes.
 
 The supplied image is a 2388 x 1668 raster that includes iPad and Chrome UI.
 It shows a six-player preflop human turn in landscape orientation. Its full
@@ -56,7 +56,7 @@ not by themselves require the center region to be vertically centered or the
 opponent seats to be mirror-symmetric. That gap can allow the captured layout
 to pass even though the overall composition has regressed.
 
-## Deferred tasks
+## Tasks
 
 - [ ] **Record reproducible iPad-browser evidence.** Recreate the supplied
   six-player state and record the iPad model and OS, Chrome version, exact URL,
@@ -65,44 +65,44 @@ to pass even though the overall composition has regressed.
   and selected layout profile. Save a fresh screenshot with those measurements.
   Acceptance: the observed geometry is reproducible without treating screenshot
   pixels as logical pixels.
-- [ ] **Specify the iPad table-geometry contract in tests.** Define the usable
+- [x] **Specify the iPad table-geometry contract in tests.** Define the usable
   table center, center-zone tolerance, seat-panel sizes, radial/arc clearances,
   and deterministic seat slots for 2–9 players in landscape and portrait. Keep
   the human at bottom center. For five bots, require one upper-apex seat and two
   mirrored pairs; for every other count, require an equivalent balanced arc.
   Acceptance: the contract is precise enough to fail a top-row grid or a single
   unpaired lower-left seat without depending on player names.
-- [ ] **Add a regression for the captured composition before changing layout.**
+- [x] **Add a regression for the captured composition before changing layout.**
   Exercise the measured usable viewport and the existing observed 2388 x 1450
   fixture. Assert both coordinates of the center-zone midpoint against the
   usable table center, mirrored bot-seat centers and sizes, stable arc ordering,
   the bottom-center human anchor, and reserved lower utility regions.
   Acceptance: the test fails on the captured arrangement for the intended
   reason while existing containment and non-intersection checks remain intact.
-- [ ] **Restore a genuinely centered community-card region.** Position the
+- [x] **Restore a genuinely centered community-card region.** Position the
   board at the visual center of the playable table surface and keep pot and
   wager information in a bounded center stack. Account explicitly for the
   lower human/event/action band instead of centering in the screenshot raster
   or browser chrome. Acceptance: the center remains centered and unobstructed
   across supported iPad sizes, states, and browser-bar changes.
-- [ ] **Restore symmetric semicircular bot seating.** Replace the captured top
+- [x] **Restore symmetric semicircular bot seating.** Replace the captured top
   strip and displaced fifth bot with deterministic positions around the center.
   Use mirrored geometry from one layout owner, preserve stable seat identities
   through state changes, and keep sufficient clearance from the center and
   lower utility regions. Acceptance: screenshot and coordinate tests visibly
   read as players seated around one table at 2, 4, 6, 7, and 9 players.
-- [ ] **Give position markers and status bands owned seat regions.** Reserve a
+- [x] **Give position markers and status bands owned seat regions.** Reserve a
   marker cell that cannot cover an avatar, name, stack, or cards, and keep each
   latest action, blind post, durable fold, showdown summary, and winner result
   attached to its seat. Acceptance: no marker overlays identity art, no status
   appears detached or ambiguous, and state changes do not move seat rectangles.
-- [ ] **Rebalance the lower iPad utility band.** Keep the human seat at bottom
+- [x] **Rebalance the lower iPad utility band.** Keep the human seat at bottom
   center with event history and action controls in explicit lower-left and
   lower-right regions. Give Quit an owned non-overlapping location and preserve
   readable action labels and touch targets. Acceptance: lower utilities neither
   displace the table center nor intrude into the opponent arc.
-- [ ] **Run the automated iPad matrix.** Cover canonical 768 x 1024 portrait and
-  1024 x 768 landscape, the measured real-browser viewport, and observed
+- [x] **Run the automated iPad matrix.** Cover canonical 768 x 1024 portrait and
+  1024 x 768 landscape, the inferred real-browser regression viewport, and observed
   2388 x 1450 coverage with 2, 4, 6, 7, and 9 players. Exercise startup, bot
   turn, human turns on multiple streets, wager entry, fold retention, all-in
   runout, showdown, winner, elimination, quit confirmation, browser-bar
@@ -114,3 +114,35 @@ to pass even though the overall composition has regressed.
   portrait. Record screenshots and deployment provenance. Acceptance: the user
   confirms that the board is centered, bot seats form a symmetric table arc,
   controls work comfortably by touch, and the iPad presentation is satisfactory.
+
+## Evidence log
+
+### 2026-10-25 — Landscape-first automated remediation
+
+- The supplied 2388 x 1668 screenshot includes browser chrome. Its visible game
+  canvas is consistent with an approximately 1194 x 696 logical viewport at
+  device-pixel ratio 2, but this remains an inference until the first evidence
+  task records the browser values on the device.
+- Root cause: 1194 x 696 exceeded the previous automatic tablet long-edge
+  boundary and entered the reduced-height desktop grid. That branch put the
+  board in the top row and could not preserve the requested seat arc.
+- The automatic tablet boundary now includes the inferred landscape canvas.
+  Compact tablet layout keeps the board at the usable-surface center, the human
+  at bottom center, and bots on a deterministic mirrored arc. For six players,
+  the arc has one upper apex and two mirrored pairs.
+- Event history and actions flank the human in owned lower regions. Quit has an
+  owned location, markers remain in the seat header rather than covering the
+  avatar, and reduced-height status bands remain seat-owned and single-line.
+- Automated geometry coverage passes at 1194 x 696, 1024 x 768, 768 x 1024,
+  and 2388 x 1450 for 2, 4, 6, 7, and 9 players. The dedicated full-state gate
+  passes with `make gui-ipad-invariant-gate`.
+- Primary visual evidence:
+  `localtmp/ipad-layout-after-final/be495db22094__ipad_landscape_1194x696_chrome__1194x696-landscape__p6__human-turn-preflop.png`.
+  It shows the centered board and symmetric five-bot arc. This dirty-tree
+  development capture is diagnostic evidence, not physical-device acceptance.
+- Regression result: the iPad gate, historical Milestone 3 invariant gate, and
+  phone invariant gate all pass. The repository-wide check passes 510/510 GUT
+  tests with 17,164 assertions, 72 Python tests, lint, and formatting.
+- Portrait remains covered as a secondary orientation. The next required step
+  is a clean deployment and landscape-first review on the physical iPad;
+  portrait should also receive a shorter regression check.

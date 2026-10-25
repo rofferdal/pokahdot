@@ -39,6 +39,18 @@ func test_milestone_three_capture_matrix_is_complete_unique_and_deterministic() 
 	assert_eq(CaptureManifestScript.milestone_three_cases(&"", &"startup", 2).size(), 0)
 
 
+func test_explicit_regression_viewport_does_not_expand_the_full_matrix() -> void:
+	var cases: Array[Dictionary] = CaptureManifestScript.milestone_three_cases(
+		&"ipad_landscape_1194x696_chrome", &"human-turn-preflop", 6
+	)
+	assert_eq(cases.size(), 1)
+	assert_eq(cases[0].viewport.key, &"ipad_landscape_1194x696_chrome")
+	assert_eq(
+		CaptureManifestScript.milestone_three_cases().size(),
+		CaptureManifestScript.MILESTONE_3_CAPTURE_COUNT,
+	)
+
+
 func test_phone_capture_matrix_is_separate_complete_unique_and_deterministic() -> void:
 	var cases: Array[Dictionary] = CaptureManifestScript.phone_cases()
 	assert_eq(cases.size(), CaptureManifestScript.PHONE_CAPTURE_COUNT)

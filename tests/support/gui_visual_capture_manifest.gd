@@ -43,7 +43,9 @@ static func milestone_three_cases(
 ) -> Array[Dictionary]:
 	var cases: Array[Dictionary] = []
 	for viewport: Dictionary in GuiViewportFixturesScript.all():
-		if viewport.key not in MILESTONE_3_VIEWPORT_IDS:
+		# Preserve the frozen full Milestone 3 matrix while allowing an explicit
+		# development capture of a newer registered regression viewport.
+		if viewport.key not in MILESTONE_3_VIEWPORT_IDS and viewport.key != viewport_id:
 			continue
 		if not viewport_id.is_empty() and viewport.key != viewport_id:
 			continue
