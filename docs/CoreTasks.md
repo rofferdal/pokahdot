@@ -96,5 +96,8 @@ manifests, matchups, candidate batches, or profile evolution.
 ## Shared release verification
 
 - [x] Run all headless tests and resolve warnings or invariant failures.
-- [ ] Review all user-facing text and documentation for consistency with the
-  implemented game.
+- [x] Review all user-facing text and documentation for consistency with the
+  implemented game. The release audit aligned the README launch/version text,
+  current roster version and reuse policy, legacy-roster validation wording,
+  and developer-document links with the implementation. All current local
+  Markdown links resolve after the corrections.

@@ -6,14 +6,14 @@ This guide provides the complete, authoritative procedure for updating or replac
 
 ## 1. Understanding Playable Rosters and `PlayableBotRoster`
 
-Pokahdot manages all playable in-game bots through a centralized, source-controlled catalog class: [`PlayableBotRoster`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd).
+Pokahdot manages all playable in-game bots through a centralized, source-controlled catalog class: [`PlayableBotRoster`](../../scripts/core/agents/playable_bot_roster.gd).
 
 ### Key Architectural Invariants of `PlayableBotRoster`:
-1. **Centralized Composition**: Both [`GuiMatchFactory`](file:///Users/rofferdal/git/pokahdot/scripts/gui/gui_match_factory.gd) and [`CliMatchFactory`](file:///Users/rofferdal/git/pokahdot/scripts/cli/cli_match_factory.gd) delegate bot selection and creation exclusively to `PlayableBotRoster`.
+1. **Centralized Composition**: Both [`GuiMatchFactory`](../../scripts/gui/gui_match_factory.gd) and [`CliMatchFactory`](../../scripts/cli/cli_match_factory.gd) delegate bot selection and creation exclusively to `PlayableBotRoster`.
 2. **Deep-Copy Isolation**: The catalog loads profiles once, but `select()` and `create_bot()` return deep copies. Matches cannot mutate shared profile resources.
-3. **Deterministic Positional Selection**: Given a tournament seed, seats are assigned profiles deterministically without replacement via `select(count, rng)`.
-4. **Guaranteed Legacy Retention**: The catalog strictly enforces that hand-authored legacy archetypes (`random_default`, `tight_passive_default`, `loose_aggressive_default`) are retained. Validation fails if any legacy archetype is missing.
-5. **Roster Version Tracking**: The constant `ROSTER_VERSION` (e.g. `curated_v1`) provides source-controlled identity for the catalog. Interactive diagnostics log this version alongside every seat's assigned profile.
+3. **Deterministic Positional Selection**: Given a tournament seed, seats are assigned profiles deterministically. Selection exhausts each requested model family before reusing a profile.
+4. **Legacy Availability**: The default catalog retains the three hand-authored legacy archetypes (`random_default`, `tight_passive_default`, `loose_aggressive_default`). Validation requires at least one legacy profile when legacy selection is enabled, but does not enforce those three IDs individually.
+5. **Roster Version Tracking**: The constant `ROSTER_VERSION` (`curated_v2`) provides source-controlled identity for the catalog. Interactive diagnostics log this version alongside every seat's assigned profile.
 
 ---
 
@@ -64,11 +64,11 @@ manifest remains a trustworthy before-state even after the catalog changes.
 
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
-  export-roster-manifest --output artifacts/curated_v1_before.json \
-  --batch-id curated_v1_before --seed 71001 --tournament-count 2520
+  export-roster-manifest --output artifacts/curated_v2_before.json \
+  --batch-id curated_v2_before --seed 71001 --tournament-count 2520
 
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
-  validate --config artifacts/curated_v1_before.json
+  validate --config artifacts/curated_v2_before.json
 ```
 
 Run and retain a report from this exact manifest if it will be used as a
@@ -157,11 +157,11 @@ This writes a versioned `.tres` file under `resources/bot_profiles/published/` (
 
 ### Step 5: Update `PlayableBotRoster`
 
-Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd):
+Open [`scripts/core/agents/playable_bot_roster.gd`](../../scripts/core/agents/playable_bot_roster.gd):
 
 1. **Increment `ROSTER_VERSION`**:
    ```gdscript
-   const ROSTER_VERSION: StringName = &"curated_v2"
+   const ROSTER_VERSION: StringName = &"curated_v3"
    ```
 
 2. **Add or Replace Profile in `DEFAULT_PROFILE_PATHS`**:
@@ -193,13 +193,13 @@ Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/
 
 ### Step 6: Update Test Suites
 
-Update the roster unit tests in [`tests/unit/test_playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/tests/unit/test_playable_bot_roster.gd) to assert the new roster version:
+Update the roster unit tests in [`tests/unit/test_playable_bot_roster.gd`](../../tests/unit/test_playable_bot_roster.gd) to assert the new roster version:
 
 ```gdscript
-assert_eq(roster.get_roster_version(), &"curated_v2")
+assert_eq(roster.get_roster_version(), &"curated_v3")
 ```
 
-If replacing a legacy test expectation in [`tests/unit/test_strategy_profiles.gd`](file:///Users/rofferdal/git/pokahdot/tests/unit/test_strategy_profiles.gd), update the parameter dictionary accordingly.
+If replacing a legacy test expectation in [`tests/unit/test_strategy_profiles.gd`](../../tests/unit/test_strategy_profiles.gd), update the parameter dictionary accordingly.
 
 Run the test suite:
 ```bash

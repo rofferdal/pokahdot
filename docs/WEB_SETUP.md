@@ -67,9 +67,11 @@ machine-local secret, so it belongs in version control.
 3. Select **Add…**, then choose **Web**.
 4. Name the preset exactly `Web`. The name is case-sensitive when used by the
    command line and deployment workflow below.
-5. Leave the renderer and export filters at their normal defaults. Do not
-   embed test sources or development addons intentionally. The game must still
-   include `scenes/`, `scripts/`, `resources/`, and `assets/`.
+5. Keep the committed recursive exclusions for `addons/`, `tests/`,
+   `localtmp/`, and `artifacts/`, together with the root test-harness files.
+   Godot's patterns need both the direct-child and recursive forms to exclude
+   every depth. The game must still include the production content under
+   `scenes/`, `scripts/`, `resources/`, and `assets/`.
 6. In the Web preset, ensure **Use Threads** is disabled. Leave Progressive
    Web App disabled unless the team explicitly decides to support offline
    installation and documents its cache/update behaviour.
@@ -109,8 +111,8 @@ make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-release
 On systems where `godot` is on `PATH`, omit the `GODOT=...` override. The
 command verifies that `build/web/index.html`, its direct HTML references, and
 the JavaScript, WebAssembly, and game-pack payloads exist. It also rejects a
-release output containing `addons` or `tests` directories. The final release
-path remains ignored by Git.
+release output containing development-only `addons`, `tests`, `localtmp`, or
+`artifacts` paths. The final release path remains ignored by Git.
 
 The command performs the equivalent export:
 

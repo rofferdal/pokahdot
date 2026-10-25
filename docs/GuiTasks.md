@@ -480,6 +480,15 @@ presentation layer.
 
 ## GUI release verification
 
-- [ ] Verify development addons and tests are excluded from release exports.
-- [ ] Verify Compatibility rendering on target desktop platforms and basic
-  mobile resizing.
+- [x] Verify development addons and tests are excluded from release exports.
+  The Web preset now excludes direct and nested `addons`, `tests`, `localtmp`,
+  and `artifacts` content plus the root test harness. The focused preset test
+  passes, a fresh Godot 4.7.2 release export passes the pack validator, and no
+  development-only path remains in `index.pck`.
+- [x] Verify Compatibility rendering on local macOS and basic mobile resizing.
+  This local gate is intentionally macOS-only; hosted desktop-browser coverage
+  remains in the authoritative Web/device matrix. Godot 4.7.2 rendered the
+  current 1280 x 720 desktop smoke fixture through OpenGL Compatibility on an
+  Apple M4 with all invariants passing. The passing resize regressions and the
+  reviewed 390 x 844 portrait and 640 x 360 landscape captures verify the
+  representative mobile transitions without adding another automated task.

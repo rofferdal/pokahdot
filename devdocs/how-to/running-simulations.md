@@ -7,11 +7,11 @@ Pokahdot includes a headless, non-interactive simulation harness in `scripts/sim
 ## 1. Simulation Architecture Overview
 
 The simulation runner operates in batch:
-1. **Manifest ([`SimulationManifest`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_manifest.gd))**: A versioned JSON file (schema 2) specifying profiles, matchups, structural regimes (stacks, blinds, player count), and evaluation plans.
-2. **Planner ([`SimulationBatchPlanner`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_batch_planner.gd))**: Expands the manifest into a deterministic, zero-based sequence of `SimulationTournamentInput` records with cyclic seat rotations.
-3. **Runner ([`SimulationBatchRunner`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_batch_runner.gd))**: Instantiates `TournamentMatch` with all-bot construction contracts (`TournamentConstructionContract.simulation()`), stepping matches to completion.
-4. **Metrics ([`SimulationTournamentMetrics`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_tournament_metrics.gd))**: Calculates VPIP (voluntarily put chips in pot), PFR (preflop raise), win rates, and chip fitness.
-5. **Report ([`SimulationReport`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_report.gd))**: Schema 3 JSON artifact storing complete outcomes, aggregates, recipient-safe traces, deterministic roster provenance derived from immutable profile snapshots, and ordered `selected_profile_ids` per tournament.
+1. **Manifest ([`SimulationManifest`](../../scripts/simulation/simulation_manifest.gd))**: A versioned JSON file (schema 2) specifying profiles, matchups, structural regimes (stacks, blinds, player count), and evaluation plans.
+2. **Planner ([`SimulationBatchPlanner`](../../scripts/simulation/simulation_batch_planner.gd))**: Expands the manifest into a deterministic, zero-based sequence of `SimulationTournamentInput` records with cyclic seat rotations.
+3. **Runner ([`SimulationBatchRunner`](../../scripts/simulation/simulation_batch_runner.gd))**: Instantiates `TournamentMatch` with all-bot construction contracts (`TournamentConstructionContract.simulation()`), stepping matches to completion.
+4. **Metrics ([`SimulationTournamentMetrics`](../../scripts/simulation/simulation_tournament_metrics.gd))**: Calculates VPIP (voluntarily put chips in pot), PFR (preflop raise), win rates, and chip fitness.
+5. **Report ([`SimulationReport`](../../scripts/simulation/simulation_report.gd))**: Schema 3 JSON artifact storing complete outcomes, aggregates, recipient-safe traces, deterministic roster provenance derived from immutable profile snapshots, and ordered `selected_profile_ids` per tournament.
 
 Simulation manifests are not subject to the playable product roster's limit of
 25 `StrategyDecisionModel`-based profiles. Use that freedom for larger
@@ -22,7 +22,7 @@ when validating `PlayableBotRoster` for GUI and CLI games.
 
 ## 2. Using the Simulation CLI
 
-The simulation entry point is [`scripts/simulation/simulation_cli_app.gd`](file:///Users/rofferdal/git/pokahdot/scripts/simulation/simulation_cli_app.gd). Pass arguments after `--`:
+The simulation entry point is [`scripts/simulation/simulation_cli_app.gd`](../../scripts/simulation/simulation_cli_app.gd). Pass arguments after `--`:
 
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- <command> [options]

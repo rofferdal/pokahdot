@@ -1,18 +1,20 @@
 # Pokahdot
 
-Pokahdot er et poker-spill laget i [Godot](https://godotengine.org/) 4. Spillreglene ligger i en felles kjerne (`scripts/core/`), slik at det samme spillet kan vises både grafisk og i terminalen.
+Pokahdot is a poker game built with [Godot](https://godotengine.org/) 4. The
+rules live in a shared core (`scripts/core/`), so the same game can be played
+through either the graphical interface or the terminal.
 
-Prosjektet er under utvikling.
+The project is under development.
 
-## Krav
+## Requirements
 
-- Godot **4.7** (GDScript, Compatibility-renderer)
-- Godot-binæren tilgjengelig som `godot` i `PATH`, eller full sti til editoren
+- Godot **4.7.2** (GDScript, Compatibility renderer)
+- The Godot binary available as `godot` in `PATH`, or the full editor path
 
 ## Start the graphical application (GUI)
 
 1. Open the `pokahdot` folder in the Godot editor (**Import** / **Open**).
-2. Press **Play** (F6). The startup screen is prefilled with 6 participants,
+2. Press **Play Project** (F5). The startup screen is prefilled with 6 participants,
    1000 chips, and 5/10 blinds. Select **Start tournament** without editing to
    use those defaults, or change any value before starting.
 3. The form validates whole-number input and the tournament constraints inline.
@@ -26,13 +28,13 @@ Prosjektet er under utvikling.
    include legacy heuristic profiles; this choice resets when returning to the
    startup screen.
 
-Fra terminal, med prosjektroten som arbeidsmappe:
+From a terminal with the repository root as the working directory:
 
 ```bash
 godot --path .
 ```
 
-På macOS, hvis Godot ikke ligger i `PATH`:
+On macOS, if Godot is not in `PATH`:
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --path .
@@ -40,13 +42,13 @@ På macOS, hvis Godot ikke ligger i `PATH`:
 
 ## Start headless (terminal)
 
-Kjør CLI-inngangen uten vindu:
+Run the CLI entry point without a window:
 
 ```bash
 godot --headless --path . --script res://scripts/cli/cli_app.gd
 ```
 
-På macOS uten `godot` i `PATH`:
+On macOS without `godot` in `PATH`:
 
 ```bash
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://scripts/cli/cli_app.gd
@@ -298,15 +300,15 @@ automatically validates and deploys that commit to GitHub Pages; follow
 
 The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after any completed hand before starting the next hand. At showdown the shared seat-status band displays the winning hand; when one player wins before showdown, that band displays exactly `Winner`. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.
 
-## Mappestruktur
+## Directory structure
 
 ```
 pokahdot/
-├── scenes/                 # Grafisk UI (.tscn)
+├── scenes/                 # Graphical UI (.tscn)
 ├── scripts/
-│   ├── core/               # Spilllogikk uten UI
-│   ├── gui/                # Scripts til Control-noder
-│   └── cli/                # Terminal-UI (headless)
-├── resources/              # Custom Resources, f.eks. kortdata (.tres)
-└── assets/                 # Sprites, fonter og lyder
+│   ├── core/               # Game logic without UI
+│   ├── gui/                # Scripts for Control nodes
+│   └── cli/                # Terminal UI (headless)
+├── resources/              # Custom Resources, such as card data (.tres)
+└── assets/                 # Sprites, fonts, and sounds
 ```

@@ -137,6 +137,11 @@ the capture runner rejects a headless or dummy renderer. Capture targets refuse
 to overwrite an existing manifest or PNG set. Preserve an existing evidence
 directory before attempting to capture the same source identity again.
 
+The Milestone 6 local Compatibility gate targets macOS only and uses these
+rendered workflows plus representative phone portrait/landscape review for
+basic resizing. It does not replace or duplicate the hosted desktop-browser
+and physical-device evidence required by the later Web/device matrix.
+
 For each affected matrix slice:
 
 1. Reproduce the case with the scene harness and record its invariant failures.

@@ -64,12 +64,12 @@ verify-web-release-output:
 			exit 1; \
 		}; \
 	done
-	@! find $(WEB_OUTPUT_DIR) -type d \( -name addons -o -name tests \) -print -quit | grep -q . || { \
-		echo "Release output must not include development addons or tests."; \
+	@! find $(WEB_OUTPUT_DIR) -type d \( -name addons -o -name tests -o -name localtmp -o -name artifacts \) -print -quit | grep -q . || { \
+		echo "Release output must not include development-only directories."; \
 		exit 1; \
 	}
-	@! strings $(WEB_OUTPUT_DIR)index.pck | grep -Eq '(^|/)(addons|tests)/' || { \
-		echo "Release game pack must not include development addons or tests."; \
+	@! strings $(WEB_OUTPUT_DIR)index.pck | grep -Eq '(^|/)(addons|tests|localtmp|artifacts)/' || { \
+		echo "Release game pack must not include development-only directories."; \
 		exit 1; \
 	}
 	@echo "Verified Web release output in $(WEB_OUTPUT_DIR)."

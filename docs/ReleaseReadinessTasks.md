@@ -202,16 +202,22 @@ configuration.
 Audit the user-facing description and release packaging only after behavior and
 layout have stabilized, so the review describes the candidate that will ship.
 
-- [ ] Complete the remaining task in
+- [x] Complete the remaining task in
   [`CoreTasks.md` — Shared release verification](CoreTasks.md#shared-release-verification)
   by reviewing user-facing text and documentation against the implemented game.
-- [ ] Complete both tasks in
+  The review corrected launch/version guidance, current roster documentation,
+  selection and validation wording, and nonportable links; all current local
+  Markdown links resolve.
+- [x] Complete both tasks in
   [`GuiTasks.md` — GUI release verification](GuiTasks.md#gui-release-verification),
   including export exclusion of development addons/tests and Compatibility
-  rendering with basic mobile resizing.
-- [ ] Resolve every discrepancy found by the audits in its owning layer, add a
+  rendering with basic mobile resizing. The local rendering gate is macOS-only;
+  browser coverage remains a later hosted-candidate requirement.
+- [x] Resolve every discrepancy found by the audits in its owning layer, add a
   regression where behavior changed, and rerun the relevant focused and full
-  checks before closing this milestone.
+  checks before closing this milestone. The export-filter regression, fresh
+  Web release output validation, 497-test GUT suite, 72 Python tests, lint,
+  formatting, Markdown-link audit, and macOS Compatibility smoke all pass.
 
 ## Milestone 7 — Immutable hosted release candidate
 

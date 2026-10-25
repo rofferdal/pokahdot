@@ -7,18 +7,18 @@ In this tutorial, you will learn how to formulate a candidate bot hypothesis, be
 ## 1. Overview & Learning Goals
 
 By the end of this tutorial, you will be able to:
-1. Understand the 4 strategy parameters of [`StrategyDecisionModel`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/strategy_decision_model.gd).
+1. Understand the 4 strategy parameters of [`StrategyDecisionModel`](../../scripts/core/agents/strategy_decision_model.gd).
 2. Export a schema-2 snapshot of the active roster, then author a separate candidate-inclusive manifest.
 3. Run the simulation CLI and inspect the generated schema-3 report.
 4. Interpret the 6-component fitness score, style metrics, and 95% confidence intervals.
 5. Use the external promotion tools to verify eligibility, review approvals, and publish the `.tres` Resource.
-6. Safely integrate the new profile into [`PlayableBotRoster`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd) and verify your changes with automated tests.
+6. Safely integrate the new profile into [`PlayableBotRoster`](../../scripts/core/agents/playable_bot_roster.gd) and verify your changes with automated tests.
 
 ---
 
 ## 2. The Mental Model: Bot Personalities & Parameters
 
-In Pokahdot, bot decisions are cleanly separated from personality tuning. The algorithm ([`StrategyDecisionModel`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/strategy_decision_model.gd)) evaluates board textures, hand rank percentiles, and pot odds. Its personality is governed by **four integer percentage parameters (0–100)**:
+In Pokahdot, bot decisions are cleanly separated from personality tuning. The algorithm ([`StrategyDecisionModel`](../../scripts/core/agents/strategy_decision_model.gd)) evaluates board textures, hand rank percentiles, and pot odds. Its personality is governed by **four integer percentage parameters (0–100)**:
 
 | Parameter | Range | What it controls |
 | :--- | :--- | :--- |
@@ -292,8 +292,8 @@ It uses the review plan's display name unless `--display-name` overrides it.
 
 Now bring the published profile into the playable game catalog:
 
-1. Open [`scripts/core/agents/playable_bot_roster.gd`](file:///Users/rofferdal/git/pokahdot/scripts/core/agents/playable_bot_roster.gd).
-2. Increment `ROSTER_VERSION` (e.g. from `&"curated_v1"` to `&"curated_v2"`).
+1. Open [`scripts/core/agents/playable_bot_roster.gd`](../../scripts/core/agents/playable_bot_roster.gd).
+2. Increment `ROSTER_VERSION` (for example, from `&"curated_v2"` to `&"curated_v3"`).
 3. Add the published resource path to `DEFAULT_PROFILE_PATHS`:
    ```gdscript
    const DEFAULT_PROFILE_PATHS: PackedStringArray = [

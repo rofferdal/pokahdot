@@ -117,7 +117,7 @@ Test candidate bots against both regimes:
 
 ## 5. Automated Promotion Gates & Decision Checklist
 
-Pokahdot enforces promotion rigor through the [`confirm-candidate`](file:///Users/rofferdal/git/pokahdot/tools/profile_evolution/confirmation.py) tool. An eligible candidate must satisfy each of the following strict criteria:
+Pokahdot enforces promotion rigor through the [`confirm-candidate`](../../tools/profile_evolution/confirmation.py) tool. An eligible candidate must satisfy each of the following strict criteria:
 
 ### The 7 Automated Promotion Criteria (`confirm-candidate`):
 1. **Lineage Provenance**: The candidate profile must be present in the lineage registry with complete generation, crossover, and mutation ancestry.

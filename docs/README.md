@@ -11,12 +11,13 @@
 
 - [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) — ordered orchestration
   and completion gates for the remaining product-release work.
-- [`CoreTasks.md`](CoreTasks.md) — shared and core-adjacent unfinished work.
-- [`CliTasks.md`](CliTasks.md) — interactive CLI verification.
+- [`CoreTasks.md`](CoreTasks.md) — shared and core-adjacent task evidence.
+- [`CliTasks.md`](CliTasks.md) — interactive CLI task evidence.
 - [`GuiTasks.md`](GuiTasks.md) — GUI, Web, and device work.
 - [`SimCoreTasks.md`](SimCoreTasks.md) — simulation domain and external
-  profile-evolution work.
-- [`SimCliTasks.md`](SimCliTasks.md) — non-interactive simulation CLI work.
+  profile-evolution task evidence.
+- [`SimCliTasks.md`](SimCliTasks.md) — non-interactive simulation CLI task
+  evidence.
 
 ## Specifications, runbooks, and guides
 

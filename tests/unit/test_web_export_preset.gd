@@ -5,7 +5,7 @@ const WEB_PRESET_SECTION := "preset.0"
 const WEB_OPTIONS_SECTION := "preset.0.options"
 
 
-func test_web_release_preset_is_committed_and_single_threaded() -> void:
+func test_web_release_preset_excludes_development_content_and_is_single_threaded() -> void:
 	var export_presets := ConfigFile.new()
 	var load_error := export_presets.load(WEB_PRESET_PATH)
 
@@ -15,7 +15,11 @@ func test_web_release_preset_is_committed_and_single_threaded() -> void:
 	assert_eq(export_presets.get_value(WEB_PRESET_SECTION, "export_path"), "build/web/index.html")
 	assert_eq(
 		export_presets.get_value(WEB_PRESET_SECTION, "exclude_filter"),
-		"addons/*,tests/*,.gutconfig.json,my_test_node.gd,my_test_node.tscn"
+		(
+			"addons/*,addons/**/*,tests/*,tests/**/*,localtmp/*,localtmp/**/*,"
+			+ "artifacts/*,artifacts/**/*,.gutconfig.json,"
+			+ "my_test_node.gd,my_test_node.tscn"
+		)
 	)
 	assert_false(
 		export_presets.get_value(WEB_OPTIONS_SECTION, "variant/thread_support"),

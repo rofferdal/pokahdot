@@ -1,6 +1,6 @@
 # Pokahdot Architecture
 
-Status: Core, interactive CLI tournament play, cross-interface release verification, the simulation CLI introduction, GUI work through archived Milestone 4.6b plus player-name implementation, and strategy work through archived Stratmilestone3 are implemented. GUI naming visual acceptance, remaining device/small-viewport verification, and profile-evolution backlogs remain unfinished.
+Status: Core, interactive CLI tournament play, simulation and profile-evolution workflows, cross-interface verification, GUI player names, stable desktop geometry, the dedicated small-phone composition, and the local documentation/export/Compatibility audit are implemented. The immutable hosted candidate and browser/device release gates remain unfinished.
 Last updated: 2026-10-25
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
@@ -559,7 +559,7 @@ The method may execute several bot turns synchronously, but it returns `YIELDED`
 
 The core checks a latched quit request before every state transition. GUI driving must use a bounded transition budget and yield back to Godot's event loop between budgets so the always-available quit control remains responsive. The CLI loops through bot progress without requesting stdin and accepts `quit`/`exit` whenever it is reading a human command.
 
-The completed implementation history proceeded through the interactive CLI first, then the GUI. Current unfinished work is split across [`CoreTasks.md`](CoreTasks.md), [`CliTasks.md`](CliTasks.md), [`GuiTasks.md`](GuiTasks.md), [`SimCoreTasks.md`](SimCoreTasks.md), and [`SimCliTasks.md`](SimCliTasks.md); completed historical sequencing is preserved under [`arkiv/`](arkiv/).
+The completed implementation history proceeded through the interactive CLI first, then the GUI, simulation, profile-evolution, and release-readiness phases. [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) defines the remaining ordered release gates, while the layer backlogs retain their authoritative task evidence. Completed historical sequencing is preserved under [`arkiv/`](arkiv/).
 
 ### GUI adapter
 
