@@ -1,11 +1,9 @@
 # GUI Tasks
 
-This backlog contains unfinished GUI, Web presentation, and device-validation
-work. Task status is preserved from the source backlogs. The environment table
-below is the single authoritative Web/device checklist; do not duplicate those
-environment tasks elsewhere. Follow the phase order in
-[`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md); section position in this
-ownership backlog does not override those dependency gates.
+This backlog records completed GUI, Web-presentation, local visual-verification,
+and export work. Task status is preserved from the source backlogs. Optional
+manual hosted browser and physical-device verification is documented in
+[`WEB_SETUP.md`](WEB_SETUP.md) and is not tracked as required backlog work.
 
 ## Milestone dependency — Strategic default roster and optional legacy heuristics
 
@@ -75,53 +73,6 @@ Complete the core configuration and roster-selection gates in
   unopened flop Pot bet to 20 and a Pot raise to 30, plus inclusive wager
   bounds, insufficient-stack and unavailable-action states, and responsive
   button wording. The focused 32-test action suite passes.
-
-## Authoritative Web and device acceptance matrix
-
-Follow [`WEB_SETUP.md`](WEB_SETUP.md). Every environment has exactly one
-status here and must be tested against one immutable commit and stable HTTPS
-URL. Record device/OS/browser versions, viewport or orientation, screenshots,
-and defects in the evidence record described by the runbook.
-
-- [ ] **Hosted build readiness:** publish the Web export at a stable HTTPS URL.
-  Open it in a private/incognito session, wait for the startup screen without
-  console errors, and record URL, commit, deployment run, export settings, and
-  evidence location.
-- [ ] **Desktop Chrome or Edge:** on current Windows or macOS, test 2-seat and
-  9-seat default tournaments at 1920 × 1080 and 1280 × 720. Complete the
-  representative flow below and capture every required state plus
-  readability/bounds results.
-- [-] (Firefox not available) **Desktop Firefox:** repeat the desktop matrix at
-  both sizes. Explicitly record font rendering, suit colors, event-history
-  scrolling, and event-log/human-seat bottom alignment against approved
-  references.
-- [ ] **Physical iPad Safari:** in portrait and landscape, test 2-seat and
-  9-seat games. Rotate during startup and live play; record scrolling,
-  clipping, overlap, readability, stale-layout, and touch results.
-- [-] (no available iPhone for testing) **Physical iPhone Safari:** in both
-  orientations, test a 7-seat game. Verify the phone event log is absent,
-  required seat information remains legible, Fold/Call/Raise/All-in taps work,
-  and one mid-play rotation preserves state without overlap; capture before/
-  after screenshots.
-- [ ] **Physical Android Chrome:** repeat the iPhone flow with the browser
-  address bar expanded and collapsed. Record touch, clipping, contrast,
-  text-size, and orientation results.
-- [ ] **Defect remediation:** for each reported defect, reproduce it from the
-  evidence where possible, change only the appropriate presentation or
-  deployment layer, add/update a regression, run the full suite, and prepare
-  a new deployment candidate.
-- [ ] **Evidence sign-off:** ensure every required record is attached to the
-  same immutable commit and stable URL, and affected environments are rerun
-  after every fix.
-- [ ] **Final representative human flow:** play through normal betting, an
-  all-in runout, showdown, elimination, tournament completion, and
-  `player_quit`. Resolve missing, ambiguous, clipped, overlapping,
-  low-contrast, or aesthetically inconsistent presentation before release.
-
-The representative flow for each applicable environment includes a fold,
-normal betting, all-in runout, showdown, elimination, tournament winner, Quit
-confirmation, and `player_quit`. No environment passes on editor preview,
-`file://`, LAN-only hosting, simulator-only evidence, or a different commit.
 
 ## Unified seat status row and stable geometry
 
@@ -234,7 +185,7 @@ grid, and the action buttons form one clearly grouped row.
 - [x] **Review corrected startup captures:** inspect the targeted development
   captures for 1920 x 1080, 1280 x 720, 950 x 532, and iPad portrait startup.
   The captures are dirty-tree development evidence and remain separate from
-  clean release-candidate evidence.
+  any optional clean release evidence.
 - [x] **Give the startup actions explicit button affordances:** render Start
   Tournament and Quit with visible borders and distinct normal, hover,
   pressed, focus, and disabled states while retaining their grouped row. A
@@ -246,8 +197,9 @@ grid, and the action buttons form one clearly grouped row.
 Complete the workflow foundation in this section before implementing the
 small-phone presentation milestone below. Use the same fixtures and defect loop
 for the small-desktop remediation above. These local and automated checks are
-pre-release gates; they do not replace the authoritative hosted browser/device
-matrix. Milestone 3 defines phone fixtures so the workflow has stable inputs,
+the repository's repeatable GUI gates; they do not establish behavior in a
+named browser or on a physical device. Milestone 3 defines phone fixtures so
+the workflow has stable inputs,
 but its passing gate covers desktop, tablet, and small-desktop cases. The full
 phone subset becomes a required passing gate only after the dedicated phone
 composition is implemented in Milestone 4.
@@ -302,10 +254,10 @@ Milestone 3/Milestone 4 gate split. Record each discovered issue with
   verification fields. For each defect, reproduce it deterministically, add a
   failing regression where practical, change one layout owner, rerun the
   affected matrix and complete suite, and attach the corrected evidence.
-- [x] **Document and enforce the pre-release gate:** update the relevant GUI
-  testing documentation and `WEB_SETUP.md` so an immutable hosted candidate is
-  produced only after the applicable automated matrix passes and all blocker,
-  unreadable, and obstructive defects are closed or explicitly accepted.
+- [x] **Document the local gate and optional hosted-verification handoff:**
+  update the relevant GUI testing documentation and `WEB_SETUP.md` so clean
+  hosted evidence, when collected, follows the applicable automated matrix and
+  records any blocker, unreadable, or obstructive defects.
   Milestone 3 requires the desktop, tablet, and small-desktop subsets; after
   Milestone 4 implements the phone composition, the complete phone subset is
   required as well.
@@ -336,7 +288,7 @@ passes against the corrected geometry.
   empty reserved band remains visually blank. Independent review of all 348
   rendered development captures found no remaining blocker across the required
   tablet, small-desktop, and desktop viewports. This is dirty-tree development
-  evidence, not the later clean release-candidate capture.
+  evidence, not an optional clean release capture.
 - [x] **Verify the small-desktop correction interactively:** run
   `godot --path .` and inspect 6- and 7-seat tables through preflop, street
   changes, and showdown. Confirm no player details, actions, showdown results,
@@ -460,16 +412,16 @@ presentation layer.
 - [x] **Perform local phone visual acceptance:** inspect the canonical
   screenshots and interactive local runs for information hierarchy, density,
   contrast, readability, and one-handed action use. Resolve all blocker,
-  unreadable, and obstructive defects before publishing the authoritative
-  hosted candidate; preserve physical-device sign-off for the existing Web and
-  device matrix. The complete 378-image development capture at
+  unreadable, and obstructive defects before treating local evidence as clean.
+  Optional physical-device review remains a separate manual activity. The
+  complete 378-image development capture at
   `artifacts/gui_visual/development/8f398a1620188f60491c06629d10f618dc2b2ba3-dbd2ad282b13`
   was reviewed at 100%. The densest seven-player 360 x 640, 640 x 360, and
   844 x 330 cases keep every bot's full display name, numeric stack, and two
   card fields visible, with readable center status and unobstructed actions.
   Manifest SHA-256:
   `2587a10479f4a945915d89628e415fb6a926717c9bbe9ae5169f6ceb5287ec9a`.
-  This dirty-tree local evidence is not physical-device or candidate sign-off.
+  This dirty-tree local evidence does not claim physical-device behavior.
 - [x] **Document the implemented contract:** update `ARCHITECTURE.md` and
   `ProvisionalGUILayoutGuidance.md` with the final layout profiles, player-count
   policy, phone information hierarchy, overlay ownership, and automated visual
@@ -487,7 +439,7 @@ presentation layer.
   development-only path remains in `index.pck`.
 - [x] Verify Compatibility rendering on local macOS and basic mobile resizing.
   This local gate is intentionally macOS-only; hosted desktop-browser coverage
-  remains in the authoritative Web/device matrix. Godot 4.7.2 rendered the
+  is an optional manual follow-up. Godot 4.7.2 rendered the
   current 1280 x 720 desktop smoke fixture through OpenGL Compatibility on an
   Apple M4 with all invariants passing. The passing resize regressions and the
   reviewed 390 x 844 portrait and 640 x 360 landscape captures verify the

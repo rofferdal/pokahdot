@@ -7,13 +7,14 @@
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) is the authoritative implementation
   design. It may refine structure but cannot change the product rules.
 
-## Active backlogs
+## Task records
 
-- [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) — ordered orchestration
-  and completion gates for the remaining product-release work.
+- [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) — completed ordered
+  release-readiness work and verification evidence.
 - [`CoreTasks.md`](CoreTasks.md) — shared and core-adjacent task evidence.
 - [`CliTasks.md`](CliTasks.md) — interactive CLI task evidence.
-- [`GuiTasks.md`](GuiTasks.md) — GUI, Web, and device work.
+- [`GuiTasks.md`](GuiTasks.md) — GUI, Web export, and local visual-verification
+  work.
 - [`SimCoreTasks.md`](SimCoreTasks.md) — simulation domain and external
   profile-evolution task evidence.
 - [`SimCliTasks.md`](SimCliTasks.md) — non-interactive simulation CLI task
@@ -27,11 +28,11 @@
 - [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md) — interactive CLI card text
   format.
 - [`WEB_SETUP.md`](WEB_SETUP.md) — automatic `main`-branch Web publishing and
-  authoritative device-test evidence runbook.
+  optional hosted browser/device verification runbook.
 - [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md) —
   provisional responsive Godot GUI guidance consistent with the architecture.
 - [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) — canonical GUI viewport and
-  state fixtures, screenshot evidence, review, and pre-release gate workflow.
+  state fixtures, screenshot evidence, review, and local gate workflow.
 - [`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md) — standard record for GUI
   visual, layout, reachability, and hosted-presentation defects.
 

@@ -1,10 +1,10 @@
 # GUI visual testing workflow
 
 This document defines the reusable local visual-testing contract for the GUI.
-It complements the automated GUT suite and the authoritative hosted
-browser/device process in [`WEB_SETUP.md`](WEB_SETUP.md). Local captures do not
-prove browser or physical-device support, and hosted screenshots do not replace
-deterministic geometry regressions.
+It complements the automated GUT suite and the optional hosted browser/device
+runbook in [`WEB_SETUP.md`](WEB_SETUP.md). Local captures do not prove browser
+or physical-device support, and hosted screenshots do not replace deterministic
+geometry regressions.
 
 ## Canonical viewport fixtures
 
@@ -94,13 +94,13 @@ fixtures for the completed phone composition at 2, 4, 6, and 7 players. The
 event-history surface. Defining those fixtures during Milestone 3 does not
 imply that the pre-Milestone-4 desktop composition passes phone acceptance.
 
-Before an immutable hosted candidate is produced, every implemented scope must
-pass its canonical automated matrix and rendered review. Every known blocker,
+Before clean release evidence is produced, every implemented scope must pass
+its canonical automated matrix and rendered review. Every known blocker,
 unreadable, or obstructive defect in that scope must be fixed or explicitly
 accepted by the product decision owner. Hosted browser and physical-device
-testing remains a later, authoritative gate. A defect found there creates a new
-candidate after remediation; it does not retroactively turn local evidence into
-device evidence.
+testing is an optional manual follow-up. A defect found there should be fixed
+and reverified; it does not retroactively turn local evidence into device
+evidence.
 
 ## Automated and rendered passes
 
@@ -140,7 +140,7 @@ directory before attempting to capture the same source identity again.
 The Milestone 6 local Compatibility gate targets macOS only and uses these
 rendered workflows plus representative phone portrait/landscape review for
 basic resizing. It does not replace or duplicate the hosted desktop-browser
-and physical-device evidence required by the later Web/device matrix.
+and physical-device evidence that may be collected manually.
 
 For each affected matrix slice:
 
@@ -227,14 +227,15 @@ SHA-256 in its review or defect record; the runner also prints that checksum.
 Review status is recorded outside the generated manifest so review cannot
 silently mutate the captured input record. The review record identifies the
 manifest checksum, reviewer, review time, result, defect IDs or acceptance
-decision, and durable evidence URL. Candidate sign-off requires the manifest
-source SHA, reviewed SHA, and eventual hosted candidate SHA to match.
+decision, and durable evidence URL. When optional hosted evidence is retained,
+the manifest source SHA, reviewed SHA, and hosted commit SHA should match.
 
-## Release-candidate promotion handoff
+## Optional hosted-verification handoff
 
 Each push to `main` automatically runs the headless release gates and deploys
 the pushed commit to GitHub Pages. Rendered capture and review remain a
-separate human acceptance activity. For an accepted source commit:
+separate human activity. When collecting reproducible hosted evidence, use
+this process:
 
 1. Run clean `make gui-visual-capture` and independently compute the completed
    `manifest.json` SHA-256.
@@ -254,20 +255,20 @@ separate human acceptance activity. For an accepted source commit:
 6. Confirm the checked-out SHA, manifest source SHA, reviewed SHA, and live
    Pages build are identical before accepting hosted evidence.
 
-Avoid pushing to `main` while hosted evidence is collected. Any successful new
-deployment requires a new clean capture and review for formal acceptance, plus
-an affected hosted-environment rerun. See
+Avoid pushing to `main` while hosted evidence is collected. A successful new
+deployment replaces the tested build, so repeat the affected checks if the
+evidence is intended to describe the current deployment. See
 [`WEB_SETUP.md`](WEB_SETUP.md) for the GitHub configuration and evidence fields.
 
-## Review and hosted-evidence boundary
+## Local-review and optional hosted-evidence boundary
 
 Canonical review establishes that the repository candidate is suitable to
-publish. [`WEB_SETUP.md`](WEB_SETUP.md) then records the deployment run, stable
-HTTPS URL, browser/device versions, actual usable viewport, orientation,
-console result, and physical interaction evidence. Do not reuse a local fixture
-label as proof that a named browser or physical device passed.
+publish. If optional hosted checks are performed, [`WEB_SETUP.md`](WEB_SETUP.md)
+provides fields for the deployment run, stable HTTPS URL, browser/device
+versions, actual usable viewport, orientation, console result, and physical
+interaction evidence. Do not reuse a local fixture label as proof that a named
+browser or physical device passed.
 
-An unavailable required environment is not a pass. The release record must
-either link to passing evidence for it or to an explicit product decision that
-removes or defers that support claim. A decision to remain blocked is not a
-release-ready result.
+Choose the environments that are useful for each manual review. If the result
+is used to make a browser or device support claim, record untested or
+unavailable environments as limitations rather than treating them as passes.

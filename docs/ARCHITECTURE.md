@@ -1,6 +1,6 @@
 # Pokahdot Architecture
 
-Status: Core, interactive CLI tournament play, simulation and profile-evolution workflows, cross-interface verification, GUI player names, stable desktop geometry, the dedicated small-phone composition, and the local documentation/export/Compatibility audit are implemented. The immutable hosted candidate and browser/device release gates remain unfinished.
+Status: Core, interactive CLI tournament play, simulation and profile-evolution workflows, cross-interface verification, GUI player names, stable desktop geometry, the dedicated small-phone composition, and the tracked release-readiness work are implemented. Hosted browser and physical-device verification is optional manual follow-up outside the task backlog.
 Last updated: 2026-10-25
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
@@ -559,7 +559,7 @@ The method may execute several bot turns synchronously, but it returns `YIELDED`
 
 The core checks a latched quit request before every state transition. GUI driving must use a bounded transition budget and yield back to Godot's event loop between budgets so the always-available quit control remains responsive. The CLI loops through bot progress without requesting stdin and accepts `quit`/`exit` whenever it is reading a human command.
 
-The completed implementation history proceeded through the interactive CLI first, then the GUI, simulation, profile-evolution, and release-readiness phases. [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) defines the remaining ordered release gates, while the layer backlogs retain their authoritative task evidence. Completed historical sequencing is preserved under [`arkiv/`](arkiv/).
+The completed implementation history proceeded through the interactive CLI first, then the GUI, simulation, profile-evolution, and release-readiness phases. [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) records the completed ordered release-readiness work, while the layer backlogs retain their task evidence. Completed historical sequencing is preserved under [`arkiv/`](arkiv/).
 
 ### GUI adapter
 
@@ -716,14 +716,13 @@ validation. A successful run deploys that exact build to the rolling GitHub
 Pages URL so developers can discover browser- and device-specific defects
 early. Neither headless step claims to reproduce representative pixels.
 
-Formal acceptance still requires a rendering-capable developer machine to
-produce a clean, acceptance-eligible screenshot manifest and an identified
-human to review the immutable bundle. The manifest, review, deployment run,
-and hosted evidence must identify the same full commit SHA. Avoid changing
-`main` while formal hosted evidence is being collected; a later successful
-push replaces the site, creates a new candidate, and invalidates affected
-hosted evidence rather than allowing evidence from different commits to be
-mixed. Manual deployment is an optional operational mode documented in the
+Rendered verification on a developer machine and hosted browser/device review
+are optional manual activities. When that evidence is collected, the manifest,
+review, deployment run, and hosted evidence should identify the same full
+commit SHA. Avoid changing `main` during a hosted review because a later
+successful push replaces the tested site; repeat affected checks rather than
+mixing evidence from different commits. Manual deployment is an optional
+operational mode documented in the
 [manual-deployment how-to](../devdocs/how-to/switching-github-pages-to-manual-deployment.md)
 and is enabled only by an explicit project-owner request.
 

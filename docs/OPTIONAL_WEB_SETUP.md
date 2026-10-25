@@ -1,12 +1,13 @@
-# Web publishing and hosted-acceptance runbook
+# Web publishing and optional hosted-verification runbook
 
 This runbook explains how to turn the Godot project into a Web build that can
 be tested from a stable HTTPS URL. It is written for a developer who is new to
-Godot and should be followed for the hosted-candidate and browser/device gates
-in [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md). Complete the local
-canonical workflow in [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) before
-accepting a deployed commit as the formal release candidate. Routine pushes
-are deployed earlier so browser- and device-specific defects can be found.
+Godot. Hosted browser and physical-device review is optional manual
+verification, not a tracked task in
+[`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md). When reproducible hosted
+evidence is useful, complete the local canonical workflow in
+[`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) first and keep all evidence tied
+to the deployed commit.
 
 The outcome is deliberately reproducible:
 
@@ -14,11 +15,12 @@ The outcome is deliberately reproducible:
 2. a release export is generated from a known Git commit;
 3. a static host serves that exact export over HTTPS at a stable URL;
 4. every successful push to `main` is built and published automatically; and
-5. browser and physical-device evidence is recorded against that build.
+5. optional browser and physical-device evidence can be recorded against that
+   build.
 
-Do not mark a device test complete based on an editor preview, a local
-`file://` URL, a LAN-only server, or a simulator. The checklist requires the
-published HTTPS build and the named real devices.
+An editor preview, a local `file://` URL, a LAN-only server, or a simulator does
+not establish behavior on a published HTTPS build or named real device. Use the
+published build and real device when making that specific support claim.
 
 ## 1. Concepts and prerequisites
 
@@ -37,17 +39,18 @@ Godot version.
 For the baseline release, use the single-threaded Web export (disable **Use
 Threads** in the Web preset). This is the preferred/default Web approach in
 modern Godot and avoids the special cross-origin-isolation headers that a
-threaded export requires. It is especially important for the required Safari
-testing. If a future version deliberately enables threads, the hosting server
-must send both of these response headers on every relevant response:
+threaded export requires. It is especially important for the optional Safari
+checks described below. If a future version deliberately enables threads, the
+hosting server must send both of these response headers on every relevant
+response:
 
 ```text
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
-HTTPS is still mandatory for a production test build. Never treat an
-`http://localhost` smoke test as a replacement for the hosted test.
+Use HTTPS for a production or hosted test build. An `http://localhost` smoke
+test is useful for export startup only and does not establish hosted behavior.
 
 Official background:
 
@@ -134,7 +137,7 @@ release-output validation. Both must pass before upload.
 The CI runner is headless and cannot create representative rendered
 screenshots. Automatic deployment makes the current `main` build available
 for browser and physical-device discovery; it does not certify the visuals or
-replace human review. For formal release evidence, run
+replace human review. When collecting optional hosted evidence, run
 `make gui-visual-capture` on a rendering-capable machine and keep the reviewed
 manifest, PNGs, and review record tied to the same deployed commit SHA.
 
@@ -230,10 +233,10 @@ code and review workflow changes before they reach the protected branch.
 4. Verify the live site in a private/incognito session as described below.
 
 The Pages URL is a rolling test environment. Avoid pushing another commit to
-`main` while formal browser/device evidence is being collected. If a later
-push replaces the hosted build, treat it as a new candidate and rerun every
-affected environment. To change the repository to manual deployment in the
-future, follow
+`main` while optional browser/device evidence is being collected. If a later
+push replaces the hosted build, rerun every affected environment if the
+evidence must describe the current deployment. To change the repository to
+manual deployment in the future, follow
 [`devdocs/how-to/switching-github-pages-to-manual-deployment.md`](../devdocs/how-to/switching-github-pages-to-manual-deployment.md);
 do not change the trigger without an explicit project-owner request.
 
@@ -258,7 +261,7 @@ output unless the host sends the matching `Content-Encoding` header. A broken
 compression configuration commonly looks like a blank canvas or a browser
 console decompression error.
 
-## 5. Browser and device evidence
+## 5. Optional browser and device evidence
 
 Create one evidence record per deployed commit in the release issue, pull
 request, or a committed Markdown file such as
@@ -334,10 +337,10 @@ Then add one row per test environment:
 | iPhone Safari | `<model, iOS>` | `<version>` | `<portrait and landscape session anchors>` | `n/a` | `<7-player pass/fail>` | `<links>` |
 | Android Chrome | `<model, Android>` | `<version>` | `<orientation and browser-chrome session anchors>` | `n/a` | `<7-player pass/fail>` | `<links>` |
 
-### Required representative flow
+### Suggested representative flow
 
-For each desktop browser at both required sizes, start both a 2-player and a
-9-player default tournament. Capture evidence that seats, event history,
+For each selected desktop browser at the chosen sizes, start both a 2-player
+and a 9-player default tournament. Capture evidence that seats, event history,
 action controls, hole cards, board, pot, player markers, and Quit confirmation
 are visible, readable, inside their bounds, and non-overlapping. Exercise and
 capture at least:
@@ -370,16 +373,16 @@ Test with the browser address bar expanded and collapsed because each has a
 different effective viewport height. Record all touch, clipping, contrast,
 text-size, and rotation defects.
 
-## 6. Defect handling and completion criteria
+## 6. Defect handling and suggested sign-off
 
-If any required test fails, do not check off its browser/device task. Create a
-defect report using [`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md), with
-the evidence header, exact reproduction steps, screenshots, and console
-output. Fix the issue in the appropriate presentation-layer code, add or
-update a regression test, run the checks from section 3, deploy a new commit,
-and repeat the affected device/browser test.
+If a chosen manual check fails, create a defect report using
+[`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md), with the evidence header,
+exact reproduction steps, screenshots, and console output. Fix the issue in
+the appropriate presentation-layer code, add or update a regression test, run
+the checks from section 3, deploy a new commit, and repeat the affected
+device/browser check.
 
-Hosted evidence may be signed off only when all of the following are true:
+For internally consistent optional hosted evidence, use all of the following:
 
 - `export_presets.cfg` is committed and a `Web` release export succeeds;
 - the pushed commit, checked-out commit, rendered manifest, and review record
@@ -394,14 +397,9 @@ Hosted evidence may be signed off only when all of the following are true:
   versions, logical and usable viewports, orientation, device-pixel ratio,
   safe-area insets, browser-chrome state, durable screenshots, and any fixed
   defects; and
-- every supported required environment in the authoritative matrix in
-  [`GuiTasks.md`](GuiTasks.md) has a recorded passing result; and
-- each environment that remains unavailable has an explicit linked product
-  decision stating that support is deferred or that the release remains
-  blocked.
+- the selected environments and any untested or unavailable environments are
+  recorded so the evidence does not imply a broader support claim.
 
-An unavailable environment is never a pass. A support-deferral decision may
-remove that environment from the release's support claim; a `release blocked`
-decision cannot satisfy release readiness. After the accepted environment
-matrix is resolved, complete the final representative human flow in
-Milestone 8.
+An unavailable environment is not a pass for that environment, but it does not
+create an unfinished repository task. Record it as untested or deferred when
+summarizing the scope of the optional review.

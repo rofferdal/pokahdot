@@ -135,6 +135,7 @@ unavailable test environment is a support decision, not a defect acceptance.
 - Expiry or mandatory review point: `<date/milestone>`
 - Decision record: `<durable link>`
 
-A `release blocked` decision cannot satisfy release readiness. Any accepted
-blocker, unreadable, or obstructive defect must be called out explicitly in
-the release decision rather than hidden by a generic pass result.
+Use `release blocked` only when the product owner chooses not to publish because
+of the defect. Any accepted blocker, unreadable, or obstructive defect must be
+called out explicitly in the release decision rather than hidden by a generic
+pass result.
