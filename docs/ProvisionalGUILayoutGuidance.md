@@ -86,6 +86,14 @@ OS feature flags may supplement input or platform behavior, but must not be
 the only mobile-layout signal: desktop windows can be phone-sized, and Web
 canvases on mobile devices may expose large logical dimensions.
 
+For the full-window Web export, distinguish the high-resolution canvas backing
+store from CSS layout pixels. The Godot loader sizes the backing canvas from
+the CSS window size multiplied by the device pixel ratio. Pokahdot's GUI
+composition root converts `DisplayServer.window_get_size()` back to CSS-pixel
+geometry with `DisplayServer.screen_get_scale()` and assigns it to the root
+Window's `content_scale_size`. Keep the backing canvas high resolution; do not
+classify its raw dimensions or disable HiDPI rendering to make a phone fit.
+
 ```gdscript
 const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 

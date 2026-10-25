@@ -6,7 +6,8 @@ execution order and phase gates; the linked source backlogs remain authoritative
 for the individual implementation and verification evidence.
 
 Individual source tasks are not duplicated here. Optional hosted browser and
-physical-device verification is documented separately in [`WEB_SETUP.md`](WEB_SETUP.md)
+physical-device verification is documented separately in
+[`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md)
 and is not tracked by this completed backlog.
 
 ## Milestone 1 — Player-name contract and shared foundation

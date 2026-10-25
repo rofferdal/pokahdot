@@ -223,4 +223,4 @@ This is a local export check. Every push to `main` automatically starts the
 release workflow, which checks out the pushed SHA and runs
 `make release-candidate-gate web-release` in headless CI before deploying to
 GitHub Pages. For optional manual hosted checks, follow the
-[Web publishing and hosted-verification runbook](../../docs/WEB_SETUP.md).
+[Web publishing and hosted-verification runbook](../../docs/OPTIONAL_WEB_SETUP.md).

@@ -5,6 +5,7 @@ const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_co
 const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_layout.gd")
 const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
+const GuiWebViewportGeometryScript := preload("res://scripts/gui/gui_web_viewport_geometry.gd")
 const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
 const STARTUP_CHECKBOX_UNCHECKED := preload("res://assets/ui/checkbox_unchecked.svg")
 const STARTUP_CHECKBOX_CHECKED := preload("res://assets/ui/checkbox_checked.svg")
@@ -63,6 +64,23 @@ var _guidance_field_parent: VBoxContainer
 @onready var _quit_application_button: Button = %QuitApplicationButton
 
 
+func _enter_tree() -> void:
+	if not OS.has_feature("web"):
+		return
+	var root_window: Window = get_window()
+	if not root_window.size_changed.is_connected(_refresh_web_content_scale_size):
+		root_window.size_changed.connect(_refresh_web_content_scale_size)
+	_refresh_web_content_scale_size()
+
+
+func _exit_tree() -> void:
+	if not OS.has_feature("web"):
+		return
+	var root_window: Window = get_window()
+	if root_window.size_changed.is_connected(_refresh_web_content_scale_size):
+		root_window.size_changed.disconnect(_refresh_web_content_scale_size)
+
+
 func _ready() -> void:
 	_guidance_field_parent = _phone_player_count_guidance.get_parent() as VBoxContainer
 	startup_adapter = GuiStartupConfigAdapterScript.new(
@@ -80,6 +98,28 @@ func _ready() -> void:
 	_quit_application_button.pressed.connect(_on_quit_application_pressed)
 	resized.connect(_refresh_startup_layout)
 	call_deferred("_refresh_startup_layout")
+
+
+func _refresh_web_content_scale_size() -> void:
+	var backing_size: Vector2i = DisplayServer.window_get_size()
+	var pixel_ratio: float = DisplayServer.screen_get_scale()
+	var logical_size: Vector2i = GuiWebViewportGeometryScript.logical_size(
+		backing_size, pixel_ratio
+	)
+	if logical_size == Vector2i.ZERO:
+		push_warning("Cannot normalize an empty Web canvas for GUI layout.")
+		return
+	var root_window: Window = get_window()
+	if root_window.content_scale_size == logical_size:
+		return
+	root_window.content_scale_size = logical_size
+	if OS.is_debug_build():
+		print(
+			(
+				"Web GUI viewport normalized: backing=%s pixel_ratio=%.3f logical=%s"
+				% [backing_size, pixel_ratio, logical_size]
+			)
+		)
 
 
 func _on_start_pressed() -> void:

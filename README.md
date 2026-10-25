@@ -294,7 +294,7 @@ defect. The complete command reference is also available in
 [`devdocs/how-to/running-and-testing.md`](devdocs/how-to/running-and-testing.md).
 `make web-release` creates a local export. Every successful push to `main`
 automatically validates and deploys that commit to GitHub Pages; follow
-[`docs/WEB_SETUP.md`](docs/WEB_SETUP.md).
+[`docs/OPTIONAL_WEB_SETUP.md`](docs/OPTIONAL_WEB_SETUP.md).
 
 ## GUI action pace
 

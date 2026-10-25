@@ -15,6 +15,8 @@
 - [`CliTasks.md`](CliTasks.md) — interactive CLI task evidence.
 - [`GuiTasks.md`](GuiTasks.md) — GUI, Web export, and local visual-verification
   work.
+- [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active,
+  iterative physical-phone GUI review and remediation work.
 - [`SimCoreTasks.md`](SimCoreTasks.md) — simulation domain and external
   profile-evolution task evidence.
 - [`SimCliTasks.md`](SimCliTasks.md) — non-interactive simulation CLI task
@@ -27,8 +29,8 @@
   evolution, including curated-roster baseline export.
 - [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md) — interactive CLI card text
   format.
-- [`WEB_SETUP.md`](WEB_SETUP.md) — automatic `main`-branch Web publishing and
-  optional hosted browser/device verification runbook.
+- [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md) — automatic `main`-branch
+  Web publishing and optional hosted browser/device verification runbook.
 - [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md) —
   provisional responsive Godot GUI guidance consistent with the architecture.
 - [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) — canonical GUI viewport and

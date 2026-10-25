@@ -2,9 +2,9 @@
 
 This document defines the reusable local visual-testing contract for the GUI.
 It complements the automated GUT suite and the optional hosted browser/device
-runbook in [`WEB_SETUP.md`](WEB_SETUP.md). Local captures do not prove browser
-or physical-device support, and hosted screenshots do not replace deterministic
-geometry regressions.
+runbook in [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md). Local captures do
+not prove browser or physical-device support, and hosted screenshots do not
+replace deterministic geometry regressions.
 
 ## Canonical viewport fixtures
 
@@ -258,12 +258,14 @@ this process:
 Avoid pushing to `main` while hosted evidence is collected. A successful new
 deployment replaces the tested build, so repeat the affected checks if the
 evidence is intended to describe the current deployment. See
-[`WEB_SETUP.md`](WEB_SETUP.md) for the GitHub configuration and evidence fields.
+[`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md) for the GitHub configuration
+and evidence fields.
 
 ## Local-review and optional hosted-evidence boundary
 
 Canonical review establishes that the repository candidate is suitable to
-publish. If optional hosted checks are performed, [`WEB_SETUP.md`](WEB_SETUP.md)
+publish. If optional hosted checks are performed,
+[`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md)
 provides fields for the deployment run, stable HTTPS URL, browser/device
 versions, actual usable viewport, orientation, console result, and physical
 interaction evidence. Do not reuse a local fixture label as proof that a named

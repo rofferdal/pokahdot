@@ -66,7 +66,7 @@ branch.
 
 6. Leave the build, `release-candidate-gate`, Web export, Pages artifact, and
    deploy jobs unchanged.
-7. Update `docs/WEB_SETUP.md`, `docs/ARCHITECTURE.md`,
+7. Update `docs/OPTIONAL_WEB_SETUP.md`, `docs/ARCHITECTURE.md`,
    `docs/GUI_VISUAL_TESTING.md`, `README.md`, and the affected documentation
    indexes in the same commit. Manual mode must never be introduced as an
    undocumented workflow-only change.
@@ -95,7 +95,7 @@ The workflow uses the `github-pages` environment. A required-reviewer rule in
 **Settings > Environments > github-pages** makes a manual run wait for a second
 approval. Add such a rule only when the project owner explicitly requests
 approval-gated deployment, and document that additional policy in
-`docs/WEB_SETUP.md`.
+`docs/OPTIONAL_WEB_SETUP.md`.
 
 ## Restore automatic deployment
 

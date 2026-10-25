@@ -3,7 +3,8 @@
 This backlog records completed GUI, Web-presentation, local visual-verification,
 and export work. Task status is preserved from the source backlogs. Optional
 manual hosted browser and physical-device verification is documented in
-[`WEB_SETUP.md`](WEB_SETUP.md) and is not tracked as required backlog work.
+[`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md) and is not tracked as required
+backlog work.
 
 ## Milestone dependency — Strategic default roster and optional legacy heuristics
 
@@ -255,9 +256,9 @@ Milestone 3/Milestone 4 gate split. Record each discovered issue with
   failing regression where practical, change one layout owner, rerun the
   affected matrix and complete suite, and attach the corrected evidence.
 - [x] **Document the local gate and optional hosted-verification handoff:**
-  update the relevant GUI testing documentation and `WEB_SETUP.md` so clean
-  hosted evidence, when collected, follows the applicable automated matrix and
-  records any blocker, unreadable, or obstructive defects.
+  update the relevant GUI testing documentation and `OPTIONAL_WEB_SETUP.md` so
+  clean hosted evidence, when collected, follows the applicable automated
+  matrix and records any blocker, unreadable, or obstructive defects.
   Milestone 3 requires the desktop, tablet, and small-desktop subsets; after
   Milestone 4 implements the phone composition, the complete phone subset is
   required as well.
@@ -426,9 +427,10 @@ presentation layer.
   `ProvisionalGUILayoutGuidance.md` with the final layout profiles, player-count
   policy, phone information hierarchy, overlay ownership, and automated visual
   verification workflow. `README.md`, `ProjectDescription.md`,
-  `GUI_VISUAL_TESTING.md`, `WEB_SETUP.md`, and affected developer guidance now
-  consistently describe the same 2–7 phone policy, required seat information,
-  absent phone event history, input-source policy, and 378-case workflow.
+  `GUI_VISUAL_TESTING.md`, `OPTIONAL_WEB_SETUP.md`, and affected developer
+  guidance now consistently describe the same 2–7 phone policy, required seat
+  information, absent phone event history, input-source policy, and 378-case
+  workflow.
 
 ## GUI release verification
 

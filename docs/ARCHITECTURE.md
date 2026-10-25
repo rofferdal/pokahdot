@@ -215,6 +215,7 @@ digest so JSON integer/float representation cannot change reproducibility.
 | Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
 | Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
 | Use responsive Control layout guidance | `canvas_items` with `expand`, containers, anchors, and responsive margins govern layout adaptation; font and texture crispness is not assumed from stretch mode alone. |
+| Normalize the Web root to CSS-pixel geometry | Godot's full-window Web loader keeps a device-pixel-ratio-sized backing canvas for crisp rendering. The GUI composition root divides that backing size by `DisplayServer.screen_get_scale()` and assigns the result to the root Window's `content_scale_size`, so layout profiles and touch targets use CSS/logical pixels instead of the high-density backing store. Native windows retain the project base-size behavior. |
 | Classify GUI layout from usable geometry with explicit supplemental overrides | Phone portrait, phone landscape, tablet, small-desktop, and desktop profiles derive from the canvas remaining after browser chrome and safe areas. Known device evidence may override ambiguous geometry; in particular, the observed 2388 x 1450 iPad fixture declares a tablet override instead of making every desktop window of that size a tablet. |
 | Give manually positioned GUI regions one layout owner | The central board/pot/wager stack uses a plain `Control`; `PokerTableController` atomically assigns its centered bounds and its three child panel rectangles. A Godot `Container` must not compete with those explicit rectangles or resize the stack from late child minimum-size notifications. |
 | Preserve mobile usability targets | Interactive controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows. |
@@ -576,7 +577,22 @@ The table view uses a green felt surface. Its layout has explicit, visually dist
 
 `GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls nonblocking GUI pacing. Its default action pause is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. The same pause is used after each community-card reveal. Milestone 3 requires the completed-hand presentation pause to use `showdown_pause_seconds`, which defaults to five seconds, both after showdown and when one player wins before showdown because every opponent folded. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
 
-The default game viewport is 1920 by 1080, while the `Control` layout must reflow without overlap at supported desktop and mobile aspect ratios. The human recipient is visually anchored at the bottom; this is a presentation mapping only and must not alter core seat identities or poker positions. Desktop seat panels use equal wide dimensions across 2–9 seats, with mirrored left/right placement where applicable; compact layouts may change dimensions but retain readable names, stacks, markers, and cards. Tall mobile portrait surfaces are detected from their aspect ratio, not just logical canvas width, then scale seats, cards, table zones, and action controls from the available surface so a high-DPI Web canvas does not retain desktop-sized controls inside unused felt. Event history remains visible on non-phone layouts but has no phone field, drawer, menu entry, or capture state.
+The default native game viewport is 1920 by 1080, while the `Control` layout must
+reflow without overlap at supported desktop and mobile aspect ratios. On Web,
+`GuiWebViewportGeometry` converts the device-pixel-ratio-sized canvas backing
+store to CSS-pixel dimensions. `StartupConfigController` applies that result as
+the root Window's virtual content base on startup and whenever the browser
+window changes size. Both startup and table controls therefore receive the
+same normalized logical geometry while the backing canvas remains high
+resolution. The human recipient is visually anchored at the bottom; this is a
+presentation mapping only and must not alter core seat identities or poker
+positions. Desktop seat panels use equal wide dimensions across 2–9 seats,
+with mirrored left/right placement where applicable; compact layouts may
+change dimensions but retain readable names, stacks, markers, and cards. Tall
+mobile portrait surfaces are detected from normalized size and aspect ratio,
+then scale seats, cards, table zones, and action controls from the available
+surface. Event history remains visible on non-phone layouts but has no phone
+field, drawer, menu entry, or capture state.
 
 Phone startup supports 2–7 participants and does not alter the resolved product
 default of 6. Startup may show non-binding guidance that 4 participants are
@@ -1058,6 +1074,7 @@ docs/
   CoreTasks.md
   GuiTasks.md
   GUI_VISUAL_TESTING.md
+  OptimizingPhoneGuiTasks.md
   POKERCARDS_IN_CLI.md
   ProvisionalGUILayoutGuidance.md
   ProjectDescription.md
@@ -1065,7 +1082,7 @@ docs/
   SimCliTasks.md
   SimCoreTasks.md
   Simulation_And_Evolutionary_Bot_Strategy.md
-  WEB_SETUP.md
+  OPTIONAL_WEB_SETUP.md
   templates/
     GUI_DEFECT.md
   arkiv/                  # superseded completed-history documents
