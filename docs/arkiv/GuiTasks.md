@@ -3,7 +3,7 @@
 This backlog records completed GUI, Web-presentation, local visual-verification,
 and export work. Task status is preserved from the source backlogs. Optional
 manual hosted browser and physical-device verification is documented in
-[`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md) and is not tracked as required
+[`OPTIONAL_WEB_SETUP.md`](../OPTIONAL_WEB_SETUP.md) and is not tracked as required
 backlog work.
 
 ## Milestone dependency — Strategic default roster and optional legacy heuristics
@@ -205,10 +205,10 @@ but its passing gate covers desktop, tablet, and small-desktop cases. The full
 phone subset becomes a required passing gate only after the dedicated phone
 composition is implemented in Milestone 4.
 
-Follow [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) for the canonical
+Follow [`GUI_VISUAL_TESTING.md`](../GUI_VISUAL_TESTING.md) for the canonical
 fixture IDs, capture manifest, evidence naming/storage, review boundary, and
 Milestone 3/Milestone 4 gate split. Record each discovered issue with
-[`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md).
+[`templates/GUI_DEFECT.md`](../templates/GUI_DEFECT.md).
 
 - [x] **Define the canonical viewport matrix:** add named logical viewport
   fixtures for at least 360 x 640, 390 x 844, and 412 x 915 phone portrait;
@@ -335,10 +335,11 @@ presentation layer.
   baseline. Phone opponents now render recipient-safe avatar-free tokens with
   each full catalog display name, a numeric stack, two compact hole-card
   fields, 20 px text, seat/state badges, and a full-token detail target.
-  Short-lived action feedback uses the state-badge cell instead of covering a
-  required field. Seven-player tokens are larger than the state-preserving 8–9
-  player emergency geometry, and the focused layout, token, and manifest
-  regressions pass.
+  The initial milestone used short-lived action feedback in the state-badge
+  cell. The current follow-up instead gives every seat a separate persistent
+  current-round action cell, leaving the state badge visible. Seven-player
+  tokens are larger than the state-preserving 8–9 player emergency geometry,
+  and the focused layout, token, and manifest regressions pass.
 - [x] **Create one bottom human interaction region:** combine the human cards,
   stack, turn status, and actions; render only currently legal actions rather
   than reserving space for every disabled desktop control. Keep each action
@@ -376,7 +377,10 @@ presentation layer.
   and turn/legality copy; blind progression lives in More. Seat-owned action
   badges use generation-guarded expiry, while Fold remains durable. Focused
   center, privacy, expiry, overlay-absence, and desktop-restoration regressions
-  pass.
+  pass. This records the original Milestone 4 contract. The 2026-10-26 physical-
+  phone follow-up supersedes only its expiry policy: every seat's compact latest
+  action now persists until the next street or hand boundary, while Fold also
+  remains durable state.
 - [x] **Make phone layout transitions atomic:** debounce resize/orientation
   changes, calculate all regions from one current usable rectangle, and prevent
   stale callbacks or competing `Container` and manual geometry owners from

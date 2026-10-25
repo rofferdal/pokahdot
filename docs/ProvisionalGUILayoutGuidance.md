@@ -131,12 +131,13 @@ presentation tiers:
 The minimal tier must retain seven distinct, tappable seat identities around a
 reserved center table region, with the human position anchored at the bottom.
 Every bot token keeps the full assigned display name, numeric chip stack, and
-two hole-card fields visible at once; short-lived action feedback may replace
-only the compact state-badge cell. Additional details may move behind
-deliberate interaction; the underlying seat identity and recipient-safe state
-remain unchanged. Do not render event history as a phone field, drawer, menu
-entry, or fixture. Preserve it in recipient-safe game state and retain the
-existing event log on larger profiles.
+two hole-card fields visible at once. A separate compact cell retains each
+seat's latest recipient-safe public action for the current betting round; it
+must not replace the position/state badge or expire on a presentation timer.
+Additional details may move behind deliberate interaction; the underlying seat
+identity and recipient-safe state remain unchanged. Do not render event history
+as a phone field, drawer, menu entry, or fixture. Preserve it in recipient-safe
+game state and retain the existing event log on larger profiles.
 
 Choose numeric input from the input event, not the layout profile. A touch
 press opens the shared transactional in-canvas keypad on phone, tablet, or

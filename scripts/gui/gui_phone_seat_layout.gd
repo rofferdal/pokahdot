@@ -84,11 +84,11 @@ static func _token_size(usable_size: Vector2, density: Density, player_count: in
 	var height: float
 	match density:
 		Density.STANDARD:
-			height = 56.0
+			height = 60.0
 		Density.COMPACT:
-			height = 56.0
+			height = 60.0
 		_:
-			height = 56.0
+			height = 60.0
 	if player_count > MAX_SUPPORTED_PLAYER_COUNT:
 		preferred_width = 78.0 if portrait else 88.0
 		height = 48.0

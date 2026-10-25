@@ -34,6 +34,18 @@ func test_phone_opponents_use_canonical_tokens_with_public_state() -> void:
 
 func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() -> void:
 	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-preflop", 7)
+	var view: GameView = descriptor.view
+	var actions: Array[PublicActionRecord] = [
+		PublicActionRecord.new(1, PlayerAction.Kind.CHECK, 0),
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+		PublicActionRecord.new(3, PlayerAction.Kind.BET, 20),
+		PublicActionRecord.new(4, PlayerAction.Kind.RAISE, 40),
+		PublicActionRecord.new(5, PlayerAction.Kind.ALL_IN, 900),
+		PublicActionRecord.new(6, PlayerAction.Kind.FOLD, 0),
+	]
+	view._action_history = actions
+	view._seats[5].all_in = true
+	view._seats[6].folded = true
 	var table := PokerTableScene.instantiate() as PokerTableController
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	table.size = Vector2(360, 640)
@@ -41,13 +53,17 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 	var names: Dictionary[int, String] = {
 		1: "Priyanka", 2: "Benedikt", 3: "Aleksia", 4: "Santiago", 5: "Youssef", 6: "Kwame"
 	}
-	table.bind_view(descriptor.view, {}, names)
+	table.bind_view(view, {}, names)
 	await _settle()
+	var expected_actions: Dictionary[int, String] = {
+		1: "Chk", 2: "C10", 3: "B20", 4: "R40", 5: "AI", 6: "F"
+	}
 	for seat: int in range(1, 7):
 		var token := _seat(table, seat)
 		var name_label := token.find_child("Name", true, false) as Label
 		var stack_label := token.find_child("Stack", true, false) as Label
 		var hole_cards := token.find_child("HoleCards", true, false) as Control
+		var state_badge := token.find_child("Badge", true, false) as Label
 		var action_badge := token.find_child("ActionBadge", true, false) as Label
 		var details_button := token.find_child("DetailsButton", true, false) as Button
 		var name_width: float = (
@@ -78,8 +94,28 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 		assert_gte(stack_label.get_theme_font_size("font_size"), 20, "seat %d stack" % seat)
 		assert_eq(hole_cards.get_child_count(), 2, "seat %d hole-card fields" % seat)
 		if action_badge.visible:
-			assert_false(action_badge.get_global_rect().intersects(name_label.get_global_rect()))
-			assert_false(action_badge.get_global_rect().intersects(stack_label.get_global_rect()))
+			assert_eq(action_badge.text, expected_actions[seat], "seat %d action" % seat)
+			assert_false(
+				action_badge.get_global_rect().intersects(name_label.get_global_rect()),
+				(
+					"seat %d action %s name %s"
+					% [seat, action_badge.get_global_rect(), name_label.get_global_rect()]
+				),
+			)
+			assert_false(
+				action_badge.get_global_rect().intersects(stack_label.get_global_rect()),
+				(
+					"seat %d action %s stack %s"
+					% [seat, action_badge.get_global_rect(), stack_label.get_global_rect()]
+				),
+			)
+			assert_false(
+				action_badge.get_global_rect().intersects(state_badge.get_global_rect()),
+				(
+					"seat %d action %s state %s"
+					% [seat, action_badge.get_global_rect(), state_badge.get_global_rect()]
+				),
+			)
 			assert_false(
 				action_badge.get_global_rect().intersects(hole_cards.get_global_rect()),
 				(

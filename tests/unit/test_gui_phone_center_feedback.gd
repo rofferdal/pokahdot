@@ -54,42 +54,67 @@ func test_short_landscape_keeps_center_status_and_human_summary_readable() -> vo
 		assert_lte(rendered_width, label.size.x, "%s must render in full" % label.name)
 
 
-func test_phone_action_badge_is_seat_owned_expires_and_ignores_stale_expiry() -> void:
+func test_phone_keeps_each_seats_latest_round_action_visible_until_street_change() -> void:
 	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-preflop", 4)
 	var view: GameView = descriptor.view
+	view._action_history = [
+		PublicActionRecord.new(1, PlayerAction.Kind.CALL, 10),
+		PublicActionRecord.new(2, PlayerAction.Kind.CALL, 10),
+		PublicActionRecord.new(3, PlayerAction.Kind.RAISE, 30),
+	]
 	var table: PokerTableController = await _phone_view_table(view)
-	var initial_badge := _action_badge(table, 2)
-	assert_true(initial_badge.visible)
-	assert_eq(initial_badge.text, "C10")
-	assert_false(_action_badge(table, 1).visible)
+	assert_eq(_visible_action_text(table, 1), "C10")
+	assert_eq(_visible_action_text(table, 2), "C10")
+	assert_eq(_visible_action_text(table, 3), "R30")
 	assert_false((table.get_node("%PhoneHeroActionBadge") as Label).visible)
-	var stale_generation: int = table._phone_action_badge_generation
 
-	view._action_history.append(PublicActionRecord.new(1, PlayerAction.Kind.RAISE, 30))
+	view._action_history.append(PublicActionRecord.new(0, PlayerAction.Kind.CHECK, 0))
+	view._action_history.append(PublicActionRecord.new(1, PlayerAction.Kind.CALL, 30))
 	table.bind_view(view, {}, {})
 	await _settle()
-	var refreshed_badge := _action_badge(table, 1)
-	assert_true(refreshed_badge.visible)
-	assert_eq(refreshed_badge.text, "R30")
-	assert_false(_action_badge(table, 2).visible)
-	table._expire_phone_action_badge_if_current(stale_generation)
-	assert_true(refreshed_badge.visible)
-	var refreshed_generation: int = table._phone_action_badge_generation
+	assert_eq((table.get_node("%PhoneHeroActionBadge") as Label).text, "Chk")
+	assert_true((table.get_node("%PhoneHeroActionBadge") as Label).visible)
+	assert_eq(_visible_action_text(table, 1), "C30")
+	assert_eq(_visible_action_text(table, 2), "C10")
+	assert_eq(_visible_action_text(table, 3), "R30")
+	assert_eq((table.get_node("%PhoneHeroActionBadge") as Label).text, "Chk")
 
-	view._action_history.append(PublicActionRecord.new(0, PlayerAction.Kind.CALL, 30))
+	# Presentation timers from the former transient-badge behavior must not
+	# remove any seat's current-round action.
+	await get_tree().create_timer(0.03).timeout
+	assert_eq(_visible_action_text(table, 1), "C30")
+	assert_eq(_visible_action_text(table, 2), "C10")
+	assert_eq(_visible_action_text(table, 3), "R30")
+
+	view._seats[3].folded = true
+	view._action_history.append(PublicActionRecord.new(3, PlayerAction.Kind.FOLD, 0))
 	table.bind_view(view, {}, {})
+	(
+		table
+		. _render_events(
+			[
+				DomainEvent.new(DomainEvent.Kind.HAND_STARTED),
+				DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 1, 10),
+				DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 2, 10),
+				DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 3, 30),
+				DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 0, 0),
+				DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 1, 30),
+				DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, 3, 0),
+				DomainEvent.new(DomainEvent.Kind.STREET_CHANGED),
+			]
+		)
+	)
 	await _settle()
-	var hero_badge := table.get_node("%PhoneHeroActionBadge") as Label
-	assert_true(hero_badge.visible)
-	assert_eq(hero_badge.text, "C30")
-	assert_false(_action_badge(table, 1).visible)
-	table._expire_phone_action_badge_if_current(refreshed_generation)
-	assert_true(hero_badge.visible)
-	table._expire_phone_action_badge_if_current(table._phone_action_badge_generation)
-	assert_false(hero_badge.visible)
+	for seat: int in range(1, 4):
+		assert_eq(_visible_action_text(table, seat), "", "seat %d street reset" % seat)
+	assert_false((table.get_node("%PhoneHeroActionBadge") as Label).visible)
+	assert_has(
+		(_seat(table, 3).find_child("Badge", true, false) as Label).text.split(" "),
+		"F",
+	)
 
 
-func test_phone_fold_state_survives_badge_expiry_and_private_cards_stay_hidden() -> void:
+func test_phone_fold_action_and_durable_state_stay_visible_during_round() -> void:
 	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-preflop", 4)
 	var view: GameView = descriptor.view
 	view._seats[3].folded = true
@@ -103,8 +128,9 @@ func test_phone_fold_state_survives_badge_expiry_and_private_cards_stay_hidden()
 	assert_not_null(seat.find_child("HoleCardField1", true, false))
 	assert_not_null(seat.find_child("HoleCardField2", true, false))
 
-	table._expire_phone_action_badge_if_current(table._phone_action_badge_generation)
-	assert_false((seat.find_child("ActionBadge", true, false) as Label).visible)
+	await get_tree().create_timer(0.03).timeout
+	assert_true((seat.find_child("ActionBadge", true, false) as Label).visible)
+	assert_eq((seat.find_child("ActionBadge", true, false) as Label).text, "F")
 	assert_has((seat.find_child("Badge", true, false) as Label).text.split(" "), "F")
 	assert_null(seat.find_child("CardBack1", true, false))
 
@@ -139,7 +165,6 @@ func _phone_view_table(
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	table.size = table_size
 	var timing_config := GuiActionTimingConfigScript.new()
-	timing_config.phone_action_badge_seconds = 10.0
 	table.set_action_timing_config(timing_config)
 	add_child_autofree(table)
 	table.bind_view(view, {}, {})
@@ -153,6 +178,11 @@ func _seat(table: PokerTableController, seat: int) -> PanelContainer:
 
 func _action_badge(table: PokerTableController, seat: int) -> Label:
 	return _seat(table, seat).find_child("ActionBadge", true, false) as Label
+
+
+func _visible_action_text(table: PokerTableController, seat: int) -> String:
+	var badge := _action_badge(table, seat)
+	return badge.text if badge.visible else ""
 
 
 func _settle() -> void:

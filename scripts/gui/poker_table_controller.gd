@@ -60,10 +60,6 @@ var _resolved_center_position: Vector2 = Vector2.ZERO
 var _event_texts: Array[String] = []
 var _active_round_latest_actions: Dictionary[int, PublicActionRecord] = {}
 var _retained_fold_actions: Dictionary[int, PublicActionRecord] = {}
-var _phone_action_badge_seat: int = Table.NO_SEAT
-var _phone_action_badge_text: String = ""
-var _phone_action_badge_signature: String = ""
-var _phone_action_badge_generation: int = 0
 var _action_pacer = GuiActionPacerScript.new()
 var _wager_keypad: WagerKeypad
 
@@ -187,7 +183,7 @@ func set_layout_profile_override(profile_override: int) -> void:
 		return
 	_configure_center_copy(GuiLayoutProfileScript.is_phone(get_layout_profile()))
 	if _bound_view != null:
-		_refresh_phone_action_badge()
+		_refresh_rendered_phone_action_badges()
 		_rebuild_seats()
 	_queue_layout()
 
@@ -340,7 +336,7 @@ func _refresh_visuals() -> void:
 	_configure_status_label(_pot_label)
 	_configure_status_label(_wager_label)
 	_rebuild_card_slots()
-	_refresh_phone_action_badge()
+	_refresh_rendered_phone_action_badges()
 	_rebuild_seats()
 	_refresh_phone_hero_summary()
 	_refresh_action_controls()
@@ -544,10 +540,10 @@ func _create_phone_opponent_token(player_view: PlayerView) -> PanelContainer:
 	name_label.offset_bottom = 24.0
 	content.add_child(name_label)
 	var stack_label := _phone_token_label("Stack", str(player_view.stack))
-	stack_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	stack_label.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	stack_label.offset_left = 4.0
 	stack_label.offset_top = 23.0
-	stack_label.offset_right = -44.0
+	stack_label.offset_right = 62.0
 	stack_label.offset_bottom = 47.0
 	content.add_child(stack_label)
 	var badge := _phone_token_label("Badge", _phone_token_badge_text(player_view))
@@ -628,77 +624,29 @@ func _phone_token_badge_text(player_view: PlayerView) -> String:
 
 
 func _create_phone_action_badge(seat: int) -> Label:
-	var badge := _phone_token_label("ActionBadge", _phone_action_badge_text)
+	var badge := _phone_token_label("ActionBadge", _compact_phone_action_for_seat(seat))
 	badge.z_index = 2
-	badge.visible = seat == _phone_action_badge_seat and not _phone_action_badge_text.is_empty()
+	badge.visible = not badge.text.is_empty()
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	# Temporarily occupy the compact state-badge cell instead of covering the
-	# always-visible player name, chip count, or either hole-card field.
-	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	badge.offset_left = -44.0
-	badge.offset_top = 0.0
-	badge.offset_right = -4.0
-	badge.offset_bottom = 30.0
+	# The action owns the remainder of the second text row. The marker cell and
+	# both card fields stay independently visible at the token's right edge.
+	badge.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	badge.offset_left = 62.0
+	badge.offset_top = 29.0
+	badge.offset_right = -45.0
+	badge.offset_bottom = 59.0
 	badge.add_theme_stylebox_override(
 		"normal", GuiTableStyleScript.compact_box(Color("172331f2"), Color("e7d39b"), 1, 5)
 	)
 	return badge
 
 
-func _refresh_phone_action_badge() -> void:
-	if _bound_view == null or not GuiLayoutProfileScript.is_phone(get_layout_profile()):
-		return
-	var history: Array[PublicActionRecord] = _bound_view.action_history
-	var latest_action: PublicActionRecord
-	var latest_index: int = -1
-	for index: int in range(history.size() - 1, -1, -1):
-		if history[index].record_kind == PublicActionRecord.Kind.ACTION:
-			latest_action = history[index]
-			latest_index = index
-			break
-	if latest_action == null:
-		_clear_phone_action_badge()
-		return
-	var signature := (
-		"%d:%d:%d:%d:%d:%d"
-		% [
-			_bound_view.hand_number,
-			history.size(),
-			latest_index,
-			latest_action.seat,
-			latest_action.kind,
-			latest_action.amount,
-		]
-	)
-	if signature == _phone_action_badge_signature:
-		return
-	_phone_action_badge_signature = signature
-	_phone_action_badge_generation += 1
-	_phone_action_badge_seat = latest_action.seat
-	_phone_action_badge_text = _compact_phone_action_text(latest_action)
-	var duration: float = (
-		2.0 if action_timing_config == null else action_timing_config.phone_action_badge_duration()
-	)
-	if duration <= 0.0:
-		_expire_phone_action_badge_if_current(_phone_action_badge_generation)
-	else:
-		(
-			get_tree()
-			. create_timer(duration)
-			. timeout
-			. connect(
-				_expire_phone_action_badge_if_current.bind(_phone_action_badge_generation),
-				CONNECT_ONE_SHOT,
-			)
-		)
-
-
-func _clear_phone_action_badge() -> void:
-	_phone_action_badge_generation += 1
-	_phone_action_badge_signature = ""
-	_phone_action_badge_seat = Table.NO_SEAT
-	_phone_action_badge_text = ""
+func _compact_phone_action_for_seat(seat: int) -> String:
+	var latest_action: PublicActionRecord = _active_round_latest_actions.get(seat)
+	if latest_action == null or latest_action.record_kind != PublicActionRecord.Kind.ACTION:
+		return ""
+	return _compact_phone_action_text(latest_action)
 
 
 func _compact_phone_action_text(latest_record: PublicActionRecord) -> String:
@@ -719,28 +667,17 @@ func _compact_phone_action_text(latest_record: PublicActionRecord) -> String:
 	return compact_text
 
 
-func _expire_phone_action_badge_if_current(generation: int) -> void:
-	if generation != _phone_action_badge_generation:
-		return
-	_phone_action_badge_seat = Table.NO_SEAT
-	_phone_action_badge_text = ""
-	_refresh_rendered_phone_action_badges()
-
-
 func _refresh_rendered_phone_action_badges() -> void:
-	if not _phone_seat_widgets:
+	if not _phone_seat_widgets or _bound_view == null:
 		return
-	_phone_hero_action_badge.text = _phone_action_badge_text
-	_phone_hero_action_badge.visible = (
-		_phone_action_badge_seat == _bound_view.hero_seat
-		and not _phone_action_badge_text.is_empty()
-	)
+	_phone_hero_action_badge.text = _compact_phone_action_for_seat(_bound_view.hero_seat)
+	_phone_hero_action_badge.visible = not _phone_hero_action_badge.text.is_empty()
 	for seat: int in _seat_widgets:
 		var badge := _seat_widgets[seat].find_child("ActionBadge", true, false) as Label
 		if badge == null:
 			continue
-		badge.text = _phone_action_badge_text
-		badge.visible = seat == _phone_action_badge_seat and not badge.text.is_empty()
+		badge.text = _compact_phone_action_for_seat(seat)
+		badge.visible = not badge.text.is_empty()
 
 
 func _create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
@@ -1645,6 +1582,7 @@ func _render_events(events: Array[DomainEvent]) -> void:
 	_event_log.text = "\n".join(_event_texts)
 	_refresh_phone_secondary_controls()
 	_refresh_seat_status_labels()
+	_refresh_rendered_phone_action_badges()
 
 
 func _action_record_for_event(
@@ -1689,8 +1627,6 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			_close_phone_overlays()
 			if _wager_keypad != null and _wager_keypad.is_bottom_sheet():
 				_wager_keypad.cancel()
-		else:
-			_refresh_phone_action_badge()
 		_rebuild_seats()
 	elif profile_changed and had_applied_profile and not phone_layout:
 		# Compact/tablet styling changes child minimum sizes. Rebuilding the full

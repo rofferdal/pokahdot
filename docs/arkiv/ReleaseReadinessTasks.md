@@ -7,7 +7,7 @@ for the individual implementation and verification evidence.
 
 Individual source tasks are not duplicated here. Optional hosted browser and
 physical-device verification is documented separately in
-[`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md)
+[`OPTIONAL_WEB_SETUP.md`](../OPTIONAL_WEB_SETUP.md)
 and is not tracked by this completed backlog.
 
 ## Milestone 1 — Player-name contract and shared foundation

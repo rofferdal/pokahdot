@@ -4,7 +4,7 @@ This runbook explains how to turn the Godot project into a Web build that can
 be tested from a stable HTTPS URL. It is written for a developer who is new to
 Godot. Hosted browser and physical-device review is optional manual
 verification, not a tracked task in
-[`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md). When reproducible hosted
+[`ReleaseReadinessTasks.md`](arkiv/ReleaseReadinessTasks.md). When reproducible hosted
 evidence is useful, complete the local canonical workflow in
 [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) first and keep all evidence tied
 to the deployed commit.

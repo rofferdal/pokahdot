@@ -1,9 +1,10 @@
 # Priority Tasks
 
 > **Archived / superseded.** This file preserves completed priority-task
-> history and is not an active backlog. Current GUI and device work is in
-> [`GuiTasks.md`](../GuiTasks.md); shared work is in
-> [`CoreTasks.md`](../CoreTasks.md).
+> history and is not an active backlog. Completed GUI and shared work is
+> preserved beside this file in [`GuiTasks.md`](GuiTasks.md) and
+> [`CoreTasks.md`](CoreTasks.md); current device work remains in the parent
+> `docs/` directory.
 
 The tasks in this document comes from prompts to improve on observed errors and weaknesses. If they contradict ProjectDescription.md or ARCHITECTURE.md, these documents should be updated.
 

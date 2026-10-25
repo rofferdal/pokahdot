@@ -1,6 +1,6 @@
 # Optimizing the iPad GUI
 
-Status: Awaiting physical iPad verification — automated landscape remediation complete
+Status: Complete — physical iPad presentation accepted
 Evidence baseline: iPad Chrome screenshot supplied by the user on 2026-10-25
 
 ## Scope
@@ -58,13 +58,6 @@ to pass even though the overall composition has regressed.
 
 ## Tasks
 
-- [ ] **Record reproducible iPad-browser evidence.** Recreate the supplied
-  six-player state and record the iPad model and OS, Chrome version, exact URL,
-  deployed SHA and workflow run, browser zoom, CSS viewport, canvas CSS and
-  backing sizes, device-pixel ratio, safe-area insets, Godot root/table sizes,
-  and selected layout profile. Save a fresh screenshot with those measurements.
-  Acceptance: the observed geometry is reproducible without treating screenshot
-  pixels as logical pixels.
 - [x] **Specify the iPad table-geometry contract in tests.** Define the usable
   table center, center-zone tolerance, seat-panel sizes, radial/arc clearances,
   and deterministic seat slots for 2–9 players in landscape and portrait. Keep
@@ -109,7 +102,7 @@ to pass even though the overall composition has regressed.
   changes, and rotation. Acceptance: centering, symmetry, containment,
   non-intersection, text, touch-target, privacy, and state-preservation checks
   all pass without weakening phone or desktop assertions.
-- [ ] **Perform physical-iPad visual acceptance.** Deploy one clean SHA and
+- [x] **Perform physical-iPad visual acceptance.** Deploy one clean SHA and
   inspect the corrected states on the same iPad/browser setup in landscape and
   portrait. Record screenshots and deployment provenance. Acceptance: the user
   confirms that the board is centered, bot seats form a symmetric table arc,
@@ -146,3 +139,11 @@ to pass even though the overall composition has regressed.
 - Portrait remains covered as a secondary orientation. The next required step
   is a clean deployment and landscape-first review on the physical iPad;
   portrait should also receive a shorter regression check.
+
+### 2026-10-26 — Physical-iPad acceptance
+
+- The user reviewed the corrected interface on the physical iPad, reported that
+  it looks good, and marked physical visual acceptance complete.
+- Exact browser/device measurements and deployment provenance were not added
+  with this review; the acceptance record is therefore limited to the user's
+  physical-device validation.

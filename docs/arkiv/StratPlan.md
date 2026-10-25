@@ -4,8 +4,8 @@
 > completed parameterized-strategy milestones. Current simulation and
 > profile-evolution design is in
 > [`Simulation_And_Evolutionary_Bot_Strategy.md`](../Simulation_And_Evolutionary_Bot_Strategy.md),
-> with unfinished work in [`SimCoreTasks.md`](../SimCoreTasks.md) and
-> [`SimCliTasks.md`](../SimCliTasks.md).
+> with completed implementation evidence preserved beside this file in
+> [`SimCoreTasks.md`](SimCoreTasks.md) and [`SimCliTasks.md`](SimCliTasks.md).
 
 ## Purpose and scope
 
@@ -259,5 +259,5 @@ or persist opponent-specific memories in the first implementation.
 
 These should be selected from evidence produced by the simulation plan, then
 documented in [`ARCHITECTURE.md`](../ARCHITECTURE.md) and scheduled in
-[`SimCoreTasks.md`](../SimCoreTasks.md) or
-[`SimCliTasks.md`](../SimCliTasks.md) when implementation begins.
+[`SimCoreTasks.md`](SimCoreTasks.md) or
+[`SimCliTasks.md`](SimCliTasks.md) when implementation begins.

@@ -80,7 +80,7 @@ complete only when its acceptance evidence has been recorded.
   Android Chrome screenshot with
   [`ProjectDescription.md`](ProjectDescription.md),
   [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md), the
-  completed phone milestone in [`GuiTasks.md`](GuiTasks.md), current phone
+  completed phone milestone in [`GuiTasks.md`](arkiv/GuiTasks.md), current phone
   code, and canonical phone captures. Record the verdict, visible defects,
   initial hypotheses, and screenshot limitations in this document.
 - [x] **Tie the capture to an exact hosted build.** Record the full tested URL,
@@ -161,7 +161,7 @@ complete only when its acceptance evidence has been recorded.
   stack, and turn copy without overlap. It also exposed a clipped `Fold` badge
   and empty framed badge cells; the working tree now uses an intentional `F`
   state badge and hides empty badge cells without narrowing names.
-- [ ] **Add a failing phone regression for per-seat action persistence.** Drive
+- [x] **Add a failing phone regression for per-seat action persistence.** Drive
   several players through one betting round and require every seat to retain
   its own latest public action after later players act and after any transient
   notification timer expires. A later action by the same player must replace
@@ -169,7 +169,7 @@ complete only when its acceptance evidence has been recorded.
   street or new-hand boundary, while durable fold presentation remains clear.
   Acceptance: the regression fails on the current behavior and uses only
   recipient-safe public action history.
-- [ ] **Keep each phone seat's latest betting-round action visible.** Make the
+- [x] **Keep each phone seat's latest betting-round action visible.** Make the
   compact seat-owned action/status presentation persist for the whole current
   betting round instead of expiring as a transient message. Fit Check, Call,
   Bet, Raise, All-in, and Fold states without hiding the full name, numeric
@@ -297,3 +297,18 @@ complete only when its acceptance evidence has been recorded.
 - The phone backlog therefore remains active. The next work is the regression,
   implementation, and physical verification sequence added to Phase 3 above;
   no fix or verification is claimed by this entry.
+
+### 2026-10-26 — Automated phone action persistence
+
+- The phone presentation now retains each seat's latest recipient-safe public
+  action for the current betting round. A later action replaces only that
+  seat's value; actions clear on the next street or hand boundary, while the
+  durable folded-state marker remains visible.
+- Compact Check, Call, Bet, Raise, All-in, and Fold copy has a dedicated token
+  cell separate from the full name, numeric stack, position/state marker, and
+  two card fields. The hero action remains in the bottom human summary.
+- The regression first failed against the former single expiring badge, then
+  passed after the implementation. `make check` passes 510/510 GUT tests with
+  17,197 assertions and 72 Python tests; lint and formatting pass. Phone, iPad,
+  and historical visual invariant gates also pass.
+- Physical-phone verification remains open and is not claimed by this entry.

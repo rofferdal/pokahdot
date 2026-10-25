@@ -9,22 +9,10 @@
 
 ## Task records
 
-- [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) — completed ordered
-  release-readiness work and verification evidence.
-- [`CoreTasks.md`](CoreTasks.md) — shared and core-adjacent task evidence.
-- [`CliTasks.md`](CliTasks.md) — interactive CLI task evidence.
-- [`GuiTasks.md`](GuiTasks.md) — GUI, Web export, and local visual-verification
-  work.
 - [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active,
   iterative physical-phone GUI review and remediation work.
 - [`OptimizingDesktopGuiTasks.md`](OptimizingDesktopGuiTasks.md) — deferred
   desktop-browser GUI findings to resume after phone remediation.
-- [`OptimizingIpadTasks.md`](OptimizingIpadTasks.md) — active landscape-first
-  iPad remediation, automated evidence, and pending physical acceptance.
-- [`SimCoreTasks.md`](SimCoreTasks.md) — simulation domain and external
-  profile-evolution task evidence.
-- [`SimCliTasks.md`](SimCliTasks.md) — non-interactive simulation CLI task
-  evidence.
 
 ## Specifications, runbooks, and guides
 
@@ -44,6 +32,7 @@
 
 ## Archived history
 
-[`arkiv/`](arkiv/) preserves superseded plans and completed task history. Its
-files are historical evidence, not active requirements or backlogs; each file
-links to its current replacement.
+[`arkiv/`](arkiv/) preserves superseded plans and completed task history,
+including the completed core, CLI, GUI, simulation, and release-readiness
+backlogs and the accepted iPad optimization record. Its files are historical
+evidence, not active requirements or backlogs.

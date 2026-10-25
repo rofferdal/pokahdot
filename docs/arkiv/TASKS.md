@@ -2,9 +2,10 @@
 
 > **Archived / superseded.** This file preserves completed implementation
 > history and is not an active backlog. Current unfinished work is split among
-> [`CoreTasks.md`](../CoreTasks.md), [`CliTasks.md`](../CliTasks.md),
-> [`GuiTasks.md`](../GuiTasks.md), [`SimCoreTasks.md`](../SimCoreTasks.md), and
-> [`SimCliTasks.md`](../SimCliTasks.md).
+> the device-optimization backlogs in the parent `docs/` directory. Completed
+> layer backlogs are preserved beside this file as [`CoreTasks.md`](CoreTasks.md),
+> [`CliTasks.md`](CliTasks.md), [`GuiTasks.md`](GuiTasks.md),
+> [`SimCoreTasks.md`](SimCoreTasks.md), and [`SimCliTasks.md`](SimCliTasks.md).
 
 This historical backlog followed [`ARCHITECTURE.md`](../ARCHITECTURE.md) and
 was ordered as vertical, runnable increments.

@@ -560,7 +560,7 @@ The method may execute several bot turns synchronously, but it returns `YIELDED`
 
 The core checks a latched quit request before every state transition. GUI driving must use a bounded transition budget and yield back to Godot's event loop between budgets so the always-available quit control remains responsive. The CLI loops through bot progress without requesting stdin and accepts `quit`/`exit` whenever it is reading a human command.
 
-The completed implementation history proceeded through the interactive CLI first, then the GUI, simulation, profile-evolution, and release-readiness phases. [`ReleaseReadinessTasks.md`](ReleaseReadinessTasks.md) records the completed ordered release-readiness work, while the layer backlogs retain their task evidence. Completed historical sequencing is preserved under [`arkiv/`](arkiv/).
+The completed implementation history proceeded through the interactive CLI first, then the GUI, simulation, profile-evolution, and release-readiness phases. [`ReleaseReadinessTasks.md`](arkiv/ReleaseReadinessTasks.md) records the completed ordered release-readiness work, while the archived layer backlogs retain their task evidence. Completed historical sequencing is preserved under [`arkiv/`](arkiv/).
 
 ### GUI adapter
 
@@ -608,9 +608,13 @@ consumes its rectangles for
 phone opponent tokens while keeping the human seat at the bottom. Tokens omit
 avatars but reserve readable width for the full assigned display name, numeric
 stack, compact position and public-state badge, and two recipient-safe hidden
-or legitimately revealed hole-card fields. A short-lived compact action badge
-temporarily occupies the state-badge cell and never covers those required
-fields. A deliberate
+or legitimately revealed hole-card fields. Each token also owns a separate
+compact action cell. It retains that seat's latest Check, Call, Bet, Raise,
+All-in, or Fold for the current betting round; a later public action replaces
+only the same seat's value. These action cells clear at the next street or hand
+boundary, while durable Fold state remains in the independent public-state
+badge. The controller derives all action copy from recipient-safe public action
+history, and no presentation timer may expire it. A deliberate
 tap opens a closeable detail panel whose selection is stored as a core seat ID,
 not a node reference, so rerenders cannot attach details to the wrong player.
 The phone composition does not instantiate or expose event history; the
@@ -1078,24 +1082,25 @@ addons/
   gut/                    # pinned GUT development dependency
 docs/
   ARCHITECTURE.md
-  CliTasks.md
-  CoreTasks.md
-  GuiTasks.md
   GUI_VISUAL_TESTING.md
   OptimizingDesktopGuiTasks.md
-  OptimizingIpadTasks.md
   OptimizingPhoneGuiTasks.md
   POKERCARDS_IN_CLI.md
   ProvisionalGUILayoutGuidance.md
   ProjectDescription.md
   README.md
-  SimCliTasks.md
-  SimCoreTasks.md
   Simulation_And_Evolutionary_Bot_Strategy.md
   OPTIONAL_WEB_SETUP.md
   templates/
     GUI_DEFECT.md
-  arkiv/                  # superseded completed-history documents
+  arkiv/                  # superseded plans and completed task records
+    CliTasks.md
+    CoreTasks.md
+    GuiTasks.md
+    OptimizingIpadTasks.md
+    ReleaseReadinessTasks.md
+    SimCliTasks.md
+    SimCoreTasks.md
 scripts/
   core/
     config/
