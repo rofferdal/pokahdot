@@ -98,14 +98,14 @@ func test_phone_fold_state_survives_badge_expiry_and_private_cards_stay_hidden()
 	var seat := _seat(table, 3)
 	assert_true((seat.find_child("ActionBadge", true, false) as Label).visible)
 	assert_not_null(seat.find_child("Badge", true, false))
-	assert_string_contains((seat.find_child("Badge", true, false) as Label).text, "Fold")
+	assert_has((seat.find_child("Badge", true, false) as Label).text.split(" "), "F")
 	assert_null(seat.find_child("ShowdownCard1", true, false))
 	assert_not_null(seat.find_child("HoleCardField1", true, false))
 	assert_not_null(seat.find_child("HoleCardField2", true, false))
 
 	table._expire_phone_action_badge_if_current(table._phone_action_badge_generation)
 	assert_false((seat.find_child("ActionBadge", true, false) as Label).visible)
-	assert_string_contains((seat.find_child("Badge", true, false) as Label).text, "Fold")
+	assert_has((seat.find_child("Badge", true, false) as Label).text.split(" "), "F")
 	assert_null(seat.find_child("CardBack1", true, false))
 
 

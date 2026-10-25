@@ -17,6 +17,10 @@
   work.
 - [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active,
   iterative physical-phone GUI review and remediation work.
+- [`OptimizingDesktopGuiTasks.md`](OptimizingDesktopGuiTasks.md) — deferred
+  desktop-browser GUI findings to resume after phone remediation.
+- [`OptimizingIpadTasks.md`](OptimizingIpadTasks.md) — deferred iPad layout
+  regression and physical-device acceptance backlog.
 - [`SimCoreTasks.md`](SimCoreTasks.md) — simulation domain and external
   profile-evolution task evidence.
 - [`SimCliTasks.md`](SimCliTasks.md) — non-interactive simulation CLI task

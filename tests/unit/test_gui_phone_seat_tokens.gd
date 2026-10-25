@@ -29,8 +29,7 @@ func test_phone_opponents_use_canonical_tokens_with_public_state() -> void:
 	table.bind_view(public_state.view, {}, {})
 	await _settle()
 	var folded_acting_badge := _seat(table, 1).find_child("Badge", true, false) as Label
-	assert_string_contains(folded_acting_badge.text, "Turn")
-	assert_string_contains(folded_acting_badge.text, "Fold")
+	assert_has(folded_acting_badge.text.split(" "), "F")
 
 
 func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() -> void:
@@ -91,6 +90,28 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 		assert_eq(details_button.get_rect(), Rect2(Vector2.ZERO, token.size), "seat %d" % seat)
 		assert_gte(details_button.size.y, 48.0, "seat %d detail target" % seat)
 		assert_string_contains(details_button.tooltip_text, name_label.text)
+
+
+func test_phone_state_badges_hide_empty_cells_and_render_compact_fold_without_clip() -> void:
+	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-preflop", 6)
+	descriptor.view._seats[1].folded = true
+	var table: PokerTableController = await _phone_view_table(descriptor.view)
+	var found_empty_badge: bool = false
+	var found_fold_badge: bool = false
+	for seat: int in range(1, 6):
+		var badge := _seat(table, seat).find_child("Badge", true, false) as Label
+		if badge.text.is_empty():
+			found_empty_badge = true
+			assert_false(badge.visible, "empty seat %d badge" % seat)
+		if "F" in badge.text.split(" "):
+			found_fold_badge = true
+			assert_lte(
+				badge.get_combined_minimum_size().x,
+				badge.size.x,
+				"Fold-state badge including its frame must not clip",
+			)
+	assert_true(found_empty_badge)
+	assert_true(found_fold_badge)
 
 
 func test_phone_token_and_detail_never_reveal_private_opponent_cards() -> void:

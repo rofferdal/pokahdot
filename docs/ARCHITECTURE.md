@@ -1074,6 +1074,8 @@ docs/
   CoreTasks.md
   GuiTasks.md
   GUI_VISUAL_TESTING.md
+  OptimizingDesktopGuiTasks.md
+  OptimizingIpadTasks.md
   OptimizingPhoneGuiTasks.md
   POKERCARDS_IN_CLI.md
   ProvisionalGUILayoutGuidance.md

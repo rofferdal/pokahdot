@@ -1,6 +1,6 @@
 # Optimizing the Phone GUI
 
-Status: Active, iterative physical-device remediation backlog  
+Status: Active — portrait is functional; visual polish and deferred landscape policy remain
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -93,13 +93,6 @@ complete only when its acceptance evidence has been recorded.
   `40236546882` deployed `97eae50727bc` successfully and therefore rules out a
   pre-Milestone-4 release. Device/OS/browser version details remain useful for
   the final evidence record but are not needed to identify this defect's code.
-- [ ] **Capture runtime viewport and profile diagnostics on the real phone.** In
-  a temporary or explicitly enabled diagnostic surface, record CSS viewport
-  width/height, canvas CSS size, canvas backing size, device-pixel ratio,
-  Godot viewport size, table root size, usable rectangle, safe-area/browser
-  reductions, selected `GuiLayoutProfile.Kind`, and mobile/touch feature
-  signals. Keep diagnostics out of ordinary production play. Acceptance: one
-  evidence record explains exactly why the runtime selected its profile.
 - [x] **Reproduce the diagnosed path locally.** Add a deterministic fixture for
   the real metrics, including distinct CSS/logical and backing-canvas sizes
   when they differ. First demonstrate that the fixture catches the observed
@@ -133,27 +126,40 @@ complete only when its acceptance evidence has been recorded.
   recovery, DPR 2 desktop preservation, invalid input, and explicit assertions
   that phone avatars, event history, and standalone Quit are absent while
   `More` remains visible.
-- [ ] **Verify the corrected build on the same Android phone.** Deploy a clean
+- [x] **Verify the corrected portrait build on the same Android phone.** Deploy a clean
   commit, use a fresh session, capture startup and the same six-player preflop
-  turn, and record all provenance. Acceptance: the physical phone shows the
-  compact phone composition and the user confirms that the classification
-  problem is gone.
+  flow, and record all provenance. Acceptance: the user confirms that portrait
+  operation is functional and the original always-desktop classification
+  problem is gone. Commit `71463cb9152fe8c6efbd7cfe7e8a36182394517a`
+  deployed successfully in workflow run `40238155060`; the user reports that
+  most portrait behavior now works as described. Startup capture
+  `1000049752.jpg` visibly uses the phone form and
+  `Screenshot_20261025_232148_Chrome.jpg` shows the compact table. Rotation/
+  landscape is excluded from this acceptance and tracked separately below.
 
 ### Phase 3 — Tune the composition for fingers and legibility
 
-- [ ] **Validate and tune the bottom human/action region physically.** Measure
+- [x] **Validate the bottom human/action region physically.** Measure
   every visible action and `More` target in logical pixels and check it by
   touch on the 6.5 cm x 14 cm screen. Keep targets at least 48 x 48 logical px,
   preserve spacing against accidental taps, show only legal actions, and keep
   the primary choices in comfortable thumb reach. Acceptance: Fold,
   Check/Call, Bet/Raise, All-in, More, wager entry, and cancellation can each
-  be selected reliably without zooming or precision tapping.
-- [ ] **Validate all six-player seat tokens and center information.** Require
+  be selected reliably without zooming or precision tapping. The corrected
+  portrait capture shows one integrated bottom region with large, separated
+  Fold, Call, All-in, Raise, and More targets; the user reports that portrait
+  operation works as described.
+- [x] **Validate all six-player seat tokens and center information.** Require
   full assigned names, numeric stacks, two card fields, state/position badges,
   community cards, pot, current wager, and turn copy to remain readable and
   non-overlapping at the real usable viewport. Preserve the 20 px logical font
   floor. Acceptance: no ellipsis or clipping removes required seat identity,
-  and no seat obscures the decision information.
+  and no seat obscures the decision information. The corrected portrait
+  capture retains five full names, five numeric stacks, two card fields per
+  opponent, position/state badges, board slots, pot, current wager, hero cards,
+  stack, and turn copy without overlap. It also exposed a clipped `Fold` badge
+  and empty framed badge cells; the working tree now uses an intentional `F`
+  state badge and hides empty badge cells without narrowing names.
 - [ ] **Validate browser bars, safe areas, and Android navigation behavior.**
   Exercise the address bar expanded and collapsed, page scroll prevention,
   fullscreen if supported, keyboard/keypad opening, back navigation, and
@@ -173,10 +179,18 @@ complete only when its acceptance evidence has been recorded.
   multiple streets, wager entry, all-in runout, showdown, elimination, and
   tournament winner states. Acceptance: every required identity and legal
   action remains reachable, legible, and unobstructed.
-- [ ] **Run the landscape and reduced-height sweep.** Repeat the critical
-  human-turn and overlay states in landscape with browser chrome expanded and
-  collapsed. Acceptance: phone landscape stays a phone layout, retains at
-  least 48 x 48 action targets, and does not lose center decision information.
+- [ ] **Decide whether phone landscape is supported.** **Deferred by the user.**
+  The user reports that landscape does not work well. Before implementation
+  resumes, choose either a supported landscape contract with its required
+  reduced-height sweep or an explicit portrait-only product contract with clear
+  behavior on rotation. Do not treat unsupported landscape as an implicit,
+  broken desktop fallback.
+- [ ] **Capture runtime diagnostics if phone classification recurs.** In a
+  temporary or explicitly enabled diagnostic surface, record CSS viewport,
+  canvas CSS and backing sizes, device-pixel ratio, Godot root/table sizes,
+  usable rectangle, selected profile, and mobile/touch signals. Keep this out
+  of ordinary production play. This evidence enhancement is deferred unless a
+  portrait classification defect recurs or landscape support resumes.
 - [ ] **Perform an independent browser/device check.** After Android Chrome is
   accepted, verify at least one materially different phone/browser combination
   from the optional hosted matrix. Record differences as new tasks instead of
@@ -221,3 +235,33 @@ complete only when its acceptance evidence has been recorded.
 - Automated evidence: 503/503 GUT tests and 16,821 assertions pass, including
   portrait/landscape high-density composition regressions.
 - Next action: deploy the correction and verify it on the same Android phone.
+
+### 2026-10-25 — Corrected deployment physical-phone review
+
+- Hosted URL: `https://rofferdal.github.io/pokahdot/`.
+- Successful workflow run:
+  `https://github.com/rofferdal/pokahdot/actions/runs/40238155060`.
+- Deployed commit: `71463cb9152fe8c6efbd7cfe7e8a36182394517a`.
+- Evidence: `localtmp/from_real_tests/1000049752.jpg` and
+  `localtmp/from_real_tests/Screenshot_20261025_232148_Chrome.jpg`; both files
+  are 1080 x 2340 JPEGs without an orientation tag.
+- Startup result: pass. The first capture uses the phone form, retains default
+  six players, advertises the 2–7 limit and four-player recommendation, and
+  keeps its fields and actions large and visible between browser/system chrome.
+- User result: portrait is not yet considered visually polished, but most
+  behavior works as described. The only reported functional problem is the
+  landscape path, whose follow-up the user deferred.
+- Table result: pass with minor polish findings. The correct capture visibly
+  uses compact avatar-free opponent tokens, hides event history and standalone
+  Quit, presents `More`, and integrates the hero cards, stack, turn copy, and
+  current legal actions in the bottom region. Required information is readable
+  and the user reports that portrait interaction works.
+- Polish finding: durable folded-state text is clipped to `Fol`, and empty
+  framed badge cells resemble extra cards. The follow-up correction uses a
+  compact `F` and hides empty badge cells while preserving name width.
+- Added automated evidence: the real `main.tscn` startup-to-table transition at
+  360 x 780 now has a regression requiring the phone profile, hidden event log
+  and standalone Quit, and visible `More`. It passes locally, so the ordinary
+  portrait transition does not reproduce the deferred rotation path.
+- Current automated result: 505/505 GUT tests and 16,831 assertions pass; the
+  complete phone invariant gate also passes.

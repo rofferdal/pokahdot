@@ -3,6 +3,7 @@ extends "res://tests/support/poker_gut_test.gd"
 const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 const GuiWebViewportGeometryScript := preload("res://scripts/gui/gui_web_viewport_geometry.gd")
 const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
+const MainScene := preload("res://scenes/main.tscn")
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
 
 
@@ -40,6 +41,26 @@ func test_normalized_android_portrait_browser_heights_use_real_phone_composition
 
 func test_normalized_android_landscape_uses_real_phone_composition() -> void:
 	await _assert_phone_composition(Vector2i(1920, 1080), 3.0)
+
+
+func test_real_phone_startup_to_table_transition_keeps_phone_composition() -> void:
+	var main := MainScene.instantiate() as StartupConfigController
+	main.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	main.size = Vector2(360, 780)
+	add_child_autofree(main)
+	await get_tree().process_frame
+
+	main._on_start_pressed()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var table := main.get_node("PokerTable") as PokerTableController
+	assert_eq(table.size, Vector2(360, 780))
+	assert_true(GuiLayoutProfileScript.is_phone(table.get_layout_profile()))
+	assert_false((table.get_node("%EventLog") as Control).visible)
+	assert_false((table.get_node("%QuitButton") as Control).visible)
+	assert_true((table.get_node("%PhoneMoreButton") as Control).visible)
 
 
 func test_high_density_desktop_stays_desktop_after_normalization() -> void:

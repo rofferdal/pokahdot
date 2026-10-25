@@ -550,7 +550,8 @@ func _create_phone_opponent_token(player_view: PlayerView) -> PanelContainer:
 	stack_label.offset_right = -44.0
 	stack_label.offset_bottom = 47.0
 	content.add_child(stack_label)
-	var badge := _phone_token_label("Badge", _phone_seat_badge_text(player_view))
+	var badge := _phone_token_label("Badge", _phone_token_badge_text(player_view))
+	badge.visible = not badge.text.is_empty()
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	badge.offset_left = -44.0
@@ -607,6 +608,22 @@ func _phone_seat_badge_text(player_view: PlayerView) -> String:
 		badges.append("AI")
 	elif player_view.busted:
 		badges.append("Out")
+	return " ".join(badges)
+
+
+func _phone_token_badge_text(player_view: PlayerView) -> String:
+	var badges: Array[String] = []
+	var position_text: String = _seat_marker_text(player_view)
+	if not position_text.is_empty():
+		badges.append(position_text)
+	if player_view.folded:
+		badges.append("F")
+	elif player_view.all_in:
+		badges.append("AI")
+	elif player_view.busted:
+		badges.append("Out")
+	elif player_view.seat == _bound_view.acting_seat:
+		badges.append("T")
 	return " ".join(badges)
 
 
