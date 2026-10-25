@@ -4,9 +4,43 @@ const GuiAvatarCatalogScript := preload("res://scripts/gui/gui_avatar_catalog.gd
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
 
 const DESKTOP_VIEWPORT := Vector2(1920, 1080)
+# Diagnostic coverage only: this is the supplied screenshot raster, not a
+# measured CSS viewport. Keep the evidence task open until browser metrics exist.
+const OBSERVED_DESKTOP_RASTER := Vector2(1853, 916)
 const IPAD_LANDSCAPE_VIEWPORT := Vector2(2388, 1450)
 const SMALL_DESKTOP_VIEWPORT := Vector2(950, 532)
 const MIN_WIDENED_SEAT_WIDTH: float = 416.0
+
+
+func test_observed_desktop_raster_keeps_quit_clear_of_human_identity() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = OBSERVED_DESKTOP_RASTER
+	add_child_autofree(table)
+	table.bind_view(_view(6), _avatar_assignments(6), {0: "Human"})
+	table.show()
+	await _settle_layout()
+
+	var quit_rect := (table.get_node("%QuitButton") as Button).get_global_rect()
+	var hero := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0") as PanelContainer
+	var hero_status := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0Status") as Label
+	assert_false(
+		quit_rect.intersects(hero.get_global_rect()),
+		(
+			"Quit %s must clear human panel %s and center %s"
+			% [quit_rect, hero.get_global_rect(), table.get_resolved_region_rects()[&"center"]]
+		),
+	)
+	assert_false(
+		quit_rect.intersects(hero_status.get_global_rect()), "Quit must clear human status"
+	)
+	for child_name: String in ["Name", "Stack", "Marker", "HeroCards"]:
+		var child := hero.find_child(child_name, true, false) as Control
+		assert_not_null(child, "Human %s must exist" % child_name)
+		assert_false(
+			quit_rect.intersects(child.get_global_rect()),
+			"Quit %s must clear human %s %s" % [quit_rect, child_name, child.get_global_rect()],
+		)
 
 
 func test_desktop_seats_are_widened_and_non_overlapping_for_two_to_nine_players() -> void:

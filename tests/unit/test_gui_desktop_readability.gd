@@ -103,6 +103,79 @@ func test_desktop_action_and_quit_fonts_match_community_cards_without_resizing_b
 		)
 
 
+func test_desktop_action_controls_have_distinct_focus_and_disabled_states() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(1853, 916)
+	table.bind_view(_hero_table_view(6), _avatar_assignments(6))
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	for path: NodePath in [
+		^"%FoldButton",
+		^"%CheckCallButton",
+		^"%MinWagerButton",
+		^"%PotRaiseButton",
+		^"%AllInButton",
+		^"%WagerButton",
+	]:
+		var button := table.get_node(path) as Button
+		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
+		var focus := button.get_theme_stylebox("focus") as StyleBoxFlat
+		var disabled := button.get_theme_stylebox("disabled") as StyleBoxFlat
+		assert_not_null(focus, "%s needs an explicit keyboard focus ring" % path)
+		assert_not_null(disabled, "%s needs an explicit disabled state" % path)
+		assert_gt(focus.border_width_left, normal.border_width_left, str(path))
+		assert_ne(_style_signature(focus), _style_signature(normal), str(path))
+		assert_ne(_style_signature(disabled), _style_signature(normal), str(path))
+	var wager_input := table.get_node("%WagerInput") as LineEdit
+	assert_ne(
+		_style_signature(wager_input.get_theme_stylebox("focus") as StyleBoxFlat),
+		_style_signature(wager_input.get_theme_stylebox("normal") as StyleBoxFlat),
+	)
+
+
+func test_desktop_empty_board_slots_are_neutral_and_event_log_follows_latest_row() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(1853, 916)
+	table.bind_view(_hero_table_view(6), _avatar_assignments(6))
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	for slot: PanelContainer in table.get_node("%CardSlots").get_children():
+		assert_eq((slot.get_node("Content/Rank") as Label).text, "")
+		assert_null((slot.get_node("Content/Suit") as TextureRect).texture)
+		assert_eq(slot.modulate.a, 1.0)
+		var slot_style := slot.get_theme_stylebox("panel") as StyleBoxFlat
+		assert_eq(slot_style.bg_color, Color("294c5c"))
+		assert_eq(slot_style.border_color, Color("82968b"))
+	var event_log := table.get_node("%EventLog") as RichTextLabel
+	var event_style := event_log.get_theme_stylebox("normal") as StyleBoxFlat
+	assert_true(event_log.scroll_active)
+	assert_true(event_log.scroll_following)
+	assert_gte(event_style.content_margin_left, 8.0)
+	assert_gte(event_style.content_margin_bottom, 5.0)
+
+
+func test_folded_desktop_status_retains_readable_contrast() -> void:
+	var table := PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(1853, 916)
+	var view := _hero_table_view(2)
+	view._seats[1].folded = true
+	table.bind_view(view, _avatar_assignments(2))
+	await get_tree().process_frame
+
+	var status := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label
+	var folded_color: Color = status.get_theme_color("font_color")
+	assert_eq(folded_color, Color("d6d0be"))
+	assert_gte(_color_difference(folded_color, Color("075c35")), 1.0)
+
+
 func test_startup_form_collapses_empty_errors_and_uses_visible_input_controls() -> void:
 	var main := MainScene.instantiate()
 	add_child_autofree(main)

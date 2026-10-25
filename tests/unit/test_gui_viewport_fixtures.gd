@@ -17,6 +17,7 @@ const EXPECTED_VIEWPORTS: Dictionary = {
 	&"ipad_landscape_2388x1450_observed": Vector2i(2388, 1450),
 	&"small_desktop_950x532": Vector2i(950, 532),
 	&"desktop_1280x720": Vector2i(1280, 720),
+	&"desktop_1853x916_observed_raster": Vector2i(1853, 916),
 	&"desktop_1920x1080": Vector2i(1920, 1080),
 }
 const EXPECTED_PROFILES: Dictionary = {
@@ -33,6 +34,7 @@ const EXPECTED_PROFILES: Dictionary = {
 	&"ipad_landscape_2388x1450_observed": &"tablet",
 	&"small_desktop_950x532": &"small_desktop",
 	&"desktop_1280x720": &"desktop",
+	&"desktop_1853x916_observed_raster": &"desktop",
 	&"desktop_1920x1080": &"desktop",
 }
 
@@ -99,7 +101,11 @@ func test_browser_chrome_and_observed_regression_metadata_is_explicit() -> void:
 	)
 	assert_eq(
 		observed_regression_keys,
-		[&"ipad_landscape_1194x696_chrome", &"ipad_landscape_2388x1450_observed"],
+		[
+			&"ipad_landscape_1194x696_chrome",
+			&"ipad_landscape_2388x1450_observed",
+			&"desktop_1853x916_observed_raster",
+		],
 	)
 	assert_eq(override_keys, [&"ipad_landscape_2388x1450_observed"])
 

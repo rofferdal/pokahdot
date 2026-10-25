@@ -259,6 +259,7 @@ grow_horizontal = 0
 bbcode_enabled = false
 fit_content = false
 scroll_active = true
+scroll_following = true
 mouse_filter = 2
 theme_override_font_sizes/normal_font_size = 20
 

@@ -60,6 +60,13 @@ static func all() -> Array[Dictionary]:
 		),
 		_fixture(&"small_desktop_950x532", Vector2i(950, 532), PROFILE_SMALL_DESKTOP),
 		_fixture(&"desktop_1280x720", Vector2i(1280, 720), PROFILE_DESKTOP),
+		_fixture(
+			&"desktop_1853x916_observed_raster",
+			Vector2i(1853, 916),
+			PROFILE_DESKTOP,
+			false,
+			true,
+		),
 		_fixture(&"desktop_1920x1080", Vector2i(1920, 1080), PROFILE_DESKTOP),
 	]
 

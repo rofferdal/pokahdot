@@ -1,7 +1,7 @@
 # Optimizing the Phone GUI
 
-Status: Active — portrait works; betting-round action persistence and the
-deferred landscape policy remain
+Status: Active — portrait follow-up found clipped wager/action amounts and
+asymmetric opponent placement; physical verification remains
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -160,7 +160,9 @@ complete only when its acceptance evidence has been recorded.
   opponent, position/state badges, board slots, pot, current wager, hero cards,
   stack, and turn copy without overlap. It also exposed a clipped `Fold` badge
   and empty framed badge cells; the working tree now uses an intentional `F`
-  state badge and hides empty badge cells without narrowing names.
+  state badge and hides empty badge cells without narrowing names. A later turn
+  capture exposed numeric amount clipping and uneven seat placement in another
+  state; those follow-up defects are tracked below.
 - [x] **Add a failing phone regression for per-seat action persistence.** Drive
   several players through one betting round and require every seat to retain
   its own latest public action after later players act and after any transient
@@ -176,6 +178,30 @@ complete only when its acceptance evidence has been recorded.
   stack, position marker, or two card fields; do not change poker-core rules or
   leak private information. Acceptance: each player's most recent action is
   continuously attributable to that player until the proper reset boundary.
+- [ ] **Add portrait regressions for amount visibility and symmetric opponent
+  placement.** Reproduce
+  `localtmp/from_real_tests/Screenshot_20261026_001503_Chrome.jpg` with a
+  six-player turn-state fixture. Assert that the complete current-wager amount
+  and every seat-owned Bet/Raise/Call amount fit without ellipsis or ambiguous
+  abbreviation. Also assert mirrored opponent geometry in clockwise order:
+  Linh lower-left, Bao upper-left, Lior top-center, Haruto upper-right, and
+  Kwame lower-right. Acceptance: the tests fail on the captured composition
+  before production layout changes and retain the 20 px logical font floor.
+- [ ] **Restore complete pot, current-wager, and latest-action amounts.** Use
+  the same phone text size as the player-seat copy for `Pot` and `Current
+  wager`, as suggested by the physical review, and reserve enough width for
+  their numeric values. Reflow or widen the seat-owned action cell so full bet
+  and raise amounts remain visible instead of collapsing to copy such as
+  `B1`. Acceptance: representative small, large, and all-in amounts remain
+  unambiguous without hiding names, stacks, markers, cards, or legal actions.
+- [ ] **Make the six-player portrait opponent arc symmetric.** Preserve the
+  clockwise seat order while assigning mirrored fixed footprints around the
+  center: Linh and Kwame form the lower pair, Bao and Haruto form the upper
+  pair, and Lior is centered at the top. Generalize the same symmetry rule to
+  supported 2-, 4-, and 7-player portrait tables without moving seats between
+  action states. Acceptance: mirrored pairs have equal offsets and sizes,
+  Lior's corresponding five-opponent slot is top-centered, and no seat/status
+  region intersects the board or human/action region.
 - [ ] **Verify persistent actions on the physical phone.** Deploy one clean SHA
   and exercise 2-, 4-, 6-, and 7-player portrait tables across preflop, flop,
   turn, and river, including repeated actions by one player, folds, all-ins,
@@ -312,3 +338,21 @@ complete only when its acceptance evidence has been recorded.
   17,197 assertions and 72 Python tests; lint and formatting pass. Phone, iPad,
   and historical visual invariant gates also pass.
 - Physical-phone verification remains open and is not claimed by this entry.
+
+### 2026-10-26 — Turn-state portrait follow-up
+
+- Evidence:
+  `localtmp/from_real_tests/Screenshot_20261026_001503_Chrome.jpg`, a 1080 x
+  2340 Android Chrome JPEG showing a six-player turn state.
+- Amount-visibility result: fail. `Current wager` ends in an ellipsis before
+  its numeric value, and Linh's seat-owned latest action is compressed to
+  `B1`, which does not communicate the complete bet size. `Pot: 360` remains
+  visible, but the user requests that both center status rows use the smaller
+  player-seat text size to preserve room for numeric values.
+- Seat-distribution result: fail. The opponent footprints are not vertically
+  or horizontally balanced. For the clockwise order Linh, Bao, Lior, Haruto,
+  Kwame, the requested composition is Linh lower-left, Bao upper-left, Lior
+  centered at the top, Haruto upper-right, and Kwame lower-right.
+- No implementation or physical acceptance is claimed. The new regression,
+  amount-layout, symmetry, and subsequent physical-verification tasks remain
+  unchecked.

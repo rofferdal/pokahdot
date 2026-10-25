@@ -482,7 +482,7 @@ func test_table_scene_binds_board_wager_and_pot_zones() -> void:
 		table.get_node("%CardSlots/CardSlot1").get_theme_stylebox("panel").bg_color, Color("f5f0dc")
 	)
 	assert_eq(
-		table.get_node("%CardSlots/CardSlot4").get_theme_stylebox("panel").bg_color, Color("173e58")
+		table.get_node("%CardSlots/CardSlot4").get_theme_stylebox("panel").bg_color, Color("294c5c")
 	)
 	assert_eq(
 		table.get_node("TableMargin/Felt/TableSurface/CenterZone/WagerZone/WagerLabel").text,

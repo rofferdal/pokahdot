@@ -48,7 +48,10 @@ static func create_card_face(
 	card_face.add_child(content)
 	var rank := Label.new()
 	rank.name = "Rank"
-	rank.text = card_rank_text[card_data.rank] if card_data != null else "?"
+	# Unrevealed community-card slots are intentionally blank. A question mark
+	# paired with a real suit glyph looked like game information rather than an
+	# empty board position.
+	rank.text = card_rank_text[card_data.rank] if card_data != null else ""
 	rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rank.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	rank.add_theme_font_size_override("font_size", rank_font_size)
@@ -88,7 +91,7 @@ static func create_main_pot_winner_star(avatar_size: Vector2) -> TextureRect:
 
 static func _suit_texture(card_data: CardData) -> Texture2D:
 	if card_data == null:
-		return SPADE_TEXTURE
+		return null
 	match card_data.suit:
 		CardData.Suit.CLUBS:
 			return CLUB_TEXTURE

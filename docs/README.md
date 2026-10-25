@@ -11,8 +11,8 @@
 
 - [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active,
   iterative physical-phone GUI review and remediation work.
-- [`OptimizingDesktopGuiTasks.md`](OptimizingDesktopGuiTasks.md) — deferred
-  desktop-browser GUI findings to resume after phone remediation.
+- [`OptimizingDesktopGuiTasks.md`](OptimizingDesktopGuiTasks.md) — active
+  desktop-browser remediation, measurement, and visual-acceptance record.
 
 ## Specifications, runbooks, and guides
 

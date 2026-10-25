@@ -313,11 +313,12 @@ func _assert_current_region_owners(table: PokerTableController, player_count: in
 		&"wager": surface.get_node("CenterZone/WagerZone"),
 		&"action": surface.get_node("ActionPanel"),
 		&"event": surface.get_node("EventLog"),
+		&"quit": surface.get_node("QuitButton"),
 	}
 	for region_name: StringName in owners:
 		assert_eq(regions[region_name], _surface_local_rect(surface, owners[region_name]))
 		assert_true(surface.is_ancestor_of(owners[region_name]))
-	assert_eq(regions.size(), 7 + player_count * 2)
+	assert_eq(regions.size(), 8 + player_count * 2)
 	assert_eq(regions[&"hero"], regions[&"seat_0"])
 	for seat: int in range(player_count):
 		var seat_name := StringName("seat_%d" % seat)
