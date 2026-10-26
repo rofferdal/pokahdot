@@ -1,7 +1,7 @@
 # Optimizing the Phone GUI
 
-Status: Active — physical Android follow-up still shows clipped opponent and
-human action amounts; corrective implementation and verification remain
+Status: Active — automated action-amount remediation passes; physical Android
+verification is next
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -212,7 +212,7 @@ complete only when its acceptance evidence has been recorded.
   boundary value. Acceptance: the regression fails against the captured
   geometry before production changes and measures the rendered glyph width,
   not only the label's assigned rectangle or native desktop font metrics.
-- [ ] **Reserve sufficient portrait width for opponent action amounts.** Stop
+- [x] **Reserve sufficient portrait width for opponent action amounts.** Stop
   relying on an exact 48 px opponent action cell that only barely fits selected
   three-digit fixtures. Reflow the compact token's stack, action, and card
   fields so the complete recipient-safe action value fits with visible internal
@@ -220,14 +220,14 @@ complete only when its acceptance evidence has been recorded.
   position/state marker, and both card fields without increasing token overlap
   or breaking the symmetric 2-, 4-, 6-, and 7-player footprints. Acceptance:
   no action suffix is clipped or ellipsized in native or Web rendering.
-- [ ] **Give the human latest-action badge content-driven space.** Rework the
+- [x] **Give the human latest-action badge content-driven space.** Rework the
   bottom summary so the complete human Check, Call, Bet, Raise, All-in, or Fold
   value remains visible alongside the hero cards, stack, and `More`. The badge
   must not collapse to a single action prefix when sibling controls consume the
   row. Acceptance: representative `B120`, `C310`, `R310`, and large all-in
   values render in full with padding while `More` remains at least 48 x 48 and
   the legal-action buttons remain unobstructed.
-- [ ] **Extend the phone invariant matrix with action-content padding.** Check
+- [x] **Extend the phone invariant matrix with action-content padding.** Check
   both opponent tokens and the human summary at the shortest supported portrait
   viewport, the recorded Android logical viewport, browser-bar expansion and
   collapse, DPR 1/2/3, and portrait resize restoration. Assert rendered text
@@ -427,3 +427,25 @@ complete only when its acceptance evidence has been recorded.
   New work must include rendered-content padding and the actual Web font path,
   not another equality-at-the-cell-boundary assertion.
 - Physical-phone action verification remains unchecked.
+
+### 2026-10-26 — Automated Web action-amount remediation
+
+- Portrait opponent action badges now reserve their width from rendered Web
+  font metrics plus 12 px horizontal padding. Complete values such as `R310`,
+  `B120`, and `A1000` remain separate from the full stack, state marker, name,
+  and two card fields at the 20 px font floor.
+- The hero summary gives its latest-action badge content-driven width plus 4 px
+  padding. Hero cards use a compact 33 x 44 presentation with 22 px ranks, so
+  `C310`, `R310`, and `A1000` fit beside the numeric stack and the 48 x 48-or-
+  larger `More` target. Exact-thousand abbreviation remains limited to the
+  explicitly deferred landscape composition.
+- The phone invariant matrix now checks rendered action content plus padding,
+  intersections with stack/cards/name/state fields, hero-summary ownership,
+  and the `More` target. Web geometry coverage applies the same content checks
+  to DPR 1/2/3, expanded and collapsed browser heights, and landscape fallback;
+  the existing matrix also verifies portrait rotation/resize restoration.
+- Focused phone regressions and the phone invariant matrix pass. `make check`
+  passes 532/532 GUT tests with 17,584 assertions and all 72 Python tests;
+  GDScript lint and formatting pass. Phone, iPad, desktop, and historical GUI
+  invariant matrices pass.
+- Physical-phone verification remains unchecked pending the user's results.

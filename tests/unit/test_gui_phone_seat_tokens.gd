@@ -45,6 +45,7 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 	]
 	view._action_history = actions
 	view._seats[5].all_in = true
+	view._seats[5].stack = 0
 	view._seats[6].folded = true
 	var table := PokerTableScene.instantiate() as PokerTableController
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)

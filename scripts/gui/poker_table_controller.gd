@@ -633,7 +633,7 @@ func _phone_token_badge_text(player_view: PlayerView) -> String:
 
 
 func _create_phone_action_badge(seat: int) -> Label:
-	var badge := _phone_token_label("ActionBadge", _compact_phone_action_for_seat(seat))
+	var badge := _phone_token_label("ActionBadge", _phone_opponent_action_for_seat(seat))
 	badge.z_index = 2
 	badge.visible = not badge.text.is_empty()
 	badge.clip_text = false
@@ -658,20 +658,28 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 		if action_badge == null:
 			continue
 		var action_width: float = _phone_action_badge_width(action_badge)
-		# Anchor from the fixed card fields so Web-font glyph width, rather
-		# than an exact middle-cell split, owns the action badge width.
-		action_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		var cards_left_offset: float = -45.0 if landscape else -40.0
-		action_badge.offset_left = cards_left_offset - action_width
-		action_badge.offset_right = cards_left_offset
-		action_badge.offset_top = 29.0 if landscape else 30.0
-		action_badge.offset_bottom = 59.0 if landscape else 60.0
+		if landscape:
+			# Landscape retains the two-row emergency composition and abbreviates
+			# exact-thousand all-ins; full landscape support remains deferred.
+			action_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			action_badge.offset_left = -45.0 - action_width
+			action_badge.offset_right = -45.0
+			action_badge.offset_top = 29.0
+			action_badge.offset_bottom = 59.0
+		else:
+			# Anchor from the fixed card fields so Web-font glyph width, rather
+			# than an exact middle-cell split, owns the action badge width.
+			action_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			action_badge.offset_left = -40.0 - action_width
+			action_badge.offset_right = -40.0
+			action_badge.offset_top = 30.0
+			action_badge.offset_bottom = 60.0
 		action_badge.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		var state_badge := seat_widget.find_child("Badge", true, false) as Label
 		state_badge.offset_bottom = 30.0
 		var stack := seat_widget.find_child("Stack", true, false) as Label
 		stack.set_anchors_preset(Control.PRESET_TOP_LEFT if landscape else Control.PRESET_TOP_WIDE)
-		stack.offset_left = 4.0 if landscape else 0.0
+		stack.offset_left = 4.0
 		stack.offset_top = 23.0 if landscape else 30.0
 		stack.offset_right = 62.0 if landscape else -40.0 - action_width
 		stack.offset_bottom = 47.0 if landscape else 60.0
@@ -701,14 +709,28 @@ func _phone_action_badge_width(
 	return maxf(minimum_width, ceilf(rendered_width + horizontal_padding))
 
 
-func _compact_phone_action_for_seat(seat: int) -> String:
+func _compact_phone_action_for_seat(seat: int, abbreviate_exact_thousands: bool = true) -> String:
 	var latest_action: PublicActionRecord = _active_round_latest_actions.get(seat)
 	if latest_action == null or latest_action.record_kind != PublicActionRecord.Kind.ACTION:
 		return ""
-	return _compact_phone_action_text(latest_action)
+	return _compact_phone_action_text(latest_action, abbreviate_exact_thousands)
 
 
-func _compact_phone_action_text(latest_record: PublicActionRecord) -> String:
+func _phone_opponent_action_for_seat(seat: int) -> String:
+	return _compact_phone_action_for_seat(
+		seat, get_layout_profile() == GuiLayoutProfileScript.Kind.PHONE_LANDSCAPE
+	)
+
+
+func _phone_hero_action_for_seat(seat: int) -> String:
+	return _compact_phone_action_for_seat(
+		seat, get_layout_profile() == GuiLayoutProfileScript.Kind.PHONE_LANDSCAPE
+	)
+
+
+func _compact_phone_action_text(
+	latest_record: PublicActionRecord, abbreviate_exact_thousands: bool = true
+) -> String:
 	var compact_text: String = ""
 	match latest_record.kind:
 		PlayerAction.Kind.FOLD:
@@ -724,7 +746,11 @@ func _compact_phone_action_text(latest_record: PublicActionRecord) -> String:
 		PlayerAction.Kind.ALL_IN:
 			compact_text = (
 				"A%dk" % (latest_record.amount / 1000)
-				if latest_record.amount >= 1000 and latest_record.amount % 1000 == 0
+				if (
+					abbreviate_exact_thousands
+					and latest_record.amount >= 1000
+					and latest_record.amount % 1000 == 0
+				)
 				else "A%d" % latest_record.amount
 			)
 	return compact_text
@@ -733,13 +759,13 @@ func _compact_phone_action_text(latest_record: PublicActionRecord) -> String:
 func _refresh_rendered_phone_action_badges() -> void:
 	if not _phone_seat_widgets or _bound_view == null:
 		return
-	_phone_hero_action_badge.text = _compact_phone_action_for_seat(_bound_view.hero_seat)
+	_phone_hero_action_badge.text = _phone_hero_action_for_seat(_bound_view.hero_seat)
 	_phone_hero_action_badge.visible = not _phone_hero_action_badge.text.is_empty()
 	for seat: int in _seat_widgets:
 		var badge := _seat_widgets[seat].find_child("ActionBadge", true, false) as Label
 		if badge == null:
 			continue
-		badge.text = _compact_phone_action_for_seat(seat)
+		badge.text = _phone_opponent_action_for_seat(seat)
 		badge.visible = not badge.text.is_empty()
 
 
@@ -1342,8 +1368,8 @@ func _refresh_phone_hero_summary() -> void:
 			. create_card_face(
 				displayed_hero_cards[index],
 				"PhoneHeroCard%d" % (index + 1),
-				Vector2(42.0, 48.0),
-				28,
+				Vector2(33.0, 44.0),
+				22,
 				Color("f5f0dc"),
 				Color("d9b56d"),
 			)
@@ -2286,6 +2312,8 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 	action_margin.add_theme_constant_override("margin_right", 78)
 	var action_content := _action_panel.get_node("Margin/Content") as VBoxContainer
 	action_content.add_theme_constant_override("separation", 2)
+	_phone_hero_summary.add_theme_constant_override("separation", 4)
+	_phone_hero_cards.add_theme_constant_override("separation", 2)
 	_configure_phone_action_rows(landscape)
 	_layout_phone_opponent_action_badges(landscape)
 	if _phone_more_button.get_parent() != _surface:

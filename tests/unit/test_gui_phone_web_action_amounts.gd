@@ -24,12 +24,19 @@ func test_web_fallback_font_keeps_complete_opponent_and_hero_action_amounts() ->
 		view, {1: "Linh", 2: "Bao", 3: "Lior", 4: "Haruto", 5: "Kwame"}
 	)
 	var expected_actions: Dictionary[int, String] = {
-		1: "R310", 2: "B7", 3: "C42", 4: "B120", 5: "A1k"
+		1: "R310", 2: "B7", 3: "C42", 4: "B120", 5: "A1000"
 	}
 	for seat: int in expected_actions:
 		var badge := _seat_action_badge(table, seat)
 		assert_eq(badge.text, expected_actions[seat], "seat %d complete copy" % seat)
 		_assert_web_font_content_fits(badge, "seat %d" % seat)
+		var token: Control = badge.get_parent().get_parent() as Control
+		for field_name: String in ["Name", "Stack", "Badge", "HoleCards"]:
+			var field := token.find_child(field_name, true, false) as Control
+			assert_false(
+				badge.get_global_rect().intersects(field.get_global_rect()),
+				"seat %d action must not cover %s" % [seat, field_name],
+			)
 
 	var hero_badge := table.get_node("%PhoneHeroActionBadge") as Label
 	for hero_case: Dictionary in [
@@ -37,7 +44,7 @@ func test_web_fallback_font_keeps_complete_opponent_and_hero_action_amounts() ->
 		{"kind": PlayerAction.Kind.CALL, "amount": 310, "text": "C310"},
 		{"kind": PlayerAction.Kind.BET, "amount": 120, "text": "B120"},
 		{"kind": PlayerAction.Kind.RAISE, "amount": 310, "text": "R310"},
-		{"kind": PlayerAction.Kind.ALL_IN, "amount": 1000, "text": "A1k"},
+		{"kind": PlayerAction.Kind.ALL_IN, "amount": 1000, "text": "A1000"},
 		{"kind": PlayerAction.Kind.FOLD, "amount": 0, "text": "F"},
 	]:
 		view._action_history[-1] = PublicActionRecord.new(

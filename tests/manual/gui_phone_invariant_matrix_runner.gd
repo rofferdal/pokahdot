@@ -6,6 +6,8 @@ const GuiInvariantAssertionsScript := preload("res://tests/support/gui_invariant
 const GuiSceneHarnessScript := preload("res://tests/support/gui_scene_harness.gd")
 const CaptureManifestScript := preload("res://tests/support/gui_visual_capture_manifest.gd")
 const GuiPhoneSeatLayoutScript := preload("res://scripts/gui/gui_phone_seat_layout.gd")
+const OPPONENT_ACTION_PADDING: float = 12.0
+const HERO_ACTION_PADDING: float = 4.0
 
 
 func test_phone_visual_matrix_satisfies_gui_invariants() -> void:
@@ -102,7 +104,12 @@ func _validate_phone_contract(
 			continue
 		var action_badge := panel.find_child("ActionBadge", true, false) as Label
 		if action_badge != null and action_badge.visible:
-			for required_field: Control in [name_label, stack_label, hole_cards]:
+			if _rendered_width(action_badge) + OPPONENT_ACTION_PADDING > action_badge.size.x:
+				failures.append(
+					"%s: seat %d action content lacks padding" % [context, player_view.seat]
+				)
+			var state_badge := panel.find_child("Badge", true, false) as Label
+			for required_field: Control in [name_label, stack_label, state_badge, hole_cards]:
 				if (
 					required_field != null
 					and action_badge.get_global_rect().intersects(required_field.get_global_rect())
@@ -135,6 +142,19 @@ func _validate_phone_contract(
 		failures.append(
 			"%s: seven-player fixture does not exercise an eight-character name" % context
 		)
+	var hero_action := table.get_node("%PhoneHeroActionBadge") as Label
+	if hero_action.visible:
+		if _rendered_width(hero_action) + HERO_ACTION_PADDING > hero_action.size.x:
+			failures.append("%s: hero action content lacks padding" % context)
+		for hero_field: Control in [
+			table.get_node("%PhoneHeroCards") as Control,
+			table.get_node("%PhoneHeroStack") as Control,
+		]:
+			if hero_action.get_global_rect().intersects(hero_field.get_global_rect()):
+				failures.append("%s: hero action covers %s" % [context, hero_field.name])
+	var more_button := table.get_node("%PhoneMoreButton") as Button
+	if more_button.size.x < 48.0 or more_button.size.y < 48.0:
+		failures.append("%s: More touch target is below 48 x 48" % context)
 
 
 func _rendered_width(label: Label) -> float:

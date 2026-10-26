@@ -1,6 +1,6 @@
 # Correct Pot-Sized Bet and Raise Targets
 
-Status: Reopened — revise the shortcut so every Pot action doubles the pre-action pot
+Status: Reopened — separate the observed Pot amount from the core wager total
 Started: 2026-10-26
 
 ## Scope
@@ -79,6 +79,36 @@ Examples:
 | Raise facing 10 | 30 | 0 | 10 | 30 | 30 | 60 |
 | Raise after already committing 5 | 30 | 5 | 5 | 35 | 30 | 60 |
 
+## Latest clarification: observe Pot, then add exactly that amount
+
+The shortcut must begin with the number visibly shown in the Pot field at the
+moment the player presses it. If that observed number is `P`, the player must
+put exactly `P` additional chips into the pot. This is deliberately simple at
+the user boundary: observe `Pot: P`, then bet or raise by `P`.
+
+The core API still accepts a **total wager for the current street**, so the GUI
+must translate the visible contribution into a different internal number when
+the hero has already committed chips:
+
+```text
+visible Pot shortcut amount = P
+additional chips committed = P
+core street-total target T = H + P
+```
+
+For example, with `Pot: 30` and an existing hero wager of 5, the Pot control
+must continue to show 30, the player must add 30 chips, and the core must
+receive a street-total target of 35. Showing `Pot 35` conflates the internal
+target with the amount observed by the player and makes the shortcut appear
+incorrect even if the final contribution is 30.
+
+This is a modest implementation change, but it needs explicit end-to-end
+evidence because the current `PotWagerTargetResult.total` is reused for the
+button text, keypad preset, availability decision, and submitted action. The
+next correction must represent the visible contribution and internal target as
+separate typed values rather than relying on callers to remember which meaning
+one integer has.
+
 ## Tasks
 
 Tasks are ordered. Complete the first unchecked task before moving to the next
@@ -135,7 +165,7 @@ passing-after evidence before checking implementation tasks.
   full tests, lint, and formatting pass without weakening the 20 px text floor
   or current touch-target requirements.
 
-### Revised correction tasks
+### Completed revised correction attempt (presentation contract now superseded)
 
 - [x] **Replace the superseded contract in normative documentation.** Update
   `docs/ProjectDescription.md`, `README.md`, `docs/ARCHITECTURE.md`, and the
@@ -179,27 +209,76 @@ passing-after evidence before checking implementation tasks.
   reopening, and chip conservation. Acceptance: the 30-pot/10-call case ends
   at 60 rather than 80, and illegal exact targets remain disabled rather than
   clamped.
-- [ ] **Repeat automated interface and layout verification.** Exercise phone
+- [x] **Repeat automated interface and layout verification.** Exercise phone
   portrait, tablet, small desktop, desktop, and applicable CLI/free-entry
   paths; then run the complete GUT and Python suites, lint, formatting, and all
   GUI invariant matrices. Acceptance: `Pot N` remains unclipped at the 20 px
   text floor and all automated checks pass with the revised amounts.
-- [ ] **Perform physical/browser acceptance.** Deploy one clean SHA and verify
-  unopened pot bets, pot raises while facing a wager, raises after a blind or
-  prior contribution, and insufficient-stack cases in the affected phone and
-  desktop browsers. Record deployment provenance and examples here. Acceptance:
-  the user confirms that displayed and committed pot-sized amounts are correct.
 
-## Previous automated verification (superseded formula)
+### Latest correction tasks: literal observed-Pot contribution
+
+- [ ] **Capture the failing physical case as a complete value trace.** Record
+  the visible Pot amount `P`, hero's existing street wager `H`, call amount
+  `C`, minimum and maximum totals, Pot-control text, submitted public action,
+  chips removed from the hero stack, and pot after the action. Add the same
+  state as a deterministic real-`TournamentMatch` regression. Acceptance: the
+  regression proves which boundary is wrong instead of inferring correctness
+  only from the calculator result or final pot.
+- [ ] **Give the shared result separate contribution and total fields.** Replace
+  the ambiguous single `total` result with a typed result that exposes the
+  observed shortcut contribution `P` and the core street-total target `H + P`
+  independently, together with availability and failure reason. Retain checked
+  overflow, invalid-input, minimum-total, and maximum-total handling.
+  Acceptance: no caller can accidentally present `H + P` as the observed Pot
+  amount or submit `P` where the core requires a street total.
+- [ ] **Make every Pot control display and preserve the observed Pot amount.**
+  Desktop, tablet, phone, and the phone keypad must show `Pot P`, using the same
+  `P` visible in the Pot field for that bound view. Pressing the control must
+  submit the paired internal target `H + P`; opening or closing the keypad must
+  not recalculate from a later or unrelated view. Acceptance: `Pot: 30` always
+  produces a `Pot 30` control, including when `H=5`, while the submitted total
+  is 35 and the added chips are 30.
+- [ ] **Clarify action feedback without changing the core action contract.**
+  Audit the human action badge, opponent action badge, event text, and action
+  history rendering so a street-total record is not mislabeled as newly added
+  chips. Use explicit wording such as `Raise to T` when showing the core total,
+  or show the added contribution only when it is derived from before/after
+  public state. Acceptance: the UI never claims that a player added `H + P`
+  when the stack delta was `P`.
+- [ ] **Add click-to-settlement regressions for bets and raises.** In real match
+  states, snapshot the displayed Pot label immediately before the click and
+  cover an unopened bet, facing a wager, a posted blind, an earlier wager in
+  the same street, repeated raises, exact minimum/maximum boundaries, below-
+  minimum targets, and insufficient stacks. Assert control text `P`, submitted
+  total `H + P`, stack delta `P`, final pot `2P`, current bet, action reopening,
+  and chip conservation. Acceptance: tests fail if any layer substitutes the
+  call amount, current wager, minimum raise, or cached prior pot for `P`.
+- [ ] **Repeat automated verification with distinct display and submission
+  assertions.** Run the complete GUT and Python suites, lint, formatting, and
+  phone, iPad, desktop, and historical invariant matrices. Add explicit GUI
+  assertions for both numbers when `H > 0`: the visible shortcut remains `P`
+  while the submitted street total is `H + P`.
+- [ ] **Perform physical/browser acceptance.** Deploy one clean SHA and verify
+  the recorded failing example plus unopened bets, raises facing a wager,
+  raises after a blind or prior contribution, repeated raises, and insufficient-
+  stack cases on affected phone and desktop browsers. Record the SHA and the
+  observed before/after values here. Acceptance: the user confirms that the
+  Pot control shows the observed Pot amount and that exactly that many chips
+  are added.
+
+## Historical automated verification
 
 Verified on 2026-10-26:
 
-- 527/527 GUT tests with 17,451 assertions;
+- 532/532 GUT tests with 17,534 assertions;
 - 72/72 Python tests;
 - GDScript lint and formatting checks;
 - phone, iPad, desktop, and historical GUI invariant matrices.
 
-These results verified the now-superseded `H + P + 2C` implementation. New
-automated evidence must be recorded after the revised tasks pass. The
-physical/browser acceptance task remains deliberately unchecked until a clean
-deployment is available and the user reports the observed wager results.
+Focused revised-contract verification also passed 51/51 tests with 449
+assertions across the shared target calculator, strategic sizing, real-match
+GUI actions, and Web-font amount rendering. This evidence predates the latest
+display-versus-submission clarification and must be repeated after the new
+tasks are implemented. Physical/browser acceptance remains deliberately
+unchecked until a clean deployment is available and the user reports the
+observed wager results.

@@ -5,6 +5,8 @@ const GuiWebViewportGeometryScript := preload("res://scripts/gui/gui_web_viewpor
 const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
 const MainScene := preload("res://scenes/main.tscn")
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
+const OPPONENT_ACTION_PADDING: float = 12.0
+const HERO_ACTION_PADDING: float = 4.0
 
 
 func test_android_backing_canvas_normalizes_to_phone_css_geometry() -> void:
@@ -92,6 +94,17 @@ func _assert_phone_composition(backing_size: Vector2i, pixel_ratio: float) -> vo
 		backing_size, pixel_ratio
 	)
 	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-preflop", 6)
+	descriptor.view._seats[5].stack = 0
+	descriptor.view._seats[5].all_in = true
+	var actions: Array[PublicActionRecord] = [
+		PublicActionRecord.new(1, PlayerAction.Kind.RAISE, 310),
+		PublicActionRecord.new(2, PlayerAction.Kind.BET, 7),
+		PublicActionRecord.new(3, PlayerAction.Kind.CALL, 42),
+		PublicActionRecord.new(4, PlayerAction.Kind.BET, 120),
+		PublicActionRecord.new(5, PlayerAction.Kind.ALL_IN, 1000),
+		PublicActionRecord.new(0, PlayerAction.Kind.RAISE, 310),
+	]
+	descriptor.view._action_history = actions
 	var table := PokerTableScene.instantiate() as PokerTableController
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	table.size = Vector2(logical_size)
@@ -106,3 +119,24 @@ func _assert_phone_composition(backing_size: Vector2i, pixel_ratio: float) -> vo
 	assert_false((table.get_node("%EventLog") as Control).visible)
 	assert_false((table.get_node("%QuitButton") as Control).visible)
 	assert_true((table.get_node("%PhoneMoreButton") as Control).visible)
+	for seat: int in range(1, 6):
+		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat)
+		var badge := panel.find_child("ActionBadge", true, false) as Label
+		_assert_action_padding(badge, OPPONENT_ACTION_PADDING, "seat %d" % seat)
+	var hero_badge := table.get_node("%PhoneHeroActionBadge") as Label
+	_assert_action_padding(hero_badge, HERO_ACTION_PADDING, "hero")
+
+
+func _assert_action_padding(label: Label, padding: float, context: String) -> void:
+	var rendered_width: float = (
+		label
+		. get_theme_font("font")
+		. get_string_size(
+			label.text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			label.get_theme_font_size("font_size"),
+		)
+		. x
+	)
+	assert_lte(rendered_width + padding, label.size.x, "%s action padding" % context)
