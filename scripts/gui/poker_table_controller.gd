@@ -34,6 +34,9 @@ const ACTING_SEAT_FRAME_COLOR := Color.WHITE
 const DESKTOP_CENTER_ZONE_MAX_WIDTH: float = 520.0
 const CENTER_ZONE_SEPARATION: float = 8.0
 const CENTER_BOARD_MINIMUM_HEIGHT: float = 74.0
+const PHONE_ACTION_HORIZONTAL_PADDING: float = 12.0
+const PHONE_HERO_ACTION_HORIZONTAL_PADDING: float = 4.0
+const PHONE_OPPONENT_ACTION_MINIMUM_WIDTH: float = 48.0
 @export var action_timing_config: Resource
 
 var board_card_count: int = 0
@@ -633,6 +636,8 @@ func _create_phone_action_badge(seat: int) -> Label:
 	var badge := _phone_token_label("ActionBadge", _compact_phone_action_for_seat(seat))
 	badge.z_index = 2
 	badge.visible = not badge.text.is_empty()
+	badge.clip_text = false
+	badge.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	badge.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -652,25 +657,48 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 		var action_badge := seat_widget.find_child("ActionBadge", true, false) as Label
 		if action_badge == null:
 			continue
-		# Portrait divides the second row exactly between the stack, action,
-		# and cards so the complete compact amount remains readable.
-		action_badge.offset_left = 62.0 if landscape else 48.0
+		var action_width: float = _phone_action_badge_width(action_badge)
+		# Anchor from the fixed card fields so Web-font glyph width, rather
+		# than an exact middle-cell split, owns the action badge width.
+		action_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		var cards_left_offset: float = -45.0 if landscape else -40.0
+		action_badge.offset_left = cards_left_offset - action_width
+		action_badge.offset_right = cards_left_offset
 		action_badge.offset_top = 29.0 if landscape else 30.0
-		action_badge.offset_right = -45.0 if landscape else -40.0
 		action_badge.offset_bottom = 59.0 if landscape else 60.0
 		action_badge.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		var state_badge := seat_widget.find_child("Badge", true, false) as Label
 		state_badge.offset_bottom = 30.0
 		var stack := seat_widget.find_child("Stack", true, false) as Label
+		stack.set_anchors_preset(Control.PRESET_TOP_LEFT if landscape else Control.PRESET_TOP_WIDE)
 		stack.offset_left = 4.0 if landscape else 0.0
 		stack.offset_top = 23.0 if landscape else 30.0
-		stack.offset_right = 62.0 if landscape else 48.0
+		stack.offset_right = 62.0 if landscape else -40.0 - action_width
 		stack.offset_bottom = 47.0 if landscape else 60.0
 		var cards := seat_widget.find_child("HoleCards", true, false) as Control
 		cards.offset_left = -42.0 if landscape else -40.0
 		cards.offset_top = 30.0
 		cards.offset_right = -2.0 if landscape else 0.0
 		cards.offset_bottom = cards.offset_top + PHONE_CARD_SIZE.y
+
+
+func _phone_action_badge_width(
+	badge: Label,
+	minimum_width: float = PHONE_OPPONENT_ACTION_MINIMUM_WIDTH,
+	horizontal_padding: float = PHONE_ACTION_HORIZONTAL_PADDING,
+) -> float:
+	var rendered_width: float = (
+		badge
+		. get_theme_font("font")
+		. get_string_size(
+			badge.text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			badge.get_theme_font_size("font_size"),
+		)
+		. x
+	)
+	return maxf(minimum_width, ceilf(rendered_width + horizontal_padding))
 
 
 func _compact_phone_action_for_seat(seat: int) -> String:
@@ -694,7 +722,11 @@ func _compact_phone_action_text(latest_record: PublicActionRecord) -> String:
 		PlayerAction.Kind.RAISE:
 			compact_text = "R%d" % latest_record.amount
 		PlayerAction.Kind.ALL_IN:
-			compact_text = "AI"
+			compact_text = (
+				"A%dk" % (latest_record.amount / 1000)
+				if latest_record.amount >= 1000 and latest_record.amount % 1000 == 0
+				else "A%d" % latest_record.amount
+			)
 	return compact_text
 
 
@@ -2264,10 +2296,12 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 	_phone_hero_stack.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_phone_hero_stack.custom_minimum_size.x = 0.0
 	_phone_hero_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_phone_hero_action_badge.clip_text = true
-	_phone_hero_action_badge.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_phone_hero_action_badge.custom_minimum_size.x = 0.0
-	_phone_hero_action_badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_phone_hero_action_badge.clip_text = false
+	_phone_hero_action_badge.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	_phone_hero_action_badge.custom_minimum_size.x = _phone_action_badge_width(
+		_phone_hero_action_badge, 0.0, PHONE_HERO_ACTION_HORIZONTAL_PADDING
+	)
+	_phone_hero_action_badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_action_status.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	_action_status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_action_status.clip_text = true

@@ -40,7 +40,7 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_false(table.get_node("%WagerButton").disabled)
 	assert_false(table.get_node("%AllInButton").disabled)
 	assert_true(table.get_node("%MinWagerButton").text in ["Min Raise 20", "Min 20"])
-	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 30")
+	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 20")
 	assert_eq(table.get_node("%WagerButton").text, "Raise")
 	assert_eq(table.get_node("%AllInButton").text, "All-in")
 	var wager_input: LineEdit = table.get_node("%WagerInput")
@@ -87,7 +87,7 @@ func test_live_wager_input_uses_touch_keypad_and_pointer_keyboard_across_profile
 		assert_true(keypad.visible, "touch profile %d" % profile)
 		assert_eq(
 			(keypad.get_node("Content/Keys/KeyPot") as Button).text,
-			"Pot 30",
+			"Pot 20",
 			"pot target profile %d" % profile,
 		)
 		keypad.cancel()
@@ -164,6 +164,8 @@ func test_pot_bet_submits_the_exact_target_through_the_live_match() -> void:
 	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 20")
 	assert_false(table.get_node("%PotRaiseButton").disabled)
 
+	var pre_action_pot: int = view.pot_amount
+	var pre_action_wager: int = _seat_view(view, 0).bet_this_round
 	_freeze_action_pacing(table)
 	table.get_node("%PotRaiseButton").emit_signal("pressed")
 	var submitted_view: GameView = match_instance.get_view_for(0)
@@ -173,13 +175,14 @@ func test_pot_bet_submits_the_exact_target_through_the_live_match() -> void:
 	assert_eq(submitted_action.kind, PlayerAction.Kind.BET)
 	assert_eq(submitted_action.amount, 20)
 	assert_eq(_seat_view(submitted_view, 0).bet_this_round, 20)
+	assert_eq(_seat_view(submitted_view, 0).bet_this_round - pre_action_wager, pre_action_pot)
 	assert_eq(_current_bet(submitted_view), 20)
 	assert_eq(_seat_view(submitted_view, 0).stack, 70)
-	assert_eq(submitted_view.pot_amount, 40)
+	assert_eq(submitted_view.pot_amount, pre_action_pot * 2)
 	assert_eq(_total_chips(submitted_view), 200)
 
 
-func test_pot_raise_submits_the_post_call_target_through_the_live_match() -> void:
+func test_pot_raise_doubles_the_pre_action_pot_through_the_live_match() -> void:
 	var match_instance := _waiting_match([PlayerAction.check_action(), PlayerAction.bet_to(10)])
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
@@ -192,9 +195,11 @@ func test_pot_raise_submits_the_post_call_target_through_the_live_match() -> voi
 	assert_true(PlayerAction.Kind.RAISE in view.legal_actions)
 	assert_eq(view.pot_amount, 30)
 	assert_eq(view.minimum_wager_total, 20)
-	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 50")
+	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 30")
 	assert_false(table.get_node("%PotRaiseButton").disabled)
 
+	var pre_action_pot: int = view.pot_amount
+	var pre_action_wager: int = _seat_view(view, 0).bet_this_round
 	_freeze_action_pacing(table)
 	table.get_node("%PotRaiseButton").emit_signal("pressed")
 	var submitted_view: GameView = match_instance.get_view_for(0)
@@ -202,14 +207,16 @@ func test_pot_raise_submits_the_post_call_target_through_the_live_match() -> voi
 	assert_not_null(submitted_action)
 	assert_eq(submitted_action.seat, 0)
 	assert_eq(submitted_action.kind, PlayerAction.Kind.RAISE)
-	assert_eq(submitted_action.amount, 50)
-	assert_eq(_seat_view(submitted_view, 0).bet_this_round, 50)
-	assert_eq(_current_bet(submitted_view), 50)
-	assert_eq(_seat_view(submitted_view, 0).stack, 40)
-	assert_eq(submitted_view.pot_amount, 80)
+	assert_eq(submitted_action.amount, 30)
+	assert_eq(_seat_view(submitted_view, 0).bet_this_round, 30)
+	assert_eq(_seat_view(submitted_view, 0).bet_this_round - pre_action_wager, pre_action_pot)
+	assert_eq(_current_bet(submitted_view), 30)
+	assert_eq(_seat_view(submitted_view, 0).stack, 60)
+	assert_eq(submitted_view.pot_amount, 60)
+	assert_eq(submitted_view.pot_amount, pre_action_pot * 2)
 	assert_eq(_total_chips(submitted_view), 200)
 	var opponent_view: GameView = match_instance.get_view_for(1)
-	assert_eq(opponent_view.call_amount, 40)
+	assert_eq(opponent_view.call_amount, 20)
 	assert_true(PlayerAction.Kind.CALL in opponent_view.legal_actions)
 	assert_true(PlayerAction.Kind.RAISE in opponent_view.legal_actions)
 
@@ -230,21 +237,25 @@ func test_live_repeated_raise_uses_existing_wager_and_reopens_action() -> void:
 	assert_eq(reraised_view.pot_amount, 80)
 	assert_eq(_seat_view(reraised_view, 0).bet_this_round, 20)
 	assert_eq(reraised_view.call_amount, 20)
-	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 140")
+	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 100")
 	assert_false((table.get_node("%PotRaiseButton") as Button).disabled)
 
+	var pre_action_pot: int = reraised_view.pot_amount
+	var pre_action_wager: int = _seat_view(reraised_view, 0).bet_this_round
 	_freeze_action_pacing(table)
 	table.get_node("%PotRaiseButton").emit_signal("pressed")
 	var submitted_view: GameView = match_instance.get_view_for(0)
 	var submitted_action: PublicActionRecord = _latest_player_action_for(submitted_view, 0)
 	assert_eq(submitted_action.kind, PlayerAction.Kind.RAISE)
-	assert_eq(submitted_action.amount, 140)
-	assert_eq(_seat_view(submitted_view, 0).bet_this_round, 140)
-	assert_eq(_current_bet(submitted_view), 140)
-	assert_eq(submitted_view.pot_amount, 200)
+	assert_eq(submitted_action.amount, 100)
+	assert_eq(_seat_view(submitted_view, 0).bet_this_round, 100)
+	assert_eq(_seat_view(submitted_view, 0).bet_this_round - pre_action_wager, pre_action_pot)
+	assert_eq(_current_bet(submitted_view), 100)
+	assert_eq(submitted_view.pot_amount, 160)
+	assert_eq(submitted_view.pot_amount, pre_action_pot * 2)
 	assert_eq(_total_chips(submitted_view), 1000)
 	var opponent_view: GameView = match_instance.get_view_for(1)
-	assert_eq(opponent_view.call_amount, 100)
+	assert_eq(opponent_view.call_amount, 60)
 	assert_true(PlayerAction.Kind.CALL in opponent_view.legal_actions)
 	assert_true(PlayerAction.Kind.RAISE in opponent_view.legal_actions)
 
@@ -263,13 +274,39 @@ func test_live_short_stack_disables_exact_pot_without_clamping_to_all_in() -> vo
 	table.get_node("%PotRaiseButton").emit_signal("pressed")
 	var short_view: GameView = match_instance.get_view_for(0)
 	assert_eq(short_view.maximum_wager_total, 90)
-	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 140")
+	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 100")
 	assert_true((table.get_node("%PotRaiseButton") as Button).disabled)
 	assert_false((table.get_node("%AllInButton") as Button).disabled)
 	var action_count_before: int = short_view.action_history.size()
 	table.get_node("%PotRaiseButton").emit_signal("pressed")
 	assert_eq(match_instance.get_view_for(0).action_history.size(), action_count_before)
 	assert_eq(_total_chips(short_view), 200)
+
+
+func test_live_below_minimum_pot_target_is_disabled_without_submission() -> void:
+	var match_instance := _waiting_match_with_blinds([], 100, 1, 10)
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+
+	var view: GameView = match_instance.get_view_for(0)
+	assert_eq(view.pot_amount, 11)
+	assert_eq(_seat_view(view, 0).bet_this_round, 1)
+	assert_eq(view.call_amount, 9)
+	assert_eq(view.minimum_wager_total, 20)
+	assert_eq(view.maximum_wager_total, 100)
+	assert_true(PlayerAction.Kind.RAISE in view.legal_actions)
+	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 12")
+	assert_true((table.get_node("%PotRaiseButton") as Button).disabled)
+	assert_false((table.get_node("%AllInButton") as Button).disabled)
+
+	var action_count_before: int = view.action_history.size()
+	table.get_node("%PotRaiseButton").emit_signal("pressed")
+	var unchanged_view: GameView = match_instance.get_view_for(0)
+	assert_eq(unchanged_view.action_history.size(), action_count_before)
+	assert_eq(unchanged_view.pot_amount, 11)
+	assert_eq(_total_chips(unchanged_view), 200)
 
 
 func test_pot_wager_shortcut_respects_legal_action_and_inclusive_total_bounds() -> void:
@@ -1055,13 +1092,19 @@ func _waiting_match(bot_actions: Array[PlayerAction]) -> TournamentMatch:
 func _waiting_match_with_stack(
 	bot_actions: Array[PlayerAction], starting_stack: int
 ) -> TournamentMatch:
+	return _waiting_match_with_blinds(bot_actions, starting_stack, 5, 10)
+
+
+func _waiting_match_with_blinds(
+	bot_actions: Array[PlayerAction], starting_stack: int, small_blind: int, big_blind: int
+) -> TournamentMatch:
 	var config := (
 		ResolvedTournamentConfig
 		. new(
 			2,
 			starting_stack,
-			5,
-			10,
+			small_blind,
+			big_blind,
 			9123,
 			&"single_table",
 			{0: &"human", 1: &"scripted"},

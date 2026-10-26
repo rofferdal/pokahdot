@@ -36,7 +36,7 @@ func test_phone_wager_sheet_cancel_is_inert_and_done_submits() -> void:
 	assert_true((keypad.get_node("Content/Keys/KeyMin") as Button).visible)
 	assert_true((keypad.get_node("Content/Keys/KeyPot") as Button).visible)
 	assert_false((keypad.get_node("Content/Keys/KeyPot") as Button).disabled)
-	assert_eq((keypad.get_node("Content/Keys/KeyPot") as Button).text, "Pot 30")
+	assert_eq((keypad.get_node("Content/Keys/KeyPot") as Button).text, "Pot 20")
 	keypad.get_node("Content/Keys/KeyMin").emit_signal("pressed")
 	assert_eq((table.get_node("%WagerInput") as LineEdit).text, "")
 	keypad.get_node("Content/Cancel").emit_signal("pressed")

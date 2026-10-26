@@ -157,13 +157,17 @@ Players who have not yet acted must still fold, call, or raise.
 The GUI's **Pot bet** and **Pot raise** controls are No Limit convenience
 presets, not Pot Limit rules. Wagers remain target totals for the current
 street. Let `P` be the pot before the hero acts, `H` the hero's existing wager
-on the street, and `C` the additional amount required to call. The exact
-pot-sized target is `H + C + (P + C)`, equivalently `H + P + 2C`. An unopened
-postflop pot bet therefore targets `P`; a pot raise includes both the call and
-the pot growth caused by calling. The preset is available only when that exact
-target is within `minimum_wager_total` and `maximum_wager_total`. Otherwise the
-Pot control is unavailable, while Minimum, All-in, and free wager entry remain
+on the street, and `C` the additional amount required to call. The product
+shortcut's exact street-total target is `T = H + P`, so the action adds
+`T - H = P` chips and leaves a pot of `2P`. When a call is due, that
+contribution consists of call `C` plus a raise increment of `P - C`; `C` is not
+added a second time. The preset is available only when that exact target is
+within `minimum_wager_total` and `maximum_wager_total`. Otherwise the Pot
+control is unavailable, while Minimum, All-in, and free wager entry remain
 separate choices. The ordinary betting-round validation remains authoritative.
+This deliberately differs from the conventional Pot Limit post-call formula
+`H + P + 2C`; the GUI shortcut is a No Limit product convenience and does not
+make the game Pot Limit.
 
 A betting round is complete when:
 

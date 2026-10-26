@@ -36,14 +36,8 @@ static func calculate_fraction(
 	if pot_amount < 0 or existing_wager < 0 or call_amount < 0 or pot_fraction_divisor <= 0:
 		return PotWagerTargetResult.new(0, false, INVALID_INPUT)
 
-	if call_amount > MAX_INT_64 - existing_wager:
-		return PotWagerTargetResult.new(0, false, OVERFLOW)
-	var called_total: int = existing_wager + call_amount
-	if call_amount > MAX_INT_64 - pot_amount:
-		return PotWagerTargetResult.new(0, false, OVERFLOW)
-	var post_call_pot: int = pot_amount + call_amount
 	@warning_ignore("integer_division")
-	var pot_fraction: int = post_call_pot / pot_fraction_divisor
-	if pot_fraction > MAX_INT_64 - called_total:
+	var pot_fraction: int = pot_amount / pot_fraction_divisor
+	if pot_fraction > MAX_INT_64 - existing_wager:
 		return PotWagerTargetResult.new(0, false, OVERFLOW)
-	return PotWagerTargetResult.new(called_total + pot_fraction, true, AVAILABLE)
+	return PotWagerTargetResult.new(existing_wager + pot_fraction, true, AVAILABLE)

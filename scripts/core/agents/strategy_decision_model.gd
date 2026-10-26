@@ -16,6 +16,8 @@ const HandPotentialEstimatorScript := preload(
 	"res://scripts/core/agents/hand_potential_estimator.gd"
 )
 const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
+const HALF_POT_DIVISOR: int = 2
+const FULL_POT_DIVISOR: int = 1
 
 var _parameters: DecisionModelParameters
 var _rng: RandomNumberGenerator
@@ -190,11 +192,11 @@ func _wager_target_for_estimate(view: GameView, estimate: HandPotentialEstimate)
 	match band:
 		TraceScript.MARGINAL_BAND:
 			pot_fraction = PotWagerTargetScript.calculate_fraction(
-				view.pot_amount, existing_wager, view.call_amount, 2
+				view.pot_amount, existing_wager, view.call_amount, HALF_POT_DIVISOR
 			)
 		TraceScript.STRONG_BAND:
 			pot_fraction = PotWagerTargetScript.calculate_fraction(
-				view.pot_amount, existing_wager, view.call_amount, 1
+				view.pot_amount, existing_wager, view.call_amount, FULL_POT_DIVISOR
 			)
 		TraceScript.PREMIUM_BAND:
 			target_total = view.maximum_wager_total

@@ -71,12 +71,13 @@ the current blinds, level, completed hands, and hands remaining in the level.
 When it is a legal bet or raise and the hero can cover it, the GUI's **Pot
 bet** or **Pot raise** button submits an exact pot-sized target total through
 the normal wager-validation path. With pot `P`, existing hero street wager
-`H`, and call amount `C`, that total is `H + P + 2C`. An unopened pot bet is
-therefore the displayed pot amount, while a pot raise also accounts for the
-call and the resulting pot growth. The control is disabled when the exact
-target is outside the legal minimum/maximum range; **All-in** and free wager
-entry remain separate controls. This is a No Limit convenience preset, not a
-Pot Limit game mode.
+`H`, and call amount `C`, the product target is `T = H + P`. The action adds
+exactly `P` chips and leaves a pot of `2P`; when a call is due, the remaining
+part of that contribution is the raise increment. The control is disabled when
+the exact target is outside the legal minimum/maximum range; **All-in** and
+free wager entry remain separate controls. This is a No Limit convenience
+preset, not a Pot Limit game mode: the conventional Pot Limit post-call raise
+formula is intentionally not used for this GUI shortcut.
 
 ### Bot roster selection
 

@@ -56,7 +56,7 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 	table.bind_view(view, {}, names)
 	await _settle()
 	var expected_actions: Dictionary[int, String] = {
-		1: "Chk", 2: "C10", 3: "B20", 4: "R40", 5: "AI", 6: "F"
+		1: "Chk", 2: "C10", 3: "B20", 4: "R40", 5: "A900", 6: "F"
 	}
 	for seat: int in range(1, 7):
 		var token := _seat(table, seat)

@@ -202,7 +202,7 @@ complete only when its acceptance evidence has been recorded.
   action states. Acceptance: mirrored pairs have equal offsets and sizes,
   Lior's corresponding five-opponent slot is top-centered, and no seat/status
   region intersects the board or human/action region.
-- [ ] **Add a Web-font regression for complete opponent and human action
+- [x] **Add a Web-font regression for complete opponent and human action
   amounts.** Reproduce
   `localtmp/from_real_tests/Screenshot_20261026_004126_Chrome.jpg` with the
   deployed Web font/rendering path and a current wager of 310. Require Linh's
