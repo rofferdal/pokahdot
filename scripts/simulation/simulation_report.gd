@@ -7,7 +7,7 @@ extends RefCounted
 ## dictionary. Report serialization remains in the simulation adapter.
 
 const REPORT_SCHEMA_VERSION: int = 3
-const COMMAND_VERSION: StringName = &"simulation_cli_v3"
+const COMMAND_VERSION: StringName = &"simulation_cli_v4"
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
 const TOURNAMENT_FIELDS := [
 	"tournament_index",

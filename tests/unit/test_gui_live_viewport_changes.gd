@@ -224,7 +224,7 @@ func test_real_keypads_and_dialogs_survive_resize_open_close_cycles() -> void:
 	_assert_embedded_popup(startup_fixture.rendered.viewport, startup_keypad)
 	startup_keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
 	assert_eq((main.get_node("%PlayerCountInput") as LineEdit).text, "6")
-	assert_eq(startup_keypad.get_node("Content/Value").text, "62")
+	assert_eq(startup_keypad.get_node("Content/Value").text, "6")
 	startup_keypad.hide()
 	assert_false(startup_keypad.visible)
 

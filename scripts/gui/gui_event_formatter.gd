@@ -20,7 +20,9 @@ static func format_event(
 		DomainEvent.Kind.ACTION_APPLIED:
 			return _format_action(player_name, action_record)
 		DomainEvent.Kind.ACTION_REJECTED:
-			return "%s action was rejected" % player_name
+			if event.message.is_empty():
+				return "%s action was rejected" % player_name
+			return "%s action was rejected: %s" % [player_name, event.message]
 		DomainEvent.Kind.STREET_CHANGED:
 			return "%s begins" % street_name(view)
 		DomainEvent.Kind.COMMUNITY_CARDS_DEALT:

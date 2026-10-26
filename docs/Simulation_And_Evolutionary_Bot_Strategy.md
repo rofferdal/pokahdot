@@ -102,6 +102,10 @@ For each profile, report these outcome metrics with sample counts:
 Style metrics are non-financial and include VPIP (voluntarily put chips in the
 pot), preflop raise rate, aggression factor, eligible bluff frequency,
 call-versus-raise split, invalid-action fallbacks, and their denominators.
+An invalid request contributes one fallback failure metric, while action-style
+metrics consume only the validated fold-first fallback that was actually
+applied. A fallback that itself fails validation stops execution and must not
+produce a public action record or action-progress metric.
 VPIP's conventional name is retained, but “put money in pot” is not used as a
 Pokahdot product concept.
 
@@ -403,7 +407,7 @@ order, `seed`, `gene`, `before`, requested `delta`, bounded `after`, and a
 output and leaves its input snapshots unchanged.
 
 `evaluate-fitness` requires all shards for one identical schema-2 simulation
-manifest. It verifies `simulation_cli_v3`, the canonical manifest checksum,
+manifest. It verifies `simulation_cli_v4`, the canonical manifest checksum,
 the exact ID/model/four-gene snapshot of every candidate, deterministic plan
 and tournament identities, unique global indexes, complete shard and plan
 coverage, successful tournaments, finite metric values, and bounded rates.

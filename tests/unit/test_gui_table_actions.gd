@@ -7,6 +7,17 @@ const GuiActionTimingConfigScript := preload("res://scripts/gui/gui_action_timin
 const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 
 
+class CheckingCallingAgent:
+	extends Agent
+
+	func choose_action(view: GameView) -> PlayerAction:
+		if PlayerAction.Kind.CHECK in view.legal_actions:
+			return PlayerAction.check_action()
+		if PlayerAction.Kind.CALL in view.legal_actions:
+			return PlayerAction.call_action()
+		return PlayerAction.fold_action()
+
+
 func test_acting_seat_uses_a_white_frame_three_times_thicker_than_ordinary_seats() -> void:
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
@@ -25,7 +36,7 @@ func test_acting_seat_uses_a_white_frame_three_times_thicker_than_ordinary_seats
 
 
 func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> void:
-	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var match_instance := _passive_waiting_match()
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
 	_disable_action_pacing(table)
@@ -62,7 +73,7 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	table.submit_wager_total(view.minimum_wager_total)
 
 	assert_gt(match_instance.get_view_for(0).pot_amount, 15)
-	assert_true(_event_texts(table).any(func(text: String) -> bool: return "action" in text))
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Bet to 20" in text))
 
 
 func test_live_wager_input_uses_touch_keypad_and_pointer_keyboard_across_profiles() -> void:
@@ -100,7 +111,7 @@ func test_live_wager_touch_done_submits_across_layout_profiles() -> void:
 		GuiLayoutProfileScript.Kind.SMALL_DESKTOP,
 		GuiLayoutProfileScript.Kind.DESKTOP,
 	]:
-		var match_instance := _waiting_match([PlayerAction.call_action()])
+		var match_instance := _passive_waiting_match()
 		var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 		add_child_autofree(table)
 		_disable_action_pacing(table)
@@ -116,7 +127,7 @@ func test_live_wager_touch_done_submits_across_layout_profiles() -> void:
 
 
 func test_live_wager_touch_cancel_and_keyboard_correction_submission_preserve_bounds() -> void:
-	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var match_instance := _passive_waiting_match()
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
 	_disable_action_pacing(table)
@@ -404,7 +415,7 @@ func test_gui_renders_an_action_before_its_configured_nonblocking_pause_advances
 
 
 func test_community_card_reveal_uses_the_configured_nonblocking_action_pause() -> void:
-	var match_instance := _waiting_match([PlayerAction.call_action()])
+	var match_instance := _passive_waiting_match()
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
 	var timing_config := GuiActionTimingConfigScript.new()
@@ -422,14 +433,7 @@ func test_community_card_reveal_uses_the_configured_nonblocking_action_pause() -
 
 
 func test_seat_action_labels_reset_at_each_new_betting_round_without_clearing_history() -> void:
-	var match_instance := _waiting_match(
-		[
-			PlayerAction.call_action(),
-			PlayerAction.check_action(),
-			PlayerAction.check_action(),
-			PlayerAction.check_action(),
-		]
-	)
+	var match_instance := _passive_waiting_match()
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
 	_disable_action_pacing(table)
@@ -587,14 +591,7 @@ func test_event_log_preserves_domain_event_order_and_fold_settlement() -> void:
 
 
 func test_gui_renders_checked_down_actions_and_the_flop_transition() -> void:
-	var match_instance := _waiting_match(
-		[
-			PlayerAction.call_action(),
-			PlayerAction.check_action(),
-			PlayerAction.check_action(),
-			PlayerAction.check_action(),
-		]
-	)
+	var match_instance := _passive_waiting_match()
 	var table = PokerTableScene.instantiate()
 	add_child_autofree(table)
 	_disable_action_pacing(table)
@@ -608,14 +605,7 @@ func test_gui_renders_checked_down_actions_and_the_flop_transition() -> void:
 
 
 func test_showdown_remains_visible_for_its_configured_pause_before_next_hand() -> void:
-	var match_instance := _waiting_match(
-		[
-			PlayerAction.call_action(),
-			PlayerAction.check_action(),
-			PlayerAction.check_action(),
-			PlayerAction.check_action(),
-		]
-	)
+	var match_instance := _passive_waiting_match()
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
 	var timing_config := GuiActionTimingConfigScript.new()
@@ -1138,6 +1128,10 @@ func _waiting_match(bot_actions: Array[PlayerAction]) -> TournamentMatch:
 	return _waiting_match_with_stack(bot_actions, 100)
 
 
+func _passive_waiting_match() -> TournamentMatch:
+	return _waiting_match_with_agent(CheckingCallingAgent.new(), 100, 5, 10)
+
+
 func _waiting_match_with_stack(
 	bot_actions: Array[PlayerAction], starting_stack: int
 ) -> TournamentMatch:
@@ -1146,6 +1140,14 @@ func _waiting_match_with_stack(
 
 func _waiting_match_with_blinds(
 	bot_actions: Array[PlayerAction], starting_stack: int, small_blind: int, big_blind: int
+) -> TournamentMatch:
+	return _waiting_match_with_agent(
+		ScriptedAgent.new(bot_actions), starting_stack, small_blind, big_blind
+	)
+
+
+func _waiting_match_with_agent(
+	bot_agent: Agent, starting_stack: int, small_blind: int, big_blind: int
 ) -> TournamentMatch:
 	var config := (
 		ResolvedTournamentConfig
@@ -1163,7 +1165,7 @@ func _waiting_match_with_blinds(
 		TournamentMatch
 		. new(
 			config,
-			{0: HumanAgent.new(), 1: ScriptedAgent.new(bot_actions)},
+			{0: HumanAgent.new(), 1: bot_agent},
 		)
 	)
 	assert_eq(match_instance.start().status, StepResult.Status.WAITING_FOR_HUMAN)

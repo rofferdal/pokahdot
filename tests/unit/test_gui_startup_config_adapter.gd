@@ -228,6 +228,16 @@ func test_invalid_text_and_cross_field_values_show_inline_errors_without_match_c
 	assert_eq(factory.creation_count, 0)
 	assert_null(adapter.match_instance)
 
+	adapter.small_blind_text = "5"
+	adapter.big_blind_text = "10"
+	adapter.starting_stack_text = "9223372036854775808"
+	assert_false(adapter.try_start())
+	assert_eq(adapter.error_for(&"starting_stack"), "Starting stack must be a whole number.")
+
+	adapter.starting_stack_text = "1000001"
+	assert_false(adapter.try_start())
+	assert_eq(adapter.error_for(&"starting_stack"), "Starting stack cannot exceed 1000000.")
+
 
 func assert_config(
 	config: ResolvedTournamentConfig,

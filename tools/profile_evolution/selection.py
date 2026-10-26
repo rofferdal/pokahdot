@@ -116,6 +116,11 @@ def validate_fitness_payload(payload: dict[str, Any]) -> dict[str, Any]:
         require_exact_fields(evidence, REPORT_EVIDENCE_FIELDS, "report evidence")
         for field in ("batch_id", "command_version"):
             require_identifier(evidence[field], f"report evidence {field}")
+        if evidence["command_version"] != "simulation_cli_v4":
+            _fail(
+                "invalid_fitness_artifact",
+                "Report evidence uses an unsupported simulation command version.",
+            )
         if not isinstance(evidence["code_revision"], str):
             _fail("invalid_fitness_artifact", "Report code_revision must be a string.")
         _sha256(evidence["manifest_checksum"], "manifest checksum")

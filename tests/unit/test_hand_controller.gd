@@ -1,6 +1,13 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 
+class RejectingFallbackHandController:
+	extends HandController
+
+	func _fallback_action(_seat: int) -> PlayerAction:
+		return PlayerAction.call_action()
+
+
 func test_setup_posts_blinds_deals_cards_and_waits_for_human() -> void:
 	var players: Array[Player] = _players_with_agents()
 	var table := Table.new(players, 5, 10)
@@ -51,6 +58,67 @@ func test_illegal_human_action_is_rejected_without_losing_turn() -> void:
 	assert_false(result.message.is_empty())
 	assert_eq(controller.get_view_for(0).acting_seat, 0)
 	assert_eq(players[0].stack, 100)
+	var rejection: DomainEvent = controller.events[-1]
+	assert_eq(rejection.kind, DomainEvent.Kind.ACTION_REJECTED)
+	assert_eq(rejection.requested_action_kind, PlayerAction.Kind.CHECK)
+	assert_eq(rejection.rejection_code, ActionValidationResult.Code.ACTION_NOT_AVAILABLE)
+	assert_false(rejection.message.is_empty())
+	assert_false(rejection.fallback_applied)
+
+
+func test_invalid_bot_action_uses_validated_fold_first_fallback_with_diagnostics() -> void:
+	var bot := ScriptedAgent.new([PlayerAction.call_action()])
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 100, bot),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var controller := _controller(table)
+	controller.start()
+
+	var result: StepResult = controller.submit_human_action(PlayerAction.call_action())
+	var rejection: DomainEvent = _last_event(controller.events, DomainEvent.Kind.ACTION_REJECTED)
+
+	assert_eq(result.status, StepResult.Status.HAND_COMPLETED)
+	assert_not_null(rejection)
+	assert_eq(rejection.requested_action_kind, PlayerAction.Kind.CALL)
+	assert_eq(rejection.requested_action_amount, 0)
+	assert_eq(rejection.rejection_code, ActionValidationResult.Code.ACTION_NOT_AVAILABLE)
+	assert_false(rejection.message.is_empty())
+	assert_true(rejection.fallback_applied)
+	assert_eq(rejection.applied_action_kind, PlayerAction.Kind.FOLD)
+	assert_eq(rejection.applied_action_amount, 10)
+	assert_eq(bot.observed_records[-1].kind, PlayerAction.Kind.FOLD)
+
+
+func test_rejected_fallback_returns_error_without_false_action_progress() -> void:
+	var bot := ScriptedAgent.new([PlayerAction.call_action()])
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 100, bot),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var controller := _rejecting_fallback_controller(table)
+	controller.start()
+
+	var result: StepResult = controller.submit_human_action(PlayerAction.call_action())
+	var events: Array[DomainEvent] = controller.events
+	var bot_applied_count: int = 0
+	for event: DomainEvent in events:
+		if event.kind == DomainEvent.Kind.ACTION_APPLIED and event.seat == 1:
+			bot_applied_count += 1
+	var rejection: DomainEvent = _last_event(events, DomainEvent.Kind.ACTION_REJECTED)
+
+	assert_eq(result.status, StepResult.Status.ERROR)
+	assert_string_contains(result.message, "fallback was also rejected")
+	assert_eq(controller.get_view_for(0).acting_seat, 1)
+	assert_eq(bot_applied_count, 0)
+	assert_eq(bot.observed_records.size(), 1)
+	assert_not_null(rejection)
+	assert_false(rejection.fallback_applied)
+	assert_eq(rejection.applied_action_kind, -1)
 
 
 func test_checked_down_hand_advances_all_streets_and_awards_showdown() -> void:
@@ -186,3 +254,18 @@ func _controller(table: Table) -> HandController:
 	var button_rng := RandomNumberGenerator.new()
 	button_rng.seed = 456
 	return HandController.new(table, Deck.new(), deck_rng, button_rng)
+
+
+func _rejecting_fallback_controller(table: Table) -> HandController:
+	var deck_rng := RandomNumberGenerator.new()
+	deck_rng.seed = 123
+	var button_rng := RandomNumberGenerator.new()
+	button_rng.seed = 456
+	return RejectingFallbackHandController.new(table, Deck.new(), deck_rng, button_rng)
+
+
+func _last_event(events: Array[DomainEvent], kind: DomainEvent.Kind) -> DomainEvent:
+	for index: int in range(events.size() - 1, -1, -1):
+		if events[index].kind == kind:
+			return events[index]
+	return null

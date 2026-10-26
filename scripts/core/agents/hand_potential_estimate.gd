@@ -134,6 +134,10 @@ func _analyze_postflop() -> void:
 	is_coordinated_board = (
 		_has_coordinated_ranks(public_board) or _has_coordinated_suits(public_board)
 	)
+	# Five public cards close every future-card route. Made-hand and board-texture
+	# diagnostics remain meaningful, but missed draws have no river value.
+	if public_board.size() >= 5:
+		return
 	flush_draw_quality = _flush_draw_quality(combined_cards, made_rank)
 	straight_draw_quality = _straight_draw_quality(combined_cards, made_rank)
 	var flush_outs: int = _flush_outs(combined_cards, made_rank)

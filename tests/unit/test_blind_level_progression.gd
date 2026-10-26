@@ -55,3 +55,14 @@ func test_odd_big_blind_inputs_round_up_to_the_next_even_integer() -> void:
 		assert_eq(progression.big_blind % 2, 0)
 		assert_eq(progression.small_blind * 2, progression.big_blind)
 		assert_true(progression.big_blind * 4 >= input * 5)
+
+
+func test_blind_growth_saturates_at_the_supported_maximum_without_overflow() -> void:
+	var progression := BlindLevelProgression.new(400_000, 800_000, 2)
+	for _level: int in range(3):
+		for _hand: int in range(10):
+			progression.record_completed_hand(2)
+		assert_eq(progression.small_blind, 500_000)
+		assert_eq(progression.big_blind, ConfigResolver.MAX_STARTUP_CHIPS)
+		assert_gt(progression.small_blind, 0)
+		assert_gt(progression.big_blind, 0)

@@ -656,6 +656,11 @@ def validate_confirmation(artifact: dict[str, Any]) -> dict[str, Any]:
                     ),
                     f"confirmation {mode} report evidence",
                 )
+                if item["command_version"] != "simulation_cli_v4":
+                    _fail(
+                        "invalid_confirmation",
+                        f"Confirmation {mode} uses an unsupported simulation command version.",
+                    )
                 if item["manifest_checksum"] != checksum:
                     _fail("invalid_confirmation", f"Confirmation {mode} report manifest is inconsistent.")
                 report_checksum = item["report_checksum"]

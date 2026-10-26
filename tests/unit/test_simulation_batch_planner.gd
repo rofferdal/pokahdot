@@ -59,6 +59,22 @@ func test_shard_filters_global_plan_without_replanning_indexes() -> void:
 	assert_eq(shard[1].effective_seed, 3004)
 
 
+func test_effective_seed_overflow_is_rejected_before_planning() -> void:
+	var plan := (
+		PLANNER_SCRIPT
+		. new()
+		. plan(
+			_config(),
+			IntegerBounds.MAX_INT_64,
+			[_matchup(&"a", [&"a0", &"a1"])],
+			[1],
+		)
+	)
+
+	assert_false(plan.is_valid())
+	assert_has(plan.errors, "Simulation effective seed exceeds the integer limit.")
+
+
 func _config() -> ResolvedTournamentConfig:
 	return ResolvedTournamentConfig.new(
 		2, 20, 5, 10, 1, &"single_table", {0: &"random", 1: &"random"}

@@ -72,7 +72,7 @@ def fitness_artifact(
                 {
                     "batch_id": "batch",
                     "code_revision": "abc123",
-                    "command_version": "simulation_cli_v2",
+                    "command_version": "simulation_cli_v4",
                     "manifest_checksum": "a" * 64,
                     "report_checksum": "b" * 64,
                     "seed_range": {"minimum": 100, "maximum": 109},
@@ -85,6 +85,17 @@ def fitness_artifact(
 
 
 class SelectionTests(unittest.TestCase):
+    def test_pre_river_fix_report_evidence_is_rejected(self) -> None:
+        artifact = fitness_artifact(11)
+        artifact["payload"]["report_evidence"][0]["command_version"] = (
+            "simulation_cli_v3"
+        )
+        artifact = create_artifact("fitness", artifact["payload"])
+        with self.assertRaisesRegex(
+            ToolError, "unsupported simulation command version"
+        ):
+            select_elites(artifact, 0.20)
+
     def test_retained_count_uses_ceiling_and_boundary_fractions(self) -> None:
         artifact = fitness_artifact(11)
         lower = select_elites(artifact, 0.10)

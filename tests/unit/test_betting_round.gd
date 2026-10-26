@@ -40,6 +40,14 @@ func test_first_preflop_raise_must_reach_twice_the_big_blind() -> void:
 	assert_eq(round.current_bet, 20)
 
 
+func test_minimum_wager_total_saturates_instead_of_overflowing() -> void:
+	var players: Array[Player] = _players_with_stacks([IntegerBounds.MAX_INT_64, 100])
+	var round := BettingRound.new(Table.new(players, 1, 10), 0, IntegerBounds.MAX_INT_64 - 5)
+
+	assert_eq(round.minimum_wager_total(), IntegerBounds.MAX_INT_64)
+	assert_gt(round.minimum_wager_total(), 0)
+
+
 func test_subsequent_minimum_raise_stays_one_big_blind_after_larger_raise() -> void:
 	var players: Array[Player] = _players(3)
 	var round := BettingRound.new(Table.new(players, 5, 10), 0)
@@ -88,6 +96,48 @@ func test_short_all_in_raise_does_not_reopen_prior_callers_raise_rights() -> voi
 	assert_true(round.apply_action(0, PlayerAction.call_action()).is_ok())
 	assert_true(round.apply_action(1, PlayerAction.call_action()).is_ok())
 	assert_true(round.is_complete())
+
+
+func test_closed_raise_rights_reject_an_all_in_increase_without_mutation() -> void:
+	var players: Array[Player] = _players_with_stacks([100, 100, 15])
+	var round := BettingRound.new(Table.new(players, 5, 10), 0)
+
+	assert_true(round.apply_action(0, PlayerAction.bet_to(10)).is_ok())
+	assert_true(round.apply_action(1, PlayerAction.call_action()).is_ok())
+	assert_true(round.apply_action(2, PlayerAction.all_in_action()).is_ok())
+	assert_eq(round.current_bet, 15)
+	assert_eq(round.acting_seat, 0)
+	assert_false(round.can_raise(0))
+	assert_has(round.legal_actions(0), PlayerAction.Kind.CALL)
+	assert_does_not_have(round.legal_actions(0), PlayerAction.Kind.ALL_IN)
+
+	var rejected: ActionValidationResult = round.apply_action(0, PlayerAction.all_in_action())
+
+	assert_eq(rejected.code, ActionValidationResult.Code.RAISE_NOT_REOPENED)
+	assert_eq(players[0].stack, 90)
+	assert_eq(players[0].bet_this_round, 10)
+	assert_eq(round.current_bet, 15)
+	assert_eq(round.acting_seat, 0)
+	assert_eq(round.pending_seats(), [0, 1])
+
+
+func test_closed_raise_rights_still_allow_an_exact_all_in_call() -> void:
+	var players: Array[Player] = _players_with_stacks([15, 100, 15])
+	var round := BettingRound.new(Table.new(players, 5, 10), 0)
+
+	assert_true(round.apply_action(0, PlayerAction.bet_to(10)).is_ok())
+	assert_true(round.apply_action(1, PlayerAction.call_action()).is_ok())
+	assert_true(round.apply_action(2, PlayerAction.all_in_action()).is_ok())
+	assert_false(round.can_raise(0))
+	assert_has(round.legal_actions(0), PlayerAction.Kind.CALL)
+	assert_has(round.legal_actions(0), PlayerAction.Kind.ALL_IN)
+
+	var result: ActionValidationResult = round.apply_action(0, PlayerAction.all_in_action())
+
+	assert_true(result.is_ok())
+	assert_eq(result.chips_committed, 5)
+	assert_true(players[0].all_in)
+	assert_eq(round.current_bet, 15)
 
 
 func test_short_all_in_does_not_advertise_an_unaffordable_full_bet() -> void:

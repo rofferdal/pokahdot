@@ -117,7 +117,7 @@ func error_for(field: StringName) -> String:
 
 func _parse_integer(value: String, field: StringName, label: String) -> int:
 	var trimmed: String = value.strip_edges()
-	if trimmed.is_empty() or not trimmed.is_valid_int():
+	if not IntegerBounds.fits_signed_64_bit_text(trimmed):
 		field_errors[field] = "%s must be a whole number." % label
 		return 0
 	return trimmed.to_int()

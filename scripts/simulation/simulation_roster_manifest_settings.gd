@@ -31,14 +31,27 @@ func validate() -> PackedStringArray:
 		errors.append("Roster manifest seed_start must be non-zero.")
 	if tournament_count <= 0:
 		errors.append("Roster manifest tournament count must be positive.")
+	elif not IntegerBounds.can_add_nonnegative(seed_start, tournament_count - 1):
+		errors.append("Roster manifest effective seed exceeds the integer limit.")
 	if regime_preset != &"standard":
 		errors.append("Roster manifest regime preset must be standard.")
 	if starting_stack <= 0:
 		errors.append("Roster manifest starting stack must be positive.")
+	elif starting_stack > ConfigResolver.MAX_STARTUP_CHIPS:
+		errors.append(
+			"Roster manifest starting stack cannot exceed %d." % ConfigResolver.MAX_STARTUP_CHIPS
+		)
 	if starting_small_blind <= 0 or starting_big_blind <= 0:
 		errors.append("Roster manifest starting blinds must be positive.")
 	elif starting_small_blind > starting_big_blind:
 		errors.append("Roster manifest starting small blind cannot exceed the big blind.")
+	elif (
+		starting_small_blind > ConfigResolver.MAX_STARTUP_CHIPS
+		or starting_big_blind > ConfigResolver.MAX_STARTUP_CHIPS
+	):
+		errors.append(
+			"Roster manifest starting blinds cannot exceed %d." % ConfigResolver.MAX_STARTUP_CHIPS
+		)
 	if minimum_profile_samples <= 0:
 		errors.append("Roster manifest minimum profile samples must be positive.")
 	return errors

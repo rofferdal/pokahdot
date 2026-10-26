@@ -83,3 +83,8 @@ func test_parser_rejects_numeric_arguments_for_pot_commands() -> void:
 func test_parser_rejects_missing_non_integer_and_non_positive_amounts() -> void:
 	for text: String in ["bet", "raise nope", "bet 0", "raise -5", "call 10"]:
 		assert_eq(CommandParser.new().parse(text).kind, CliCommand.Kind.UNKNOWN, text)
+	assert_eq(
+		CommandParser.new().parse("raise 9223372036854775808").kind,
+		CliCommand.Kind.UNKNOWN,
+		"overflowing integers are rejected before conversion",
+	)

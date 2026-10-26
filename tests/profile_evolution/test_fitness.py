@@ -182,7 +182,7 @@ def _case(
             "manifest_checksum": _simulation_manifest_checksum(manifest),
             "roster": _roster_provenance(manifest),
             "code_revision": "abc123",
-            "command_version": "simulation_cli_v3",
+            "command_version": "simulation_cli_v4",
             "shard": {"index": shard_index, "count": shard_count},
             "started_at": "2026-01-01T00:00:00",
             "finished_at": "2026-01-01T00:01:00",
@@ -284,7 +284,10 @@ class FitnessTests(unittest.TestCase):
                 evaluate_fitness(generation, reports)
 
     def test_manifest_checksum_and_command_version_are_rejected(self) -> None:
-        for field, value in (("manifest_checksum", "0" * 64), ("command_version", "old")):
+        for field, value in (
+            ("manifest_checksum", "0" * 64),
+            ("command_version", "simulation_cli_v3"),
+        ):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as name:
                 directory = Path(name)
                 generation, reports = _case(directory)

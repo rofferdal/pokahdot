@@ -296,6 +296,9 @@ func _configure_numeric_inputs_for_mobile() -> void:
 		input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 		input.gui_input.connect(_on_numeric_input_gui_input.bind(input))
 		input.text_submitted.connect(_on_numeric_input_submitted)
+	_player_count_input.max_length = 1
+	for input: LineEdit in [_starting_stack_input, _small_blind_input, _big_blind_input]:
+		input.max_length = 7
 
 
 func _configure_startup_control_visuals() -> void:
@@ -345,7 +348,12 @@ func _configure_startup_control_visuals() -> void:
 func show_numeric_keypad(input: LineEdit) -> void:
 	if input == null or _number_keypad == null:
 		return
-	_number_keypad.open_number(input, GuiMobileTableLayoutScript.content_scale(size))
+	var maximum: int = (
+		ConfigResolver.MAX_PLAYER_COUNT
+		if input == _player_count_input
+		else ConfigResolver.MAX_STARTUP_CHIPS
+	)
+	_number_keypad.open_number(input, GuiMobileTableLayoutScript.content_scale(size), maximum)
 
 
 func _on_numeric_input_gui_input(event: InputEvent, input: LineEdit) -> void:

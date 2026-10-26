@@ -508,7 +508,7 @@ def evaluate_fitness(
             isinstance(report["report_schema_version"], bool)
             or not isinstance(report["report_schema_version"], int)
             or report["report_schema_version"] != 3
-            or report["command_version"] != "simulation_cli_v3"
+            or report["command_version"] != "simulation_cli_v4"
         ):
             _invalid("unsupported_simulation_report", "Simulation report or command version is unsupported.")
         if (

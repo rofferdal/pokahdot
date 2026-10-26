@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 extends "res://tests/support/poker_gut_test.gd"
 
 const StrategyModelScript := preload("res://scripts/core/agents/strategy_decision_model.gd")
@@ -61,6 +62,21 @@ func test_policy_folds_weak_hand_when_call_is_not_free() -> void:
 	assert_eq(model.choose_action(view).kind, PlayerAction.Kind.FOLD)
 
 
+func test_policy_folds_a_missed_river_flush_draw_without_future_value() -> void:
+	var parameters := StrategyParametersScript.new()
+	parameters.tight_vs_loose = 100
+	parameters.bluff_rate = 0
+	var model := _model_with_parameters(440, parameters)
+	var view := _river_call_view("AS KS", "2S 7S 9D 4H JC")
+
+	var action: PlayerAction = model.choose_action(view)
+	var trace: Variant = model.get_last_decision_trace_for_testing()
+
+	assert_eq(action.kind, PlayerAction.Kind.FOLD)
+	assert_eq(trace.hand_potential_band, &"weak")
+	assert_eq(trace.selected_branch, &"fold")
+
+
 func test_policy_continues_strong_hand_when_call_price_is_reasonable() -> void:
 	var model := _model_with_tightness(45, 50)
 	var view := _view_for_call_with_cards("AS AH", 100, 10, 100, 0)
@@ -93,6 +109,53 @@ func test_policy_uses_later_position_as_a_small_continuation_credit() -> void:
 
 	assert_eq(model.choose_action(early).kind, PlayerAction.Kind.FOLD)
 	assert_eq(model.choose_action(late).kind, PlayerAction.Kind.CALL)
+
+
+func test_context_uses_heads_up_preflop_and_postflop_action_order() -> void:
+	var model := _model(470)
+	var preflop_views: Array[GameView] = _context_views(2, 0, &"preflop")
+	var flop_views: Array[GameView] = _context_views(2, 0, &"flop")
+
+	assert_eq(model._estimate(preflop_views[0]).context.position, 0)
+	assert_eq(model._estimate(preflop_views[1]).context.position, 1)
+	assert_eq(model._estimate(flop_views[1]).context.position, 0)
+	assert_eq(model._estimate(flop_views[0]).context.position, 1)
+
+
+func test_context_uses_multiway_street_order_for_every_recipient() -> void:
+	var model := _model(471)
+	var preflop_views: Array[GameView] = _context_views(4, 0, &"preflop")
+	var flop_views: Array[GameView] = _context_views(4, 0, &"flop")
+	var expected_preflop: Dictionary[int, int] = {3: 0, 0: 1, 1: 2, 2: 3}
+	var expected_flop: Dictionary[int, int] = {1: 0, 2: 1, 3: 2, 0: 3}
+
+	for seat: int in range(4):
+		assert_eq(model._estimate(preflop_views[seat]).context.position, expected_preflop[seat])
+		assert_eq(model._estimate(flop_views[seat]).context.position, expected_flop[seat])
+
+
+func test_context_excludes_folded_seats_and_uses_public_stack_and_blind_values() -> void:
+	var model := _model(472)
+	var players: Array[Player] = [
+		Player.new(&"hero", "Hero", 0, 100),
+		Player.new(&"folded", "Folded", 1, 1000),
+		Player.new(&"short", "Short", 2, 40),
+		Player.new(&"deep", "Deep", 3, 70),
+	]
+	for player: Player in players:
+		for card: CardData in _cards("AS KH"):
+			player.add_hole_card(card)
+	players[1].fold()
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var view := GameView.for_preflop(table, 0, BettingRound.new(table, 0, 30), PotManager.new(), [])
+	var context: HandPotentialContext = model._estimate(view).context
+
+	assert_eq(context.position, 1)
+	assert_eq(context.active_opponents, 2)
+	assert_eq(context.effective_stack, 70)
+	assert_eq(context.big_blind, 10)
+	assert_eq(view.minimum_wager_total, 40)
 
 
 func test_opening_aggression_and_facing_wager_aggression_are_distinct() -> void:
@@ -298,6 +361,43 @@ func _rng(seed_value: int) -> RandomNumberGenerator:
 	return rng
 
 
+func _context_views(player_count: int, button: int, street: StringName) -> Array[GameView]:
+	var players: Array[Player] = []
+	for seat: int in range(player_count):
+		var player := Player.new(StringName("player_%d" % seat), "Player %d" % seat, seat, 100)
+		for card: CardData in _cards("AS KH"):
+			player.add_hole_card(card)
+		players.append(player)
+	var table := Table.new(players, 5, 10)
+	table.button_seat = button
+	var betting_round := BettingRound.new(table, 0)
+	var board: Array[CardData] = []
+	if street != &"preflop":
+		board = _cards("2C 7D 9S")
+	var views: Array[GameView] = []
+	for seat: int in range(player_count):
+		(
+			views
+			. append(
+				(
+					GameView
+					. for_hand(
+						table,
+						seat,
+						betting_round,
+						PotManager.new(),
+						[],
+						street,
+						board,
+						[],
+						{},
+					)
+				)
+			)
+		)
+	return views
+
+
 func _view_for_actor() -> GameView:
 	var players: Array[Player] = []
 	for seat: int in range(3):
@@ -371,6 +471,34 @@ func _view_for_call_with_cards(
 		table, 0, BettingRound.new(table, 0, call), PotManager.new(), []
 	)
 	view.pot_amount = pot
+	return view
+
+
+func _river_call_view(card_codes: String, board_codes: String) -> GameView:
+	var players: Array[Player] = [
+		Player.new(&"hero", "Hero", 0, 100),
+		Player.new(&"opponent", "Opponent", 1, 100),
+	]
+	for card: CardData in _cards(card_codes):
+		players[0].add_hole_card(card)
+	players[1].commit_chips(10)
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 1
+	var view := (
+		GameView
+		. for_hand(
+			table,
+			0,
+			BettingRound.new(table, 0, 10),
+			PotManager.new(),
+			[],
+			&"river",
+			_cards(board_codes),
+			[],
+			{},
+		)
+	)
+	view.pot_amount = 100
 	return view
 
 

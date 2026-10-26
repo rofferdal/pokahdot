@@ -23,10 +23,10 @@ func parse(input: String) -> CliCommand:
 			CliCommand.Kind.ACTION, normalized, PlayerAction.new(fixed_actions[parts[0]])
 		)
 	if parts.size() == 2 and (parts[0] == "bet" or parts[0] == "raise"):
-		if parts[1].is_valid_int() and int(parts[1]) > 0:
+		if IntegerBounds.fits_signed_64_bit_text(parts[1]) and parts[1].to_int() > 0:
 			var kind := PlayerAction.Kind.BET if parts[0] == "bet" else PlayerAction.Kind.RAISE
 			return CliCommand.new(
-				CliCommand.Kind.ACTION, normalized, PlayerAction.new(kind, int(parts[1]))
+				CliCommand.Kind.ACTION, normalized, PlayerAction.new(kind, parts[1].to_int())
 			)
 	return CliCommand.new(CliCommand.Kind.UNKNOWN, normalized)
 

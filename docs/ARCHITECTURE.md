@@ -277,7 +277,7 @@ Hand-specific state is reset by `HandController`; `busted` survives between hand
 
 `TournamentMatch` owns the mutable blind-level state (implemented as a core value/component), including the level number, current small and big blinds, completed hands in the level, the active-player count captured when the level began, and the computed hands until the next increase. The state uses an interval of `active_player_count_at_level_start * 2` for levels that began with at least five active players, otherwise 10; that interval remains unchanged until the next level begins.
 
-After a hand settles and zero-stack players are eliminated, `TournamentMatch` records the completed hand in the blind-level state. If the interval is reached, it calculates the next big blind as the smallest even integer greater than or equal to 125% of the current big blind and sets the small blind to exactly half of it. The current hand keeps its posted blinds, so an increase is applied only when the next hand is initialized. The new level then captures the current active-player count and starts its completion counter at zero.
+After a hand settles and zero-stack players are eliminated, `TournamentMatch` records the completed hand in the blind-level state. If the interval is reached, it calculates the next big blind as the smallest even integer greater than or equal to 125% of the current big blind and sets the small blind to exactly half of it. Growth uses checked arithmetic and saturates at 1,000,000 big blind (500,000 small blind); later levels still advance and reset their counters at that cap. The current hand keeps its posted blinds, so an increase is applied only when the next hand is initialized. The new level then captures the current active-player count and starts its completion counter at zero.
 
 ### 5.6 `player_action.gd`
 
@@ -305,7 +305,13 @@ For `BET` and `RAISE`, “total wager amount” means the player's target total 
 
 A full raise must reach at least `current_bet + big_blind`, regardless of the size of any previous bet or raise on the street. An opening postflop bet must be at least one big blind. A short all-in raise with an increment below one big blind updates the amount to call but does not reopen raise rights for players who already acted and matched the previous full raise. These rules must be represented directly in state, not inferred from action history in the UI.
 
-Invalid actions return a typed rejection and leave all state unchanged. Bot fallback selection happens in `HandController`, not inside `BettingRound`.
+Invalid actions return a typed rejection and leave all state unchanged. Bot
+fallback selection happens in `HandController`, not inside `BettingRound`.
+It is fold-first, then check, then call. The selected fallback is passed back
+through normal validation; a rejected fallback returns an error and produces
+no action-history, observer, contribution, or `ACTION_APPLIED` update.
+`ACTION_REJECTED` retains the public requested action, validation code/message,
+and the applied fallback kind and public street total when fallback succeeds.
 
 ### 5.8 `pot_manager.gd`
 
@@ -486,14 +492,25 @@ silently upgrades an artifact. The evidence and exact mapped values are in
 inputs are the recipient's two hole cards, public board cards, and an explicit
 `HandPotentialContext` containing public scalar values: street, position
 ordinal, active opponents, pot, call amount, effective stack, and big blind.
+The position ordinal is zero-based in actual action order for the current
+street: the button/small blind acts first heads-up preflop, the first live seat
+after the original big blind acts first multiway preflop, and the first live
+seat after the button acts first postflop. Folded and busted seats are excluded
+from both that order and the active-opponent count; all-in seats remain live
+contenders. Effective stack is the smaller of the hero's stack and the largest
+live opponent stack (or zero with no opponent), and big blind is the table's
+published big-blind value rather than a wager target.
 It copies those inputs into `HandPotentialEstimate` and neither accepts nor
 retains `Table`, `Player`, `Deck`, `GameView`, GUI, CLI, or mutable match
 references. Its preflop 0--100 heuristic weights pair strength (45%), rank
 strength (30%), suitedness (10%), connectivity (10%), and position (5%).
 Postflop it reports a bounded score plus made-hand class, direct/backdoor draw
 quality, draw outs, public board texture, board-only status, and improvement
-potential. The estimate is a deterministic heuristic, not equity; it must not
-be rendered in normal player UI or used to reveal unshown cards.
+potential. Once five public cards exist, draw quality, draw outs, and
+improvement potential are all zero: a missed river draw has no future-card
+value, while made-hand and board-texture diagnostics remain available. The
+estimate is a deterministic heuristic, not equity; it must not be rendered in
+normal player UI or used to reveal unshown cards.
 
 There is no experimental game mode. `TournamentConfig` defaults
 `use_legacy_models` to false, `StartupOverrides` may explicitly select it,
@@ -504,7 +521,12 @@ when returning to startup. The option changes only product-roster selection;
 poker-rule modules see only the completed agents and never a strategy-family
 branch.
 
-Model output is still validated by `BettingRound`. Invalid output produces the standard warning and fallback in `HandController`, regardless of model implementation. Network-backed or asynchronous models are outside v1; they may later add a pending decision result without changing poker rules or profile formats.
+Model output is still validated by `BettingRound`. Invalid output produces the
+standard public rejection diagnostic and fold-first validated fallback in
+`HandController`, regardless of model implementation. Failure of the fallback
+is an explicit step error, never false action progress. Network-backed or
+asynchronous models are outside v1; they may later add a pending decision
+result without changing poker rules or profile formats.
 
 ### 5.13 `hand_controller.gd`
 
@@ -984,9 +1006,9 @@ Events exposed to adapters must not contain unrevealed card values. Visible card
 Use a typed configuration `Resource` as the source of defaults; its validated resolved snapshot is passed to the core:
 
 - `player_count`: integer 2–9, default 6;
-- `small_blind`: default 5;
-- `big_blind`: default 10;
-- `starting_stack`: default 1000, applied equally to every participant;
+- `small_blind`: integer 1–1,000,000, default 5;
+- `big_blind`: integer 1–1,000,000, default 10;
+- `starting_stack`: integer 1–1,000,000, default 1000, applied equally to every participant;
 - `rng_seed`: 0 selects a time-based seed; every other value is deterministic and tests must use a nonzero value;
 - `use_legacy_models`: false by default; permits the defined legacy-model
   share in product roster selection;
@@ -1002,7 +1024,7 @@ Configuration crosses the startup boundary through four explicit types:
 
 Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. This includes `use_legacy_models`, which is disabled by default and does not change poker rules. Model/profile ID lookup remains the responsibility of `AgentFactory` and `PlayableBotRoster` during product composition.
 
-Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be positive, and small blind must not exceed big blind. The adapters may perform the same checks for immediate feedback, but core validation of the fully resolved configuration remains authoritative.
+Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be 1–1,000,000, and small blind must not exceed big blind. Text adapters reject values outside signed 64-bit range before conversion, while core validation of the fully resolved configuration remains authoritative. With at most nine one-million-chip stacks, all legal runtime stack, bet, contribution, and pot totals remain far below the signed 64-bit limit. Simulation planning likewise checks `seed_start + tournament_index` before addition and rejects a plan whose effective seed would overflow or equal zero.
 
 The resolved values are copied into a fresh configuration before `TournamentMatch` is constructed and cannot change after `start()`. The resolved blind values are the starting blinds for level 1; `TournamentMatch` owns subsequent hand-based blind progression. The composition root builds the complete `seat_agents` map from `player_count`: seat 0 is the human and seats 1 through `player_count - 1` are bots. The default six-seat setup selects five strategic profiles; the optional legacy setting applies the documented family split without changing poker rules.
 

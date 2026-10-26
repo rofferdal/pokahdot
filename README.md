@@ -63,10 +63,12 @@ overrides, poker actions including `potbet` and `potraise`, `help`, `quit`, and
 The selected blinds are the first level's blinds. A level that begins with five
 or more active players lasts twice that starting player count in completed
 hands; a level that begins with fewer than five players lasts 10 completed
-hands. An increase applies to the next hand. The next big blind is 125% of the
-previous big blind, rounded upward to an even integer, and the small blind is
-half of it (for example, 5/10 becomes 7/14, then 9/18). The CLI and table show
-the current blinds, level, completed hands, and hands remaining in the level.
+hands. Startup stacks and blinds are positive integers capped at 1,000,000. An
+increase applies to the next hand. The next big blind is 125% of the previous
+big blind, rounded upward to an even integer, and the small blind is half of it
+(for example, 5/10 becomes 7/14, then 9/18). Growth saturates at
+500,000/1,000,000 while level timing continues. The CLI and table show the
+current blinds, level, completed hands, and hands remaining in the level.
 
 When it is a legal bet or raise and the hero can cover it, the GUI's **Pot
 bet**/**Pot raise** control and the CLI's `potbet`/`potraise` command submit an

@@ -5,6 +5,17 @@ const CliMatchCreationResultScript = preload("res://scripts/cli/cli_match_creati
 const CliCardFormatterScript = preload("res://scripts/cli/cli_card_formatter.gd")
 
 
+class CheckingCallingAgent:
+	extends Agent
+
+	func choose_action(view: GameView) -> PlayerAction:
+		if PlayerAction.Kind.CHECK in view.legal_actions:
+			return PlayerAction.check_action()
+		if PlayerAction.Kind.CALL in view.legal_actions:
+			return PlayerAction.call_action()
+		return PlayerAction.fold_action()
+
+
 func test_match_loop_renders_before_prompt_rejects_without_losing_turn_and_settles() -> void:
 	var io := FakeCliIO.new()
 	io.queue_line("nonsense").queue_line("raise 1").queue_line("raise 20")
@@ -401,18 +412,7 @@ func _passive_agents() -> Dictionary[int, Agent]:
 func _showdown_agents() -> Dictionary[int, Agent]:
 	return {
 		0: HumanAgent.new(),
-		1:
-		(
-			ScriptedAgent
-			. new(
-				[
-					PlayerAction.check_action(),
-					PlayerAction.check_action(),
-					PlayerAction.check_action(),
-					PlayerAction.check_action(),
-				]
-			)
-		),
+		1: CheckingCallingAgent.new(),
 	}
 
 

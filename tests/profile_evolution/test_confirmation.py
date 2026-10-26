@@ -80,7 +80,7 @@ def _entry(candidate: dict[str, object], champion: bool = False) -> dict[str, ob
         {
             "batch_id": "original_batch",
             "code_revision": "original-revision",
-            "command_version": "simulation_cli_v2",
+            "command_version": "simulation_cli_v4",
             "manifest_checksum": "b" * 64,
             "report_checksum": "c" * 64,
             "seed_range": {"minimum": 1, "maximum": 10},
@@ -309,7 +309,7 @@ def _report(
         "manifest_checksum": _simulation_manifest_checksum(manifest),
         "roster": _roster_provenance(manifest),
         "code_revision": "confirm-revision",
-        "command_version": "simulation_cli_v3",
+        "command_version": "simulation_cli_v4",
         "shard": {"index": 0, "count": 1},
         "started_at": "2026-01-01T00:00:00",
         "finished_at": "2026-01-01T00:01:00",
@@ -355,6 +355,23 @@ def _reports(
 
 
 class ConfirmationTests(unittest.TestCase):
+    def test_pre_river_fix_confirmation_evidence_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            registry, _, mirrored, mixed = _reports(Path(name))
+            confirmation = confirm_candidate(
+                registry, "candidate", ["legacy"], ["champion"], mirrored, mixed
+            )
+            payload = copy.deepcopy(confirmation["payload"])
+            payload["mirrored"]["batches"][0]["report_evidence"][0][
+                "command_version"
+            ] = "simulation_cli_v3"
+            stale_confirmation = create_artifact("confirmation", payload)
+
+            with self.assertRaisesRegex(
+                Exception, "unsupported simulation command version"
+            ):
+                create_promotion_review(stale_confirmation, "reviewer", True)
+
     def test_consolidated_review_plan_requires_one_decision_per_candidate(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             directory = Path(name)

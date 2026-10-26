@@ -120,3 +120,21 @@ func test_parser_rejects_invalid_or_incomplete_roster_manifest_export_options() 
 	assert_has(result.errors, "Roster manifest tournament count must be positive.")
 	assert_has(result.errors, "Roster manifest regime preset must be standard.")
 	assert_has(result.errors, "Option --output was specified more than once.")
+
+	result = (
+		PARSER_SCRIPT
+		. new()
+		. parse(
+			PackedStringArray(
+				[
+					"export-roster-manifest",
+					"--output",
+					"roster.json",
+					"--seed",
+					"9223372036854775808",
+				]
+			)
+		)
+	)
+	assert_false(result.is_ok())
+	assert_has(result.errors, "Roster manifest seed must be an integer.")

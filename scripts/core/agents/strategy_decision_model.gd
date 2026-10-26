@@ -152,11 +152,11 @@ func _estimate(view: GameView) -> HandPotentialEstimate:
 		. new(
 			view.street,
 			_position_ordinal(view),
-			maxi(0, view.active_seats.size() - 1),
+			_active_opponent_count(view),
 			view.pot_amount,
 			view.call_amount,
-			_hero_stack(view),
-			maxi(1, view.minimum_wager_total),
+			_effective_stack(view),
+			view.big_blind,
 		)
 	)
 	return HandPotentialEstimatorScript.new().estimate(
@@ -324,12 +324,52 @@ func _hero_stack(view: GameView) -> int:
 
 
 func _position_ordinal(view: GameView) -> int:
-	var active_seats: Array[int] = view.active_seats
-	var hero_index: int = active_seats.find(view.hero_seat)
-	var button_index: int = active_seats.find(view.button_seat)
-	if hero_index < 0 or button_index < 0 or active_seats.is_empty():
+	var contenders: Array[int] = _contender_seats(view)
+	if contenders.is_empty() or view.hero_seat not in contenders:
 		return 0
-	return posmod(hero_index - button_index, active_seats.size())
+	var first_seat: int
+	if view.street == &"preflop" and view.small_blind_seat == view.button_seat:
+		first_seat = view.button_seat
+	elif view.street == &"preflop":
+		first_seat = _next_contender_after(contenders, view.big_blind_seat)
+	else:
+		first_seat = _next_contender_after(contenders, view.button_seat)
+	var first_index: int = contenders.find(first_seat)
+	var hero_index: int = contenders.find(view.hero_seat)
+	if first_index < 0 or hero_index < 0:
+		return 0
+	return posmod(hero_index - first_index, contenders.size())
+
+
+func _active_opponent_count(view: GameView) -> int:
+	return maxi(0, _contender_seats(view).size() - 1)
+
+
+func _effective_stack(view: GameView) -> int:
+	var hero_stack: int = _hero_stack(view)
+	var largest_opponent_stack: int = 0
+	for seat: PlayerView in view.seats:
+		if seat.seat != view.hero_seat and not seat.busted and not seat.folded:
+			largest_opponent_stack = maxi(largest_opponent_stack, seat.stack)
+	return mini(hero_stack, largest_opponent_stack)
+
+
+func _contender_seats(view: GameView) -> Array[int]:
+	var contenders: Array[int] = []
+	for seat: PlayerView in view.seats:
+		if not seat.busted and not seat.folded:
+			contenders.append(seat.seat)
+	contenders.sort()
+	return contenders
+
+
+func _next_contender_after(contenders: Array[int], anchor_seat: int) -> int:
+	if contenders.is_empty():
+		return Table.NO_SEAT
+	for seat: int in contenders:
+		if seat > anchor_seat:
+			return seat
+	return contenders[0]
 
 
 func _action_for(kind: PlayerAction.Kind, view: GameView) -> PlayerAction:

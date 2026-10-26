@@ -65,10 +65,12 @@ or rebuy.
 - Chips are integers; fractional chips are not permitted.
 - Startup accepts positive integer starting small and big blinds, with the
   small blind no greater than the big blind. Defaults are **small blind = 5**
-  and **big blind = 10**. They define the first blind level.
+  and **big blind = 10**. Each starting blind is at most **1,000,000**. They
+  define the first blind level.
 - Startup accepts a positive integer starting stack. The default is **1000**
-  (100 starting big blinds). The resolved value is applied equally to every
-  participant; stacks then change only through ordinary play.
+  (100 starting big blinds), and the maximum is **1,000,000**. The resolved
+  value is applied equally to every participant; stacks then change only
+  through ordinary play.
 - A player whose stack reaches 0 is marked `busted` and takes no part in later
   hands.
 - The tournament ends when one player has chips; that player wins.
@@ -88,7 +90,9 @@ At each increase, the new big blind is the smallest even integer greater than
 or equal to `current_big_blind * 1.25` (125%, rounded upward to the nearest
 even integer). The new small blind is exactly half the new big blind. Examples:
 5/10 becomes 7/14 (`10 * 1.25 = 12.5`, rounded up to 14), and 7/14 becomes
-9/18 (`14 * 1.25 = 17.5`, rounded up to 18).
+9/18 (`14 * 1.25 = 17.5`, rounded up to 18). Big-blind growth saturates at
+**1,000,000**; at that level and every later level, blinds remain
+500,000/1,000,000 while the normal level counters and intervals continue.
 
 ### 4.2 Cards
 
@@ -320,7 +324,11 @@ class PlayerAction:
 
 `betting_round.gd` rejects invalid UI or bot actions. If a bot returns an
 invalid action, log a warning and fall back to `fold` when legal, otherwise
-`check` or `call`.
+`check` or `call`. The fallback is validated through `betting_round.gd` like
+every other action. If it is also rejected, propagate an error without adding
+action history or reporting progress. The rejection event records only safe
+public diagnostics: requested action, validation code and message, and the
+applied fallback when one succeeds.
 
 ### 6.4 `GameView` public contract
 

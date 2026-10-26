@@ -57,6 +57,8 @@ func call_amount(seat: int) -> int:
 func minimum_wager_total() -> int:
 	if current_bet == 0:
 		return _table.big_blind
+	if not IntegerBounds.can_add_nonnegative(current_bet, _table.big_blind):
+		return IntegerBounds.MAX_INT_64
 	return current_bet + _table.big_blind
 
 
@@ -87,7 +89,7 @@ func legal_actions(seat: int) -> Array[PlayerAction.Kind]:
 			result.append(PlayerAction.Kind.BET)
 		else:
 			result.append(PlayerAction.Kind.RAISE)
-	if player.stack > 0:
+	if player.stack > 0 and (maximum <= current_bet or can_raise(seat)):
 		result.append(PlayerAction.Kind.ALL_IN)
 	return result
 
@@ -146,7 +148,16 @@ func _validate_action(seat: int, action: PlayerAction) -> ActionValidationResult
 			ActionValidationResult.Code.INVALID_AMOUNT, "The action amount is invalid."
 		)
 	if result == null and action.kind not in legal_actions(seat):
-		if action.kind == PlayerAction.Kind.RAISE and not can_raise(seat):
+		if (
+			not can_raise(seat)
+			and (
+				action.kind == PlayerAction.Kind.RAISE
+				or (
+					action.kind == PlayerAction.Kind.ALL_IN
+					and _target_total(player, action) > current_bet
+				)
+			)
+		):
 			result = _reject(
 				ActionValidationResult.Code.RAISE_NOT_REOPENED,
 				"A short all-in did not reopen raising for this player.",

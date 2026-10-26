@@ -139,6 +139,29 @@ func test_non_positive_big_blind_is_rejected() -> void:
 		assert_true(resolution.has_error(ConfigError.Code.BIG_BLIND_NOT_POSITIVE))
 
 
+func test_startup_chip_values_accept_one_million_and_reject_larger_values() -> void:
+	var maximum := StartupOverrides.new()
+	maximum.set_starting_stack(ConfigResolver.MAX_STARTUP_CHIPS)
+	maximum.set_small_blind(ConfigResolver.MAX_STARTUP_CHIPS)
+	maximum.set_big_blind(ConfigResolver.MAX_STARTUP_CHIPS)
+	assert_true(_resolve(maximum).is_ok())
+
+	var cases: Array[Dictionary] = [
+		{
+			"setter": "set_starting_stack",
+			"code": ConfigError.Code.STARTING_STACK_EXCEEDS_MAXIMUM,
+		},
+		{"setter": "set_small_blind", "code": ConfigError.Code.SMALL_BLIND_EXCEEDS_MAXIMUM},
+		{"setter": "set_big_blind", "code": ConfigError.Code.BIG_BLIND_EXCEEDS_MAXIMUM},
+	]
+	for test_case: Dictionary in cases:
+		var overrides := StartupOverrides.new()
+		overrides.call(test_case.setter, ConfigResolver.MAX_STARTUP_CHIPS + 1)
+		var resolution: ConfigResolution = _resolve(overrides)
+		assert_false(resolution.is_ok(), test_case.setter)
+		assert_true(resolution.has_error(test_case.code), test_case.setter)
+
+
 func test_small_blind_greater_than_big_blind_is_rejected() -> void:
 	var overrides: StartupOverrides = StartupOverrides.new()
 	overrides.set_small_blind(11)

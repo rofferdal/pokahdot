@@ -5,6 +5,17 @@ const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_st
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
 
 
+class CheckingCallingAgent:
+	extends Agent
+
+	func choose_action(view: GameView) -> PlayerAction:
+		if PlayerAction.Kind.CHECK in view.legal_actions:
+			return PlayerAction.check_action()
+		if PlayerAction.Kind.CALL in view.legal_actions:
+			return PlayerAction.call_action()
+		return PlayerAction.fold_action()
+
+
 func test_phone_has_no_event_history_surface_and_overflow_has_a_close_path() -> void:
 	var table: PokerTableController = await _phone_match_table()
 	var history_size: int = table._bound_view.action_history.size()
@@ -132,7 +143,7 @@ func _waiting_match() -> TournamentMatch:
 		TournamentMatch
 		. new(
 			config,
-			{0: HumanAgent.new(), 1: ScriptedAgent.new([PlayerAction.call_action()])},
+			{0: HumanAgent.new(), 1: CheckingCallingAgent.new()},
 		)
 	)
 	assert_eq(match_instance.start().status, StepResult.Status.WAITING_FOR_HUMAN)

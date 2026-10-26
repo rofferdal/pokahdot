@@ -42,6 +42,12 @@ func test_formatter_makes_every_game_event_explicit_and_recipient_safe() -> void
 			expected_text[event_kind],
 			"event kind %d" % event_kind,
 		)
+	var rejection := DomainEvent.new(DomainEvent.Kind.ACTION_REJECTED, 1)
+	rejection.message = "That action is not currently available."
+	assert_eq(
+		GuiEventFormatterScript.format_event(rejection, view),
+		"River Bot action was rejected: That action is not currently available.",
+	)
 	assert_eq(GuiEventFormatterScript.street_transition_text(0), "Flop begins")
 	assert_eq(GuiEventFormatterScript.street_transition_text(1), "Turn begins")
 	assert_eq(GuiEventFormatterScript.street_transition_text(2), "River begins")

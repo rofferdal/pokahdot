@@ -70,6 +70,18 @@ evaluation merely because the long-running report is unavailable.
 
 ### Mandatory user review before each ranking simulation
 
+All ranking and confirmation reports used by this workflow must be generated
+with the closed-river draw and strategy-context contracts: once five public
+cards exist, flush and straight draw quality, outs, and improvement potential
+are zero; position follows actual street action order, folded seats are not
+opponents, effective stack is bounded by the largest live opponent, and the
+table big blind is used directly. Reports from the earlier behavior are
+historical diagnostics only. They cannot rank, confirm, or promote any
+`strategy_parameterized` profile. Re-evaluate every affected built-in and
+published strategic profile in fresh command-v4 reports before it can
+participate in a new promotion comparison. The manifest review and approval
+requirement below still applies to those reruns.
+
 After creating or changing a round manifest, the execution agent must validate
 it but must not start the simulation yet. The agent must ask the user to open
 and verify the exact manifest in their IDE. The request must concisely report:

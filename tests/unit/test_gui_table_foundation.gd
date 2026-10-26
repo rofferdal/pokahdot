@@ -149,9 +149,9 @@ func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_tab
 	assert_false(keypad.get_node("Content/Range").visible)
 	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
 	assert_eq(player_count_input.text, "6")
-	assert_eq(keypad.get_node("Content/Value").text, "62")
+	assert_eq(keypad.get_node("Content/Value").text, "6")
 	keypad.get_node("Content/Done").emit_signal("pressed")
-	assert_eq(player_count_input.text, "62")
+	assert_eq(player_count_input.text, "6")
 
 
 func test_startup_numeric_input_dispatch_depends_on_touch_not_layout_profile() -> void:
@@ -185,7 +185,7 @@ func test_startup_touch_to_keyboard_transition_cancels_only_the_draft() -> void:
 	input.gui_input.emit(_touch_press())
 	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
 	assert_eq(input.text, "6")
-	assert_eq(keypad.get_node("Content/Value").text, "62")
+	assert_eq(keypad.get_node("Content/Value").text, "6")
 
 	input.gui_input.emit(_left_mouse_press())
 	assert_false(keypad.visible)

@@ -27,6 +27,7 @@ var _requested_usable_size := Vector2i.ZERO
 var _draft_value: String = ""
 var _transactional: bool = false
 var _bottom_sheet: bool = false
+var _maximum_value: int = 999_999_999
 
 
 static func can_wager(view: GameView) -> bool:
@@ -131,6 +132,7 @@ func open(
 	# whether Cancel can restore the committed LineEdit value.
 	_transactional = true
 	_bottom_sheet = bottom_sheet
+	_maximum_value = maximum
 	_draft_value = _input.text
 	_title.text = "Enter wager total"
 	_value_label.text = _input.text if not _input.text.is_empty() else "—"
@@ -147,12 +149,13 @@ func open(
 	_refresh_popup_layout(scale, usable_size)
 
 
-func open_number(input: LineEdit, content_scale: float = 1.0) -> void:
+func open_number(input: LineEdit, content_scale: float = 1.0, maximum: int = 999_999_999) -> void:
 	_input = input
 	if not _input.text.is_valid_int():
 		_input.text = ""
 	_transactional = true
 	_bottom_sheet = false
+	_maximum_value = maximum
 	_draft_value = _input.text
 	_title.text = "Enter number"
 	_value_label.text = _input.text if not _input.text.is_empty() else "—"
@@ -258,7 +261,10 @@ func _apply_content_scale(content_scale: float) -> void:
 func _append_digit(digit: String) -> void:
 	if _input == null or _current_value().length() >= 9:
 		return
-	_set_current_value(_current_value() + digit)
+	var candidate: String = _current_value() + digit
+	if candidate.to_int() > _maximum_value:
+		return
+	_set_current_value(candidate)
 	_refresh_value()
 
 

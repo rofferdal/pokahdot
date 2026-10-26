@@ -168,34 +168,12 @@ func _read_optional_integer(label: String, default_value: int) -> OptionalIntege
 			return OptionalIntegerInput.quit()
 		if value_text.is_empty():
 			return OptionalIntegerInput.omitted()
-		if not value_text.is_valid_int() or not _fits_signed_64_bit_integer(value_text):
+		if not IntegerBounds.fits_signed_64_bit_text(value_text):
 			_io.write_line("Enter a whole number, leave blank for the default, or type quit.")
 			continue
 		return OptionalIntegerInput.with_value(value_text.to_int())
 
 	return OptionalIntegerInput.eof()
-
-
-func _fits_signed_64_bit_integer(value_text: String) -> bool:
-	var digit_start: int = 0
-	var is_negative := value_text.begins_with("-")
-	if is_negative or value_text.begins_with("+"):
-		digit_start = 1
-
-	var digits := value_text.substr(digit_start)
-	while digits.length() > 1 and digits.begins_with("0"):
-		digits = digits.substr(1)
-
-	var limit := "9223372036854775808" if is_negative else "9223372036854775807"
-	if digits.length() != limit.length():
-		return digits.length() < limit.length()
-
-	for index: int in range(digits.length()):
-		var digit_code := digits.unicode_at(index)
-		var limit_code := limit.unicode_at(index)
-		if digit_code != limit_code:
-			return digit_code < limit_code
-	return true
 
 
 func _handle_non_value_status(input: OptionalIntegerInput) -> StartupPromptResult:

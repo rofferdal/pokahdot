@@ -125,10 +125,10 @@ func _advance_current_action() -> StepResult:
 		return StepResult.new(StepResult.Status.ERROR, "The acting player has no agent.")
 	if agent is HumanAgent:
 		return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN)
-	_apply_with_fallback(player.seat, agent.choose_action(get_view_for(player.seat)))
-	return StepResult.new(StepResult.Status.YIELDED)
+	return _apply_with_fallback(player.seat, agent.choose_action(get_view_for(player.seat)))
 
 
+# gdlint: disable=max-returns
 func advance_until_blocked(max_transitions: int = 32) -> StepResult:
 	if state == State.COMPLETE:
 		return StepResult.new(StepResult.Status.HAND_COMPLETED)
@@ -148,7 +148,9 @@ func advance_until_blocked(max_transitions: int = 32) -> StepResult:
 		if agent is HumanAgent and not (agent as HumanAgent).has_pending_action():
 			return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN)
 		var action: PlayerAction = agent.choose_action(view)
-		_apply_with_fallback(player.seat, action)
+		var application: StepResult = _apply_with_fallback(player.seat, action)
+		if application.status == StepResult.Status.ERROR:
+			return application
 	return StepResult.new(StepResult.Status.YIELDED)
 
 
@@ -167,7 +169,7 @@ func submit_human_action_without_advance(action: PlayerAction) -> StepResult:
 		return StepResult.new(StepResult.Status.ERROR, "It is not a human player's turn.")
 	var result: ActionValidationResult = _betting.apply_action(player.seat, action)
 	if not result.is_ok():
-		_events.append(DomainEvent.new(DomainEvent.Kind.ACTION_REJECTED, player.seat))
+		_events.append(DomainEvent.action_rejected(player.seat, action, result))
 		return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN, result.message)
 	_record_action(player.seat, action, result.chips_committed)
 	return StepResult.new(StepResult.Status.YIELDED)
@@ -219,22 +221,50 @@ func _deal_hole_cards() -> void:
 	_events.append(DomainEvent.new(DomainEvent.Kind.CARDS_DEALT))
 
 
-func _apply_with_fallback(seat: int, action: PlayerAction) -> void:
+func _apply_with_fallback(seat: int, action: PlayerAction) -> StepResult:
 	var result: ActionValidationResult = _betting.apply_action(seat, action)
-	if not result.is_ok():
-		_events.append(DomainEvent.new(DomainEvent.Kind.ACTION_REJECTED, seat))
-		action = _fallback_action(seat)
-		result = _betting.apply_action(seat, action)
-	_record_action(seat, action, result.chips_committed)
+	if result.is_ok():
+		_record_action(seat, action, result.chips_committed)
+		return StepResult.new(StepResult.Status.YIELDED)
+
+	var fallback: PlayerAction = _fallback_action(seat)
+	if fallback == null:
+		_events.append(DomainEvent.action_rejected(seat, action, result))
+		return (
+			StepResult
+			. new(
+				StepResult.Status.ERROR,
+				"Bot action rejected (%s); no legal fallback is available." % result.message,
+			)
+		)
+	var fallback_result: ActionValidationResult = _betting.apply_action(seat, fallback)
+	if not fallback_result.is_ok():
+		_events.append(DomainEvent.action_rejected(seat, action, result))
+		return (
+			StepResult
+			. new(
+				StepResult.Status.ERROR,
+				(
+					"Bot action rejected (%s); fallback was also rejected (%s)."
+					% [result.message, fallback_result.message]
+				),
+			)
+		)
+	var public_amount: int = _table.get_player(seat).bet_this_round
+	_events.append(DomainEvent.action_rejected(seat, action, result, fallback, public_amount))
+	_record_action(seat, fallback, fallback_result.chips_committed)
+	return StepResult.new(StepResult.Status.YIELDED)
 
 
 func _fallback_action(seat: int) -> PlayerAction:
 	var legal: Array[PlayerAction.Kind] = _betting.legal_actions(seat)
+	if PlayerAction.Kind.FOLD in legal:
+		return PlayerAction.fold_action()
 	if PlayerAction.Kind.CHECK in legal:
 		return PlayerAction.check_action()
 	if PlayerAction.Kind.CALL in legal:
 		return PlayerAction.call_action()
-	return PlayerAction.fold_action()
+	return null
 
 
 func _record_action(seat: int, action: PlayerAction, committed: int) -> void:

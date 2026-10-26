@@ -298,6 +298,25 @@ func test_postflop_overcard_improvement_is_bounded_and_river_is_closed() -> void
 	assert_eq(river_estimate.improvement_potential, 0)
 
 
+func test_missed_flush_and_straight_draws_have_no_river_value() -> void:
+	var missed_flush: HandPotentialEstimate = ESTIMATOR_SCRIPT.new().estimate(
+		_cards("AS KS"), _cards("2S 7S 9D 4H JC"), CONTEXT_SCRIPT.new(&"river", 1, 2)
+	)
+	var missed_straight: HandPotentialEstimate = ESTIMATOR_SCRIPT.new().estimate(
+		_cards("8S 7H"), _cards("6D 5C KC 2D AH"), CONTEXT_SCRIPT.new(&"river", 1, 2)
+	)
+
+	assert_eq(missed_flush.flush_draw_quality, 0)
+	assert_false(missed_flush.has_flush_draw)
+	assert_eq(missed_flush.improvement_outs, 0)
+	assert_eq(missed_flush.improvement_potential, 0)
+	assert_eq(missed_flush.score, 10)
+	assert_eq(missed_straight.straight_draw_quality, 0)
+	assert_false(missed_straight.has_straight_draw)
+	assert_eq(missed_straight.improvement_outs, 0)
+	assert_eq(missed_straight.improvement_potential, 0)
+
+
 func _cards(description: String) -> Array[CardData]:
 	var result: Array[CardData] = []
 	for token: String in description.split(" ", false):

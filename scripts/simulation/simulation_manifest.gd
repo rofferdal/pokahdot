@@ -38,6 +38,7 @@ var evaluation_plans: Array[SimulationEvaluationPlan] = []
 
 func validate() -> PackedStringArray:
 	var errors := PackedStringArray()
+	var total_tournament_count: int = 0
 	if schema_version != SUPPORTED_SCHEMA_VERSION:
 		errors.append("Unsupported simulation manifest schema version.")
 	if batch_id.is_empty():
@@ -105,6 +106,11 @@ func validate() -> PackedStringArray:
 		else:
 			plan_ids[plan.plan_id] = true
 		errors.append_array(plan.validate())
+		if plan.tournament_count > 0:
+			if not IntegerBounds.can_add_nonnegative(total_tournament_count, plan.tournament_count):
+				errors.append("Simulation tournament count exceeds the integer limit.")
+			else:
+				total_tournament_count += plan.tournament_count
 		if not regime_by_id.has(plan.regime_id):
 			errors.append("Evaluation plan %s references an unknown regime." % plan.plan_id)
 			continue
@@ -116,6 +122,12 @@ func validate() -> PackedStringArray:
 			var matchup: SimulationMatchup = matchup_by_id[matchup_id]
 			if matchup.get_profiles().size() != regime.player_count:
 				errors.append("Matchup %s does not fit regime %s." % [matchup_id, plan.regime_id])
+	if total_tournament_count > 0:
+		var last_index: int = total_tournament_count - 1
+		if not IntegerBounds.can_add_nonnegative(seed_start, last_index):
+			errors.append("Simulation effective seed exceeds the integer limit.")
+		elif seed_start <= 0 and seed_start + last_index >= 0:
+			errors.append("Simulation effective seeds must be non-zero.")
 	return errors
 
 
@@ -137,6 +149,7 @@ func build_plan(shard: SimulationShard = null) -> RefCounted:
 	for plan: SimulationEvaluationPlan in evaluation_plans:
 		var regime: SimulationRegime = regime_by_id[plan.regime_id]
 		for local_index: int in range(plan.tournament_count):
+			var effective_seed: int = seed_start + global_index
 			var matchup_offset: int = local_index % plan.matchup_ids.size()
 			var matchup_id: StringName = plan.matchup_ids[matchup_offset]
 			var matchup: SimulationMatchup = matchup_by_id[matchup_id]
@@ -149,7 +162,7 @@ func build_plan(shard: SimulationShard = null) -> RefCounted:
 						SimulationTournamentInput
 						. new(
 							global_index,
-							seed_start + global_index,
+							effective_seed,
 							matchup,
 							_rotated_profiles(matchup.get_profiles(), rotation),
 							occurrence,
@@ -163,8 +176,6 @@ func build_plan(shard: SimulationShard = null) -> RefCounted:
 				)
 			)
 			global_index += 1
-			if seed_start + global_index - 1 == 0:
-				return BATCH_PLAN_SCRIPT.new([], ["Simulation effective seeds must be non-zero."])
 	var filtered := SimulationBatchPlanner.new().filter_for_shard(
 		all_inputs, selected_shard.index, selected_shard.count
 	)

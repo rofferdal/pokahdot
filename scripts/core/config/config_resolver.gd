@@ -1,9 +1,9 @@
 class_name ConfigResolver
 extends RefCounted
 
-const MAX_INT_64: int = 9223372036854775807
 const MIN_PLAYER_COUNT: int = 2
 const MAX_PLAYER_COUNT: int = 9
+const MAX_STARTUP_CHIPS: int = 1_000_000
 const HUMAN_AGENT_ID: StringName = &"human"
 const SINGLE_TABLE_MODE: StringName = &"single_table"
 
@@ -98,6 +98,13 @@ func _validate_scalars(
 			&"starting_stack",
 			"Starting stack must be a positive integer.",
 		)
+	elif starting_stack > MAX_STARTUP_CHIPS:
+		_add_error(
+			errors,
+			ConfigError.Code.STARTING_STACK_EXCEEDS_MAXIMUM,
+			&"starting_stack",
+			"Starting stack cannot exceed %d." % MAX_STARTUP_CHIPS,
+		)
 	if small_blind <= 0:
 		_add_error(
 			errors,
@@ -105,12 +112,26 @@ func _validate_scalars(
 			&"small_blind",
 			"Small blind must be a positive integer.",
 		)
+	elif small_blind > MAX_STARTUP_CHIPS:
+		_add_error(
+			errors,
+			ConfigError.Code.SMALL_BLIND_EXCEEDS_MAXIMUM,
+			&"small_blind",
+			"Small blind cannot exceed %d." % MAX_STARTUP_CHIPS,
+		)
 	if big_blind <= 0:
 		_add_error(
 			errors,
 			ConfigError.Code.BIG_BLIND_NOT_POSITIVE,
 			&"big_blind",
 			"Big blind must be a positive integer.",
+		)
+	elif big_blind > MAX_STARTUP_CHIPS:
+		_add_error(
+			errors,
+			ConfigError.Code.BIG_BLIND_EXCEEDS_MAXIMUM,
+			&"big_blind",
+			"Big blind cannot exceed %d." % MAX_STARTUP_CHIPS,
 		)
 	if small_blind > 0 and big_blind > 0 and small_blind > big_blind:
 		_add_error(
@@ -120,7 +141,9 @@ func _validate_scalars(
 			"Small blind cannot exceed big blind.",
 		)
 	var has_chip_total_overflow := (
-		player_count > 0 and starting_stack > 0 and starting_stack > MAX_INT_64 / player_count
+		player_count > 0
+		and starting_stack > 0
+		and starting_stack > IntegerBounds.MAX_INT_64 / player_count
 	)
 	if has_chip_total_overflow:
 		_add_error(

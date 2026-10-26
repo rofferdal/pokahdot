@@ -6,6 +6,8 @@ extends RefCounted
 ## The active-player count captured when a level begins determines that level's
 ## interval. It is not recalculated until the next level starts.
 
+const MAX_BIG_BLIND: int = ConfigResolver.MAX_STARTUP_CHIPS
+
 var small_blind: int:
 	get:
 		return _small_blind
@@ -43,6 +45,8 @@ func _init(
 		initial_big_blind >= initial_small_blind,
 		"The initial big blind must be at least the small blind."
 	)
+	assert(initial_big_blind <= MAX_BIG_BLIND, "The initial big blind exceeds the limit.")
+	assert(initial_small_blind <= MAX_BIG_BLIND, "The initial small blind exceeds the limit.")
 	assert(initial_active_player_count >= 1, "A blind level requires an active player count.")
 	_small_blind = initial_small_blind
 	_big_blind = initial_big_blind
@@ -90,7 +94,13 @@ func _interval_for(active_player_count: int) -> int:
 
 func _next_big_blind(current_big_blind: int) -> int:
 	# ceil(current * 1.25), then move to the next even integer if needed.
+	if current_big_blind >= MAX_BIG_BLIND:
+		return MAX_BIG_BLIND
+	# The cap is checked before multiplication so malformed large inputs cannot
+	# wrap before the result is clamped.
+	if current_big_blind > (MAX_BIG_BLIND * 4 - 3) / 5:
+		return MAX_BIG_BLIND
 	var rounded_up: int = (current_big_blind * 5 + 3) / 4
 	if rounded_up % 2 != 0:
 		rounded_up += 1
-	return rounded_up
+	return mini(rounded_up, MAX_BIG_BLIND)

@@ -82,7 +82,7 @@ func test_schema_three_rejects_legacy_command_and_incomplete_metric_payloads() -
 	var parsed: RefCounted = REPORT_SCRIPT.from_dictionary(data)
 	assert_has(parsed.validate(), "Unsupported simulation command version.")
 
-	data.command_version = "simulation_cli_v3"
+	data.command_version = "simulation_cli_v4"
 	data.tournaments[0].profile_results[0].erase("eligible_bluff_opportunities")
 	parsed = REPORT_SCRIPT.from_dictionary(data)
 	assert_has(

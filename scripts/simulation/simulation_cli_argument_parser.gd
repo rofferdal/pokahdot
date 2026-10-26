@@ -84,24 +84,24 @@ func parse(arguments: PackedStringArray) -> RefCounted:
 					_:
 						errors.append("Trace mode must be none, errors, or sampled.")
 			"--trace-sample":
-				if not value.is_valid_int():
+				if not IntegerBounds.fits_signed_64_bit_text(value):
 					errors.append("Trace sample count must be an integer.")
 				else:
 					options.trace_sample_count = value.to_int()
 			"--tournament-index":
-				if not value.is_valid_int():
+				if not IntegerBounds.fits_signed_64_bit_text(value):
 					errors.append("Tournament index must be an integer.")
 				else:
 					options.tournament_index = value.to_int()
 			"--batch-id":
 				options.batch_id = StringName(value)
 			"--seed":
-				if not value.is_valid_int():
+				if not IntegerBounds.fits_signed_64_bit_text(value):
 					errors.append("Roster manifest seed must be an integer.")
 				else:
 					options.seed_start = value.to_int()
 			"--tournament-count":
-				if not value.is_valid_int():
+				if not IntegerBounds.fits_signed_64_bit_text(value):
 					errors.append("Roster manifest tournament count must be an integer.")
 				else:
 					options.tournament_count = value.to_int()
@@ -122,7 +122,11 @@ func _options(command: StringName) -> SimulationCommandOptions:
 func _parse_shard(value: String) -> RefCounted:
 	var result := {"shard": null, "errors": PackedStringArray()}
 	var parts := value.split("/")
-	if parts.size() != 2 or not parts[0].is_valid_int() or not parts[1].is_valid_int():
+	if (
+		parts.size() != 2
+		or not IntegerBounds.fits_signed_64_bit_text(parts[0])
+		or not IntegerBounds.fits_signed_64_bit_text(parts[1])
+	):
 		result.errors.append("Shard must use the index/count form.")
 		return _dictionary_result(result)
 	result.shard = SimulationShard.new(parts[0].to_int(), parts[1].to_int())

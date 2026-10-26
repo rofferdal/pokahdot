@@ -84,7 +84,9 @@ func _validate(
 			errors.append("Tournament indexes must be unique.")
 		else:
 			seen_indexes[index] = true
-			if seed_start + index == 0:
+			if not IntegerBounds.can_add_nonnegative(seed_start, index):
+				errors.append("Simulation effective seed exceeds the integer limit.")
+			elif seed_start + index == 0:
 				errors.append("Simulation effective seeds must be non-zero.")
 	return errors
 

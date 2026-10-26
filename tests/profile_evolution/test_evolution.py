@@ -70,7 +70,7 @@ def selection_payload(candidates: list[dict[str, object]]) -> dict[str, object]:
             {
                 "batch_id": "batch",
                 "code_revision": "abc123",
-                "command_version": "simulation_cli_v2",
+                "command_version": "simulation_cli_v4",
                 "manifest_checksum": "a" * 64,
                 "report_checksum": "b" * 64,
                 "seed_range": {"minimum": 100, "maximum": 109},
