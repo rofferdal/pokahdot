@@ -1,6 +1,12 @@
 # Strategy Parameter Validation
 
-This record closes simulation-core Milestone 4. It measures the schema-1
+Historical record reviewed 2026-10-26; the original measurement date was not
+recorded here. The endpoint measurements below come from the pre-correctness-fix
+milestone implementation and schema-2 report era. Preserve these figures and
+checksums as history; current tests and algorithms may produce different results.
+They do not establish current promotion eligibility.
+
+This record closed simulation-core Milestone 4. It measures the schema-1
 parameter model, records the schema-2 decision, and defines the reproducible
 regression coverage used before profile evolution begins.
 
@@ -74,9 +80,10 @@ profiles migrated as follows:
 | Loose Aggressive | 72 |
 | Balanced | 28 |
 
-Manifest and report schemas are version 2, require complete parameter
-snapshots, and reject schema 1 or mixed field names. Hand-potential weights
-and sizing bands remain unchanged: the confirmed schema-2 genome already
-expresses independent continuation, opening aggression, facing-wager
-aggression, and bluff behavior. No new gene was added, so no additional
-snapshot migration is required.
+At this milestone, manifest and report schemas were version 2 and required
+complete snapshots. Strategy parameter schema 2 still defines the four genes;
+current manifests use schema 2 and reports schema 4/command v6. Subsequent
+river-draw, context, raise-rights, ranking, and uncertainty fixes require fresh
+evaluation before relying on historical rankings. The current
+[simulation contract](Simulation_And_Evolutionary_Bot_Strategy.md) owns formats
+and promotion requirements; this record does not freeze decision algorithms.

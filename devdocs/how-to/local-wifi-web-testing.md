@@ -2,7 +2,7 @@
 
 Use this workflow to test the current working tree on the development Mac,
 an iPad or an Android phone without pushing or merging. Progress and physical
-device evidence are tracked in [`LanTestTasks.md`](../../docs/LanTestTasks.md).
+device evidence are tracked in [`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md).
 
 Install the [normal development dependencies](../../README.md#development-checks)
 and Godot 4.7.2 with matching Web export templates. The CLI uses Python 3's
@@ -286,4 +286,4 @@ not supplied. This acceptance closes the LAN workflow; it does not establish
 that every layout passed. Remaining phone layout checks and deferred landscape
 support stay in [OptimizingPhoneGuiTasks.md](../../docs/OptimizingPhoneGuiTasks.md).
 Build identities, host/browser evidence and the acceptance decision are
-recorded in [LanTestTasks.md](../../docs/LanTestTasks.md).
+recorded in [LanTestTasks.md](../../docs/arkiv/LanTestTasks.md).

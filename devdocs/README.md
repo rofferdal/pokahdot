@@ -50,7 +50,7 @@ Practical step-by-step instructions to get everyday development tasks done.
   and how to restore automatic deployment.
 - **[Adding a Bot Strategy](how-to/adding-a-bot-strategy.md)**: How to create a new `DecisionModel`, define validated parameter resources, register models with `PlayableBotRoster`, and write unit tests.
 - **[Running Simulations](how-to/running-simulations.md)**: How to execute non-interactive batch simulations, validate manifests, run parallel shards, inspect reports, and replay runs.
-- **[Evaluating Bot Performance & Statistical Decisions](how-to/evaluating-bot-performance.md)**: How to analyze simulation metrics, interpret 95% confidence intervals, evaluate behavioral style leaks, and verify the 7 automated promotion gates.
+- **[Evaluating Bot Performance & Statistical Decisions](how-to/evaluating-bot-performance.md)**: How to analyze simulation metrics, interpret 95% confidence intervals, evaluate behavioral style leaks, and verify the automated promotion criteria.
 - **[Replacing In-Game Bot Profiles](how-to/replacing-in-game-bot-profiles.md)**: The exact workflow and checklist for candidate confirmation, consolidated human promotion review, profile publishing, and updating `PlayableBotRoster`.
 
 ### 3. Reference (Information-Oriented)
@@ -95,3 +95,7 @@ Want to see Pokahdot in action immediately?
    ```
 
 Ready to dive in? Head over to **[Understanding Pokahdot](tutorials/understanding-pokahdot.md)**!
+
+Current task ownership is indexed in [docs/README.md](../docs/README.md).
+The [simulation contract](../docs/Simulation_And_Evolutionary_Bot_Strategy.md)
+is authoritative for versions, statistical eligibility, streams, and replay.

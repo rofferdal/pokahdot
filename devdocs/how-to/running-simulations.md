@@ -2,6 +2,10 @@
 
 Pokahdot includes a headless, non-interactive simulation harness in `scripts/simulation/`. It is designed to evaluate bot profiles, test parameter variations, and measure statistical fitness across thousands of tournaments without rendering or GUI overhead.
 
+The authoritative [simulation contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md)
+owns formats, defaults, streams, statistics, and confirmation policy. This guide
+provides commands for that contract.
+
 ---
 
 ## 1. Simulation Architecture Overview
@@ -11,7 +15,7 @@ The simulation runner operates in batch:
 2. **Planner ([`SimulationBatchPlanner`](../../scripts/simulation/simulation_batch_planner.gd))**: Expands the manifest into a deterministic, zero-based sequence of `SimulationTournamentInput` records with cyclic seat rotations.
 3. **Runner ([`SimulationBatchRunner`](../../scripts/simulation/simulation_batch_runner.gd))**: Instantiates `TournamentMatch` with all-bot construction contracts (`TournamentConstructionContract.simulation()`), stepping matches to completion.
 4. **Metrics ([`SimulationTournamentMetrics`](../../scripts/simulation/simulation_tournament_metrics.gd))**: Calculates VPIP (voluntarily put chips in pot), PFR (preflop raise), win rates, and chip fitness.
-5. **Report ([`SimulationReport`](../../scripts/simulation/simulation_report.gd))**: Schema 3 JSON artifact storing complete outcomes, aggregates, recipient-safe traces, deterministic roster provenance derived from immutable profile snapshots, and ordered `selected_profile_ids` per tournament.
+5. **Report ([`SimulationReport`](../../scripts/simulation/simulation_report.gd))**: Schema 4 (`simulation_cli_v6`) JSON artifact storing complete outcomes, aggregates, recipient-safe traces, deterministic roster provenance derived from immutable profile snapshots, and ordered `selected_profile_ids` per tournament.
 
 Simulation manifests are not subject to the playable product roster's limit of
 25 `StrategyDecisionModel`-based profiles. Use that freedom for larger
@@ -44,13 +48,13 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 - `--config PATH`: Path to the input `SimulationManifest` JSON file (for `validate`, `run`).
 - `--output PATH`: Destination path for the report or replay artifact (writes atomically).
 - `--report PATH`: Path to a completed `SimulationReport` JSON file (for `inspect`, `replay`).
-- `--format json|text`: Output formatting (defaults to `text` for inspection, `json` for machine interfaces).
+- `--format json|text`: Output formatting (defaults to `json` for all commands).
 - `--overwrite`: Permitted only when intentionally replacing an existing output file. (By default, existing outputs are protected).
 - `--shard INDEX/COUNT`: Deterministic parallelization slice (e.g. `0/4`, `1/4`).
 - `--dry-run`: Validates plan and prints shard metadata without playing tournaments.
-- `--trace none|errors|sampled`: Decision trace recording mode (`none` by default).
+- `--trace none|errors|sampled`: Decision trace recording mode (`errors` by default for `run`).
 - `--trace-sample COUNT`: Number of decisions to deterministically sample when `--trace sampled` is enabled.
-- `--tournament-index INDEX`: Specific tournament index to reproduce during `replay` (defaults to `0`).
+- `--tournament-index INDEX`: Specific tournament index to reproduce during `replay` (required; no default index).
 - `--batch-id ID`: Optional batch identity for `export-roster-manifest`; the default derives from the roster version.
 - `--seed INTEGER`: Non-zero export seed (default `71001`).
 - `--tournament-count COUNT`: Export plan count; it must be divisible by the active roster size and satisfy the configured sample minimum (default `2520`).
@@ -134,12 +138,15 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 ```
 
 ### Step 4: Verify Determinism with Replay
-Verify that a specific tournament reproduces byte-for-byte and matches the recorded outcome digest:
+Verify the recorded outcome digest and executable provenance for a specific tournament:
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
   replay --report artifacts/batch_report.json --tournament-index 0 --format json
 ```
-If the recomputed outcome digest matches the report's source digest, the command exits with code `0`.
+The command exits with code `0` only when both outcome and provenance match.
+Replay currently collects no traces, including with `--output`.
+See the authoritative [stream and replay contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output)
+for current progress/trace limitations.
 
 ---
 

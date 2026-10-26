@@ -119,7 +119,7 @@ passing-after evidence before checking implementation tasks.
 
 - [x] **Specify the pot-sized wager contract in normative documentation.** Add
   the `P`, `H`, `C`, and total-target formula above to
-  [`ProjectDescription.md`](ProjectDescription.md), and reconcile the current
+  [`ProjectDescription.md`](../ProjectDescription.md), and reconcile the current
   Pot shortcut descriptions in `README.md`, `docs/ARCHITECTURE.md`, and affected
   `devdocs/` references. State explicitly that this is a No Limit convenience
   preset and that wager amounts are street totals, not additional chips.

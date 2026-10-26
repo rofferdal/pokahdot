@@ -141,9 +141,9 @@ The current implementation forwards `PublicActionRecord` values to
 hand-settlement boundary or the observing seat's net result. Supporting tilt
 therefore requires a richer recipient-safe observation contract.
 
-The architecture already describes `PublicGameEvent` as the intended
-immutable observation type for actions, public cards, pot awards,
-eliminations, street changes, and other public outcomes. A hand-settlement
+An earlier architecture sketch proposed `PublicGameEvent` for richer public
+outcomes. That type is not implemented. This concept would require a new
+immutable observation contract for settlement and other public outcomes. A hand-settlement
 observation for tilt should provide only the information needed by the model,
 such as:
 

@@ -40,7 +40,7 @@ Manages table seating and clockwise traversal.
 - `players: Array[Player]`: Fixed seat array (length 2–9).
 - `button_seat: int`: Current dealer button index.
 - `active_seats() -> Array[int]`: Returns seats where `player.busted == false`.
-- `advance_button() -> void`: Moves the button to the next active seat clockwise.
+- `advance_button() -> int`: Moves the button to the next active seat clockwise.
 - `first_to_act_preflop() -> int`: Left of Big Blind (or Button heads-up).
 - `first_to_act_postflop() -> int`: Small Blind (or first active seat clockwise from Button).
 
@@ -50,7 +50,7 @@ Represents a participant's runtime state at the table.
 - `seat: int`: 0-based seat index.
 - `stack: int`: Current chip count (integer only).
 - `bet_this_round: int`: Chips committed during the current betting street.
-- `total_invested_in_hand: int`: Total chips committed across all streets of this hand.
+- `total_contribution: int`: Total chips committed across all streets of this hand.
 - `folded: bool`: True if the player folded this hand.
 - `all_in: bool`: True if the player has committed their entire stack.
 - `busted: bool`: True if the player has 0 chips at hand completion.
@@ -102,9 +102,11 @@ Tracks contributions and derives main and side pots.
 ### `CardData` (`scripts/core/card_data.gd`)
 Immutable `Resource` representing a playing card.
 
-- `card_id: StringName`: Unique ID, e.g., `&"As"`, `&"Td"`, `&"2c"`.
+- `card_id: int`: Stable ID `(rank - 2) * 4 + int(suit)`, from 0 to 51.
 - `rank: int`: Numeric value (2–14, where Ace = 14).
-- `suit: StringName`: `&"clubs"`, `&"diamonds"`, `&"hearts"`, or `&"spades"`.
+- `suit: CardData.Suit`: `CLUBS`, `DIAMONDS`, `HEARTS`, or `SPADES`.
+- `CardData.new(rank: int = 2, suit: CardData.Suit = CardData.Suit.CLUBS)`
+  constructs a card; `code()` returns a diagnostic numeric string such as `"14:3"`.
 
 ### `HandEvaluator` (`scripts/core/hand_evaluator.gd`)
 Stateless evaluator for Texas Hold'em.
@@ -115,7 +117,11 @@ Stateless evaluator for Texas Hold'em.
 Strongly typed evaluation outcome.
 
 - **Categories (`HandRank.Category`)**:
-  `HIGH_CARD`, `ONE_PAIR`, `TWO_PAIR`, `THREE_OF_A_KIND`, `STRAIGHT`, `FLUSH`, `FULL_HOUSE`, `FOUR_OF_A_KIND`, `STRAIGHT_FLUSH`, `ROYAL_FLUSH`.
+  `HIGH_CARD`, `ONE_PAIR`, `TWO_PAIR`, `THREE_OF_A_KIND`, `STRAIGHT`, `FLUSH`, `FULL_HOUSE`, `FOUR_OF_A_KIND`, `STRAIGHT_FLUSH`.
+
+A royal flush is `STRAIGHT_FLUSH` with ace-high tie-break value 14. Invalid
+evaluator input (wrong count, null or duplicate cards) returns `null`.
+
 - `compare_to(other: HandRank) -> int`:
   Returns `> 0` if stronger, `< 0` if weaker, `0` if tied. Handles kickers automatically.
 
@@ -130,6 +136,7 @@ The return value of all stepping operations (`start`, `advance_until_blocked`, e
   - `WAITING_FOR_HUMAN`: Engine paused; waiting for human input at `acting_seat`.
   - `HAND_COMPLETED`: Hand finished; chips awarded; waiting to advance to next hand.
   - `TOURNAMENT_FINISHED`: Only one player remains or human quit.
+  - `PREFLOP_COMPLETE`: Reserved compatibility status in the result enum.
   - `YIELDED`: Engine stepped one discrete transition; ready to step again.
   - `ERROR`: An invalid operation or configuration error occurred.
 
@@ -144,7 +151,7 @@ The recipient-specific, read-only snapshot provided to agents and UI.
 | `revealed_hole_cards` | `Dictionary[int, Array]` | Showdown cards (empty until showdown). |
 | `community_cards` | `Array[CardData]` | Public face-up board cards. |
 | `acting_seat` | `int` | Seat whose turn it is to act. |
-| `legal_actions` | `Array[PlayerAction.Kind]` | Allowed actions for the acting seat. |
+| `legal_actions` | `Array[PlayerAction.Kind]` | Allowed actions for the recipient; empty unless the recipient is acting. |
 | `pot_amount` | `int` | Total chips in the pot. |
 | `call_amount` | `int` | Cost to call for the hero. |
 | `minimum_wager_total`| `int` | Minimum bet/raise total. |
@@ -192,9 +199,10 @@ Result object returned by `PlayableBotRoster.select()`.
 ### `DecisionModelRegistry` (`scripts/core/agents/decision_model_registry.gd`)
 Registry mapping model IDs (`StringName`) to their GDScript model and parameter constructors.
 
-- `register_model(model_id, model_script, parameters_script) -> void`
+- `register_model(model_id: StringName, model_script: Script, parameter_script: Script) -> bool`: Rejects empty IDs, null scripts, and duplicate IDs.
 - `create_model(model_id) -> DecisionModel`
-- `create_parameters(model_id) -> DecisionModelParameters`
+- `has_model(model_id: StringName) -> bool`
+- `accepts_parameters(model_id: StringName, parameters: DecisionModelParameters) -> bool`: Checks exact registered parameter script identity. Construct the concrete parameter Resource directly; there is no registry parameter factory.
 
 ### `BotProfile` (`scripts/core/agents/bot_profile.gd`)
 Custom `Resource` linking a stable profile identifier, model ID, display name, and parameter resource.
@@ -203,3 +211,33 @@ Custom `Resource` linking a stable profile identifier, model ID, display name, a
 - `model_id: StringName`: e.g. `&"strategy_parameterized"`, `&"random"`.
 - `display_name: String`: Human-readable label.
 - `parameters: DecisionModelParameters`: Typed parameter payload.
+
+## 6. Runnable API smoke example
+
+Save this complete script as `localtmp/docs_core_smoke.gd`, then run
+`godot --headless --path . --script localtmp/docs_core_smoke.gd` from the root.
+It uses existing classes and writes no game resources.
+
+```gdscript
+extends SceneTree
+
+
+func _initialize() -> void:
+	var cards: Array[CardData] = []
+	for rank: int in range(10, 15):
+		cards.append(CardData.new(rank, CardData.Suit.SPADES))
+	var result: HandRank = HandEvaluator.new().evaluate(cards)
+	assert(cards[4].card_id == 51)
+	assert(result != null)
+	assert(result.category == HandRank.Category.STRAIGHT_FLUSH)
+	assert(result.tie_break_values[0] == 14)
+	var registry := DecisionModelRegistry.new()
+	assert(registry.register_model(
+		&"random",
+		preload("res://scripts/core/agents/random_decision_model.gd"),
+		preload("res://scripts/core/agents/random_decision_model_parameters.gd")
+	))
+	assert(registry.create_model(&"random") != null)
+	assert(registry.accepts_parameters(&"random", RandomDecisionModelParameters.new()))
+	quit(0)
+```

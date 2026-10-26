@@ -36,7 +36,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     1. Always review `docs/ProjectDescription.md` before proposing solutions.
     2. Challenge assumptions and proactively ask clarifying questions about edge cases.
     3. Document all major decisions in `docs/ARCHITECTURE.md`.
-    4. Break down large features into MVP-driven phases and create concrete sub-tasks in `docs/TASKS.md` (ensuring tasks include status fields).
+    4. Break down large features into MVP-driven phases and create concrete sub-tasks in an active backlog linked from `docs/README.md` (ensuring tasks include status fields).
 
 ### 2. Senior Software Engineer Mode
 *   **Trigger:** When writing, implementing, or refactoring application core code.
@@ -90,7 +90,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 Every agent must follow this 3-step loop for every task execution:
 
 ### Step 1: Initialize & Verify
-*   Open `docs/*TASKS.md` and identify the first uncompleted task `[ ]`. Do not skip ahead unless explicitly instructed by the user.
+*   Open `docs/README.md`, select the owning active backlog, and identify its first uncompleted task `[ ]`. Do not skip ahead unless explicitly instructed by the user.
 
 ### Step 2: Implement & Test (Atomic Changes)
 *   Adopt the appropriate mode. Make **one modification at a time**. 

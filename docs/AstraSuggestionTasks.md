@@ -1,6 +1,6 @@
 # Astra Suggested Improvement Tasks
 
-Status: In progress; sections 1–3 are complete.
+Status: In progress; sections 1–4 are complete.
 Reviewed: 2026-10-26, baseline `c6166b5`.
 
 Themes and tasks are ordered by importance. **Defect** means an observed code
@@ -189,22 +189,31 @@ checkboxes or treat deferred landscape support as accepted.
 
 ## 4. Documentation accuracy and ownership
 
-- [ ] **DOC-01 — Repair current indexes and backlog status. [Defect]**
+- [x] **DOC-01 — Repair current indexes and backlog status. [Defect]**
   [docs/README.md](README.md) links a missing active desktop file, while the
   [archived file](arkiv/OptimizingDesktopGuiTasks.md) still says active.
   `AGENTS.md`/`.cursorrules` direct work to missing `docs/TASKS.md`.
   Done: establish one current task index, reconcile archive/acceptance status,
   and check local links automatically. Preserve historical evidence and identify
   unavailable local screenshots without inventing replacements.
+  Verified 2026-10-26: `docs/README.md` owns the active task index; archived
+  LAN/desktop status and relocated links are reconciled. `make docs-check`
+  checks 41 Markdown files with zero broken links/anchors and reports three
+  unavailable ignored historical screenshots separately. `git diff --check` passes.
 
-- [ ] **DOC-02 — Correct API references and executable examples. [Defect]**
+- [x] **DOC-02 — Correct API references and executable examples. [Defect]**
   [Core reference](../devdocs/reference/core-domain.md) describes string card
   IDs/suits, `ROYAL_FLUSH`, and registry `create_parameters`, which do not match
   the code. [Architecture](ARCHITECTURE.md) names nonexistent files and an
   obsolete observation contract. Done: reconcile API/type/path examples against
   source, smoke-test runnable snippets, and label pseudocode explicitly.
+  Verified 2026-10-26: card/evaluator/registry smoke script and tutorial
+  composition run under Godot 4.7.2; the extension guide example passes its
+  GUT test (3 assertions). API signatures and directory maps match source;
+  hypothetical integration fragments are labeled. Documentation links and
+  `git diff --check` pass.
 
-- [ ] **DOC-03 — Consolidate operational contracts and mark historical claims. [Defect]**
+- [x] **DOC-03 — Consolidate operational contracts and mark historical claims. [Defect]**
   Reconcile [README](../README.md), [architecture](ARCHITECTURE.md),
   [simulation specification](Simulation_And_Evolutionary_Bot_Strategy.md), and
   [developer guides](../devdocs/README.md): estimator support, promotion
@@ -212,14 +221,31 @@ checkboxes or treat deferred landscape support as accepted.
   and current report schema disagree. Done: one authoritative contract per
   subject with shorter linked guides; historical schema-2 measurements remain
   dated history. Clarify that checksums establish integrity, not reviewer identity.
+  Verified 2026-10-26: the simulation specification owns operational contracts;
+  guides link to its versions/statistics/confirmation/stream rules. Historical
+  measurements retain their checksums and are explicitly historical. A current
+  smoke batch validates, runs, inspects, and replays successfully; replay has
+  matching provenance/outcomes and empty traces as documented. Full check:
+  591 GUT tests, 95,281 assertions, 89 evolution and 34 LAN tests pass;
+  documentation checks and `git diff --check` pass.
 
-- [ ] **DOC-04 — Reconcile GUI assets and acceptance language. [Defect]**
+- [x] **DOC-04 — Reconcile GUI assets and acceptance language. [Defect]**
   The specification requires 32×32 avatars, but all sixteen
   [avatar PNGs](../assets/avatars/) are 64×64. Visual guidance and architecture
   mix historical matrix acceptance, optional device checks, and active phone
   acceptance. Done: document actual source/display dimensions, supported
   profiles, and distinct automated/physical acceptance status; remove stale
   prototype commentary without rewriting historical decisions.
+  Verified 2026-10-26: all 16 PNG headers report 64×64; source constants use
+  112×112 opponent / 128×128 human base regions and phone tokens omit avatars.
+  The visual-testing contract separates current automated coverage, historical
+  iPad acceptance, unrecorded desktop sign-off, active phone acceptance, and
+  deferred phone landscape. Stale prototype/asset comments are corrected.
+  Final `make check`: 591 GUT tests, 95,281 assertions, 89 evolution tests,
+  34 LAN tests, 4 documentation-gate tests, lint and formatting pass.
+  All 41 Markdown files pass local link/anchor checks; three unavailable
+  historical local screenshot links are reported, not replaced. API/tutorial
+  and simulation smoke examples pass. `git diff --check` passes.
 
 ## 5. GUI clarity and interaction
 
@@ -325,7 +351,7 @@ checkboxes or treat deferred landscape support as accepted.
   replay claims. Show completed/total, elapsed time and throughput for long runs.
 
 - [ ] **CLI-04 — Automate experiment preparation and comparison. [Improvement]**
-  [ImprovingBotScript.md](ImprovingBotScript.md) requires manual manifest and
+  [ImprovingBotScript.md](arkiv/ImprovingBotScript.md) requires manual manifest and
   cross-generation comparison work. Done: validated experiment configuration
   generates candidate/confirmation manifests with independent seeds, compares
   compatible cohorts, and prepares a consolidated review. Dry-run explains

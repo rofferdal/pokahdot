@@ -980,8 +980,8 @@ func _create_avatar_region(seat: int, avatar_size: Vector2) -> Control:
 	avatar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	avatar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	avatar.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	# Avatars are authored at their display dimensions. Linear filtering keeps
-	# their edges smooth on desktop HiDPI surfaces.
+	# Avatar sources are 64 by 64 pixels; layout adapts their display regions.
+	# Linear filtering keeps scaled edges smooth on HiDPI surfaces.
 	avatar.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var avatar_path: String = _avatar_assignments.get(seat, "")
 	if not avatar_path.is_empty():

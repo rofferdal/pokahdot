@@ -1,12 +1,12 @@
 class_name GuiPhoneSeatLayout
 extends RefCounted
 
-## Pure presentation geometry for prototyping compact phone seat tokens.
+## Pure presentation geometry for the compact phone seat tokens.
 ##
 ## Seat 0 is the human-facing bottom position. The remaining seats are selected
 ## from eight stable clockwise perimeter slots. This class does not create
-## controls or interpret poker state, so the later phone-token implementation
-## can consume the same rectangles without entering the core layer.
+## controls or interpret poker state. GuiPhoneLayoutPlan and the table controller
+## consume these rectangles without entering the core layer.
 
 enum Density {
 	STANDARD,

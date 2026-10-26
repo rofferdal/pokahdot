@@ -260,3 +260,8 @@ When improving bots, resist the temptation to make all opponents identical "opti
 - **The TAG / Balanced** (`tight_aggressive` / `balanced`): Solid, aggressive poker. Teaches pot control and position.
 
 When replacing a profile, aim to **eliminate strategic blunders** (e.g. folding when receiving 20:1 pot odds, bleeding blinds without defending, or making invalid actions) while **preserving the archetype's distinct personality**.
+
+The [simulation contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#5-external-profile-evolution-tool)
+owns confirmation policy: mirrored tables are heads-up against each declared
+benchmark; each mixed matchup includes both opponent classes. Review labels
+and checksums bind content but do not authenticate reviewer identity.

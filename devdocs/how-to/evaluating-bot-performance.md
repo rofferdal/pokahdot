@@ -11,14 +11,18 @@ Poker tournaments have high inherent variance. A weak player can win a single to
 To make sound decisions, you must observe enough tournaments to reduce statistical uncertainty below the performance difference you want to measure.
 
 ### The Minimum Sample Size Rule
-- **Minimum for initial exploration**: $N = 100$ tournaments per matchup.
+- **Suggested initial exploration**: 100 tournaments per matchup. Plans choose
+  `minimum_profile_samples`; this suggestion is not a universal enforced gate.
 - **Minimum for promotion decisions**: **$N \ge 300$ tournaments** per matchup
   and at least 100 candidate samples per seat under cyclic rotation. Thus a
   six-seat matchup needs at least 600 tournaments and a nine-seat matchup 900.
 - **Gold standard benchmark**: $N \ge 1,000$ tournaments.
 
 ### Interpreting the 95% Confidence Interval (`uncertainty_95_half_width`)
-The simulation report calculates the 95% confidence interval half-width ($Z = 1.96$) for every metric:
+Only `normal_95` is supported; bootstrap is rejected. Uncertainty uses
+independent tournament/seed units, averaging repeated-profile seats within a
+tournament. Intervals are unavailable below two units, and bounded components
+have a Wilson half-width floor. Interpret a reported half-width as:
 $$\text{True Metric Value} \in [\text{Reported Mean} - \text{half\_width}, \; \text{Reported Mean} + \text{half\_width}]$$
 
 ```text
@@ -91,7 +95,7 @@ Beyond raw fitness, simulation reports provide style metrics that explain **why*
 
 ### 3. Invalid Action Fallbacks (Immediate Disqualification)
 - **`invalid_action_fallbacks`**: Must be **zero**.
-- If a bot attempts an illegal action (e.g. betting when raising is required, or wagering fewer chips than the minimum), the core rejects the action and forces a fallback (check or fold).
+- If a bot attempts an illegal action (e.g. betting when raising is required, or wagering fewer chips than the minimum), the core rejects the action and uses a validated fold-first fallback (then check, then call).
 - Any candidate with $> 0$ invalid actions has a logic defect and **must be rejected immediately**.
 
 ---
@@ -131,7 +135,7 @@ Pokahdot enforces promotion rigor through the [`confirm-candidate`](../../tools/
 
 ### The 8 Automated Promotion Criteria (`confirm-candidate`):
 1. **Lineage Provenance**: The candidate profile must be present in the lineage registry with complete generation, crossover, and mutation ancestry.
-2. **Independent Dual Regimes**: Must be evaluated in both **Mirrored** (identical candidate copies at table) and **Mixed-Table** (competing against legacy and champion baselines) simulation reports.
+2. **Independent Dual Regimes**: Must be evaluated in both **Mirrored** (heads-up, cyclic seats against each declared legacy profile and champion individually) and **Mixed-Table** (competing against legacy and champion baselines) simulation reports.
 3. **Non-Overlapping Seed Sequences**: Mirrored and mixed benchmark reports must have independent, non-overlapping effective seed identities. Reused reports, RNG-version mismatches, shared seeds, and legacy modulo aliases are automatically rejected.
 4. **Sample Thresholds**: Must satisfy sample requirements ($N \ge 300$ tournaments, minimum 100 per seat under cyclic rotation).
 5. **Demonstrated Improvement**: Against every declared benchmark in each
@@ -154,4 +158,11 @@ Pokahdot enforces promotion rigor through the [`confirm-candidate`](../../tools/
   field from `pending` to `approve` or `reject`, then run
   `finalize-promotion-review` against the complete confirmation set.
 - `publish-profile` may generate a Godot `.tres` resource only when the single finalized batch review contains an approved decision bound to that exact candidate and confirmation checksum. A review note is optional.
-- No automated script can bypass human approval or modify the playable roster.
+- Publication requires a finalized approved review artifact and never modifies
+  the playable roster. Checksums bind its content, but do not authenticate the
+  supplied reviewer label or prove reviewer independence.
+
+The authoritative [metrics and fitness contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#3-metrics-and-fitness)
+and [confirmation policy](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#5-external-profile-evolution-tool)
+own the formulas and gates. Behavioral archetype ranges above are diagnostic
+heuristics, not enforced promotion thresholds.

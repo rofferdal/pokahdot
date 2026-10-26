@@ -7,14 +7,31 @@
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) is the authoritative implementation
   design. It may refine structure but cannot change the product rules.
 
-## Task records
+## Current task index
 
-- [`LanTestTasks.md`](LanTestTasks.md) — active Web development export and
-  local Wi-Fi server workflow for device testing before merging to `main`.
-- [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active,
-  iterative physical-phone GUI review and remediation work.
-- [`OptimizingDesktopGuiTasks.md`](OptimizingDesktopGuiTasks.md) — active
-  desktop-browser remediation, measurement, and visual-acceptance record.
+This is the single entry point for active work. Follow the first unchecked task
+in the selected backlog unless the user explicitly selects another task or
+section. Keep completion evidence and checkboxes in the owning backlog.
+
+- [`AstraSuggestionTasks.md`](AstraSuggestionTasks.md) — ordered correctness,
+  evidence, documentation, GUI, maintenance, and CLI improvements.
+- [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active physical
+  phone review and acceptance; automated gates do not complete device tasks.
+
+## Archived task records
+
+- [`arkiv/LanTestTasks.md`](arkiv/LanTestTasks.md) — completed LAN workflow;
+  user accepted resolution limitations. Current commands live in the
+  [LAN how-to](../devdocs/how-to/local-wifi-web-testing.md).
+- [`arkiv/OptimizingDesktopGuiTasks.md`](arkiv/OptimizingDesktopGuiTasks.md) —
+  implementation tasks checked; exact hosted measurements and visual acceptance
+  were not recorded. Archive placement does not certify acceptance.
+- [`arkiv/OptimizingIpadTasks.md`](arkiv/OptimizingIpadTasks.md) — historical
+  physical iPad acceptance, limited to its recorded evidence.
+
+Local screenshots and logs under ignored `localtmp/` are session evidence,
+not portable repository artifacts. Missing local captures cannot be recreated
+as historical evidence; retain their recorded names and limitations.
 
 ## Specifications, runbooks, and guides
 

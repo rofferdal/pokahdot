@@ -10,8 +10,8 @@ files on the development computer, and open a LAN URL from phones, tablets,
 and other computers on the same Wi-Fi network. Testing must work before a
 merge to `main` and without a GitHub Pages deployment.
 
-The existing [`Web` export preset](../export_presets.cfg) is the starting
-point. [`make web-release`](../Makefile) currently requires a clean tree and
+The existing [`Web` export preset](../../export_presets.cfg) is the starting
+point. [`make web-release`](../../Makefile) currently requires a clean tree and
 runs the release gates; it is not a convenient development-server command.
 The exported-input test runner builds an instrumented fixture for automation,
 so its output must not become the manually tested LAN game.
@@ -88,7 +88,7 @@ screenshots under ignored `localtmp/`; do not commit them.
   ```
 
   Prepare the local certificate first and trust its CA on test devices, as
-  described in the [LAN how-to](../devdocs/how-to/local-wifi-web-testing.md#https-certificates-and-test-device-trust).
+  described in the [LAN how-to](../../devdocs/how-to/local-wifi-web-testing.md#https-certificates-and-test-device-trust).
   The device opens `https://<development-computer-LAN-IP>:8080/`.
 
 - [x] **LAN-04 — Verify access from another Wi-Fi device.**
@@ -160,7 +160,7 @@ screenshots under ignored `localtmp/`; do not commit them.
   Evidence: `localtmp/lan/continuation/browser/`, `web-input/results.json`,
   `visible-rebuild.json` and `marked-build.log` under the same continuation
   directory. Physical portrait player-count coverage and deferred landscape
-  remain owned by [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md).
+  remain owned by [OptimizingPhoneGuiTasks.md](../OptimizingPhoneGuiTasks.md).
   User acceptance on 2026-10-26: the user completed their best-effort LAN-06
   verification and explicitly accepted and checked this task despite issues at
   some resolutions. This closes LAN-06 by user decision; it does not imply
@@ -190,8 +190,8 @@ screenshots under ignored `localtmp/`; do not commit them.
 - [x] **LAN-08 — Publish the verified runbook and evidence format.**
   Document prerequisites, exact build/serve/rebuild/stop commands, example LAN
   URLs, firewall/network troubleshooting and the tested HTTP/HTTPS route in
-  [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md) and the
-  [running/testing guide](../devdocs/how-to/running-and-testing.md); link the
+  [`OPTIONAL_WEB_SETUP.md`](../OPTIONAL_WEB_SETUP.md) and the
+  [running/testing guide](../../devdocs/how-to/running-and-testing.md); link the
   workflow from the repository README. Include a compact evidence record with
   commit, dirty fingerprint, build ID, URL, date, device/browser versions,
   viewport/DPR, results and screenshot/defect locations. Done: another developer
@@ -209,7 +209,7 @@ screenshots under ignored `localtmp/`; do not commit them.
   resolve, and `git diff --check` passes. Evidence:
   `localtmp/lan/continuation/final-documentation-check.json`.
   Follow-up: the maintained LAN instructions now live in the dedicated
-  [local Wi-Fi how-to](../devdocs/how-to/local-wifi-web-testing.md), including
+  [local Wi-Fi how-to](../../devdocs/how-to/local-wifi-web-testing.md), including
   separate first-time setup and rebuild instructions and an explanation of
   already-running server errors. The Web publishing runbook links to it.
 
@@ -217,10 +217,10 @@ screenshots under ignored `localtmp/`; do not commit them.
 
 This workflow establishes local development and physical-device LAN evidence.
 It does not by itself establish that the GitHub Pages build or an untested
-browser/device passed. Use [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) for
-visual evidence and [`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md) for
+browser/device passed. Use [`GUI_VISUAL_TESTING.md`](../GUI_VISUAL_TESTING.md) for
+visual evidence and [`templates/GUI_DEFECT.md`](../templates/GUI_DEFECT.md) for
 defects. Phone acceptance remains tracked in
-[`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md); use LAN testing to
+[`OptimizingPhoneGuiTasks.md`](../OptimizingPhoneGuiTasks.md); use LAN testing to
 supply evidence there without duplicating or prematurely completing its tasks.
 
 ## Command contract

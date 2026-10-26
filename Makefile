@@ -16,6 +16,7 @@ WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 .PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate gui-ipad-invariant-gate gui-desktop-invariant-gate gui-current-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
 
 check:
+	$(MAKE) --no-print-directory docs-check
 	$(MAKE) --no-print-directory profile-evolution-test
 	$(MAKE) --no-print-directory web-lan-test
 	$(GODOT) --headless --path . --import
@@ -126,3 +127,8 @@ verify-web-release-output:
 		exit 1; \
 	}
 	@echo "Verified Web release output in $(WEB_OUTPUT_DIR)."
+
+.PHONY: docs-check
+docs-check:
+	python3 -B -m unittest discover -s tests/documentation -v
+	python3 -B tools/check_docs.py

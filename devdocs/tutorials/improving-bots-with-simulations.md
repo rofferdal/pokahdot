@@ -191,45 +191,15 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   inspect --report artifacts/solid_tag_report.json --format text
 ```
 
-You will see the aggregate metrics grouped by profile:
-
-```text
-Profile Aggregates:
-Profile: candidate_solid_tag (N = 300)
-  Fitness: 0.584 ± 0.021
-  Win Rate: 41.3% (± 5.5%)
-  Avg Finish Position: 1.81
-  Chip Differential: +182.4
-  bnc_per_100: +6.82
-  VPIP: 24.1% | PFR: 14.8%
-  Invalid Actions: 0
-
-Profile: balanced (N = 300)
-  Fitness: 0.531 ± 0.022
-  Win Rate: 33.7% (± 5.3%)
-  Avg Finish Position: 1.99
-  Chip Differential: +34.2
-  bnc_per_100: +1.15
-  VPIP: 26.5% | PFR: 9.2%
-  Invalid Actions: 0
-
-Profile: nit_caller (N = 300)
-  Fitness: 0.385 ± 0.023
-  Win Rate: 25.0% (± 4.9%)
-  Avg Finish Position: 2.20
-  Chip Differential: -216.6
-  bnc_per_100: -7.97
-  VPIP: 12.3% | PFR: 2.1%
-  Invalid Actions: 0
-```
-
-### Making the Decision:
-1. **Statistical Significance**: The difference in fitness between `candidate_solid_tag` ($0.584$) and `nit_caller` ($0.385$) is $\Delta = 0.199$, far exceeding the uncertainty half-width ($0.021$).
-2. **Chip Differential**: The candidate earns $+182.4$ chips on average, while `nit_caller` bleeds $-216.6$ chips.
-3. **Behavioral Integrity**: `Invalid Actions` is `0`.
-4. **Genetic Diversity**: Comparing genes `[68, 45, 40, 10]` to `nit_caller` `[60, 4, 4, 2]` yields an L1 distance of $|68-60| + |45-4| + |40-4| + |10-2| = 8 + 41 + 36 + 8 = 93 \ge 10$.
-
-Conclusion: **The candidate is a statistically sound, behaviorally diverse upgrade.**
+Inspect raw outcome and behavior counts in the report; use
+`tools/profile-evolution evaluate-fitness` for the composite fitness and its
+separate sample penalty. `inspect` does not print a fitness leaderboard.
+Do not infer improvement from marginal interval separation, raw chip averages,
+or gene distance alone. Confirmation uses paired per-tournament differences
+and the fixed sample/seat requirements, followed by consolidated human review.
+The [authoritative simulation contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#5-external-profile-evolution-tool)
+defines those checks. The three-profile demonstration manifest above is
+exploratory and cannot establish promotion eligibility.
 
 ---
 

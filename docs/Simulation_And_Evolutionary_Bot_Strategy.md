@@ -4,7 +4,7 @@
 
 [`ProjectDescription.md`](ProjectDescription.md) remains normative for poker
 rules and product behavior. [`ARCHITECTURE.md`](ARCHITECTURE.md) defines the
-implementation boundaries. This document specifies the non-interactive
+implementation boundaries. This document is the authoritative operational contract for the non-interactive
 simulation adapter and an external bot-profile evolution workflow.
 
 Simulation v1 evaluates immutable `BotProfile` parameter vectors. It never
@@ -24,6 +24,14 @@ The simulation path:
   blind schedules are deferred.
 
 ## 2. Reproducible evaluation
+
+### 2.0 Version identities
+
+Current formats are manifest schema 2, strategy parameters schema 2, report
+schema 4, and command `simulation_cli_v6`. Python artifacts use envelope schema
+1 and tool version `0.1.0`. These versions identify separate contracts; a
+strategy schema number is not a report schema number. Historical reports keep
+their original bytes and are not current promotion evidence.
 
 ### 2.1 Batch architecture and sharding
 
@@ -122,7 +130,7 @@ VPIP's conventional name is retained, but “put money in pot” is not used as 
 Pokahdot product concept.
 
 Aggregate profile, matchup, seat, and regime groups must include sample sizes
-and confidence or bootstrap intervals. The independent unit is one completed
+and `normal_95` confidence intervals. The independent unit is one completed
 tournament identified by its effective seed, not an individual seat. When a
 profile occupies multiple seats in one tournament, its seat metrics are
 averaged into one profile observation; table-level groups likewise average
@@ -397,28 +405,35 @@ plan/regime/matchup-occurrence/rotation identity needed to reproduce it.
   human-readable completion summary. It never duplicates the full report.
 - `inspect` writes the requested report summary to stdout and never changes
   the report.
-- `replay` without `--output` writes the replay comparison and recipient-safe
-  trace to stdout. With `--output`, it writes the complete replay artifact to
-  that path and stdout contains only the small completion summary.
-- Progress, warnings, and diagnostics always go to stderr. No command writes
-  progress to stdout.
+- `replay` writes its comparison to stdout in both modes. Optional `--output`
+  writes a replay artifact containing the comparison and recomputed tournament.
+  The current implementation collects no replay traces; `traces` is empty.
+- Current stream limitation: text `run` prints evaluation-plan headings and
+  progress dots on stdout before its completion summary. JSON `run` emits no
+  progress. Application errors use stderr. Godot itself can additionally emit
+  an engine banner/startup diagnostics; capture artifacts through `--output`.
+  Progress/results separation and replay traces remain tracked in
+  [CLI-03](AstraSuggestionTasks.md#7-cli-and-experiment-workflow-usability).
 
 Exit code `0` means verified success; `2` means invalid arguments or manifest;
 `3` means input/output or report-read failure; and `4` means a simulation
 invariant, unexpected action fallback, or replay mismatch.
 
 `replay` reuses the stored manifest snapshot, seed, regime, matchup,
-occurrence, rotation, and seat map. It may increase trace detail without
-changing those values. Winner, termination reason, hand count, and metric
-digest must match the stored record. Replay also selects the report's recorded
+occurrence, rotation, and seat map. It does not increase trace detail. Winner, termination reason, hand count, and metric
+digest and executable provenance must match the stored record for success.
+This checks semantic reproduction, not byte-identical reports. Replay also selects the report's recorded
 RNG stream derivation. New reports use `named_stream_sha256_v2`, while
-`named_stream_v1` is retained for replaying immutable legacy reports.
+`named_stream_v1` remains available for accepted schema-4/v6 reports that
+record that derivation. The current report reader rejects older report/command
+schemas; replay original historical reports with their matching historical
+checkout and runtime, preserving their bytes.
 
 ## 5. External profile-evolution tool
 
 Profile evolution is a separate non-interactive tool outside Godot's
 simulation CLI. It never reads prompts, edits source files or `.tres` files in
-place, promotes a candidate, or writes the playable roster. Its proposed
+place, promotes a candidate, or writes the playable roster. Its implemented
 contract is:
 
 ```text
@@ -530,7 +545,7 @@ ordering makes rebuilds byte-equivalent regardless of input order.
 ordered ancestors and evidence as JSON without modifying the registry.
 
 `confirm-candidate` evaluates mirrored and mixed-table report sets
-independently with the same strict schema-2 evaluator. Each manifest group
+independently with the same strict evaluator for schema-4 reports and schema-2 manifests. Each manifest group
 must contain complete shards and plans, the exact candidate snapshot,
 successful tournaments, bounded metrics, and zero invalid-action fallbacks
 for every participant. A plan's caller-selected `minimum_profile_samples`
@@ -592,6 +607,11 @@ Resource or modify the playable roster.
 
 Every persisted artifact is a strict JSON object envelope containing exactly
 `schema_version`, `type`, `tool_version`, `payload`, and `checksum`.
+`reviewer_id` is a supplied label. Neither that label nor an unsigned checksum
+authenticates a reviewer or proves independence. SHA-256 checks establish
+content integrity and exact artifact bindings; review identity and independence
+must be established by the human review process.
+
 The checksum is SHA-256 over the sorted, compact, UTF-8 canonical envelope
 with the `checksum` field omitted and one trailing newline. Writes reject an
 existing destination and publish a flushed and synced temporary sibling via
@@ -643,6 +663,10 @@ approval.
 
 ## 7. Examples
 
+These command templates assume a validated manifest at `simulations/gen_004.json`
+and a new artifact directory. Substitute actual paths; the replay index must
+belong to the selected shard (418 belongs to shard 2/8).
+
 ```bash
 # Validate without playing or writing an artifact.
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
@@ -653,8 +677,8 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   run --config simulations/gen_004.json --shard 2/8 \
   --output artifacts/gen_004_shard_2.json --trace sampled --trace-sample 5
 
-# Replay tournament 417 and print a recipient-safe text trace.
+# Replay tournament 418 and print its outcome/provenance comparison.
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
-  replay --report artifacts/gen_004_shard_2.json --tournament-index 417 \
+  replay --report artifacts/gen_004_shard_2.json --tournament-index 418 \
   --format text
 ```

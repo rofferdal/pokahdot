@@ -57,7 +57,7 @@ flowchart TD
     HC --> BR
     HC --> PM
     HC --> HE
-    HC --> BLP
+    TM --> BLP
     HC --> TBL
 
     TM --> GV
@@ -176,7 +176,7 @@ A pure, stateless algorithmic evaluator:
 - Takes 5 to 7 `CardData` instances.
 - Generates all $\binom{n}{5}$ combinations (21 combinations for 7 cards).
 - Returns a strongly typed `HandRank` containing rank category (Flush, Full House, Pair, etc.) and tiebreaking kickers.
-- Implements `compare_to(other: HandRank) -> int` returning `> 0`, `< 0`, or `0`.
+- `HandRank` implements `compare_to(other: HandRank) -> int` returning `> 0`, `< 0`, or `0`.
 
 ---
 
@@ -320,7 +320,7 @@ flowchart TD
 ### 1. The Headless Simulation Engine (`scripts/simulation/`)
 - **Manifests (`SimulationManifest`, Schema 2)**: Immutable, JSON-configured batches specifying bot profile snapshots, tournament regimes, cyclic seat rotation, and matchups.
 - **Runner (`SimulationBatchRunner`)**: High-throughput headless execution enforcing zero-human composition contracts.
-- **Reports (`SimulationReport`, Schema 3)**: Checksummed artifacts containing exact manifest snapshots, deterministic roster provenance, ordered `selected_profile_ids` per tournament, outcomes, and recipient-safe traces.
+- **Reports (`SimulationReport`, Schema 4)**: Checksummed artifacts containing exact manifest snapshots, deterministic roster provenance, ordered `selected_profile_ids` per tournament, outcomes, and recipient-safe traces.
 - **Roster export (`SimulationManifestGenerator`)**: Builds a validated schema-2 baseline from `PlayableBotRoster` without CLI, filesystem, or terminal dependencies. Its standard preset uses 100bb play (1000 chips, 5/10 blinds) and cyclic seats. Catalogs through nine profiles use one `active_roster` matchup; larger catalogs use deterministic pair-covering nine-seat matchups with equal appearances and aggregate seat balance. The CLI adapter serializes the returned manifest atomically through `export-roster-manifest`.
 
 ### 2. External Evolution & Promotion (`tools/profile-evolution`)
@@ -350,3 +350,8 @@ When modifying or extending Pokahdot, keep these rules in mind:
 - [ ] **Catalog Invariance**: Never remove required legacy profiles from `PlayableBotRoster`.
 - [ ] **Reviewed Promotion**: Never publish bot profiles without verified confirmations and one finalized consolidated reviewer-approval artifact.
 - [ ] **Strong Typing**: Write typed GDScript (`var stack: int = 1000`, `func get_name() -> StringName:`).
+
+The [simulation specification](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md)
+owns current versions, executable provenance, uncertainty, confirmation, stream
+behavior, and replay limitations. Review checksums bind content; reviewer labels
+do not authenticate identity or independence.

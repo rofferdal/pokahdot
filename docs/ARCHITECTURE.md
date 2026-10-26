@@ -1,6 +1,11 @@
 # Pokahdot Architecture
 
-Status: Core, interactive CLI tournament play, simulation and profile-evolution workflows, cross-interface verification, GUI player names, stable desktop geometry, the dedicated small-phone composition, and the tracked release-readiness work are implemented. Hosted browser and physical-device verification is optional manual follow-up outside the task backlog.
+Status: Core, CLI, simulation, evolution, and responsive GUI implementations
+are present. Automated layout coverage and historical manual acceptance have
+separate scopes. Active physical-phone acceptance remains in
+[OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); phone landscape is
+deferred. The [visual evidence contract](GUI_VISUAL_TESTING.md) owns acceptance
+terminology and current profile coverage.
 Last updated: 2026-10-26
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
@@ -323,7 +328,7 @@ After a hand settles and zero-stack players are eliminated, `TournamentMatch` re
 
 ### 5.6 `player_action.gd`
 
-`PlayerAction` contains an `ActionKind` and amount.
+`PlayerAction` contains an `PlayerAction.Kind` and amount.
 
 ```text
 FOLD, CHECK, CALL: amount = 0
@@ -404,7 +409,9 @@ GUI and CLI presentation layers render the blind values and progress fields from
 
 `Agent` defines one decision contract:
 
-```gdscript
+Signature sketch (not a standalone script):
+
+```text
 func choose_action(view: GameView) -> PlayerAction
 ```
 
@@ -416,7 +423,9 @@ Bot agents return synchronously in v1. They may depend on `GameView` and `Player
 
 `BotAgent` implements the stable `Agent` contract and delegates the actual choice to one injected `DecisionModel`. This separates orchestration and safety behavior from poker strategy.
 
-```gdscript
+Signature sketch (not a standalone script):
+
+```text
 class_name DecisionModel
 
 func configure(
@@ -426,14 +435,19 @@ func configure(
 
 func choose_action(view: GameView) -> PlayerAction
 
-func observe(event: PublicGameEvent) -> void
+func observe(record: PublicActionRecord) -> void
 ```
 
 `configure()` is called exactly once and returns an empty array on success or descriptive validation errors on failure. Profiles cannot be changed during a tournament; start a new tournament to use different parameters.
 
-`observe()` has a default no-op implementation. It allows future adaptive models to maintain private, per-seat memory from public actions without exposing core objects or hidden cards. `BotAgent` forwards observations exactly once and in domain-event order. Each seat receives its own model instance; mutable model state is never shared between seats.
+`observe()` has a default no-op implementation. It allows future adaptive models to maintain private, per-seat memory from public actions without exposing core objects or hidden cards. `BotAgent` forwards applied public action records in action order. Each seat receives its own model instance; mutable model state is never shared between seats.
 
-`PublicGameEvent` is an immutable, recipient-safe projection of a domain event. It may describe actions, public cards, pot awards, eliminations, and street changes, but never unrevealed cards or mutable core references. `BotAgent` forwards the same public observations available through `GameView` to its model.
+`PublicActionRecord` is the current immutable observation value: seat, action
+kind, public amount, and record kind (`ACTION`, `SMALL_BLIND`, `BIG_BLIND`).
+`HandController` forwards applied actions through agent `observe()`; blind
+records appear in view history. Models do not receive a general event stream
+for public cards, pot awards, eliminations, or street transitions. A richer
+observation interface remains a proposed extension, not an implemented API.
 
 `BotProfile` is an immutable-at-runtime `Resource` that binds:
 
@@ -590,7 +604,7 @@ Automatic transitions skip betting when all remaining players are all-in or only
 
 Setup follows the normative dealing sequence: reset hand state, shuffle, post possibly short all-in blinds, and deal two cards to each active participant clockwise from the small blind. Flop, turn, and river are dealt directly as 3/1/1 community cards; v1 never burns cards.
 
-### 5.14 `match.gd`
+### 5.14 `tournament_match.gd`
 
 `TournamentMatch` owns the tournament lifecycle:
 
@@ -615,8 +629,10 @@ When `request_quit()` is received before, during, or between hands, it immediate
 
 The central API is step-based:
 
-```gdscript
-func start() -> StepResult
+Signature sketch (not a standalone script):
+
+```text
+func start(max_transitions: int = 32) -> StepResult
 func advance_until_blocked(max_transitions: int = 32) -> StepResult
 func submit_human_action(action: PlayerAction) -> StepResult
 func request_quit() -> StepResult
@@ -715,7 +731,11 @@ geometry classification, player limits, core seat IDs, or poker position.
 
 The shared theme may adapt font sizes to the viewport, but all player-facing text remains at least 20 px. Compact layouts reflow or simplify content instead of shrinking text below that threshold. Mobile controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows.
 
-Each seat panel displays one distinct avatar sourced at 32 by 32 pixels and enlarged for readable presentation (currently 56 pixels for opponents and 64 pixels for the human). At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
+The sixteen `assets/avatars/*.png` sources are 64 × 64 pixels. Full seat
+panels use base avatar regions of 112 × 112 logical pixels for opponents and
+128 × 128 for the human (`PokerTableController` constants); responsive layout
+may scale or reflow them. Phone tokens omit avatars. Source pixels, logical
+display size, and physical pixels at browser DPR are distinct quantities. At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
 
 GUI display names follow the same presentation boundary through a separate
 assignment service. The stored catalog contains exactly 50 unique first names
@@ -841,7 +861,7 @@ early. Neither headless step claims to reproduce representative pixels.
 
 Decision (2026-10-26): local Wi-Fi development uses a separate Python
 standard-library build/server adapter under `tools/web_lan/`, following
-[`LanTestTasks.md`](LanTestTasks.md). It snapshots and exports the normal
+[`LanTestTasks.md`](arkiv/LanTestTasks.md). It snapshots and exports the normal
 production startup scene into ignored `localtmp/`, records commit/dirty-source
 and engine identity, and publishes only verified builds. The server redirects
 its latest entry point to an immutable build URL so rebuilds cannot mix asset
@@ -859,8 +879,12 @@ explicit choice. A separate standard-library HTTP helper serves only public
 CA files for device bootstrap. Shutdown verifies the configured CA and bind
 hostname; normal asset responses verify their recorded payload hashes.
 
-Rendered verification on a developer machine and hosted browser/device review
-are optional manual activities. When that evidence is collected, the manifest,
+Rendered review is required for visual acceptance of an affected scope.
+Deployment itself does not require manual hosted review, but a device support
+claim needs recorded device evidence. Active phone acceptance is tracked in
+[OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); historical iPad,
+desktop, and LAN records have the distinct statuses listed in the
+[visual contract](GUI_VISUAL_TESTING.md#current-support-and-acceptance). When that evidence is collected, the manifest,
 review, deployment run, and hosted evidence should identify the same full
 commit SHA. Avoid changing `main` during a hosted review because a later
 successful push replaces the tested site; repeat affected checks rather than
@@ -899,7 +923,10 @@ Ordinary reports and traces never contain unrevealed opponent hole cards.
 The adapter writes the complete `run` report only to `--output`; stdout is
 reserved for one canonical validation/plan document, a compact completion
 summary, an inspection summary, or a replay comparison according to the
-selected command and format. Progress and diagnostics go to stderr.
+selected command and format. Current text `run` also emits progress on stdout;
+JSON `run` has no progress. Errors use stderr. Replay currently collects no
+traces. The authoritative [stream/replay contract](Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output)
+records these CLI-03 limitations.
 
 Profile evolution is owned by a separate non-interactive external tool, not a
 fourth game composition root. It operates only on immutable `BotProfile`
@@ -1004,7 +1031,7 @@ artifact. Identical history artifacts produce byte-equivalent registries
 regardless of input argument order.
 
 `confirm-candidate` is the independent evidence gate between lineage and a
-review export. It reuses the strict schema-2 evaluator separately for complete
+review export. It evaluates current schema-4 reports with schema-2 manifests in complete
 mirrored and mixed-table report groups. Mirrored plans must be cyclic
 heads-up matchups that cover every candidate seat against every declared
 legacy profile and historical champion. Mixed plans must be cyclic tables of
@@ -1041,7 +1068,7 @@ distances. The reviewer changes each candidate's single `decision` field from
 `pending` to `approve` or `reject`, with optional display names and notes.
 `finalize-promotion-review` requires a completed decision for every listed
 candidate, recomputes the complete pairwise review from the supplied
-confirmations, and emits one immutable, reviewer-identified
+confirmations, and emits one immutable, reviewer-labeled
 `promotion_review_batch`.
 Approval cannot be finalized for ineligible evidence. These external records
 deliberately have no dependency on, access to, or mutation path for
@@ -1062,9 +1089,10 @@ binding, and writes a new versioned
 an adjacent provenance sidecar binding its SHA-256 to the confirmation and
 review checksums. Publication uses no-clobber creation for both files, so a published version cannot be
 overwritten. It does not alter `PlayableBotRoster`; activation remains a
-separate reviewed source change. The roster validates that its retained catalog
-always includes the hand-authored Random, Tight Passive, and Loose Aggressive
-profiles, preventing promotion from replacing the legacy personality set.
+separate reviewed source change. Product policy retains the hand-authored Random, Tight Passive, and Loose
+Aggressive profiles. The implementation checks for a non-empty legacy family
+when legacy selection is enabled, not those three individual IDs. Checksums
+bind artifact content and do not authenticate a reviewer's supplied label.
 
 The executable Milestone 5 smoke history is preserved under
 `examples/profile_evolution/milestone5`. It includes deterministic generation,
@@ -1077,25 +1105,12 @@ evidence, so no review bundle or roster change was produced.
 
 Core mutations return typed results rather than printing or showing dialogs.
 
-`StepResult` should include:
-
-- status;
-- optional action rejection;
-- ordered domain events generated by the step;
-- the current recipient-safe view when requested.
-
-Useful domain events include:
-
-- hand started;
-- cards dealt;
-- blinds posted;
-- action applied or rejected;
-- street changed;
-- pot awarded;
-- player eliminated;
-- hand completed;
-- tournament won;
-- tournament quit.
+`StepResult` contains a typed `status` and a diagnostic `message`. It does not
+embed views or events: adapters call `get_view_for(seat)` and `get_events()` on
+`TournamentMatch`. `DomainEvent.Kind` includes hand start/completion, blinds,
+dealing, applied/rejected actions, street/community changes, showdown start,
+pot awards, and quit. Winner/elimination state is exposed in `GameView`; no
+separate tournament-won or player-eliminated event kind currently exists.
 
 Events support GUI animation, CLI narration, tests, and future replay diagnostics without making core logic depend on a renderer.
 
@@ -1209,104 +1224,39 @@ The core maintains these invariants:
 
 ## 12. Directory structure
 
+This is a selective map of current entry points; use `rg --files scripts` for
+the full inventory.
+
 ```text
-.gutconfig.json
-addons/
-  gut/                    # pinned GUT development dependency
-docs/
-  ARCHITECTURE.md
-  GUI_VISUAL_TESTING.md
-  OptimizingDesktopGuiTasks.md
-  OptimizingPhoneGuiTasks.md
-  POKERCARDS_IN_CLI.md
-  ProvisionalGUILayoutGuidance.md
-  ProjectDescription.md
-  README.md
-  Simulation_And_Evolutionary_Bot_Strategy.md
-  OPTIONAL_WEB_SETUP.md
-  templates/
-    GUI_DEFECT.md
-  arkiv/                  # superseded plans and completed task records
-    CliTasks.md
-    CoreTasks.md
-    GuiTasks.md
-    OptimizingIpadTasks.md
-    ReleaseReadinessTasks.md
-    SimCliTasks.md
-    SimCoreTasks.md
-scripts/
-  core/
-    config/
-      tournament_config.gd
-      startup_overrides.gd
-      config_error.gd
-      config_resolution.gd
-      config_resolver.gd
-      resolved_tournament_config.gd
-    card_data.gd
-    deck.gd
-    chip_stack.gd
-    player.gd
-    player_action.gd
-    table.gd
-    betting_round.gd
-    pot_manager.gd
-    hand_evaluator.gd
-    game_view.gd
-    public_game_event.gd
-    rng_stream_factory.gd
-    rng_streams.gd
-    hand_controller.gd
-    match.gd
-    agents/
-      agent.gd
-      human_agent.gd
-      bot_agent.gd
-      bot_profile.gd
-      decision_model.gd
-      decision_model_parameters.gd
-      decision_model_registry.gd
-      agent_factory.gd
-      random_agent.gd
-      tight_passive_agent.gd
-      loose_aggressive_agent.gd
-      decision_models/
-        random_model.gd
-        tight_passive_model.gd
-        loose_aggressive_model.gd
-        random_parameters.gd
-        tight_passive_parameters.gd
-        loose_aggressive_parameters.gd
-  gui/
-    startup_config_controller.gd
-    table_controller.gd
-  cli/
-    cli_app.gd
-    cli_card_formatter.gd
-    cli_command.gd
-    cli_command_loop.gd
-    cli_input_line.gd
-    cli_io.gd
-    command_parser.gd
-    startup_config_prompt.gd
-    startup_prompt_result.gd
-    terminal_io.gd
-    cli_renderer.gd
-  simulation/             # proposed non-interactive all-bot adapter
-    simulation_cli_app.gd
-    # manifest/report parsing, batch planning, and artifact I/O
-resources/
-  default_tournament_config.tres
-  bot_profiles/
-    random_default.tres
-    tight_passive_default.tres
-    loose_aggressive_default.tres
+scripts/core/
+  card_data.gd
+  game_view.gd
+  public_action_record.gd
+  domain_event.gd
+  tournament_match.gd
+  hand_controller.gd
+  agents/
+    agent.gd
+    human_agent.gd
+    bot_agent.gd
+    decision_model.gd
+    decision_model_registry.gd
+    random_decision_model.gd
+    random_decision_model_parameters.gd
+    strategy_decision_model.gd
+    strategy_decision_model_parameters.gd
+scripts/gui/
+  startup_config_controller.gd
+  poker_table_controller.gd
+scripts/cli/
+  cli_app.gd
+scripts/simulation/
+  simulation_cli_app.gd
 scenes/
-  table.tscn
-tests/
-  unit/
-  integration/
-  support/
+  main.tscn
+docs/
+  README.md                 # current task index
+  arkiv/                    # historical task records
 ```
 
 Additional small value/result classes may be added under `scripts/core/` when they remove ambiguous dictionaries. Avoid generic `utils.gd` modules; place behavior with the owning concept.

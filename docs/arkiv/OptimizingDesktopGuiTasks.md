@@ -1,6 +1,7 @@
 # Optimizing the Desktop GUI
 
-Status: Active — new browser typography cropping requires remediation; exact browser evidence and visual acceptance remain
+Status: Archived — implementation tasks complete; exact hosted-browser measurements and visual acceptance not recorded.
+Current follow-up ownership: [Astra improvements](../AstraSuggestionTasks.md), sections 4–5.
 Evidence baseline: desktop-browser screenshots supplied by the user on 2026-10-25 and 2026-10-26
 
 ## Scope
@@ -74,5 +75,4 @@ human identity region and violates the documented non-overlap contract.
   GDScript lint and formatting pass.
 - Historical, phone, iPad, and desktop invariant gates pass.
 - The dedicated desktop gate is `make gui-desktop-invariant-gate`.
-- Unchecked tasks still require exact hosted-browser measurements or user visual
-  acceptance; the 1853 x 916 screenshot raster is not treated as CSS geometry.
+- Exact hosted-browser measurements and user visual acceptance remain unrecorded; the 1853 x 916 screenshot raster is not treated as CSS geometry.

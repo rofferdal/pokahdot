@@ -1,10 +1,39 @@
 # GUI visual testing workflow
 
 This document defines the reusable local visual-testing contract for the GUI.
-It complements the automated GUT suite and the optional hosted browser/device
+It complements the automated GUT suite and the hosted browser/device
 runbook in [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md). Local captures do
 not prove browser or physical-device support, and hosted screenshots do not
 replace deterministic geometry regressions.
+
+## Current support and acceptance
+
+This document owns GUI evidence terminology. The product specification owns
+player limits; active acceptance checkboxes stay in their owning backlog.
+
+| Profile | Product scope | Automated coverage | Physical/browser acceptance |
+| --- | --- | --- | --- |
+| Phone portrait | 2–7 players; default 6 | Dedicated phone v2 matrix, including reduced height and summary overlays | Active [phone acceptance backlog](OptimizingPhoneGuiTasks.md); reported Android defects and missing measurements remain open |
+| Phone landscape | Emergency reflow and state preservation | Diagnostic phone fixtures | Deferred; diagnostic passes do not establish landscape support |
+| Tablet/iPad | 2–9 players; landscape primary, portrait regression | Dedicated iPad matrix, including explicit observed-device override | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
+| Small desktop/desktop | 2–9 players | Dedicated desktop matrix and historical M3 fixtures | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
+
+`make gui-current-invariant-gate` requires the historical M3, phone, iPad, and
+desktop matrices. An automated pass proves the tested deterministic invariants.
+A rendered review proves only its captured scope; neither proves a physical
+device passed. Accepted old captures do not certify later code or matrix versions.
+The completed [LAN workflow](arkiv/LanTestTasks.md) records user acceptance with
+resolution limitations; it does not complete the active phone acceptance tasks.
+General hosted checks are optional for deployment. Explicit phone acceptance
+work remains required before claiming the corresponding phone/device support.
+
+### Avatar sources and display
+
+All sixteen PNGs in `assets/avatars/` are 64 × 64 source pixels. Full seat
+panels have base logical avatar regions of 112 × 112 for opponents and
+128 × 128 for the human; responsive layouts adapt these regions. Phone tokens
+omit avatars. These values are not physical screen pixels: record usable
+viewport and DPR separately when assessing the actual device output.
 
 ## Canonical viewport fixtures
 
@@ -126,7 +155,8 @@ Before clean release evidence is produced, every implemented scope must pass
 its canonical automated matrix and rendered review. Every known blocker,
 unreadable, or obstructive defect in that scope must be fixed or explicitly
 accepted by the product decision owner. Hosted browser and physical-device
-testing is an optional manual follow-up. A defect found there should be fixed
+testing is optional for general deployment; explicit active phone acceptance
+remains required for its device claims. A defect found there should be fixed
 and reverified; it does not retroactively turn local evidence into device
 evidence.
 

@@ -4,7 +4,8 @@ Pokahdot is a poker game built with [Godot](https://godotengine.org/) 4. The
 rules live in a shared core (`scripts/core/`), so the same game can be played
 through either the graphical interface or the terminal.
 
-The project is under development.
+The project is under development. Active work is indexed in
+[docs/README.md](docs/README.md).
 
 ## Requirements
 
@@ -142,8 +143,10 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 ```
 
 Run a batch by choosing a new output path. `run` writes the complete report
-atomically and prints only a compact completion summary. Progress and failures
-are written to stderr. Existing outputs are protected; use `--overwrite` only
+atomically. JSON mode prints a compact completion summary without progress;
+text mode also prints progress on stdout.
+Application failures use stderr. See the authoritative
+[stream and replay contract](docs/Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output). Existing outputs are protected; use `--overwrite` only
 when intentionally regenerating the same artifact.
 
 ```bash
@@ -229,7 +232,9 @@ profile. Fitness plan minimums classify exploratory results only. The fixed
 `promotion_evidence_v1` gate independently requires at least 300 tournaments
 per matchup, at least 100 candidate observations in every seat, and a positive
 lower 95% confidence bound for the paired composite advantage over every
-declared benchmark in that matchup.
+declared benchmark in that matchup. The effective minimum is
+`max(300, 100 * player_count)` tournaments per matchup; see the
+[confirmation contract](docs/Simulation_And_Evolutionary_Bot_Strategy.md#5-external-profile-evolution-tool).
 
 ```bash
 tools/profile-evolution build-lineage --artifact artifacts/generation_0.json \
@@ -279,6 +284,7 @@ overwrite published profiles, or
 treat an approval as permission to change `PlayableBotRoster` automatically.
 Publication also creates an adjacent no-clobber `.provenance.json` sidecar that
 binds the profile ID and exact Resource hash to confirmation and review checksums.
+Checksums establish content integrity, not reviewer identity or independence.
 
 ## Development checks
 
@@ -339,11 +345,11 @@ Reopen the HTTPS root URL from devices on the same Wi-Fi to select the new
 export; starting a second server is unnecessary. Compare the tab's
 `Pokahdot · LAN <build-ID-prefix>` with `make web-lan-status`. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
-Physical-browser verification is tracked in [LanTestTasks.md](docs/LanTestTasks.md).
+Physical-browser verification is tracked in [LanTestTasks.md](docs/arkiv/LanTestTasks.md).
 
 ## GUI action pace
 
-The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after any completed hand before starting the next hand. At showdown the shared seat-status band displays the winning hand; when one player wins before showdown, that band displays exactly `Winner`. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.
+The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after any completed hand before starting the next hand. On non-phone layouts, the shared seat-status band displays showdown hands or `Winner` for a fold win. Phone layouts use compact tokens and summaries; winner clarity remains tracked in GUI-01. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.
 
 ## Directory structure
 
@@ -357,3 +363,7 @@ pokahdot/
 ├── resources/              # Custom Resources, such as card data (.tres)
 └── assets/                 # Sprites, fonts, and sounds
 ```
+
+GUI automated coverage and manual device acceptance are listed separately in
+the [visual evidence contract](docs/GUI_VISUAL_TESTING.md#current-support-and-acceptance).
+Phone portrait acceptance remains active; phone landscape remains deferred.

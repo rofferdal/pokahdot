@@ -6,7 +6,7 @@ This guide provides step-by-step commands for running the game in GUI or CLI mod
 
 ## 1. Prerequisites
 
-- **Godot 4.7+**: Download from [godotengine.org](https://godotengine.org) or ensure the `godot` binary is in your `PATH` (on macOS, `/Applications/Godot.app/Contents/MacOS/Godot`).
+- **Godot 4.7.2**: Download from [godotengine.org](https://godotengine.org) or ensure the `godot` binary is in your `PATH` (on macOS, `/Applications/Godot.app/Contents/MacOS/Godot`).
 - **Python 3 with dev dependencies**:
   ```bash
   python3 -m venv .venv
@@ -263,7 +263,7 @@ The server runs in the foreground; use another terminal for these commands.
 `web-lan-stop` performs authenticated shutdown. `make web-lan-test` runs the
 focused build/server regressions, also included in `make check`. The exported
 Web input checks above remain separate from physical Wi-Fi evidence. Device
-acceptance remains tracked in [LanTestTasks.md](../../docs/LanTestTasks.md).
+acceptance remains tracked in [LanTestTasks.md](../../docs/arkiv/LanTestTasks.md).
 
 To export the web release target to `build/web/index.html`:
 ```bash
@@ -276,3 +276,14 @@ release workflow, which checks out the pushed SHA and runs
 `make release-candidate-gate web-release` in headless CI before deploying to
 GitHub Pages. For optional manual hosted checks, follow the
 [Web publishing and hosted-verification runbook](../../docs/OPTIONAL_WEB_SETUP.md).
+
+## Documentation checks
+
+Run `make docs-check` to validate local Markdown targets and heading anchors in
+`README.md`, `docs/`, and `devdocs/`, including archived records. Missing ignored
+`localtmp/` evidence is reported separately and never treated as a replacement
+for retained screenshots. The same check runs with `make check`.
+
+Development pins: Godot and Web templates 4.7.2; CI Python 3.12; GUT 9.7.1;
+`requirements-dev.txt` pins gdtoolkit 4.5.0 and `requirements-web-test.txt` pins
+Playwright 1.55.0. Keep engine/templates aligned for reproducible exports.

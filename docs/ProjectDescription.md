@@ -290,14 +290,15 @@ scripts/core/
   hand_evaluator.gd     # best five of seven; comparison
   betting_round.gd      # legal actions, minimum raise, action reopening
   table.gd              # seats, button, blinds
-  match.gd              # tournament lifecycle
+  tournament_match.gd   # tournament lifecycle
   hand_controller.gd    # one hand: deal, streets, showdown
   agents/
     agent.gd
     human_agent.gd
-    random_agent.gd
-    tight_passive_agent.gd
-    loose_aggressive_agent.gd
+    bot_agent.gd
+    random_decision_model.gd
+    tight_passive_decision_model.gd
+    loose_aggressive_decision_model.gd
 scripts/gui/            # rendering and input to HumanAgent only
 scripts/cli/            # interactive text UI and input to HumanAgent only
 scripts/simulation/     # non-interactive all-bot batch adapter
@@ -309,17 +310,18 @@ scenes/                 # Control-based table
 `HandEvaluator` does not know pots. `Agent` receives `GameView`, not mutable
 internal state.
 
-`match.gd` owns the tournament lifecycle and supports normal completion with a
+`tournament_match.gd` owns the tournament lifecycle and supports normal completion with a
 winner and voluntary termination with `end_reason = player_quit`. Voluntary
 termination is a control command, not a poker action in `PlayerAction`.
 
 ### 6.3 Action object
 
-```gdscript
-enum ActionKind { FOLD, CHECK, CALL, BET, RAISE }
-class PlayerAction:
-    var kind: ActionKind
-    var amount: int # 0 for fold/check/call; target street total for bet/raise
+API sketch (not a standalone script); see `scripts/core/player_action.gd`.
+
+```text
+PlayerAction.Kind = FOLD, CHECK, CALL, BET, RAISE, ALL_IN
+kind: PlayerAction.Kind
+amount: int # 0 for fold/check/call/all-in; target street total for bet/raise
 ```
 
 `betting_round.gd` rejects invalid UI or bot actions. If a bot returns an
@@ -377,9 +379,11 @@ cards were actually shown.
 - Use one main table scene. The default window is 1920 × 1080, and the table
   must reflow without overlap at representative desktop and mobile aspect
   ratios.
-- Provide 16 distinct avatar resources with 32 × 32 source pixels. Assign
+- Provide 16 distinct avatar resources with 64 × 64 source pixels. Assign
   avatars without replacement per tournament and enlarge them when needed for
-  readability.
+  readability. Full seat panels use base display regions of 112 × 112 logical
+  pixels for opponents and 128 × 128 for the human, adapted by layout. Compact
+  phone tokens omit avatars in favor of names, stacks, roles, and cards.
 - Render a green table with distinct community-card, wager, and pot zones.
 - Present the human seat at the bottom without changing the core seat identity
   or poker position. Opponents show two card backs until showdown. Folded or

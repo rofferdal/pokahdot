@@ -39,7 +39,7 @@ To make this possible, the core engine (`scripts/core/`) **never** imports `Cont
 Before looking at code, let's establish four fundamental concepts:
 
 1. **Deterministic Step Machine**: The game does not run on a background thread or wait on async coroutines (`await`). Instead, it is a synchronous state machine stepped forward via `advance_until_blocked()`. When a human needs to act, it yields with status `WAITING_FOR_HUMAN`.
-2. **Information Hiding via `GameView`**: Neither the GUI nor bot agents ever hold references to private opponent cards. The game core produces a custom, read-only `GameView` for each seat, masking all hole cards except the player's own.
+2. **Information Hiding via `GameView`**: Neither the GUI nor bot agents ever hold references to private opponent cards. The game core produces a custom, read-only `GameView` for each seat, including the recipient's own hole cards and only the opponent cards explicitly revealed at showdown.
 3. **Target-Total Wagers**: When betting or raising, amounts represent the **total street contribution**, not the incremental chips added. For example, if big blind is 10 and you raise to 30, your target total wager is 30.
 4. **Deterministic Pseudo-Random Streams**: All randomness (shuffling decks, seating buttons, bot decisions) is derived from seeded, named `RandomNumberGenerator` streams so any match can be replayed identically.
 
@@ -52,17 +52,19 @@ Let's follow the lifecycle of a tournament from startup to the final hand.
 ### Step 1: Configuration Resolution
 A tournament begins with configuration. The game provides defaults in `resources/default_tournament_config.tres` (6 players, 1000 starting chips, 5/10 blinds).
 
-A front-end collects optional player inputs into `StartupOverrides` and resolves them with `ConfigResolver`:
+The following GDScript blocks are integration fragments inside a front-end
+method, not standalone scripts. Supply `defaults: TournamentConfig` and
+`overrides: StartupOverrides` when resolving configuration with `ConfigResolver`:
 
 ```gdscript
 var resolver := ConfigResolver.new()
 var resolution: ConfigResolution = resolver.resolve(defaults, overrides)
 
 if not resolution.is_ok():
-    print("Invalid config: ", resolution.errors)
+    printerr("Invalid config: ", resolution.get_errors())
     return
 
-var config: ResolvedTournamentConfig = resolution.config
+var config: ResolvedTournamentConfig = resolution.get_config()
 ```
 
 `ResolvedTournamentConfig` is immutable. Live game logic never touches editable `.tres` files directly.
@@ -77,16 +79,16 @@ The composition root ([`CliMatchFactory`](../../scripts/cli/cli_match_factory.gd
 ```gdscript
 # Composition root (CLI or GUI match factory):
 var factory := CliMatchFactory.new()
-var match: TournamentMatch = factory.create(config)
+var match_instance: TournamentMatch = factory.create(config)
 ```
 
 Under the hood, `PlayableBotRoster.select()` exhausts each requested model family before reusing a profile, and `roster.create_bot()` instantiates each `BotAgent` with its seat-specific RNG stream.
 
 ### Step 3: Starting the Match
-Calling `match.start()` sets up the `Table`, creates players with starting stacks, chooses a random button seat, and starts Hand #1:
+Calling `match_instance.start()` sets up the `Table`, creates players with starting stacks, chooses a random button seat, and starts Hand #1:
 
 ```gdscript
-var result: StepResult = match.start()
+var result: StepResult = match_instance.start()
 ```
 
 ---
@@ -117,21 +119,24 @@ flowchart TD
 ### Stepping the Game Forward
 Notice how the game progresses. In `scripts/cli/cli_command_loop.gd`, the loop advances until input is needed:
 
+`read_user_action()` below is pseudocode for adapter-owned input parsing;
+handle rejection messages and the remaining statuses in a complete adapter.
+
 ```gdscript
-var result: StepResult = match.advance_until_blocked()
+var result: StepResult = match_instance.advance_until_blocked()
 
 match result.status:
     StepResult.Status.WAITING_FOR_HUMAN:
         # It is the human's turn! Present options and await input.
         var action: PlayerAction = read_user_action()
-        result = match.submit_human_action(action)
+        result = match_instance.submit_human_action(action)
 
     StepResult.Status.HAND_COMPLETED:
         # Hand finished; chips awarded. Advance to next hand.
-        result = match.advance_until_blocked()
+        result = match_instance.advance_until_blocked()
 
     StepResult.Status.TOURNAMENT_FINISHED:
-        print("Tournament over! Winner: Seat ", match.winner_seat)
+        print("Tournament over! Winner: Seat ", match_instance.winner_seat)
 ```
 
 Why is this designed this way?
@@ -147,16 +152,19 @@ They **never** access the internal `Table` or `HandController` directly.
 Instead, before any agent acts or the UI redraws, the engine constructs a recipient-specific `GameView`:
 
 ```gdscript
-var view: GameView = match.get_view_for(seat_index)
+var view: GameView = match_instance.get_view_for(seat_index)
 ```
 
 Inside `GameView`:
-- `view.hero_hole_cards`: Displays hole cards **only** if `seat == hero_seat`.
+- `view.hero_hole_cards`: The recipient's own cards; `hero_seat` identifies that recipient.
 - `view.community_cards`: Public community board cards (Flop, Turn, River).
 - `view.legal_actions`: Array of permitted action types (`CHECK`, `CALL`, `RAISE`, `FOLD`, etc.).
 - `view.call_amount`, `view.minimum_wager_total`, `view.maximum_wager_total`: Pre-calculated limits for the current street.
 
-Other seats' hole cards remain completely hidden until showdown! Even if a malicious bot attempts to inspect memory or properties, the `GameView` simply does not contain opponents' cards.
+Unrevealed opponent cards are absent from `GameView`. At showdown,
+`revealed_hole_cards` contains only the explicitly revealed, non-folded hands.
+This API boundary prevents accidental disclosure; GDScript objects in one
+process are not a sandbox against malicious code or arbitrary memory inspection.
 
 ---
 
@@ -187,7 +195,7 @@ Bot decision-making is cleanly separated into three modular layers:
 ```
 
 When it is a bot's turn:
-1. `TournamentMatch` calls `bot_agent.choose_action(game_view)`.
+1. The match's `HandController` calls `bot_agent.choose_action(game_view)`.
 2. The bot passes the view to its `DecisionModel`.
 3. The model computes a legal `PlayerAction` (e.g., `PlayerAction.call_action()`).
 4. The core validates and executes the action.
@@ -206,7 +214,9 @@ When multiple players reach showdown on the river (or all-in runout):
 ## 8. Blind Progression
 
 In Pokahdot, blind levels increase based on **completed hands**, not clock time:
-- The interval is `active_player_count * 2` hands (or 10 hands if fewer than 5 players remain).
+- The interval is twice the active-player count at the start of the level,
+  or 10 hands if that level starts with fewer than 5 active players.
+- Growth saturates at small/big blinds of 500,000/1,000,000.
 - When a level increases:
   $$\text{New Big Blind} = \lceil \text{Current Big Blind} \times 1.25 \rceil \quad (\text{rounded up to nearest even integer})$$
   $$\text{New Small Blind} = \frac{\text{New Big Blind}}{2}$$
@@ -223,10 +233,10 @@ Let's verify your environment and see the core engine execute in a test!
    ```bash
    godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_hand_controller.gd
    ```
-3. Open `tests/unit/test_hand_controller.gd` in your editor. Look at `test_advances_through_betting_round()`:
+3. Open `tests/unit/test_hand_controller.gd` in your editor. Look at `test_human_action_resumes_bots_and_fold_to_one_awards_pot()`:
    - Notice how a `Table` is instantiated with test players.
    - Notice how `HandController.start()` deals the cards and creates the `BettingRound`.
-   - Notice how submitting a `PlayerAction.call_action()` updates pot contributions and moves the active seat.
+   - Notice how submitting `PlayerAction.raise_to(20)` updates pot contributions and moves the active seat.
 
 You now understand the heart of Pokahdot!
 
