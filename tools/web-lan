@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""Run the local Wi-Fi Web development workflow."""
+
+from web_lan.cli import main
+
+if __name__ == "__main__":
+    raise SystemExit(main())

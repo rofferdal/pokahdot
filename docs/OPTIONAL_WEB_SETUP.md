@@ -1,5 +1,179 @@
 # Web publishing and optional hosted-verification runbook
 
+## Local Wi-Fi development before merging
+
+Use this workflow to test the current working tree on the development Mac,
+an iPad or an Android phone without pushing or merging. Progress and physical
+device evidence are tracked in [`LanTestTasks.md`](LanTestTasks.md).
+
+Install the normal development dependencies and Godot 4.7.2 with matching Web
+export templates. From the repository root:
+
+```bash
+make web-lan-network
+# Replace this example with your actual Wi-Fi IPv4 address:
+make web-lan-tls WEB_LAN_ADDRESS=192.168.1.42
+make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-lan-build
+make web-lan-serve
+```
+
+Trust the generated local CA on the test clients using the instructions below.
+The certificate helper creates files only; it never changes device trust.
+
+The build runs `make check`, then imports and exports an isolated copy of the
+production game. Outputs and logs stay under `localtmp/web-lan/`; uncommitted
+changes are permitted and identified by a source fingerprint. A build failure
+invalidates the latest entry point instead of silently serving a previous
+build. The release preset, clean release gate and Pages deployment are separate.
+
+The server prints a host URL such as `https://localhost:8080/` and candidate LAN
+URLs with interface labels. On another device, enter the URL using the Mac's
+Wi-Fi address, for example `https://192.168.1.42:8080/`. Use the address actually
+printed for your network. Both devices must be on the same reachable LAN.
+`localhost` on a phone refers to that phone; `0.0.0.0` is a listener setting,
+not a device connection address.
+
+Find the current interfaces without assuming that Wi-Fi is always `en0`:
+
+```bash
+make web-lan-network
+/usr/sbin/networksetup -listallhardwareports
+# Substitute the Device value shown under Hardware Port: Wi-Fi:
+/sbin/ifconfig en0
+```
+
+Allow the Python server's incoming connections if macOS requests firewall
+permission. If the host URL works but the device URL does not, check the Wi-Fi
+address, port, local firewall, VPN routing, and guest-network/client isolation.
+Reconnect to the same non-isolated network or correct the route, then retry
+the root URL. DHCP may change the Mac's address after reconnecting. A request
+made by the Mac to its own LAN address does not verify a second device.
+
+The root URL redirects to an immutable `/builds/<build-id>/index.html` URL;
+all its assets come from that same export. To rebuild while serving:
+
+```bash
+make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-lan-rebuild
+make web-lan-status
+```
+
+Reopen the root URL after a successful rebuild to select the new build ID.
+Refreshing an old pinned URL intentionally keeps its original build. Responses
+disable browser caching for development; previous exports remain identified
+for comparison. During a rebuild or after failure, the root returns HTTP 503.
+Already pinned successful builds remain available.
+
+Stop the foreground server with Ctrl+C, or from another terminal:
+
+```bash
+make web-lan-stop
+```
+
+The stop command authenticates using a private local server record and never
+kills a PID from a stale file. To choose another build root, bind address or
+port, use `WEB_LAN_OUTPUT=localtmp/my-lan-builds`,
+`WEB_LAN_BIND=192.168.1.42` and `WEB_LAN_PORT=8443` with the relevant Make
+commands. Build roots must be subdirectories of the project's `localtmp/`.
+The public certificate helper uses `WEB_LAN_CA_PORT=8081` by default.
+
+For each physical device, record model, OS/browser versions, root and pinned
+URLs, build ID, whether startup loads, and whether Start opens a tournament.
+Keep the record under `localtmp/lan/` during development. Complete the
+subsequent HTTP/input and game-flow checks in the LAN task list before
+claiming acceptance for a device.
+
+### HTTPS certificates and test-device trust
+
+The installed Godot 4.7.2 export reports a missing **Secure Context** when
+opened through a plain HTTP LAN address. Use HTTPS for the LAN game.
+An explicit loopback diagnostic remains available with
+`python3 tools/web-lan serve --http --bind 127.0.0.1`; a successful localhost
+session does not establish LAN browser capability.
+
+`web-lan-tls` creates a local development CA and a 30-day server certificate
+covering the supplied IPv4 address, `localhost` and `127.0.0.1`. CA and server
+private keys stay under `localtmp/web-lan/tls/` with restricted permissions.
+Changing the LAN address requires regenerating the server certificate and
+restarting the server; the existing CA is reused. Do not commit private keys.
+
+To deliver only the public CA certificate to the devices, run in a separate
+terminal:
+
+```bash
+make web-lan-ca-serve
+```
+
+Open `http://<Mac-Wi-Fi-IP>:8081/` on the devices. The directory contains the
+public certificate in `.cer` and `.crt` formats and its SHA-256 fingerprint;
+compare that fingerprint with the `web-lan-tls` output. This bootstrap page
+contains no game or private keys. Stop this foreground helper with Ctrl+C when
+certificate downloads are finished.
+
+- **macOS:** open the CA certificate in Keychain Access, import it into the
+  login keychain and explicitly trust this development CA for SSL. A persistent
+  user-account trust change is a separate choice; the tooling does not install
+  it automatically.
+- **iPad:** download the `.cer`, install its profile in Settings, then enable
+  its SSL trust under **General > About > Certificate Trust Settings**.
+  Profile installation under **General > VPN & Device Management** and enabling
+  full SSL trust are separate steps; both are required. Choosing an unsafe
+  browser exception does not perform either installation step. See
+  [Apple's certificate-trust instructions](https://support.apple.com/en-au/102390).
+- **Android:** download the `.crt`, open the device's certificate installation
+  settings and choose **CA certificate**, not a Wi-Fi client certificate.
+  Manufacturer menu names vary. See the Android section of
+  [these CA installation instructions](https://developers.cloudflare.com/cloudflare-one/team-and-resources/devices/user-side-certificates/manual-deployment/).
+
+Trusting a CA allows certificates signed by it to validate for that account or
+device beyond this test session. Remove **Pokahdot Local LAN Development CA**
+from the device's user certificate/profile store when it is no longer needed;
+remove this specific certificate rather than clearing unrelated credentials.
+
+For an existing certificate, supply `--cert`, `--key` and, when signed by a
+local CA, `--ca-cert` to `python3 tools/web-lan serve`. Certificates must cover
+the selected LAN address. Wildcard HTTPS serving also uses `localhost` for
+authenticated local shutdown, so include that SAN. Explicit-address listeners
+use that address for shutdown and verify it against the certificate.
+
+Record `window.isSecureContext`, console errors, browser versions, touch/keypad
+and focus results on each named device. The current game has no audio player
+or sound assets: audible game playback is not an acceptance claim. Browser
+audio capability can be recorded separately. HTTP and HTTPS results must not
+be combined into a single device pass.
+
+### Local device evidence record
+
+Keep one record per device and tested build under ignored `localtmp/lan/`.
+Copy build identity from the pinned game's adjacent `build-info.json`. Record
+observations explicitly; an untested flow remains pending.
+Open `https://<Mac-Wi-Fi-IP>:8080/__lan/` to copy a read-only JSON record of
+the public build identity, secure-context flag, viewport, DPR, user agent and
+audio API exposure. This page sends no collection request; copy its JSON with
+your observations. Supply actual device/OS versions separately when a browser
+reports a desktop-style user agent.
+
+```text
+Tested at (UTC):
+Root URL / pinned game URL:
+Build ID / source SHA / dirty-source fingerprint:
+Device model / OS version:
+Browser name / version:
+CA fingerprint / certificate trusted without a browser warning:
+CSS viewport / DPR / orientation / browser chrome:
+Secure context / console errors:
+Startup / six-player tournament:
+Keypad Cancel / Done / pointer-keyboard focus where available:
+Normal hand / all-in runout / showdown / Quit:
+Rebuild before ID / after ID / root reopened on this device:
+Results / defects / screenshot locations / untested flows:
+```
+
+Physical-device success is separate from the automated `make web-lan-test`
+regressions and the host's own requests to its Wi-Fi address. This LAN record
+does not certify the rolling Pages build.
+
+## Published HTTPS verification
+
 This runbook explains how to turn the Godot project into a Web build that can
 be tested from a stable HTTPS URL. It is written for a developer who is new to
 Godot. Hosted browser and physical-device review is optional manual

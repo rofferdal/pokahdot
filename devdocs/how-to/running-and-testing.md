@@ -251,6 +251,15 @@ make check
 
 ## 6. Building the Web Release
 
+For working-tree testing on the Mac, iPad or Android over Wi-Fi, use the
+[local LAN runbook](../../docs/OPTIONAL_WEB_SETUP.md#local-wi-fi-development-before-merging).
+The workflow is `web-lan-network`, `web-lan-tls WEB_LAN_ADDRESS=<Wi-Fi-IP>`,
+`web-lan-build`, and `web-lan-serve`. It runs the normal production startup
+scene, permits identified uncommitted changes, and uses local HTTPS with
+explicitly trusted test-device certificates. Reopen the root URL after
+`web-lan-rebuild`; `web-lan-stop` performs authenticated shutdown. Device
+acceptance remains tracked in [LanTestTasks.md](../../docs/LanTestTasks.md).
+
 To export the web release target to `build/web/index.html`:
 ```bash
 make web-release

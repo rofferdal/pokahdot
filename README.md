@@ -324,6 +324,25 @@ both statuses in branch protection. `make web-release` creates a local export. E
 to `main` automatically validates and deploys that commit to GitHub Pages; follow
 [`docs/OPTIONAL_WEB_SETUP.md`](docs/OPTIONAL_WEB_SETUP.md).
 
+## Local Wi-Fi testing
+
+Build and serve the production game from your working tree before merging or
+deploying. Follow the [LAN setup and certificate-trust runbook](docs/OPTIONAL_WEB_SETUP.md#local-wi-fi-development-before-merging):
+
+```bash
+make web-lan-network
+# Replace the example address with the Wi-Fi address printed above:
+make web-lan-tls WEB_LAN_ADDRESS=192.168.1.42
+make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-lan-build
+make web-lan-serve
+```
+
+Trust the generated development CA on the test clients, then open the printed
+HTTPS LAN URL from devices on the same Wi-Fi. `web-lan-rebuild` produces a new
+identified export; reopen the root URL to select it. Stop with Ctrl+C or
+`make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
+Physical-browser verification is tracked in [LanTestTasks.md](docs/LanTestTasks.md).
+
 ## GUI action pace
 
 The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after any completed hand before starting the next hand. At showdown the shared seat-status band displays the winning hand; when one player wins before showdown, that band displays exactly `Winner`. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.

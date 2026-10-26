@@ -1,6 +1,12 @@
 GODOT ?= godot
 WEB_TEST_PYTHON ?= .venv/bin/python
 WEB_TEST_OUTPUT ?= localtmp/web-input
+WEB_LAN_PYTHON ?= python3
+WEB_LAN_OUTPUT ?= localtmp/web-lan
+WEB_LAN_BIND ?= 0.0.0.0
+WEB_LAN_PORT ?= 8080
+WEB_LAN_CA_PORT ?= 8081
+WEB_LAN_ADDRESS ?=
 GDLINT := .venv/bin/gdlint
 GDFORMAT := .venv/bin/gdformat
 GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd
@@ -11,6 +17,7 @@ WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 
 check:
 	$(MAKE) --no-print-directory profile-evolution-test
+	$(MAKE) --no-print-directory web-lan-test
 	$(GODOT) --headless --path . --import
 	$(GDLINT) scripts tests my_test_node.gd
 	$(GDFORMAT) --check scripts tests my_test_node.gd
@@ -18,6 +25,34 @@ check:
 
 profile-evolution-test:
 	python3 -B -m unittest discover -s tests/profile_evolution -t . -v
+
+.PHONY: web-lan-build web-lan-rebuild web-lan-test web-lan-serve web-lan-status web-lan-stop web-lan-network web-lan-tls web-lan-ca-serve
+web-lan-build:
+	$(WEB_LAN_PYTHON) tools/web-lan build --godot "$(GODOT)" --output "$(WEB_LAN_OUTPUT)"
+
+web-lan-rebuild: web-lan-build
+
+web-lan-serve:
+	$(WEB_LAN_PYTHON) tools/web-lan serve --output "$(WEB_LAN_OUTPUT)" --bind "$(WEB_LAN_BIND)" --port "$(WEB_LAN_PORT)"
+
+web-lan-status:
+	$(WEB_LAN_PYTHON) tools/web-lan status --output "$(WEB_LAN_OUTPUT)"
+
+web-lan-stop:
+	$(WEB_LAN_PYTHON) tools/web-lan stop --output "$(WEB_LAN_OUTPUT)"
+
+web-lan-network:
+	$(WEB_LAN_PYTHON) tools/web-lan network
+
+web-lan-tls:
+	@test -n "$(WEB_LAN_ADDRESS)" || { echo "Set WEB_LAN_ADDRESS to the Wi-Fi IPv4 address shown by web-lan-network."; exit 1; }
+	$(WEB_LAN_PYTHON) tools/web-lan tls-init --output "$(WEB_LAN_OUTPUT)" --address "$(WEB_LAN_ADDRESS)"
+
+web-lan-ca-serve:
+	$(WEB_LAN_PYTHON) -m http.server "$(WEB_LAN_CA_PORT)" --bind "$(WEB_LAN_BIND)" --directory "$(WEB_LAN_OUTPUT)/tls/public"
+
+web-lan-test:
+	$(WEB_LAN_PYTHON) -B -m unittest discover -s tests/web_lan -t . -v
 
 .PHONY: web-input-test
 web-input-test:

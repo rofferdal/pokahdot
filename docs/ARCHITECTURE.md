@@ -839,6 +839,26 @@ validation. A successful run deploys that exact build to the rolling GitHub
 Pages URL so developers can discover browser- and device-specific defects
 early. Neither headless step claims to reproduce representative pixels.
 
+Decision (2026-10-26): local Wi-Fi development uses a separate Python
+standard-library build/server adapter under `tools/web_lan/`, following
+[`LanTestTasks.md`](LanTestTasks.md). It snapshots and exports the normal
+production startup scene into ignored `localtmp/`, records commit/dirty-source
+and engine identity, and publishes only verified builds. The server redirects
+its latest entry point to an immutable build URL so rebuilds cannot mix asset
+generations. A failed rebuild invalidates that entry point. Foreground serving
+supports Ctrl+C and a private token-authenticated stop request, rather than
+killing an unverified PID. Physical Wi-Fi/browser acceptance remains explicit
+device evidence. This adapter leaves the clean release and deployment policy
+unchanged.
+
+LAN HTTPS follow-up: the exported 4.7.2 runtime requires a secure context at
+the LAN address. The local CLI defaults to HTTPS, with an OpenSSL-generated
+CA and SAN certificate under its ignored output root. Certificate generation
+does not install trust. Account/device trust changes require the user's
+explicit choice. A separate standard-library HTTP helper serves only public
+CA files for device bootstrap. Shutdown verifies the configured CA and bind
+hostname; normal asset responses verify their recorded payload hashes.
+
 Rendered verification on a developer machine and hosted browser/device review
 are optional manual activities. When that evidence is collected, the manifest,
 review, deployment run, and hosted evidence should identify the same full
