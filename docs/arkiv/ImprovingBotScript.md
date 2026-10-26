@@ -359,3 +359,5 @@ human approval; a no-clobber published resource; roster integration that stays
 within the 25-strategic-profile limit; and passing verification. Otherwise,
 hand off the reproducible artifacts and the precise unmet gate rather than
 claiming that the roster was updated.
+
+NB: This was used for the first ten bot profiles generated this way. Future updates will not follow the same pattern, so this is archived.

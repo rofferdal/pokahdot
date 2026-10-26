@@ -46,11 +46,14 @@ func _run() -> void:
 		quit(EXIT_TREE_STATE)
 		return
 
+	var phone_suite: bool = (
+		options.full_phone or options.viewport_id in CaptureManifestScript.PHONE_VIEWPORT_IDS
+	)
 	var cases: Array[Dictionary] = (
 		CaptureManifestScript.phone_cases(
 			options.viewport_id, options.state_id, options.player_count
 		)
-		if options.full_phone
+		if phone_suite
 		else CaptureManifestScript.milestone_three_cases(
 			options.viewport_id, options.state_id, options.player_count
 		)
@@ -113,7 +116,7 @@ func _run() -> void:
 			options.development,
 			(
 				CaptureManifestScript.PHONE_SUITE_VERSION
-				if options.full_phone
+				if phone_suite
 				else CaptureManifestScript.SUITE_VERSION
 			),
 		)

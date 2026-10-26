@@ -70,6 +70,8 @@ func rerender(descriptor: Dictionary) -> Dictionary:
 	var overlay: Node = null
 	if descriptor.id == &"quit-confirmation":
 		overlay = _open_quit_fixture_overlay(table)
+	elif GuiLayoutProfileScript.is_phone(table.get_layout_profile()):
+		overlay = _open_phone_fixture_overlay(table, descriptor.id)
 	_rendered = _result(descriptor, table, table, overlay)
 	return _rendered
 
@@ -153,7 +155,7 @@ func _open_phone_fixture_overlay(table: PokerTableController, state_id: StringNa
 		&"wager-entry":
 			table.show_wager_keypad()
 			return table.get_node("WagerKeypad")
-		&"showdown-long":
+		&"showdown-overlay":
 			table.call("_open_phone_showdown")
 			return table.get_node("%PhoneShowdownOverlay")
 	return null

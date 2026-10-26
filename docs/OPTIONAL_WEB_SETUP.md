@@ -130,7 +130,7 @@ contents of `build/web`, not the repository root.
 `make web-release` verifies a local Web export. After a commit is pushed to
 `main`, the deployment workflow checks out that exact push SHA and runs
 `make release-candidate-gate web-release`. The candidate gate checks tree
-cleanliness, runs `make check`, runs the applicable GUI invariant matrix, and
+cleanliness, runs `make check`, runs `gui-current-invariant-gate`, and
 checks cleanliness again. `web-release` then owns the release export and
 release-output validation. Both must pass before upload.
 
@@ -184,7 +184,9 @@ allows.
    - check out and verify the exact pushed SHA;
    - install Godot **4.7.2** and its matching export templates;
    - run `make release-candidate-gate web-release`: the candidate gate owns
-     cleanliness, the complete headless suite, and GUI invariant gate, while
+     cleanliness, the complete headless suite, and the historical, phone,
+     iPad, and desktop GUI invariant gates through `gui-current-invariant-gate`,
+     while
      `web-release` owns the Web export and output validation;
    - create `build/web/.nojekyll` so Pages does not apply Jekyll processing;
    - upload only `build/web` with `actions/upload-pages-artifact`; and
@@ -224,6 +226,14 @@ back to another installed Godot version. Treat the workflow itself as release
 code and review workflow changes before they reach the protected branch.
 
 ### Automatic deployment and evidence stability
+
+Pull requests independently run `.github/workflows/check-pr.yml`, using the
+same pinned Godot 4.7.2 editor and `release-candidate-gate`. The
+**Checks and current layouts** status exposes failures before merge and can
+be required in branch protection. A separate **Exported Web input** job exports
+an isolated test fixture and checks real Chromium input paths. Both jobs have
+repository-read access and perform no deployment. This does not change the push-to-`main`
+deployment policy below.
 
 1. Push the commit to `main`.
 2. Open **Actions > Deploy Web release** and wait for the build and deploy jobs

@@ -199,6 +199,21 @@ product-curated roster. Normal GUI/interactive-CLI composition uses the
 source-controlled `PlayableBotRoster.ROSTER_VERSION`; interactive diagnostics
 record that version and the selected bot profile IDs.
 
+`SimulationReport.validate` is the common Godot boundary for direct consumers,
+inspection and replay. Focused manifest, tournament and metric contracts check
+untrusted field shapes before conversion, map reported indexes without
+materializing the entire plan, and verify completed outcomes from their
+primitive counters and terminal stacks. Partial failure diagnostics remain
+inspectable. Shared JSON conformance cases exercise the Godot boundary and
+Python fitness, selection and confirmation consumers.
+
+Decision (2026-10-26): simulation JSON uses the lossless seed range specified
+in [the simulation contract](Simulation_And_Evolutionary_Bot_Strategy.md#21-batch-architecture-and-sharding),
+while typed core RNG seeds retain their signed 64-bit domain. Report and CLI
+serialization preserve full precision for parsed numeric values; historical
+tournament-digest serialization is unchanged. Existing report bytes are never
+rewritten to satisfy a newer validation policy.
+
 For product composition, `PlayableBotRoster` classifies a profile by its
 concrete decision-model family: `StrategyDecisionModel` profiles are
 strategic; every other decision-model implementation is a legacy heuristic.
@@ -799,10 +814,27 @@ manifest. Screenshots support human review of hierarchy, density, contrast,
 and proportion; brittle pixel equality is not the sole automated pass
 condition.
 
-Rendered review remains separate from headless CI. Every push to `main`
+Rendered review remains separate from headless CI. Pull requests run the
+non-deploying `Validate pull request` workflow against the proposed merge,
+with repository-read permission and pinned Godot 4.7.2. Its stable
+`Checks and current layouts` status reports `release-candidate-gate` failures
+before merge; maintainers may require that status through branch protection.
+The gate runs the complete headless suite and `gui-current-invariant-gate`,
+which includes the historical M3 and dedicated phone, iPad, and desktop
+matrices, with clean-tree checks before and after. Diagnostic landscape
+fixtures do not establish physical-device acceptance or change the deferred
+phone-landscape support contract.
+
+The separate `Exported Web input` PR job builds an isolated release export
+of the production GUI with a test-only read-only observer. Pinned Chromium
+receives actual pointer, touch and keyboard events; startup and seeded live
+tournament fixtures verify keypad drafts, Cancel/Done, focus transitions and
+core wager submission. The observer is excluded from production exports.
+This regression does not establish physical-device acceptance.
+
+Every push to `main`
 automatically checks out the pushed SHA and runs `release-candidate-gate`,
-which owns the clean-tree checks, complete headless suite, and GUI invariant
-matrix, followed by `web-release` for the Web export and export-output
+followed by `web-release` for the Web export and export-output
 validation. A successful run deploys that exact build to the rolling GitHub
 Pages URL so developers can discover browser- and device-specific defects
 early. Neither headless step claims to reproduce representative pixels.

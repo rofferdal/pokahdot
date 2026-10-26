@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""Export an isolated production GUI fixture and exercise real browser input.
+
+Requires requirements-web-test.txt, Playwright Chromium, and matching Godot Web
+templates. All project copies, exports, logs and screenshots live in localtmp.
+The observer is absent from the production export; it offers no input API.
+"""
+
+from __future__ import annotations
+
+import argparse
+import functools
+import http.server
+import hashlib
+import json
+import shutil
+import subprocess
+import threading
+from pathlib import Path
+
+from playwright.sync_api import sync_playwright
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def export_fixture(godot: str, work: Path) -> Path:
+    project = work / "project"
+    project.mkdir()
+    for directory in ("scripts", "scenes", "resources", "assets"):
+        shutil.copytree(ROOT / directory, project / directory)
+    shutil.copytree(ROOT / "tests" / "web", project / "tests" / "web")
+    shutil.copy2(ROOT / "icon.svg", project)
+    config = (ROOT / "project.godot").read_text()
+    config = config.replace('run/main_scene="res://scenes/main.tscn"',
+                            'run/main_scene="res://tests/web/input_fixture.tscn"')
+    config = "\n".join(line for line in config.splitlines() if "boot_splash/image=" not in line)
+    (project / "project.godot").write_text(config)
+    preset = (ROOT / "export_presets.cfg").read_text()
+    preset = preset.replace("tests/*,tests/**/*,", "")
+    (project / "export_presets.cfg").write_text(preset)
+    output = work / "export"
+    output.mkdir()
+    source_hash = hashlib.sha256()
+    for path in sorted(project.rglob("*")):
+        if path.is_file():
+            source_hash.update(str(path.relative_to(project)).encode())
+            source_hash.update(b"\0")
+            source_hash.update(path.read_bytes())
+    (work / "source.sha256").write_text(source_hash.hexdigest())
+    with (work / "export.log").open("w") as log:
+        for arguments in (("--import",), ("--export-release", "Web", str(output / "index.html"))):
+            subprocess.run([godot, "--headless", "--path", str(project), *arguments],
+                           stdout=log, stderr=subprocess.STDOUT, check=True, timeout=180)
+    log_text = (work / "export.log").read_text()
+    if "ERROR:" in log_text or "SCRIPT ERROR:" in log_text:
+        raise RuntimeError(f"Godot reported export/import errors; see {work / 'export.log'}")
+    return output
+
+
+class QuietHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *_args: object) -> None:
+        pass
+
+
+def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> dict:
+    context = browser.new_context(viewport={"width": 390 if mobile else 1280,
+                                           "height": 844 if mobile else 720},
+                                  device_scale_factor=2 if mobile else 1,
+                                  has_touch=mobile, is_mobile=mobile)
+    page = context.new_page()
+    errors: list[str] = []
+    messages: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    page.on("console", lambda message: messages.append(message.type + ": " + message.text))
+    name = f"{fixture}-{'touch' if mobile else 'pointer'}"
+    page.set_default_timeout(20000)
+
+    def wait(expression: str) -> dict:
+        page.wait_for_function("window.pokahdotInput && (" + expression + ")")
+        return page.evaluate("window.pokahdotInput")
+
+    def click(key: str, touch: bool = mobile) -> None:
+        state = wait(f"window.pokahdotInput.controls.{key}?.visible")
+        x, y, width, height = state["controls"][key]["rect"]
+        canvas = page.locator("canvas").bounding_box()
+        assert canvas is not None
+        point = (canvas["x"] + (x + width / 2) * canvas["width"] / state["viewport"][0],
+                 canvas["y"] + (y + height / 2) * canvas["height"] / state["viewport"][1])
+        if touch:
+            page.touchscreen.tap(*point)
+        else:
+            page.mouse.click(*point)
+
+    try:
+        page.goto(base_url + "/index.html?" + fixture)
+        wait("window.pokahdotInput.frame > 10")
+        if not mobile:
+            click("input", False)
+            wait("window.pokahdotInput.focus")
+            page.keyboard.press("ControlOrMeta+A")
+            page.keyboard.type("250")
+            wait("window.pokahdotInput.input === '250' && !window.pokahdotInput.popup")
+            if fixture == "table":
+                page.keyboard.press("Enter")
+                wait("window.pokahdotInput.hero_wager === 250")
+        else:
+            original = page.evaluate("window.pokahdotInput.input")
+            click("open")
+            wait("window.pokahdotInput.popup")
+            click("KeyClear")
+            click("Key2")
+            wait("window.pokahdotInput.draft === '2'")
+            assert page.evaluate("window.pokahdotInput.input") == original
+            click("Cancel")
+            wait("!window.pokahdotInput.popup")
+            assert page.evaluate("window.pokahdotInput.input") == original
+            if fixture == "table":
+                page.set_viewport_size({"width": 1280, "height": 720})
+                click("input", False)
+                wait("window.pokahdotInput.focus && !window.pokahdotInput.popup")
+                page.keyboard.press("ControlOrMeta+A")
+                page.keyboard.type("250")
+                wait("window.pokahdotInput.input === '250'")
+                page.set_viewport_size({"width": 390, "height": 844})
+            click("open")
+            wait("window.pokahdotInput.popup")
+            click("KeyClear")
+            click("Key2")
+            click("Key5")
+            wait("window.pokahdotInput.draft === '25'")
+            click("Done")
+            wait("!window.pokahdotInput.popup && window.pokahdotInput.input === '25'")
+            if fixture == "table":
+                wait("window.pokahdotInput.hero_wager === 25")
+            else:
+                # Switch from touch back to real pointer/keyboard editing.
+                click("input", False)
+                wait("window.pokahdotInput.focus && !window.pokahdotInput.popup")
+                page.keyboard.press("ControlOrMeta+A")
+                page.keyboard.type("250")
+                wait("window.pokahdotInput.input === '250'")
+        page.screenshot(path=str(work / (name + ".png")))
+        assert not errors, "Browser errors: " + "\n".join(errors)
+        return {"case": name, "passed": True, "snapshot": page.evaluate("window.pokahdotInput")}
+    except Exception:
+        page.screenshot(path=str(work / (name + "-failed.png")))
+        (work / (name + "-errors.json")).write_text(json.dumps(errors, indent=2))
+        (work / (name + "-console.json")).write_text(json.dumps(messages, indent=2))
+        raise
+    finally:
+        context.close()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--godot", default="godot")
+    parser.add_argument("--output", type=Path, default=ROOT / "localtmp" / "web-input")
+    args = parser.parse_args()
+    # Refuse stale evidence instead of silently testing an older export.
+    args.output.mkdir(parents=True, exist_ok=False)
+    output = export_fixture(args.godot, args.output.resolve())
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0),
+        functools.partial(QuietHandler, directory=str(output)))
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(args=["--enable-unsafe-swiftshader"])
+            version = browser.version
+            results = [exercise(browser, f"http://127.0.0.1:{server.server_port}", args.output,
+                                fixture, mobile)
+                       for fixture in ("startup", "table") for mobile in (False, True)]
+            browser.close()
+        result_document = {
+            "suite": "exported_web_input_v1",
+            "browser": version,
+            "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+            "source_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"], cwd=ROOT)).hexdigest(),
+            "fixture_sha256": hashlib.sha256((ROOT / "tests/web/input_fixture.gd").read_bytes()).hexdigest(),
+            "copied_project_sha256": (args.output / "source.sha256").read_text(),
+            "exported_pack_sha256": hashlib.sha256((output / "index.pck").read_bytes()).hexdigest(),
+            "cases": results,
+        }
+        (args.output / "results.json").write_text(json.dumps(result_document, indent=2))
+        print(f"Exported Web input: {len(results)} cases passed; evidence: {args.output}")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()

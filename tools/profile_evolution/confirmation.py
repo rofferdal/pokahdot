@@ -14,9 +14,10 @@ from .contracts import (
     require_identifier,
     require_integer,
     validate_candidate,
+    validate_report_seed_range,
 )
 from .errors import ExitCode, ToolError
-from .fitness import COMPONENTS, WEIGHTS, _validate_execution_provenance, evaluate_fitness
+from .fitness import COMPONENTS, WEIGHTS, _normalize_report_integers, _validate_execution_provenance, evaluate_fitness
 from .lineage import validate_lineage_registry
 
 MINIMUM_STRATEGY_PARAMETER_DISTANCE = 10
@@ -265,7 +266,7 @@ def _validate_measured_behavior(value: Any) -> dict[str, Any]:
 def _group_reports(paths: Iterable[Path]) -> list[tuple[str, list[Path], dict[str, Any]]]:
     grouped: dict[str, tuple[list[Path], dict[str, Any]]] = {}
     for path in paths:
-        report = load_json_object(path)
+        report = _normalize_report_integers(load_json_object(path))
         checksum = report.get("manifest_checksum")
         if not isinstance(checksum, str):
             _fail("invalid_confirmation_report", "Confirmation report lacks manifest checksum.")
@@ -330,7 +331,7 @@ def _mode_evidence(
                     f"Opponent profile '{profile_id}' changes between confirmation manifests.",
                 )
             opponent_profiles[profile_id] = snapshot
-        reports = [load_json_object(path) for path in group_paths]
+        reports = [_normalize_report_integers(load_json_object(path)) for path in group_paths]
         seats: dict[tuple[str, str], set[int]] = {}
         matchup_sample_counts: dict[tuple[str, str], int] = {}
         seat_sample_counts: dict[tuple[str, str, int], int] = {}
@@ -1093,8 +1094,7 @@ def validate_confirmation(artifact: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(seed_range, dict):
                 _fail("invalid_confirmation", f"Confirmation {mode} seed range is invalid.")
             require_exact_fields(seed_range, ("minimum", "maximum"), "confirmation seed range")
-            minimum = require_integer(seed_range["minimum"], "seed range minimum", 0, (1 << 64) - 1)
-            maximum = require_integer(seed_range["maximum"], "seed range maximum", 0, (1 << 64) - 1)
+            minimum, maximum = validate_report_seed_range(seed_range, "confirmation seed range")
             if minimum > maximum:
                 _fail("invalid_confirmation", f"Confirmation {mode} seed range is invalid.")
             evidence_ranges: list[dict[str, int]] = []
@@ -1136,8 +1136,7 @@ def validate_confirmation(artifact: dict[str, Any]) -> dict[str, Any]:
                 if not isinstance(item_range, dict):
                     _fail("invalid_confirmation", f"Confirmation {mode} report seed range is invalid.")
                 require_exact_fields(item_range, ("minimum", "maximum"), "report seed range")
-                item_minimum = require_integer(item_range["minimum"], "report seed minimum", 0, (1 << 64) - 1)
-                item_maximum = require_integer(item_range["maximum"], "report seed maximum", 0, (1 << 64) - 1)
+                item_minimum, item_maximum = validate_report_seed_range(item_range, "report seed range")
                 if item_minimum > item_maximum:
                     _fail("invalid_confirmation", f"Confirmation {mode} report seed range is invalid.")
                 evidence_ranges.append({"minimum": item_minimum, "maximum": item_maximum})

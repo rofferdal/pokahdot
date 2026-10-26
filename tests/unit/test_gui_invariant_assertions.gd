@@ -81,6 +81,91 @@ func test_wrapped_text_clipping_failure_is_reported() -> void:
 	_assert_failure(rendered, "text-clipping:", "hides wrapped lines")
 
 
+func test_ellipsized_required_content_clipping_is_reported() -> void:
+	var rendered: Dictionary = await _render(&"wager-entry")
+	var seat := rendered.table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1") as Control
+	var name_label := seat.find_child("Name", true, false) as Label
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.text = "Required player name is deliberately too long ".repeat(8)
+	_assert_failure(rendered, "text-clipping:", "/Name")
+	var stack_label := seat.find_child("Stack", true, false) as Label
+	stack_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	stack_label.text = "99999999999999999999999999999999999999999999999999999999"
+	_assert_failure(rendered, "text-clipping:", "/Stack")
+
+
+func test_wrapped_ellipsis_line_limit_is_reported_even_with_spare_height() -> void:
+	var rendered: Dictionary = await _render(&"wager-entry")
+	var label := Label.new()
+	label.name = "LimitedRequiredContent"
+	label.add_theme_font_size_override("font_size", 20)
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.max_lines_visible = 1
+	label.text = "Required summary content has several complete wrapped lines."
+	rendered.table.add_child(label)
+	label.size = Vector2(150.0, 200.0)
+	_assert_failure(rendered, "text-clipping:", "limit 1")
+
+
+func test_popup_overlay_required_content_clipping_is_reported() -> void:
+	var rendered: Dictionary = await _render(&"keypad-open", 2)
+	var title := rendered.overlay.get_node("Content/Title") as Label
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.text = "Required keypad title deliberately overflows the entire popup width ".repeat(8)
+	_assert_failure(rendered, "text-clipping:", "overlay/")
+
+
+func test_popup_position_uses_the_embedding_viewport_coordinates() -> void:
+	var rendered: Dictionary = await _render(&"keypad-open", 2)
+	assert_eq(GuiInvariantAssertionsScript.validate(rendered), PackedStringArray())
+	var popup := rendered.overlay as Window
+	popup.position = Vector2i(-20, -20)
+	_assert_failure(rendered, "containment:", "popup overlay")
+
+
+func test_phone_showdown_table_and_summary_have_distinct_fixtures() -> void:
+	var harness: Node = GuiSceneHarnessScript.new()
+	add_child_autofree(harness)
+	var bare: Dictionary = harness.render(
+		GuiVisualStateFixturesScript.by_id(&"showdown-long", 6), Vector2i(390, 844)
+	)
+	assert_true(await harness.settle_layout())
+	assert_null(bare.overlay)
+	assert_eq(bare.intentional_overlap_controls, [])
+	assert_false((bare.table.get_node("%PhoneShowdownOverlay") as Control).visible)
+
+	var summary: Dictionary = harness.rerender(
+		GuiVisualStateFixturesScript.by_id(&"showdown-overlay", 6)
+	)
+	assert_true(await harness.settle_layout())
+	assert_eq(summary.overlay.name, &"PhoneShowdownOverlay")
+	assert_eq(summary.intentional_overlap_controls, [&"PhoneShowdownOverlay"])
+	assert_eq(GuiInvariantAssertionsScript.validate(summary), PackedStringArray())
+	bare = harness.rerender(GuiVisualStateFixturesScript.by_id(&"showdown-long", 6))
+	assert_true(await harness.settle_layout())
+	assert_null(bare.overlay)
+	assert_false((bare.table.get_node("%PhoneShowdownOverlay") as Control).visible)
+
+
+func test_compact_tablet_keeps_complete_showdown_content_visible() -> void:
+	for viewport_size: Vector2i in [Vector2i(768, 1024), Vector2i(1024, 768)]:
+		var harness: Node = GuiSceneHarnessScript.new()
+		add_child_autofree(harness)
+		var rendered: Dictionary = harness.render(
+			GuiVisualStateFixturesScript.by_id(&"showdown-long", 6), viewport_size
+		)
+		assert_true(await harness.settle_layout())
+		var label := (
+			rendered.table.get_node("TableMargin/Felt/TableSurface/Seats/Seat4Status") as Label
+		)
+		assert_eq(
+			label.text,
+			"Full house\nAces / Kings" if viewport_size.y > viewport_size.x else "Full house: A / K"
+		)
+		assert_eq(GuiInvariantAssertionsScript.validate(rendered), PackedStringArray())
+
+
 func test_font_floor_failure_is_reported() -> void:
 	var rendered: Dictionary = await _render(&"wager-entry")
 	var label := Label.new()

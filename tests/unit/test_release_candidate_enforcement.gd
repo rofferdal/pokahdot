@@ -9,13 +9,21 @@ func test_release_candidate_gate_has_one_ordered_recursive_contract() -> void:
 	var gate := _section(makefile, "release-candidate-gate:", "gui-visual-capture:")
 	var first_clean: int = gate.find("$(MAKE) --no-print-directory require-clean-worktree")
 	var check: int = gate.find("$(MAKE) --no-print-directory check")
-	var invariant: int = gate.find("$(MAKE) --no-print-directory gui-visual-invariant-gate")
+	var invariant: int = gate.find("$(MAKE) --no-print-directory gui-current-invariant-gate")
 	var final_clean: int = gate.rfind("$(MAKE) --no-print-directory require-clean-worktree")
 
 	assert_gte(first_clean, 0)
 	assert_gt(check, first_clean)
 	assert_gt(invariant, check)
 	assert_gt(final_clean, invariant)
+	var matrices := _section(makefile, "gui-current-invariant-gate:", "release-candidate-gate:")
+	for target: String in [
+		"gui-visual-invariant-gate",
+		"gui-phone-invariant-gate",
+		"gui-ipad-invariant-gate",
+		"gui-desktop-invariant-gate"
+	]:
+		assert_string_contains(matrices, "$(MAKE) --no-print-directory " + target)
 	assert_string_contains(makefile, "gui-visual-capture: release-candidate-gate")
 	assert_string_contains(makefile, "web-release: release-candidate-gate")
 	var web_release := _section(makefile, "web-release:", "verify-web-release-output:")

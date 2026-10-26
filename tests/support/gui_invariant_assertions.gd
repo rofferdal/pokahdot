@@ -343,16 +343,9 @@ static func _validate_text_fit(control: Control, path: String, failures: PackedS
 	var text: String = ""
 	var font_size: int = 0
 	if control is Label:
-		text = control.text
-		font_size = control.get_theme_font_size("font_size")
-		if control.autowrap_mode != TextServer.AUTOWRAP_OFF:
-			_require(
-				control.get_visible_line_count() >= control.get_line_count(),
-				"text-clipping: %s hides wrapped lines" % path,
-				failures,
-			)
-			return
-	elif control is Button or control is CheckBox:
+		_validate_label_fit(control, path, failures)
+		return
+	if control is Button or control is CheckBox:
 		text = control.text
 		font_size = control.get_theme_font_size("font_size")
 	elif control is LineEdit:
@@ -361,8 +354,6 @@ static func _validate_text_fit(control: Control, path: String, failures: PackedS
 	else:
 		return
 	if text.is_empty() or font_size <= 0:
-		return
-	if control is Label and control.text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING:
 		return
 	var rendered_width: float = (
 		control
@@ -374,6 +365,51 @@ static func _validate_text_fit(control: Control, path: String, failures: PackedS
 		rendered_width <= control.size.x,
 		"text-clipping: %s needs %.1f px but has %.1f px" % [path, rendered_width, control.size.x],
 		failures,
+	)
+
+
+static func _validate_label_fit(label: Label, path: String, failures: PackedStringArray) -> void:
+	if label.text.is_empty():
+		return
+	# Shape the complete required text independently of Label's ellipsis and
+	# max-lines settings, which can hide the very content this check must test.
+	var paragraph := TextParagraph.new()
+	paragraph.add_string(
+		label.text, label.get_theme_font("font"), label.get_theme_font_size("font_size")
+	)
+	paragraph.break_flags = TextServer.BREAK_MANDATORY
+	if label.autowrap_mode != TextServer.AUTOWRAP_OFF:
+		paragraph.width = label.size.x
+		match label.autowrap_mode:
+			TextServer.AUTOWRAP_ARBITRARY:
+				paragraph.break_flags |= TextServer.BREAK_GRAPHEME_BOUND
+			TextServer.AUTOWRAP_WORD:
+				paragraph.break_flags |= TextServer.BREAK_WORD_BOUND
+			TextServer.AUTOWRAP_WORD_SMART:
+				paragraph.break_flags |= TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+	var needed: Vector2 = paragraph.get_size()
+	var line_count: int = paragraph.get_line_count()
+	needed.y += maxi(0, line_count - 1) * label.get_theme_constant("line_spacing")
+	_require(
+		needed.x <= label.size.x + 0.5,
+		"text-clipping: %s needs %.1f px but has %.1f px" % [path, needed.x, label.size.x],
+		failures
+	)
+	_require(
+		needed.y <= label.size.y + 0.5,
+		(
+			"text-clipping: %s hides wrapped lines or vertical content: needs %.1f px but has %.1f px"
+			% [path, needed.y, label.size.y]
+		),
+		failures
+	)
+	_require(
+		label.max_lines_visible < 0 or label.max_lines_visible >= line_count,
+		(
+			"text-clipping: %s hides wrapped lines (%d required, limit %d)"
+			% [path, line_count, label.max_lines_visible]
+		),
+		failures
 	)
 
 
@@ -438,7 +474,7 @@ static func _validate_explicit_overlay(rendered: Dictionary, failures: PackedStr
 		&"wager-entry":
 			if GuiLayoutProfileScript.is_phone(rendered.layout_profile):
 				expected = [&"WagerKeypad"]
-		&"showdown-long":
+		&"showdown-overlay":
 			if GuiLayoutProfileScript.is_phone(rendered.layout_profile):
 				expected = [&"PhoneShowdownOverlay"]
 	_require(
@@ -458,20 +494,35 @@ static func _validate_overlay_controls(rendered: Dictionary, failures: PackedStr
 	var overlay: Node = rendered.overlay
 	if overlay == null or not overlay.visible:
 		return
+	var overlay_rect: Rect2
+	if overlay is Window:
+		# Popup child Control coordinates are local to the popup's viewport;
+		# the Window position itself belongs to the fixture's embedding viewport.
+		overlay_rect = Rect2(Vector2.ZERO, Vector2(overlay.size))
+		_require(
+			Rect2i(Vector2i.ZERO, rendered.viewport.size).encloses(
+				Rect2i(overlay.position, overlay.size)
+			),
+			"containment: popup overlay is outside its viewport",
+			failures
+		)
+	elif overlay is Control:
+		overlay_rect = overlay.get_global_rect()
 	for node: Node in overlay.find_children("*", "Control", true, false):
 		var control := node as Control
 		if control == null or not control.is_visible_in_tree():
 			continue
 		_validate_font(control, str(control.get_path()), failures)
+		_validate_text_fit(control, "overlay/" + str(control.get_path()), failures)
 		if control is BaseButton or control is LineEdit:
 			_require(
 				control.size.x >= MINIMUM_TOUCH_SIZE.x and control.size.y >= MINIMUM_TOUCH_SIZE.y,
 				"touch-target: overlay %s has size %s" % [control.name, control.size],
 				failures,
 			)
-		if overlay is Control:
+		if overlay is Control or overlay is Window:
 			_require(
-				(overlay as Control).get_global_rect().encloses(control.get_global_rect()),
+				overlay_rect.encloses(control.get_global_rect()),
 				"containment: overlay does not enclose %s" % control.name,
 				failures,
 			)

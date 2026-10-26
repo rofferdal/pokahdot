@@ -56,6 +56,10 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 - `--tournament-count COUNT`: Export plan count; it must be divisible by the active roster size and satisfy the configured sample minimum (default `2520`).
 - `--regime-preset standard`: The explicit 100bb, 5/10 roster-table export preset. Other preset names are rejected.
 
+Manifest and effective seeds must satisfy the
+[lossless JSON seed bounds](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#21-batch-architecture-and-sharding)
+across the entire plan, including seeds generated after the starting value.
+
 ### Exporting a Curated-Roster Baseline
 
 Use this command when the evaluation should begin with every active playable

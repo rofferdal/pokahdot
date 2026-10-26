@@ -9,6 +9,8 @@
 
 ## Task records
 
+- [`LanTestTasks.md`](LanTestTasks.md) — planned Web development export and
+  local Wi-Fi server workflow for device testing before merging to `main`.
 - [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active,
   iterative physical-phone GUI review and remediation work.
 - [`OptimizingDesktopGuiTasks.md`](OptimizingDesktopGuiTasks.md) — active

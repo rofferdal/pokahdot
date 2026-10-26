@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .artifacts import create_artifact, load_json_object
-from .contracts import require_exact_fields, validate_candidate_collection, validate_parameters
+from .contracts import require_exact_fields, validate_candidate_collection, validate_parameters, validate_report_seed_range
 from .errors import ExitCode, ToolError
 
 REPORT_FIELDS = (
@@ -224,6 +224,8 @@ def _integer(value: Any, context: str, minimum: int | None = None) -> int:
         _invalid("invalid_simulation_report", f"{context} must be an integer.")
     if minimum is not None and value < minimum:
         _invalid("invalid_simulation_report", f"{context} must be at least {minimum}.")
+    if value < -(1 << 63) or value > (1 << 63) - 1:
+        _invalid("invalid_simulation_report", f"{context} exceeds signed 64-bit integer bounds.")
     return value
 
 
@@ -242,6 +244,66 @@ def _string(value: Any, context: str) -> str:
     return value
 
 
+def _normalize_integer_fields(value: Any, fields: Iterable[str]) -> None:
+    if not isinstance(value, dict):
+        return
+    for field in fields:
+        number = value.get(field)
+        if isinstance(number, float) and math.isfinite(number) and number.is_integer():
+            value[field] = int(number)
+
+
+def _normalize_manifest_integers(manifest: Any) -> None:
+    if not isinstance(manifest, dict):
+        return
+    _normalize_integer_fields(manifest, ("schema_version", "seed_start"))
+    parameter_fields = (
+        "tight_vs_loose", "passive_vs_aggressive", "call_vs_raise", "bluff_rate",
+        "fold_weight", "passive_weight", "aggressive_weight",
+        "minimum_preflop_high_rank", "raise_frequency", "fold_frequency", "aggression_frequency",
+    )
+    for collection, fields in (
+        ("regimes", ("player_count", "starting_stack", "starting_small_blind", "starting_big_blind")),
+        ("evaluation_plans", ("tournament_count", "minimum_profile_samples")),
+    ):
+        if isinstance(manifest.get(collection), list):
+            for item in manifest[collection]:
+                _normalize_integer_fields(item, fields)
+    if isinstance(manifest.get("profiles"), list):
+        for profile in manifest["profiles"]:
+            if isinstance(profile, dict):
+                _normalize_integer_fields(profile.get("parameters"), parameter_fields)
+
+
+def _normalize_report_integers(source: dict[str, Any]) -> dict[str, Any]:
+    """Normalize semantic integers only in a report copy, never an envelope.
+
+    Godot's JSON parser reads both 2 and 2.0 as binary64. Accept exactly whole
+    finite values in known integer fields; preserve original bytes for evidence
+    checksums and leave continuous metrics and unrelated fields untouched.
+    """
+    report = copy.deepcopy(source)
+    _normalize_integer_fields(report, ("report_schema_version",))
+    _normalize_integer_fields(report.get("shard"), ("index", "count"))
+    _normalize_manifest_integers(report.get("manifest"))
+    if not isinstance(report.get("tournaments"), list):
+        return report
+    for tournament in report["tournaments"]:
+        _normalize_integer_fields(tournament, (
+            "tournament_index", "plan_tournament_index", "matchup_occurrence",
+            "rotation", "effective_seed", "tournament_hand_count",
+        ))
+        if not isinstance(tournament, dict):
+            continue
+        if isinstance(tournament.get("seat_map"), list):
+            for entry in tournament["seat_map"]:
+                _normalize_integer_fields(entry, ("seat",))
+        if isinstance(tournament.get("profile_results"), list):
+            for row in tournament["profile_results"]:
+                _normalize_integer_fields(row, (*COUNT_FIELDS, "chip_differential"))
+    return report
+
+
 def _object_array(value: Any, context: str) -> list[dict[str, Any]]:
     if not isinstance(value, list) or any(not isinstance(item, dict) for item in value):
         _invalid("invalid_simulation_report", f"{context} must be an array of objects.")
@@ -249,6 +311,8 @@ def _object_array(value: Any, context: str) -> list[dict[str, Any]]:
 
 
 def _simulation_manifest_checksum(manifest: dict[str, Any]) -> str:
+    manifest = copy.deepcopy(manifest)
+    _normalize_manifest_integers(manifest)
     encoded = json.dumps(
         manifest, ensure_ascii=False, separators=(",", ":"), sort_keys=True, allow_nan=False
     ).encode("utf-8")
@@ -256,6 +320,8 @@ def _simulation_manifest_checksum(manifest: dict[str, Any]) -> str:
 
 
 def _roster_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
+    manifest = copy.deepcopy(manifest)
+    _normalize_manifest_integers(manifest)
     profiles = manifest["profiles"]
     encoded = json.dumps(
         profiles, ensure_ascii=False, separators=(",", ":"), sort_keys=True, allow_nan=False
@@ -268,7 +334,7 @@ def _roster_provenance(manifest: dict[str, Any]) -> dict[str, Any]:
 
 def _validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     require_exact_fields(manifest, MANIFEST_FIELDS, "simulation manifest")
-    if manifest["schema_version"] != 2:
+    if _integer(manifest["schema_version"], "manifest.schema_version") != 2:
         _invalid("unsupported_simulation_manifest", "Simulation manifest schema must be 2.")
     _string(manifest["batch_id"], "manifest.batch_id")
     _integer(manifest["seed_start"], "manifest.seed_start")
@@ -285,7 +351,7 @@ def _validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         if profile_id in profile_ids or not isinstance(profile["parameters"], dict):
             _invalid("invalid_simulation_manifest", "Simulation profiles are invalid or duplicated.")
         profile_ids.add(profile_id)
-        _string(profile["model_id"], "model_id")
+        _validate_simulation_parameters(profile["model_id"], profile["parameters"])
     regime_by_id: dict[str, dict[str, Any]] = {}
     for regime in regimes:
         require_exact_fields(regime, REGIME_FIELDS, "simulation regime")
@@ -296,6 +362,13 @@ def _validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
         _integer(regime["starting_stack"], "starting_stack", 1)
         _integer(regime["starting_small_blind"], "starting_small_blind", 1)
         _integer(regime["starting_big_blind"], "starting_big_blind", 1)
+        if (
+            any(regime[field] > 1_000_000 for field in (
+                "starting_stack", "starting_small_blind", "starting_big_blind"
+            ))
+            or regime["starting_small_blind"] > regime["starting_big_blind"]
+        ):
+            _invalid("invalid_simulation_manifest", "Regime chip bounds or blind order are invalid.")
         if regime["blind_progression"] != "normative_hand_based_v1" or player_count > 9:
             _invalid("invalid_simulation_manifest", "Simulation regime is unsupported.")
         regime_by_id[regime_id] = regime
@@ -313,6 +386,7 @@ def _validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
             _invalid("invalid_simulation_manifest", "Simulation matchup is invalid.")
         matchup_by_id[matchup_id] = matchup
     plan_ids: set[str] = set()
+    tournament_count = 0
     for plan in plans:
         require_exact_fields(plan, PLAN_FIELDS, "simulation evaluation plan")
         plan_id = _string(plan["plan_id"], "plan_id")
@@ -323,23 +397,52 @@ def _validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
             or regime_id not in regime_by_id
             or not isinstance(matchup_ids, list)
             or not matchup_ids
-            or any(matchup_id not in matchup_by_id for matchup_id in matchup_ids)
+            or any(not isinstance(matchup_id, str) or matchup_id not in matchup_by_id for matchup_id in matchup_ids)
             or plan["seat_rotation"] != "cyclic"
             or plan["uncertainty_estimator"] != "normal_95"
         ):
             _invalid("invalid_simulation_manifest", "Simulation evaluation plan is invalid.")
         _integer(plan["tournament_count"], "tournament_count", 1)
+        tournament_count += plan["tournament_count"]
+        _integer(tournament_count, "total tournament count", 1)
         _integer(plan["minimum_profile_samples"], "minimum_profile_samples", 1)
         player_count = regime_by_id[regime_id]["player_count"]
         if any(len(matchup_by_id[item]["profile_ids"]) != player_count for item in matchup_ids):
             _invalid("invalid_simulation_manifest", "Plan matchup size does not fit its regime.")
         plan_ids.add(plan_id)
+    last_seed = manifest["seed_start"] + tournament_count - 1
+    _integer(last_seed, "last effective seed")
+    validate_report_seed_range(
+        {"minimum": manifest["seed_start"], "maximum": last_seed}, "simulation seed range"
+    )
     return {
         "profiles": {profile["profile_id"]: profile for profile in profiles},
         "regimes": regime_by_id,
         "matchups": matchup_by_id,
         "plans": {plan["plan_id"]: plan for plan in plans},
     }
+
+
+def _validate_simulation_parameters(model_id: Any, parameters: Any) -> None:
+    """Validate every profile, including non-candidate benchmark snapshots."""
+    schemas = {
+        "strategy_parameterized": {
+            "tight_vs_loose": (0, 100), "passive_vs_aggressive": (0, 100),
+            "call_vs_raise": (0, 100), "bluff_rate": (0, 100),
+        },
+        "random": {"fold_weight": (0, 100), "passive_weight": (0, 100), "aggressive_weight": (0, 100)},
+        "tight_passive": {"minimum_preflop_high_rank": (2, 14), "raise_frequency": (0, 100)},
+        "loose_aggressive": {"fold_frequency": (0, 100), "aggression_frequency": (0, 100)},
+    }
+    if not isinstance(model_id, str) or model_id not in schemas or not isinstance(parameters, dict):
+        _invalid("invalid_simulation_manifest", "Simulation model or parameters are unsupported.")
+    require_exact_fields(parameters, schemas[model_id], f"{model_id} parameters")
+    for field, (minimum, maximum) in schemas[model_id].items():
+        value = _integer(parameters[field], f"parameters.{field}", minimum)
+        if value > maximum:
+            _invalid("invalid_simulation_manifest", f"parameters.{field} exceeds {maximum}.")
+    if model_id == "random" and not any(parameters.values()):
+        _invalid("invalid_simulation_manifest", "Random model requires a positive action weight.")
 
 
 def _planned_tournaments(manifest: dict[str, Any], indexes: dict[str, Any]) -> dict[int, dict[str, Any]]:
@@ -573,7 +676,7 @@ def evaluate_fitness(
                 ExitCode.IO_FAILURE,
                 {"path": str(path)},
             ) from error
-        report = load_json_object(path)
+        report = _normalize_report_integers(load_json_object(path))
         require_exact_fields(report, REPORT_FIELDS, "simulation report")
         if (
             isinstance(report["report_schema_version"], bool)
@@ -659,7 +762,10 @@ def evaluate_fitness(
                 "candidate_snapshot_mismatch",
                 f"Manifest snapshot does not match candidate '{candidate['candidate_id']}'.",
             )
-    shard_counts = {report["shard"].get("count") for _, report, _ in reports if isinstance(report["shard"], dict)}
+    for _, report, _ in reports:
+        _integer(report["shard"].get("count"), "shard.count", 1)
+        _integer(report["shard"].get("index"), "shard.index", 0)
+    shard_counts = {report["shard"]["count"] for _, report, _ in reports}
     if len(shard_counts) != 1:
         _invalid("incomplete_shards", "All reports must use one shard count.")
     shard_count = next(iter(shard_counts))
@@ -686,6 +792,13 @@ def evaluate_fitness(
         for tournament in tournaments:
             require_exact_fields(tournament, TOURNAMENT_FIELDS, "simulation tournament")
             tournament_index = _integer(tournament["tournament_index"], "tournament_index", 0)
+            for field in ("plan_tournament_index", "matchup_occurrence", "rotation"):
+                _integer(tournament[field], field, 0)
+            _integer(tournament["effective_seed"], "effective_seed")
+            for seat_entry in _object_array(tournament["seat_map"], "seat_map"):
+                require_exact_fields(seat_entry, ("seat", "profile_id"), "seat map entry")
+                _integer(seat_entry["seat"], "seat map seat", 0)
+                _string(seat_entry["profile_id"], "seat map profile_id")
             if tournament_index in seen or tournament_index not in planned:
                 _invalid("duplicate_tournament", "Tournament identity is duplicated or unexpected.")
             expected = planned[tournament_index]
@@ -720,6 +833,7 @@ def evaluate_fitness(
             for result in results:
                 profile_id = _string(result.get("profile_id"), "profile_result.profile_id")
                 seat = result.get("seat")
+                _integer(seat, "profile_result.seat", 0)
                 if profile_id not in manifest_profiles or seat in result_seats:
                     _invalid("invalid_simulation_report", "Profile result identity is invalid.")
                 if (
@@ -750,6 +864,11 @@ def evaluate_fitness(
                     "Tournament finishing positions must use competition ranking.",
                 )
             expected_total = regime["player_count"] * regime["starting_stack"]
+            if any(
+                result["final_stack"] != (expected_total if result["won_tournament"] else 0)
+                for result in results
+            ):
+                _invalid("invalid_metric", "Only the terminal winner may retain tournament chips.")
             if (
                 sum(result["starting_stack"] for result in results) != expected_total
                 or sum(result["final_stack"] for result in results) != expected_total

@@ -84,6 +84,8 @@ func test_phone_burst_resizes_preserve_safe_open_ui_and_reject_stale_plan() -> v
 	var harness = fixture.harness
 	var table: PokerTableController = fixture.rendered.table
 	var original_view: GameView = table._bound_view
+	assert_null(fixture.rendered.overlay)
+	assert_false((table.get_node("%PhoneShowdownOverlay") as Control).visible)
 	var stale_plan: RefCounted = table._applied_phone_layout_plan
 	var stale_generation: int = table.get_layout_generation()
 

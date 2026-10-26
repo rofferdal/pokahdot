@@ -7,10 +7,10 @@ const GuiViewportFixturesScript := preload("res://tests/support/gui_viewport_fix
 const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
 
 const SCHEMA_VERSION: int = 1
-const SUITE_VERSION: String = "milestone-3-v1"
-const PHONE_SUITE_VERSION: String = "milestone-4-phone-v1"
+const SUITE_VERSION: String = "milestone-3-v2"
+const PHONE_SUITE_VERSION: String = "milestone-4-phone-v2"
 const MILESTONE_3_CAPTURE_COUNT: int = 348
-const PHONE_CAPTURE_COUNT: int = 378
+const PHONE_CAPTURE_COUNT: int = 406
 const MILESTONE_3_PLAYER_COUNTS: Array[int] = [2, 4, 6, 9]
 const PHONE_PLAYER_COUNTS: Array[int] = [2, 4, 6, 7]
 const PHONE_EXCLUDED_STATE_IDS: Array[StringName] = [&"event-history-full"]
@@ -18,6 +18,7 @@ const MATRIX_SOURCE_PATHS: PackedStringArray = [
 	"res://tests/support/gui_viewport_fixtures.gd",
 	"res://tests/support/gui_visual_state_fixtures.gd",
 	"res://tests/support/gui_scene_harness.gd",
+	"res://tests/support/gui_invariant_assertions.gd",
 ]
 const MILESTONE_3_VIEWPORT_IDS: Array[StringName] = [
 	&"ipad_portrait_768x1024",
@@ -51,6 +52,8 @@ static func milestone_three_cases(
 			continue
 		for count: int in MILESTONE_3_PLAYER_COUNTS:
 			for descriptor: Dictionary in GuiVisualStateFixturesScript.all(count):
+				if descriptor.id in GuiVisualStateFixturesScript.PHONE_ONLY_STATE_IDS:
+					continue
 				if descriptor.player_count == 0 and count != 2:
 					continue
 				if player_count >= 0 and descriptor.player_count != player_count:

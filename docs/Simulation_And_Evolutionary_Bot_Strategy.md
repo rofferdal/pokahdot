@@ -32,6 +32,16 @@ it. External worker pools may run shards in separate OS processes. An
 unsharded tournament has a stable zero-based `tournament_index`; its effective
 seed is `seed_start + tournament_index`.
 
+Simulation JSON seeds are nonzero integers in
+**−9,007,199,254,740,991 through +9,007,199,254,740,991**. The entire planned
+seed range must remain within those bounds and must not include zero. This
+wire-format limit keeps seed values exact across Godot's floating-point JSON
+parser and Python; the core's typed RNG API still supports signed 64-bit
+seeds. Writers must preserve integer seed values and use full-precision JSON
+serialization when reserializing parsed numbers. Preserve older artifacts
+unchanged; rerun evidence outside this lossless range with supported seeds
+instead of editing its identity or provenance.
+
 Shard `i/n` contains exactly the global indexes for which
 `tournament_index % n == i`, with `0 <= i < n`. This rule gives exhaustive,
 non-overlapping shards that may complete in any order without changing seeds,
@@ -346,6 +356,23 @@ indicator, top-third indicator, starting/final stack, chip differential,
 hands survived, survival ratio, the `bnc_per_100` numerator and denominator,
 the computed `bnc_per_100`, style metrics, and metric denominators. Aggregates
 contain the same named metrics, sample counts, and uncertainty estimates.
+
+Report inspection validates the manifest, model-specific parameters, planned
+seat/seed identities, unique result seats/indexes, terminal chip ownership,
+competition ranks and derived metrics against their primitive counters.
+Completed reports must cover their entire assigned shard. Failed reports may
+retain partial diagnostics for inspection; they are not completed fitness
+evidence. Godot and Python consume the shared
+[artifact conformance cases](../tests/fixtures/artifact_conformance_v1.json).
+Valid sparse reports remain exploratory: passing artifact validation does not
+establish promotion eligibility.
+
+Integer-valued report and manifest fields accept finite, mathematically whole
+JSON numbers, such as `2` or `2.0`, within their declared bounds. Booleans,
+strings and fractional values are rejected. Python normalizes only known
+integer fields in report copies, preserving original source bytes for report
+checksums and leaving continuous metrics unchanged. Manifest and roster
+checksums use the canonical typed snapshots.
 
 Privacy is strict: ordinary reports and every trace mode **never contain
 unrevealed opponent hole cards**, even after a tournament finishes. They may

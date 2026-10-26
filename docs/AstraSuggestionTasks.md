@@ -1,6 +1,6 @@
 # Astra Suggested Improvement Tasks
 
-Status: In progress; SIM-01 through SIM-03 are complete.
+Status: In progress; sections 1–3 are complete.
 Reviewed: 2026-10-26, baseline `c6166b5`.
 
 Themes and tasks are ordered by importance. **Defect** means an observed code
@@ -134,35 +134,58 @@ checkboxes or treat deferred landscape support as accepted.
 
 ## 3. Regression prevention and release confidence
 
-- [ ] **QA-01 — Add generated rule invariants and independent oracles. [Improvement]**
+- [x] **QA-01 — Add generated rule invariants and independent oracles. [Improvement]**
   Extend [core tests](../tests/unit/test_betting_round.gd) with seeded legal and
   illegal action sequences across 2–9 seats, chip conservation after every
   mutation, rejection immutability, raise rights, and privacy checks. Add
   evaluator permutation/suit invariance and independent known-result cases.
   Done: failures emit a replayable seed and action sequence; RULE-01–04 cannot
   regress while the ordinary suite stays green.
+  Verified: seeded preflop/postflop runs and rotated short-all-in sequences,
+  all 24 suit mappings, independent seven-card oracle vectors, and real-view
+  strategy contexts. Full `make check` passes: 580 GUT tests, 94,884 assertions,
+  85 Python tests, lint and formatting (2026-10-26).
 
-- [ ] **QA-02 — Validate changes before merge and gate current layouts. [Improvement]**
+- [x] **QA-02 — Validate changes before merge and gate current layouts. [Improvement]**
   The only [workflow](../.github/workflows/deploy-web.yml) runs on pushes to
   `main`; [release-candidate-gate](../Makefile) runs the historical M3 matrix,
   not the dedicated phone/iPad/desktop gates. Done: add non-deploying PR checks
   and the supported current regression matrices, with failures visible before
   merge. Preserve the existing automatic deployment policy.
+  Verified: non-deploying PR workflow and shared current-layout gate; 580 GUT
+  tests, 94,890 assertions, 85 Python tests and all four matrices pass locally.
+  GitHub execution awaits a PR; requiring the check remains branch protection
+  configuration. Push-to-main deployment is unchanged (2026-10-26).
 
-- [ ] **QA-03 — Test visible content and actual exported input paths. [Defect]**
+- [x] **QA-03 — Test visible content and actual exported input paths. [Defect]**
   [GUI assertions](../tests/support/gui_invariant_assertions.gd) skip ellipsized
   labels and omit overlay text-fit checks. The
   [harness](../tests/support/gui_scene_harness.gd) opens a phone showdown overlay
   that obscures cards in canonical captures. Done: separate bare-table and
   overlay fixtures, fail deliberate required-content clipping, and exercise
   exported Web pointer/touch/keypad/focus paths. Version matrix changes.
+  Verified: M3 v2 retains 348 cases; phone v2 has 406 cases with separate
+  table/summary fixtures. Required ellipsis, wrapped text and popup clipping
+  regressions pass, with demonstrated iPad/phone clipping fixed. Full check:
+  588 GUT tests, 95,084 assertions and 85 Python tests; all four layout gates
+  pass. Four Chromium cases pass on an isolated release export, including
+  real pointer/keyboard and touch/keypad tournament wagers. Affected native
+  captures were reviewed; physical-device acceptance remains separate
+  (2026-10-26).
 
-- [ ] **QA-04 — Share cross-language artifact conformance fixtures. [Improvement]**
+- [x] **QA-04 — Share cross-language artifact conformance fixtures. [Improvement]**
   [Godot report validation](../scripts/simulation/simulation_report.gd) and
   [Python validation](../tools/profile_evolution/fitness.py) duplicate contracts
   with different checks. Done: shared valid/invalid fixtures cover types,
   parameters, terminal stacks, seed limits, duplicate IDs, derived metrics and
   estimators through inspect, fitness, selection, and confirmation.
+  Verified: 55 shared cases (9 valid, 46 invalid) exercise direct Godot
+  validation/CLI inspection and Python fitness, selection and confirmation.
+  Validation checks semantic outcomes and preserves partial failure diagnostics.
+  JSON seed bounds and full-precision writes prevent cross-runtime seed drift;
+  exact whole numeric spellings agree without changing source-byte checksums.
+  Full check passes: 591 GUT tests, 95,281 assertions, 89 Python tests, lint,
+  formatting and all four layout gates (2026-10-26).
 
 ## 4. Documentation accuracy and ownership
 

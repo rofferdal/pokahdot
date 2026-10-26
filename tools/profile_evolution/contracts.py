@@ -15,6 +15,8 @@ GENES = (
 )
 MODEL_ID = "strategy_parameterized"
 MAX_SEED = (1 << 64) - 1
+# Godot's JSON parser reads numbers as binary64 before integer validation.
+MAX_SIMULATION_SEED = (1 << 53) - 1
 
 
 def _fail(code: str, message: str, details: dict[str, Any] | None = None) -> None:
@@ -55,6 +57,18 @@ def require_identifier(value: Any, context: str) -> str:
 
 def validate_seed(seed: Any, context: str = "seed") -> int:
     return require_integer(seed, context, 0, MAX_SEED)
+
+
+def validate_report_seed_range(value: Any, context: str) -> tuple[int, int]:
+    """JSON simulation seeds must round-trip exactly through both runtimes."""
+    if not isinstance(value, dict):
+        _fail("invalid_report_seed_range", f"{context} must be an object.")
+    require_exact_fields(value, ("minimum", "maximum"), context)
+    minimum = require_integer(value["minimum"], f"{context} minimum", -MAX_SIMULATION_SEED, MAX_SIMULATION_SEED)
+    maximum = require_integer(value["maximum"], f"{context} maximum", -MAX_SIMULATION_SEED, MAX_SIMULATION_SEED)
+    if minimum > maximum or minimum <= 0 <= maximum:
+        _fail("invalid_report_seed_range", f"{context} must be ordered and exclude zero.")
+    return minimum, maximum
 
 
 def validate_bounds(payload: dict[str, Any]) -> dict[str, dict[str, int]]:
@@ -291,8 +305,7 @@ def validate_selection(payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(seed_range, dict):
             _fail("invalid_selection", "Selection seed range must be an object.")
         require_exact_fields(seed_range, ("minimum", "maximum"), "selection seed range")
-        minimum_seed = require_integer(seed_range["minimum"], "minimum seed", 0, 2**63 - 1)
-        maximum_seed = require_integer(seed_range["maximum"], "maximum seed", 0, 2**63 - 1)
+        minimum_seed, maximum_seed = validate_report_seed_range(seed_range, "selection seed range")
         if minimum_seed > maximum_seed:
             _fail("invalid_selection", "Selection seed range is inverted.")
         shard = item["shard"]

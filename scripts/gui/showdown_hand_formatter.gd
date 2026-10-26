@@ -59,6 +59,37 @@ static func format_compact(showdown_result: ShowdownResult) -> String:
 			return format(showdown_result)
 
 
+static func format_inline(showdown_result: ShowdownResult) -> String:
+	if showdown_result == null or showdown_result.tie_break_values.is_empty():
+		return ""
+	var ranks: Array[int] = showdown_result.tie_break_values
+	var high: String = _rank_symbol(ranks[0])
+	match showdown_result.category:
+		HandRank.Category.HIGH_CARD:
+			return "%s-high" % high
+		HandRank.Category.ONE_PAIR:
+			return "Pair: %s" % high
+		HandRank.Category.TWO_PAIR:
+			return "Two pair: %s / %s" % [high, _rank_symbol(ranks[1])]
+		HandRank.Category.THREE_OF_A_KIND:
+			return "Three of a kind: %s" % high
+		HandRank.Category.STRAIGHT:
+			return "Straight: %s-high" % high
+		HandRank.Category.FLUSH:
+			return "Flush: %s-high" % high
+		HandRank.Category.FULL_HOUSE:
+			return "Full house: %s / %s" % [high, _rank_symbol(ranks[1])]
+		HandRank.Category.FOUR_OF_A_KIND:
+			return "Four of a kind: %s" % high
+		HandRank.Category.STRAIGHT_FLUSH:
+			return "Straight flush: %s-high" % high
+	return ""
+
+
+static func _rank_symbol(rank: int) -> String:
+	return {11: "J", 12: "Q", 13: "K", 14: "A"}.get(rank, str(rank))
+
+
 static func _rank_name(rank: int, plural: bool = false) -> String:
 	var singular_names: PackedStringArray = [
 		"",

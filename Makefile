@@ -1,11 +1,13 @@
 GODOT ?= godot
+WEB_TEST_PYTHON ?= .venv/bin/python
+WEB_TEST_OUTPUT ?= localtmp/web-input
 GDLINT := .venv/bin/gdlint
 GDFORMAT := .venv/bin/gdformat
 GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd
 WEB_EXPORT_PATH := build/web/index.html
 WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 
-.PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate gui-ipad-invariant-gate gui-desktop-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
+.PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate gui-ipad-invariant-gate gui-desktop-invariant-gate gui-current-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
 
 check:
 	$(MAKE) --no-print-directory profile-evolution-test
@@ -16,6 +18,10 @@ check:
 
 profile-evolution-test:
 	python3 -B -m unittest discover -s tests/profile_evolution -t . -v
+
+.PHONY: web-input-test
+web-input-test:
+	$(WEB_TEST_PYTHON) tools/run_web_input_tests.py --godot "$(GODOT)" --output "$(WEB_TEST_OUTPUT)"
 
 gui-visual-invariant-gate:
 	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_invariant_matrix_runner.gd -gexit
@@ -29,10 +35,16 @@ gui-ipad-invariant-gate:
 gui-desktop-invariant-gate:
 	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_desktop_invariant_matrix_runner.gd -gexit
 
+gui-current-invariant-gate:
+	$(MAKE) --no-print-directory gui-visual-invariant-gate
+	$(MAKE) --no-print-directory gui-phone-invariant-gate
+	$(MAKE) --no-print-directory gui-ipad-invariant-gate
+	$(MAKE) --no-print-directory gui-desktop-invariant-gate
+
 release-candidate-gate:
 	$(MAKE) --no-print-directory require-clean-worktree
 	$(MAKE) --no-print-directory check
-	$(MAKE) --no-print-directory gui-visual-invariant-gate
+	$(MAKE) --no-print-directory gui-current-invariant-gate
 	$(MAKE) --no-print-directory require-clean-worktree
 
 gui-visual-capture: release-candidate-gate

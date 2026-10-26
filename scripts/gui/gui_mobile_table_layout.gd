@@ -39,6 +39,7 @@ const COMPACT_MARKER_WIDTH: float = 48.0
 const COMPACT_TABLET_MARKER_WIDTH: float = 36.0
 const COMPACT_MARKER_SINGLE_LINE_HEIGHT: float = 32.0
 const COMPACT_TABLET_STATUS_SCALE: float = 0.5
+const PORTRAIT_TABLET_STATUS_SCALE: float = 1.0
 
 
 static func is_mobile_portrait(surface_size: Vector2) -> bool:

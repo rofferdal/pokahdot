@@ -52,7 +52,7 @@ func test_phone_region_tracks_each_legal_action_combination() -> void:
 func test_phone_waiting_state_keeps_summary_and_hides_action_rows() -> void:
 	var table: PokerTableController = await _phone_table(&"bot-turn")
 	assert_true(table.get_node("%PhoneHeroSummary").visible)
-	assert_string_contains(table.get_node("%ActionStatus").text, "Waiting")
+	assert_eq(table.get_node("%ActionStatus").text, "Act: Fixture Player 2")
 	assert_false(
 		(
 			table

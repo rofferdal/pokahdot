@@ -101,11 +101,11 @@ Verify the rendering and capture pipeline with one development-only case:
 make gui-visual-capture-smoke
 ```
 
-Run the complete applicable Milestone 3 invariant matrix without producing
-screenshots:
+Run all current regression matrices, including historical Milestone 3 and
+the dedicated phone, iPad, and desktop gates, without producing screenshots:
 
 ```bash
-make gui-visual-invariant-gate
+make gui-current-invariant-gate
 ```
 
 Capture the complete matrix while developing, including from a dirty tree:
@@ -118,7 +118,7 @@ This records dirty paths and their fingerprint and is never acceptance
 evidence. It does not run the ordinary complete suite or the standalone
 invariant gate first.
 
-Run the dedicated 378-case small-phone invariant matrix and render its
+Run the dedicated 406-case phone v2 invariant matrix and render its
 development screenshots with:
 
 ```bash
@@ -149,11 +149,28 @@ Produce candidate evidence only from a clean committed tree:
 make gui-visual-capture
 ```
 
-The clean target runs `make check`, runs the invariant gate, rechecks tree
+The clean target runs `make check`, runs `gui-current-invariant-gate`, rechecks tree
 cleanliness, and renders all 348 Milestone 3 captures. Its manifest is
 acceptance-eligible only if every expected capture settles and passes its
 recorded invariants. Capture commands refuse to overwrite existing evidence.
 Use `make GODOT=/full/path/to/godot <target>` when Godot is not on `PATH`.
+
+### Exercise exported Web input
+
+Install `requirements-web-test.txt` into a development virtual environment,
+then install its pinned Chromium browser with `python -m playwright install
+chromium`. Matching Godot Web export templates are required. Run
+`python tools/run_web_input_tests.py --godot /full/path/to/godot --output
+localtmp/web-input-<run-id>` from that environment; choose a new output directory
+for each run.
+
+The runner copies the production GUI into an isolated test project, exports it,
+and uses real browser pointer, touch, and keyboard events. It checks startup
+and wager fields, keypad drafts, Cancel/Done, and pointer/keyboard focus after
+touch. The observer only reports state and is excluded from production
+exports. Export logs, browser snapshots and screenshots remain under
+`localtmp/`. This local Chromium regression does not establish physical-device
+or hosted-browser acceptance.
 
 ---
 
@@ -199,6 +216,15 @@ tools/profile-evolution inspect-lineage --registry artifacts/lineage.json --cand
 ## 5. Code Quality & Pre-Commit Verification
 
 Before submitting pull requests, ensure all tests and linters pass.
+
+Run `make check gui-current-invariant-gate` while developing. Pull requests
+run `make release-candidate-gate` on the clean proposed merge with pinned
+Godot 4.7.2. The **Checks and current layouts** status covers the full suite,
+lint, formatting, and all four layout gates. It performs no deployment;
+maintainers can require this status in branch protection. The release gate
+also checks that verification leaves the working tree clean.
+The separate **Exported Web input** PR status runs the browser regression
+described above; maintainers can require both statuses before merging.
 
 ### Check Formatting (Without Modifying Files)
 ```bash

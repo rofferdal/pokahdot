@@ -11,6 +11,7 @@ extends RefCounted
 const FIXED_SEED: int = 424242
 const DEFAULT_PLAYER_COUNT: int = 6
 const SUPPORTED_PLAYER_COUNTS: Array[int] = [2, 4, 6, 7, 9]
+const PHONE_ONLY_STATE_IDS: Array[StringName] = [&"showdown-overlay"]
 
 const KIND_STARTUP: StringName = &"startup"
 const KIND_TABLE: StringName = &"table"
@@ -29,6 +30,7 @@ const STATE_IDS: Array[StringName] = [
 	&"wager-entry",
 	&"all-in-runout",
 	&"showdown-long",
+	&"showdown-overlay",
 	&"elimination",
 	&"tournament-winner",
 	&"event-history-full",
@@ -64,6 +66,7 @@ static func all(player_count: int = DEFAULT_PLAYER_COUNT) -> Array[Dictionary]:
 		),
 		_table_descriptor(&"all-in-runout", _all_in_runout_view(player_count)),
 		_table_descriptor(&"showdown-long", _showdown_view(player_count)),
+		_table_descriptor(&"showdown-overlay", _showdown_view(player_count)),
 		_table_descriptor(&"elimination", _elimination_view(player_count)),
 		_table_descriptor(&"tournament-winner", _tournament_winner_view(player_count)),
 		_table_descriptor(
@@ -244,7 +247,7 @@ static func _base_view(player_count: int, street: StringName, acting_seat: int) 
 	view.street = street
 	view.hand_number = 12
 	view.hero_seat = 0
-	view.button_seat = player_count - 1
+	view.button_seat = 0 if player_count == 2 else player_count - 1
 	view.small_blind_seat = 0
 	view.big_blind_seat = 1
 	view.small_blind = 5

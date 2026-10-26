@@ -10,6 +10,10 @@ const REPORT_SCHEMA_VERSION: int = 4
 const COMMAND_VERSION: StringName = &"simulation_cli_v6"
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
 const PROVENANCE_SCRIPT := preload("res://scripts/simulation/simulation_provenance.gd")
+const MANIFEST_CONTRACT := preload(
+	"res://scripts/simulation/simulation_report_manifest_contract.gd"
+)
+const SEMANTIC_CONTRACT := preload("res://scripts/simulation/simulation_report_semantics.gd")
 const TOURNAMENT_FIELDS := [
 	"tournament_index",
 	"plan_id",
@@ -175,15 +179,22 @@ func validate() -> PackedStringArray:
 	if manifest_checksum.is_empty():
 		errors.append("Simulation report manifest checksum is required.")
 	errors.append_array(PROVENANCE_SCRIPT.validate(execution_provenance))
-	if code_revision != execution_provenance.get("code_revision"):
+	if (
+		typeof(execution_provenance.get("code_revision")) == TYPE_STRING
+		and code_revision != execution_provenance.code_revision
+	):
 		errors.append("Simulation code revision does not match execution provenance.")
 	_validate_roster(roster, errors)
-	_validate_roster_matches_manifest(roster, manifest, errors)
+	var manifest_result: SimulationManifestParseResult = MANIFEST_CONTRACT.parse(manifest)
+	errors.append_array(manifest_result.errors)
+	if manifest_result.is_ok():
+		_validate_roster_matches_manifest(roster, manifest_result.manifest, errors)
 	if shard == null:
 		errors.append("Simulation report shard is required.")
 	else:
 		errors.append_array(shard.validate())
 	for tournament: Dictionary in tournaments:
+		_validate_known_fields(tournament, TOURNAMENT_FIELDS, "Simulation tournament", errors)
 		for field: String in TOURNAMENT_FIELDS:
 			if not tournament.has(field):
 				errors.append("Simulation tournament is missing field: %s" % field)
@@ -205,6 +216,9 @@ func validate() -> PackedStringArray:
 			if typeof(profile_result) != TYPE_DICTIONARY:
 				errors.append("Simulation profile result must be an object.")
 				continue
+			_validate_known_fields(
+				profile_result, PROFILE_RESULT_FIELDS, "Simulation profile result", errors
+			)
 			for field: String in PROFILE_RESULT_FIELDS:
 				if not profile_result.has(field):
 					errors.append("Simulation profile result is missing field: %s" % field)
@@ -220,6 +234,8 @@ func validate() -> PackedStringArray:
 				_validate_typed_field(
 					profile_result, field, TYPE_BOOL, "Simulation profile result", errors
 				)
+	if errors.is_empty():
+		errors.append_array(SEMANTIC_CONTRACT.validate(to_dictionary(), manifest_result.manifest))
 	return errors
 
 
@@ -242,7 +258,7 @@ func to_dictionary() -> Dictionary:
 
 
 func canonical_json() -> String:
-	return JSON.stringify(to_dictionary())
+	return JSON.stringify(to_dictionary(), "", true, true)
 
 
 func checksum() -> String:
@@ -268,6 +284,12 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 		"aggregates": TYPE_DICTIONARY,
 		"traces": TYPE_ARRAY,
 	}
+	_validate_known_fields(
+		data,
+		Array(required_types.keys()) + ["report_schema_version"],
+		"Simulation report",
+		report._structural_errors
+	)
 	for field: String in required_types:
 		if not data.has(field):
 			report._structural_errors.append("Simulation report is missing field: %s" % field)
@@ -277,10 +299,7 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 		report._structural_errors.append(
 			"Simulation report is missing field: report_schema_version"
 		)
-	elif (
-		typeof(data.report_schema_version) not in [TYPE_INT, TYPE_FLOAT]
-		or not is_equal_approx(data.report_schema_version, floor(data.report_schema_version))
-	):
+	elif not _is_integral_number(data.report_schema_version):
 		report._structural_errors.append(
 			"Simulation report field has invalid type: report_schema_version"
 		)
@@ -311,6 +330,9 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 		else &""
 	)
 	var shard_data: Dictionary = data.shard if typeof(data.get("shard")) == TYPE_DICTIONARY else {}
+	_validate_known_fields(
+		shard_data, ["index", "count"], "Simulation report shard", report._structural_errors
+	)
 	for field: String in ["index", "count"]:
 		if not shard_data.has(field):
 			report._structural_errors.append("Simulation report shard is missing field: %s" % field)
@@ -352,11 +374,15 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 
 
 static func _is_integral_number(value: Variant) -> bool:
-	return (
-		typeof(value) in [TYPE_INT, TYPE_FLOAT]
-		and is_finite(float(value))
-		and is_equal_approx(float(value), floor(float(value)))
-	)
+	return MANIFEST_CONTRACT.is_integer(value)
+
+
+static func _validate_known_fields(
+	data: Dictionary, fields: Array, context: String, errors: PackedStringArray
+) -> void:
+	for key: Variant in data:
+		if key not in fields:
+			errors.append("%s has unknown field: %s" % [context, key])
 
 
 static func _validate_integral_fields(
@@ -411,6 +437,7 @@ static func _validate_seat_map(value: Variant, errors: PackedStringArray) -> voi
 
 
 static func _validate_roster(value: Dictionary, errors: PackedStringArray) -> void:
+	_validate_known_fields(value, ["version", "profile_ids"], "Simulation report roster", errors)
 	for field: String in ["version", "profile_ids"]:
 		if not value.has(field):
 			errors.append("Simulation report roster is missing field: %s" % field)
@@ -420,15 +447,18 @@ static func _validate_roster(value: Dictionary, errors: PackedStringArray) -> vo
 
 
 static func _validate_roster_matches_manifest(
-	roster_value: Dictionary, manifest_value: Dictionary, errors: PackedStringArray
+	roster_value: Dictionary, manifest_value: SimulationManifest, errors: PackedStringArray
 ) -> void:
-	var manifest_result := SimulationManifest.parse(manifest_value)
-	if not manifest_result.is_ok():
-		return
-	var expected := manifest_result.manifest.roster_provenance()
-	if roster_value.get("version") != expected.version:
+	var expected := manifest_value.roster_provenance()
+	if (
+		typeof(roster_value.get("version")) == TYPE_STRING
+		and roster_value.version != expected.version
+	):
 		errors.append("Simulation report roster version does not match its manifest profiles.")
-	if roster_value.get("profile_ids") != expected.profile_ids:
+	if (
+		typeof(roster_value.get("profile_ids")) == TYPE_ARRAY
+		and roster_value.profile_ids != expected.profile_ids
+	):
 		errors.append("Simulation report roster profile IDs do not match its manifest profiles.")
 
 

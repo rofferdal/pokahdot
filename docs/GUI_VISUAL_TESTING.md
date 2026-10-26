@@ -66,7 +66,8 @@ Use these stable state IDs in tests, manifests, filenames, and defect records:
 | `all-in-runout` | all-in hand is advancing without further input |
 | `status-blank` | every shared below-seat status band is reserved but visually blank |
 | `status-retained-fold` | a completed-hand seat without a hand summary retains `Fold` in its shared status band |
-| `showdown-long` | revealed cards and up-to-two-line hand text in the shared below-seat status bands, while seats without hand text retain a relevant action |
+| `showdown-long` | bare table with revealed cards and up-to-two-line hand text in non-phone status bands; no summary overlay obscures the phone cards |
+| `showdown-overlay` | phone-only recipient-safe showdown summary explicitly opened above the same completed-hand table |
 | `elimination` | at least one player has been eliminated |
 | `tournament-winner` | final winner presentation |
 | `event-history-full` | non-phone event history filled enough to require scrolling; excluded from the phone suite |
@@ -95,9 +96,31 @@ acceptance begins.
 
 Milestone 4 activates the phone portrait, phone landscape, and reduced-height
 fixtures for the completed phone composition at 2, 4, 6, and 7 players. The
-378-case phone suite excludes `event-history-full` because phones expose no
+406-case `milestone-4-phone-v2` suite excludes `event-history-full` because phones expose no
 event-history surface. Defining those fixtures during Milestone 3 does not
 imply that the pre-Milestone-4 desktop composition passes phone acceptance.
+
+QA-03 versions the suites because required text is now checked in full,
+including ellipsized labels, vertical fit, line limits, and overlay text.
+`milestone-3-v2` retains all 348 historical M3 case identities; the phone-only
+overlay fixture is excluded from M3, iPad, and desktop matrices. The phone v2
+suite adds 28 explicit summary-overlay cases to the prior 378 cases, while
+`showdown-long` now captures the unobscured phone table. Existing v1 manifests
+and reviews remain immutable historical evidence; they do not certify the
+revised v2 checks or capture composition. Landscape fixtures remain diagnostic
+regressions and do not establish phone-landscape device acceptance.
+
+Compact portrait tablets reserve a full two-line status band and use the
+existing compact showdown descriptions. Compact landscape tablets retain
+single-line bands with complete categories and conventional rank symbols
+(for example, `Full house: A / K`). Phone role/state badges reserve their
+measured text width. Role and state tokens remain separated (for example,
+`BB F` or `BB T`); the tight all-in case concatenates its unchanged tokens
+(`BBAI`). Eliminated seats no longer show blind positions.
+The emergency phone landscape row hides its redundant status sentence rather
+than displaying a one-pixel ellipsis; the acting-seat badge and action buttons
+remain visible. The revised heads-up fixture places the button on the small
+blind, consistently with the product rules.
 
 Before clean release evidence is produced, every implemented scope must pass
 its canonical automated matrix and rendered review. Every known blocker,
@@ -131,13 +154,14 @@ the editor binary is not on `PATH`, for example
 | Command | Purpose and evidence status |
 | --- | --- |
 | `make gui-visual-capture-smoke` | Render only the 1280 x 720, six-player `human-turn-preflop` case. It accepts a dirty tree, writes development-only output, and checks the renderer/capture pipeline without running the complete matrix or ordinary test suite. It is never acceptance evidence. |
-| `make gui-visual-invariant-gate` | Run the complete applicable Milestone 3 tablet, small-desktop, and desktop matrix through the reusable scene harness and invariant assertions under GUT. It writes no screenshot evidence and may remain red while documented geometry remediation is unfinished. |
-| `make gui-phone-invariant-gate` | Run the distinct 378-case Milestone 4 phone matrix across all canonical portrait, landscape, and reduced-height fixtures at 2, 4, 6, and 7 players. It verifies full bot names, numeric stacks, two hole-card fields, phone overlays, absent event history, and resize cycles without altering the historical Milestone 3 matrix. |
+| `make gui-visual-invariant-gate` | Run the historical Milestone 3 tablet, small-desktop, and desktop matrix through the reusable scene harness and invariant assertions under GUT. It writes no screenshot evidence. |
+| `make gui-phone-invariant-gate` | Run the distinct 406-case phone v2 matrix across canonical portrait, landscape, and reduced-height fixtures at 2, 4, 6, and 7 players. It verifies full bot names, numeric stacks, two hole-card fields, separate bare-table and summary-overlay states, absent event history, and resize cycles. |
 | `make gui-ipad-invariant-gate` | Run the iPad-specific full-state matrix at canonical portrait and landscape sizes, the 1194 x 696 reduced-height Chrome regression, and the 2388 x 1450 observed surface for 2, 4, 6, 7, and 9 players. It adds centering and symmetric-arc coverage without changing the frozen 348-case Milestone 3 capture matrix. |
 | `make gui-desktop-invariant-gate` | Run the desktop-specific full-state matrix at 950 x 532, 1280 x 720, the provisional 1853 x 916 screenshot raster, and 1920 x 1080 for 2, 4, 6, and 9 players. The raster fixture is diagnostic coverage and does not replace measured CSS viewport evidence. |
+| `make gui-current-invariant-gate` | Run the historical Milestone 3 gate followed by the dedicated phone, iPad, and desktop gates. Pull-request validation and release candidates both require every matrix to pass. Historical fixture identities and manual device-acceptance status remain separate. |
 | `make gui-visual-capture-development` | Render the complete Milestone 3 capture matrix with `--development`. It accepts a dirty tree, records dirty paths and their fingerprint, and always produces non-acceptance evidence. It does not implicitly run `make check` or the standalone invariant gate. |
 | `make gui-phone-capture-development` | Render the complete Milestone 4 phone matrix as development-only evidence. Human review of this output is required by the separate local phone visual-acceptance task. |
-| `make gui-visual-capture` | Produce clean candidate evidence. It refuses a dirty tree, runs `make check` and `gui-visual-invariant-gate`, checks cleanliness again, then renders the complete Milestone 3 matrix. Its manifest is acceptance-eligible only when all 348 expected captures settle and pass their recorded invariants. |
+| `make gui-visual-capture` | Produce clean candidate evidence. It refuses a dirty tree, runs `make check` and `gui-current-invariant-gate`, checks cleanliness again, then renders the complete Milestone 3 matrix. Its manifest is acceptance-eligible only when all 348 expected captures settle and pass their recorded invariants. |
 
 All rendered commands require a real display and the Compatibility renderer;
 the capture runner rejects a headless or dummy renderer. Capture targets refuse
@@ -152,7 +176,7 @@ and physical-device evidence that may be collected manually.
 For each affected matrix slice:
 
 1. Reproduce the case with the scene harness and record its invariant failures.
-2. During remediation, run `make gui-visual-invariant-gate` and use
+2. During remediation, run `make gui-current-invariant-gate` and use
    `make gui-visual-capture-development` or the smoke target for rendered
    evidence.
 3. Validate that the manifest and PNG set are complete and mutually referential.
@@ -226,7 +250,7 @@ not a hand-maintained substitute for fixture definitions. It contains:
   `invariants.layout_settled`, and the exact invariant-failure list.
 
 Development and filtered captures always have `acceptance_eligible: false`.
-For the current `milestone-3-v1` suite, only a clean, non-development,
+For the current `milestone-3-v2` suite, only a clean, non-development,
 `full_m3` manifest containing all 348 passing captures can be
 acceptance-eligible. Independently compute and record the completed manifest's
 SHA-256 in its review or defect record; the runner also prints that checksum.
@@ -255,7 +279,8 @@ this process:
 4. Push the reviewed commit to `main`, then record the automatically triggered
    **Deploy Web release** run URL and deployed commit SHA.
 5. CI checks out the pushed SHA and runs `make release-candidate-gate`. Its
-   headless environment reruns the complete suite and GUI invariant matrix;
+   headless environment reruns the complete suite and the historical, phone,
+   iPad, and desktop invariant matrices;
    `web-release` then performs the Web export/output checks. CI does not
    regenerate representative screenshots or replace the completed rendered
    review.

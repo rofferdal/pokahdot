@@ -103,7 +103,8 @@ static func validate(value: Dictionary) -> PackedStringArray:
 	else:
 		var algorithms: Dictionary = value.algorithm_versions
 		var expected_algorithms := ALGORITHM_VERSIONS.duplicate()
-		var rng_algorithm := String(algorithms.get("rng_streams", ""))
+		var rng_value: Variant = algorithms.get("rng_streams")
+		var rng_algorithm: String = rng_value if typeof(rng_value) == TYPE_STRING else ""
 		expected_algorithms["rng_streams"] = rng_algorithm
 		if (
 			algorithms != expected_algorithms
@@ -115,6 +116,8 @@ static func validate(value: Dictionary) -> PackedStringArray:
 	]:
 		if typeof(value.get(field)) != TYPE_STRING:
 			errors.append("Simulation provenance field has invalid type: %s" % field)
+	if not errors.is_empty():
+		return errors
 	var revision := String(value.get("code_revision", ""))
 	if revision.length() not in [40, 64] or not _is_lower_hex(revision):
 		errors.append("Simulation code revision must be a Git object ID.")

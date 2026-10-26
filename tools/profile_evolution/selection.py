@@ -15,6 +15,7 @@ from .contracts import (
     require_integer,
     validate_bounds,
     validate_candidate,
+    validate_report_seed_range,
 )
 from .errors import ExitCode, ToolError
 from .fitness import COMPONENTS, _validate_execution_provenance
@@ -134,8 +135,7 @@ def validate_fitness_payload(payload: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(seed_range, dict):
             _fail("invalid_fitness_artifact", "Report seed_range must be an object.")
         require_exact_fields(seed_range, ("minimum", "maximum"), "report seed range")
-        minimum_seed = require_integer(seed_range["minimum"], "minimum seed", 0, 2**63 - 1)
-        maximum_seed = require_integer(seed_range["maximum"], "maximum seed", 0, 2**63 - 1)
+        minimum_seed, maximum_seed = validate_report_seed_range(seed_range, "report seed range")
         if minimum_seed > maximum_seed:
             _fail("invalid_fitness_artifact", "Report seed range is inverted.")
         shard = evidence["shard"]

@@ -25,6 +25,8 @@ func test_desktop_visual_matrix_satisfies_gui_invariants() -> void:
 			continue
 		for player_count: int in DESKTOP_PLAYER_COUNTS:
 			for descriptor: Dictionary in GuiVisualStateFixturesScript.all(player_count):
+				if descriptor.id in GuiVisualStateFixturesScript.PHONE_ONLY_STATE_IDS:
+					continue
 				if descriptor.player_count == 0 and player_count != 2:
 					continue
 				var harness: Node = GuiSceneHarnessScript.new()

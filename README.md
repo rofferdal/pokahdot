@@ -168,6 +168,8 @@ dirty fingerprint, Godot version, and algorithm versions. Fitness rejects
 shards with different provenance. Replay reports outcome and provenance
 mismatches separately. Older reports remain immutable historical artifacts and
 must be rerun for current promotion use.
+Manifest seeds and their complete planned range must fit the
+[lossless JSON seed contract](docs/Simulation_And_Evolutionary_Bot_Strategy.md#21-batch-architecture-and-sharding).
 
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
@@ -312,8 +314,14 @@ capture have different evidence semantics. Follow
 [`docs/templates/GUI_DEFECT.md`](docs/templates/GUI_DEFECT.md) for every GUI
 defect. The complete command reference is also available in
 [`devdocs/how-to/running-and-testing.md`](devdocs/how-to/running-and-testing.md).
-`make web-release` creates a local export. Every successful push to `main`
-automatically validates and deploys that commit to GitHub Pages; follow
+`make check gui-current-invariant-gate` runs the complete headless suite and
+the historical, phone, iPad, and desktop layout matrices during development.
+Pull requests run the same checks through `release-candidate-gate` on a clean
+proposed merge, using Godot 4.7.2, without deployment. Failures appear in the
+**Checks and current layouts** status; **Exported Web input** separately tests
+real browser input against an isolated release export. Maintainers can require
+both statuses in branch protection. `make web-release` creates a local export. Every successful push
+to `main` automatically validates and deploys that commit to GitHub Pages; follow
 [`docs/OPTIONAL_WEB_SETUP.md`](docs/OPTIONAL_WEB_SETUP.md).
 
 ## GUI action pace

@@ -1,0 +1,100 @@
+name: Validate pull request
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  GODOT_RELEASE: 4.7.2-stable
+
+jobs:
+  checks:
+    name: Checks and current layouts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out proposed merge
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot_archive="Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          release_url="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          curl --fail --location --retry 3 --output "/tmp/${godot_archive}" "${release_url}/${godot_archive}"
+          unzip -q "/tmp/${godot_archive}" -d "$RUNNER_TEMP/godot"
+          install -m 0755 "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" "$RUNNER_TEMP/godot/godot"
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+
+      - name: Install pinned development tools
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --requirement requirements-dev.txt
+
+      - name: Validate rules, tooling, and current layout matrices
+        run: make release-candidate-gate
+
+  web-input:
+    name: Exported Web input
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out proposed merge
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned Godot editor and Web templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_url="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          godot_archive="Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          templates_archive="Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/godot.zip" "${release_url}/${godot_archive}"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          install -m 0755 "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" "$RUNNER_TEMP/godot/godot"
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/templates.tpz" "${release_url}/${templates_archive}"
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/export-templates"
+          template_dir="$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          mkdir -p "$template_dir"
+          cp "$RUNNER_TEMP/export-templates/templates/web_nothreads_release.zip" "$template_dir/"
+
+      - name: Install pinned browser tooling
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --requirement requirements-web-test.txt
+          .venv/bin/python -m playwright install --with-deps chromium
+
+      - name: Exercise exported pointer, touch, keypad, and focus paths
+        run: make web-input-test
+
+      - name: Retain browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: exported-web-input
+          path: |
+            localtmp/web-input/*.json
+            localtmp/web-input/*.png
+            localtmp/web-input/export.log
+          if-no-files-found: warn

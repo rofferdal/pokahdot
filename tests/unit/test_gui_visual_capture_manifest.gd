@@ -67,6 +67,9 @@ func test_phone_capture_matrix_is_separate_complete_unique_and_deterministic() -
 	assert_eq(CaptureManifestScript.phone_cases(&"", &"startup", 0).size(), 7)
 	assert_eq(CaptureManifestScript.phone_cases(&"", &"keypad-open", 0).size(), 7)
 	assert_eq(CaptureManifestScript.milestone_three_cases().size(), 348)
+	assert_eq(CaptureManifestScript.phone_cases(&"", &"showdown-overlay").size(), 28)
+	assert_eq(CaptureManifestScript.milestone_three_cases(&"", &"showdown-overlay").size(), 0)
+	assert_eq(CaptureManifestScript.PHONE_SUITE_VERSION, "milestone-4-phone-v2")
 
 
 func test_manifest_marks_only_clean_gate_evidence_as_acceptance_eligible() -> void:

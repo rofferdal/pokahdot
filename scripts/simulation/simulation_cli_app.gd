@@ -303,14 +303,6 @@ func _load_report(path: String) -> RefCounted:
 	var report: RefCounted = REPORT_SCRIPT.from_dictionary(parsed)
 	result.report = report
 	result.errors = report.validate()
-	if result.errors.is_empty():
-		var manifest_result := MANIFEST_SCRIPT.parse(report.manifest)
-		result.errors.append_array(manifest_result.errors)
-		if (
-			manifest_result.is_ok()
-			and manifest_result.manifest.checksum() != report.manifest_checksum
-		):
-			result.errors.append("Report manifest checksum does not match its manifest.")
 	return result
 
 
@@ -334,7 +326,7 @@ func _write_dictionary(path: String, document: Dictionary, overwrite: bool) -> b
 	if file == null:
 		printerr("Unable to create temporary report: %s" % temporary_path)
 		return false
-	file.store_string(JSON.stringify(document))
+	file.store_string(JSON.stringify(document, "", true, true))
 	file.close()
 	var absolute_temp := ProjectSettings.globalize_path(temporary_path)
 	var absolute_target := ProjectSettings.globalize_path(path)
@@ -419,7 +411,7 @@ func _batch_errors(batch: SimulationBatchResult) -> PackedStringArray:
 
 func _print_document(document: Dictionary, format: SimulationCommandOptions.OutputFormat) -> void:
 	if format == SimulationCommandOptions.OutputFormat.JSON:
-		print(JSON.stringify(document))
+		print(JSON.stringify(document, "", true, true))
 		return
 	for key: Variant in document:
 		print("%s: %s" % [key, document[key]])

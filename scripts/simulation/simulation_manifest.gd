@@ -7,6 +7,8 @@ extends RefCounted
 ## the typed snapshots held by this value.
 
 const SUPPORTED_SCHEMA_VERSION: int = 2
+## JSON numbers must survive Godot's double-precision parser without rounding.
+const MAX_WIRE_SEED: int = 9007199254740991
 const BLIND_PROGRESSION: StringName = &"normative_hand_based_v1"
 const PLAN_SCRIPT := preload("res://scripts/simulation/simulation_evaluation_plan.gd")
 const PARSE_RESULT_SCRIPT := preload("res://scripts/simulation/simulation_manifest_parse_result.gd")
@@ -43,6 +45,10 @@ func validate() -> PackedStringArray:
 		errors.append("Unsupported simulation manifest schema version.")
 	if batch_id.is_empty():
 		errors.append("A simulation batch ID is required.")
+	if seed_start == 0 or seed_start < -MAX_WIRE_SEED or seed_start > MAX_WIRE_SEED:
+		errors.append(
+			"Simulation seeds must be non-zero JSON-safe integers within +/-9007199254740991."
+		)
 	var profile_by_id: Dictionary = {}
 	for profile: BotProfile in profiles:
 		if profile == null:
@@ -128,6 +134,12 @@ func validate() -> PackedStringArray:
 			errors.append("Simulation effective seed exceeds the integer limit.")
 		elif seed_start <= 0 and seed_start + last_index >= 0:
 			errors.append("Simulation effective seeds must be non-zero.")
+		if (
+			seed_start >= -MAX_WIRE_SEED
+			and seed_start <= MAX_WIRE_SEED
+			and last_index > MAX_WIRE_SEED - seed_start
+		):
+			errors.append("Simulation effective seed exceeds the JSON-safe integer limit.")
 	return errors
 
 
@@ -476,7 +488,12 @@ static func _is_integral(value: Variant) -> bool:
 	if typeof(value) == TYPE_INT:
 		return true
 	if typeof(value) == TYPE_FLOAT:
-		return is_equal_approx(value, floor(value))
+		return (
+			is_finite(value)
+			and value == floor(value)
+			and value >= -9223372036854775808.0
+			and value < 9223372036854775808.0
+		)
 	return false
 
 

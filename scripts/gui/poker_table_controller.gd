@@ -624,8 +624,8 @@ func _phone_seat_badge_text(player_view: PlayerView) -> String:
 func _phone_token_badge_text(player_view: PlayerView) -> String:
 	var badges: Array[String] = []
 	var position_text: String = _seat_marker_text(player_view)
-	if not position_text.is_empty():
-		badges.append(position_text)
+	if not position_text.is_empty() and not player_view.busted:
+		badges.append(position_text.replace(" ", ""))
 	if player_view.folded:
 		badges.append("F")
 	elif player_view.all_in:
@@ -634,7 +634,7 @@ func _phone_token_badge_text(player_view: PlayerView) -> String:
 		badges.append("Out")
 	elif player_view.seat == _bound_view.acting_seat:
 		badges.append("T")
-	return " ".join(badges)
+	return "".join(badges) if player_view.all_in else " ".join(badges)
 
 
 func _create_phone_action_badge(seat: int) -> Label:
@@ -678,7 +678,7 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 			action_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 			action_badge.offset_left = -45.0 - action_width
 			action_badge.offset_right = -45.0
-			action_badge.offset_top = 29.0
+			action_badge.offset_top = 30.0
 			action_badge.offset_bottom = 59.0
 		else:
 			# Anchor from the fixed card fields so Web-font glyph width, rather
@@ -690,7 +690,26 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 			action_badge.offset_bottom = 60.0
 		action_badge.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		var state_badge := seat_widget.find_child("Badge", true, false) as Label
+		var state_width: float = (
+			ceilf(
+				(
+					state_badge
+					. get_theme_font("font")
+					. get_string_size(
+						state_badge.text,
+						HORIZONTAL_ALIGNMENT_LEFT,
+						-1.0,
+						state_badge.get_theme_font_size("font_size")
+					)
+					. x
+				)
+			)
+			+ 4.0
+		)
+		state_badge.offset_left = -state_width - 4.0
 		state_badge.offset_bottom = 30.0
+		var name_label := seat_widget.find_child("Name", true, false) as Label
+		name_label.offset_right = -state_width - 4.0
 		var stack := seat_widget.find_child("Stack", true, false) as Label
 		stack.set_anchors_preset(Control.PRESET_TOP_LEFT if landscape else Control.PRESET_TOP_WIDE)
 		stack.offset_left = 4.0
@@ -1078,11 +1097,26 @@ func _create_seat_status_label(player_view: PlayerView) -> Label:
 	return status_label
 
 
+func _tablet_status_scale() -> float:
+	if _surface.size.y > _surface.size.x:
+		return GuiMobileTableLayoutScript.PORTRAIT_TABLET_STATUS_SCALE
+	return GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+
+
 func _showdown_hand_text(seat: int) -> String:
 	if _bound_view == null:
 		return ""
 	var showdown_result: ShowdownResult = _bound_view.showdown_results.get(seat)
-	if GuiMobileTableLayoutScript.is_small_desktop(_surface.size):
+	if (
+		get_layout_profile() == GuiLayoutProfileScript.Kind.TABLET
+		and _surface.size.x < 1600.0
+		and _surface.size.x >= _surface.size.y
+	):
+		return ShowdownHandFormatterScript.format_inline(showdown_result)
+	if (
+		GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
+		or (get_layout_profile() == GuiLayoutProfileScript.Kind.TABLET and _surface.size.x < 1600.0)
+	):
 		return ShowdownHandFormatterScript.format_compact(showdown_result)
 	return ShowdownHandFormatterScript.format(showdown_result)
 
@@ -1304,7 +1338,7 @@ func _refresh_action_controls() -> void:
 		_action_status.text = "Hand complete."
 	else:
 		_action_status.text = (
-			"Waiting for %s — %s."
+			"%s to act — %s"
 			% [
 				GuiEventFormatterScript.player_name_for(_bound_view, _bound_view.acting_seat),
 				GuiEventFormatterScript.street_name(_bound_view),
@@ -1322,7 +1356,7 @@ func _refresh_action_controls() -> void:
 				_action_status.text = "Hand complete"
 			else:
 				_action_status.text = (
-					"Waiting: %s"
+					"Act: %s"
 					% GuiEventFormatterScript.player_name_for(_bound_view, _bound_view.acting_seat)
 				)
 
@@ -1922,10 +1956,8 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for status_label: Label in _seat_status_widgets.values():
 			status_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
-			if compact_tablet_layout:
+			if compact_tablet_layout and not portrait_tablet_layout:
 				status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-				status_label.clip_text = true
-				status_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 				status_label.max_lines_visible = 1
 		for card: Control in _card_slots.get_children():
 			GuiMobileTableLayoutScript._scale_card_face(card, Vector2(52.0, 57.0), 22)
@@ -2216,7 +2248,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 				small_desktop_opponent_index += 1
 		var status_label: Label = _seat_status_widgets.get(seat)
 		var status_scale: float = (
-			GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+			_tablet_status_scale()
 			if compact_tablet_layout
 			else (1.0 if small_desktop_layout else seat_visual_scale)
 		)
@@ -2271,7 +2303,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 					_seat_widgets[seat],
 					true,
 					(
-						GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+						_tablet_status_scale()
 						if compact_tablet_layout
 						else (1.0 if small_desktop_layout else seat_visual_scale)
 					),
@@ -2282,7 +2314,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			surface_size,
 			compact_layout,
 			(
-				GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+				_tablet_status_scale()
 				if compact_tablet_layout
 				else (1.0 if small_desktop_layout else seat_visual_scale)
 			),
@@ -2291,7 +2323,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		_resolve_seat_panel_intersections(
 			compact_layout,
 			(
-				GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
+				_tablet_status_scale()
 				if compact_tablet_layout
 				else (1.0 if small_desktop_layout else seat_visual_scale)
 			),
@@ -2418,6 +2450,9 @@ func _configure_phone_action_rows(single_row: bool) -> void:
 	var primary_buttons := action_rows.get_node("PrimaryButtons") as HBoxContainer
 	var wager_controls := action_rows.get_node("WagerControls") as HBoxContainer
 	if single_row:
+		# The acting-seat badge and available buttons retain turn state in this
+		# emergency landscape row; do not leave a clipped status allocation.
+		_action_status.hide()
 		if _action_status.get_parent() != hero_summary:
 			_action_status.reparent(hero_summary)
 		if _wager_button.get_parent() != primary_buttons:
@@ -2432,6 +2467,7 @@ func _configure_phone_action_rows(single_row: bool) -> void:
 func _restore_phone_action_rows() -> void:
 	if not is_instance_valid(_action_panel):
 		return
+	_action_status.show()
 	var action_content := _action_panel.get_node("Margin/Content") as VBoxContainer
 	var action_rows := action_content.get_node("ActionRows") as VBoxContainer
 	var wager_controls := action_rows.get_node("WagerControls") as HBoxContainer
@@ -2515,14 +2551,8 @@ func _layout_compact_tablet_lower_regions(surface_size: Vector2, center_width: f
 		push_error("Compact tablet layout requires a human seat panel.")
 		return
 	var status_reservation: float = (
-		(
-			GuiMobileTableLayoutScript.COMPACT_STATUS_BAND_HEIGHT
-			* GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
-		)
-		+ (
-			GuiMobileTableLayoutScript.STATUS_BAND_GAP
-			* GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
-		)
+		(GuiMobileTableLayoutScript.COMPACT_STATUS_BAND_HEIGHT * _tablet_status_scale())
+		+ (GuiMobileTableLayoutScript.STATUS_BAND_GAP * _tablet_status_scale())
 	)
 	var required_side_height: float = maxf(
 		125.0,

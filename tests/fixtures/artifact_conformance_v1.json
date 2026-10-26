@@ -1,0 +1,2366 @@
+{
+  "fixture_version": 1,
+  "generation": {
+    "schema_version": 1,
+    "type": "generation_manifest",
+    "tool_version": "0.1.0",
+    "payload": {
+      "generation_id": "generation_g0_93bc3f086a20ed4c",
+      "generation": 0,
+      "seed": 14,
+      "bounds": {
+        "genes": {
+          "tight_vs_loose": {
+            "minimum": 0,
+            "maximum": 100
+          },
+          "passive_vs_aggressive": {
+            "minimum": 0,
+            "maximum": 100
+          },
+          "call_vs_raise": {
+            "minimum": 0,
+            "maximum": 100
+          },
+          "bluff_rate": {
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      },
+      "candidates": [
+        {
+          "candidate_id": "candidate_g0_0000_8080441289d28bf3",
+          "model_id": "strategy_parameterized",
+          "parameters": {
+            "tight_vs_loose": 43,
+            "passive_vs_aggressive": 49,
+            "call_vs_raise": 21,
+            "bluff_rate": 6
+          },
+          "parent_ids": []
+        },
+        {
+          "candidate_id": "candidate_g0_0001_e54b36234f03d09a",
+          "model_id": "strategy_parameterized",
+          "parameters": {
+            "tight_vs_loose": 13,
+            "passive_vs_aggressive": 29,
+            "call_vs_raise": 49,
+            "bluff_rate": 48
+          },
+          "parent_ids": []
+        }
+      ],
+      "creation_records": [
+        {
+          "candidate_id": "candidate_g0_0000_8080441289d28bf3",
+          "operation": "initialization",
+          "parent_ids": [],
+          "seed": 14
+        },
+        {
+          "candidate_id": "candidate_g0_0001_e54b36234f03d09a",
+          "operation": "initialization",
+          "parent_ids": [],
+          "seed": 14
+        }
+      ]
+    },
+    "checksum": "6328c217e1e3bd13eb52b042db103a771d14bd4fa7cf4424b59aa664150ee19d"
+  },
+  "base_report": {
+    "report_schema_version": 4,
+    "manifest": {
+      "schema_version": 2,
+      "batch_id": "fitness_test",
+      "seed_start": 1000,
+      "profiles": [
+        {
+          "profile_id": "candidate_g0_0000_8080441289d28bf3",
+          "model_id": "strategy_parameterized",
+          "parameters": {
+            "tight_vs_loose": 43,
+            "passive_vs_aggressive": 49,
+            "call_vs_raise": 21,
+            "bluff_rate": 6
+          }
+        },
+        {
+          "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+          "model_id": "strategy_parameterized",
+          "parameters": {
+            "tight_vs_loose": 13,
+            "passive_vs_aggressive": 29,
+            "call_vs_raise": 49,
+            "bluff_rate": 48
+          }
+        }
+      ],
+      "regimes": [
+        {
+          "regime_id": "regime_0",
+          "player_count": 2,
+          "starting_stack": 20,
+          "starting_small_blind": 5,
+          "starting_big_blind": 10,
+          "blind_progression": "normative_hand_based_v1"
+        }
+      ],
+      "matchups": [
+        {
+          "matchup_id": "matchup_0",
+          "profile_ids": [
+            "candidate_g0_0000_8080441289d28bf3",
+            "candidate_g0_0001_e54b36234f03d09a"
+          ]
+        }
+      ],
+      "evaluation_plans": [
+        {
+          "plan_id": "plan_0",
+          "regime_id": "regime_0",
+          "matchup_ids": [
+            "matchup_0"
+          ],
+          "tournament_count": 2,
+          "seat_rotation": "cyclic",
+          "minimum_profile_samples": 2,
+          "uncertainty_estimator": "normal_95"
+        }
+      ]
+    },
+    "manifest_checksum": "6171bd8bcd9470640aec4c59f3fe0a2ff7dda88843165583c34dc2b2213d3cc4",
+    "roster": {
+      "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+      "profile_ids": [
+        "candidate_g0_0000_8080441289d28bf3",
+        "candidate_g0_0001_e54b36234f03d09a"
+      ]
+    },
+    "code_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "command_version": "simulation_cli_v6",
+    "execution_provenance": {
+      "algorithm_versions": {
+        "aggregate_statistics": "normal_95_v1",
+        "rng_streams": "named_stream_v1",
+        "simulation_runner": "tournament_match_v1",
+        "tournament_metrics": "elimination_history_v1"
+      },
+      "code_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "dirty_source_fingerprint": "",
+      "engine_version": "4.7.2",
+      "source_state": "clean"
+    },
+    "shard": {
+      "index": 0,
+      "count": 1
+    },
+    "started_at": "2026-01-01T00:00:00",
+    "finished_at": "2026-01-01T00:01:00",
+    "tournaments": [
+      {
+        "tournament_index": 0,
+        "plan_id": "plan_0",
+        "plan_tournament_index": 0,
+        "regime_id": "regime_0",
+        "matchup_id": "matchup_0",
+        "matchup_occurrence": 0,
+        "rotation": 0,
+        "effective_seed": 1000,
+        "seat_map": [
+          {
+            "seat": 0,
+            "profile_id": "candidate_g0_0000_8080441289d28bf3"
+          },
+          {
+            "seat": 1,
+            "profile_id": "candidate_g0_0001_e54b36234f03d09a"
+          }
+        ],
+        "selected_profile_ids": [
+          "candidate_g0_0000_8080441289d28bf3",
+          "candidate_g0_0001_e54b36234f03d09a"
+        ],
+        "termination_reason": "winner",
+        "winner_profile_id": "candidate_g0_0000_8080441289d28bf3",
+        "tournament_hand_count": 1,
+        "profile_results": [
+          {
+            "seat": 0,
+            "profile_id": "candidate_g0_0000_8080441289d28bf3",
+            "finishing_position": 1,
+            "won_tournament": true,
+            "top_third": true,
+            "starting_stack": 20,
+            "final_stack": 40,
+            "chip_differential": 20,
+            "hands_survived": 1,
+            "tournament_hand_count": 1,
+            "survival_ratio": 1.0,
+            "blind_normalized_chip_sum": 2.0,
+            "hands_observed": 1,
+            "bnc_per_100": 200.0,
+            "vpip_hands": 1,
+            "vpip_rate": 1.0,
+            "pfr_hands": 0,
+            "pfr_rate": 0.0,
+            "bet_actions": 0,
+            "raise_actions": 0,
+            "aggressive_actions": 0,
+            "call_actions": 1,
+            "aggression_factor": 0.0,
+            "bet_raise_opportunities": 1,
+            "bet_raise_frequency": 0.0,
+            "check_bet_opportunities": 1,
+            "bets_at_check_bet_opportunity": 0,
+            "bet_frequency": 0.0,
+            "call_raise_opportunities": 1,
+            "calls_at_call_raise_opportunity": 1,
+            "raises_at_call_raise_opportunity": 0,
+            "raise_share": 0.0,
+            "eligible_bluff_opportunities": 1,
+            "bluff_actions": 0,
+            "eligible_bluff_frequency": 0.0,
+            "invalid_action_fallbacks": 0
+          },
+          {
+            "seat": 1,
+            "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+            "finishing_position": 2,
+            "won_tournament": false,
+            "top_third": false,
+            "starting_stack": 20,
+            "final_stack": 0,
+            "chip_differential": -20,
+            "hands_survived": 1,
+            "tournament_hand_count": 1,
+            "survival_ratio": 1.0,
+            "blind_normalized_chip_sum": -2.0,
+            "hands_observed": 1,
+            "bnc_per_100": -200.0,
+            "vpip_hands": 1,
+            "vpip_rate": 1.0,
+            "pfr_hands": 0,
+            "pfr_rate": 0.0,
+            "bet_actions": 0,
+            "raise_actions": 0,
+            "aggressive_actions": 0,
+            "call_actions": 1,
+            "aggression_factor": 0.0,
+            "bet_raise_opportunities": 1,
+            "bet_raise_frequency": 0.0,
+            "check_bet_opportunities": 1,
+            "bets_at_check_bet_opportunity": 0,
+            "bet_frequency": 0.0,
+            "call_raise_opportunities": 1,
+            "calls_at_call_raise_opportunity": 1,
+            "raises_at_call_raise_opportunity": 0,
+            "raise_share": 0.0,
+            "eligible_bluff_opportunities": 1,
+            "bluff_actions": 0,
+            "eligible_bluff_frequency": 0.0,
+            "invalid_action_fallbacks": 0
+          }
+        ],
+        "diagnostics": []
+      },
+      {
+        "tournament_index": 1,
+        "plan_id": "plan_0",
+        "plan_tournament_index": 1,
+        "regime_id": "regime_0",
+        "matchup_id": "matchup_0",
+        "matchup_occurrence": 1,
+        "rotation": 1,
+        "effective_seed": 1001,
+        "seat_map": [
+          {
+            "seat": 0,
+            "profile_id": "candidate_g0_0001_e54b36234f03d09a"
+          },
+          {
+            "seat": 1,
+            "profile_id": "candidate_g0_0000_8080441289d28bf3"
+          }
+        ],
+        "selected_profile_ids": [
+          "candidate_g0_0001_e54b36234f03d09a",
+          "candidate_g0_0000_8080441289d28bf3"
+        ],
+        "termination_reason": "winner",
+        "winner_profile_id": "candidate_g0_0001_e54b36234f03d09a",
+        "tournament_hand_count": 1,
+        "profile_results": [
+          {
+            "seat": 0,
+            "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+            "finishing_position": 1,
+            "won_tournament": true,
+            "top_third": true,
+            "starting_stack": 20,
+            "final_stack": 40,
+            "chip_differential": 20,
+            "hands_survived": 1,
+            "tournament_hand_count": 1,
+            "survival_ratio": 1.0,
+            "blind_normalized_chip_sum": 2.0,
+            "hands_observed": 1,
+            "bnc_per_100": 200.0,
+            "vpip_hands": 1,
+            "vpip_rate": 1.0,
+            "pfr_hands": 0,
+            "pfr_rate": 0.0,
+            "bet_actions": 0,
+            "raise_actions": 0,
+            "aggressive_actions": 0,
+            "call_actions": 1,
+            "aggression_factor": 0.0,
+            "bet_raise_opportunities": 1,
+            "bet_raise_frequency": 0.0,
+            "check_bet_opportunities": 1,
+            "bets_at_check_bet_opportunity": 0,
+            "bet_frequency": 0.0,
+            "call_raise_opportunities": 1,
+            "calls_at_call_raise_opportunity": 1,
+            "raises_at_call_raise_opportunity": 0,
+            "raise_share": 0.0,
+            "eligible_bluff_opportunities": 1,
+            "bluff_actions": 0,
+            "eligible_bluff_frequency": 0.0,
+            "invalid_action_fallbacks": 0
+          },
+          {
+            "seat": 1,
+            "profile_id": "candidate_g0_0000_8080441289d28bf3",
+            "finishing_position": 2,
+            "won_tournament": false,
+            "top_third": false,
+            "starting_stack": 20,
+            "final_stack": 0,
+            "chip_differential": -20,
+            "hands_survived": 1,
+            "tournament_hand_count": 1,
+            "survival_ratio": 1.0,
+            "blind_normalized_chip_sum": -2.0,
+            "hands_observed": 1,
+            "bnc_per_100": -200.0,
+            "vpip_hands": 1,
+            "vpip_rate": 1.0,
+            "pfr_hands": 0,
+            "pfr_rate": 0.0,
+            "bet_actions": 0,
+            "raise_actions": 0,
+            "aggressive_actions": 0,
+            "call_actions": 1,
+            "aggression_factor": 0.0,
+            "bet_raise_opportunities": 1,
+            "bet_raise_frequency": 0.0,
+            "check_bet_opportunities": 1,
+            "bets_at_check_bet_opportunity": 0,
+            "bet_frequency": 0.0,
+            "call_raise_opportunities": 1,
+            "calls_at_call_raise_opportunity": 1,
+            "raises_at_call_raise_opportunity": 0,
+            "raise_share": 0.0,
+            "eligible_bluff_opportunities": 1,
+            "bluff_actions": 0,
+            "eligible_bluff_frequency": 0.0,
+            "invalid_action_fallbacks": 0
+          }
+        ],
+        "diagnostics": []
+      }
+    ],
+    "aggregates": {},
+    "traces": []
+  },
+  "cases": [
+    {
+      "id": "valid_completed",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_sparse_threshold",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "evaluation_plans",
+            0,
+            "minimum_profile_samples"
+          ],
+          "value": 3
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "c734b321c706d76d924f1c9c9ca8337a932fbca84219e91a9dc2e931b72aa1cb"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "valid_negative_seeds",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": -100
+        },
+        {
+          "path": [
+            "tournaments",
+            0,
+            "effective_seed"
+          ],
+          "value": -100
+        },
+        {
+          "path": [
+            "tournaments",
+            1,
+            "effective_seed"
+          ],
+          "value": -99
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "b76b28a149a57d86728ed1141b6d15ae4a60b9aedaa46dbc74f96f78c3d82a29"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "valid_integral_numeric_spelling",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "report_schema_version"
+          ],
+          "value": 4.0
+        },
+        {
+          "path": [
+            "manifest"
+          ],
+          "value": {
+            "schema_version": 2.0,
+            "batch_id": "fitness_test",
+            "seed_start": 1000.0,
+            "profiles": [
+              {
+                "profile_id": "candidate_g0_0000_8080441289d28bf3",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                  "tight_vs_loose": 43.0,
+                  "passive_vs_aggressive": 49.0,
+                  "call_vs_raise": 21.0,
+                  "bluff_rate": 6.0
+                }
+              },
+              {
+                "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                  "tight_vs_loose": 13.0,
+                  "passive_vs_aggressive": 29.0,
+                  "call_vs_raise": 49.0,
+                  "bluff_rate": 48.0
+                }
+              }
+            ],
+            "regimes": [
+              {
+                "regime_id": "regime_0",
+                "player_count": 2.0,
+                "starting_stack": 20.0,
+                "starting_small_blind": 5.0,
+                "starting_big_blind": 10.0,
+                "blind_progression": "normative_hand_based_v1"
+              }
+            ],
+            "matchups": [
+              {
+                "matchup_id": "matchup_0",
+                "profile_ids": [
+                  "candidate_g0_0000_8080441289d28bf3",
+                  "candidate_g0_0001_e54b36234f03d09a"
+                ]
+              }
+            ],
+            "evaluation_plans": [
+              {
+                "plan_id": "plan_0",
+                "regime_id": "regime_0",
+                "matchup_ids": [
+                  "matchup_0"
+                ],
+                "tournament_count": 2.0,
+                "seat_rotation": "cyclic",
+                "minimum_profile_samples": 2.0,
+                "uncertainty_estimator": "normal_95"
+              }
+            ]
+          }
+        },
+        {
+          "path": [
+            "shard"
+          ],
+          "value": {
+            "index": 0.0,
+            "count": 1.0
+          }
+        },
+        {
+          "path": [
+            "tournaments"
+          ],
+          "value": [
+            {
+              "tournament_index": 0.0,
+              "plan_id": "plan_0",
+              "plan_tournament_index": 0.0,
+              "regime_id": "regime_0",
+              "matchup_id": "matchup_0",
+              "matchup_occurrence": 0.0,
+              "rotation": 0.0,
+              "effective_seed": 1000.0,
+              "seat_map": [
+                {
+                  "seat": 0.0,
+                  "profile_id": "candidate_g0_0000_8080441289d28bf3"
+                },
+                {
+                  "seat": 1.0,
+                  "profile_id": "candidate_g0_0001_e54b36234f03d09a"
+                }
+              ],
+              "selected_profile_ids": [
+                "candidate_g0_0000_8080441289d28bf3",
+                "candidate_g0_0001_e54b36234f03d09a"
+              ],
+              "termination_reason": "winner",
+              "winner_profile_id": "candidate_g0_0000_8080441289d28bf3",
+              "tournament_hand_count": 1.0,
+              "profile_results": [
+                {
+                  "seat": 0.0,
+                  "profile_id": "candidate_g0_0000_8080441289d28bf3",
+                  "finishing_position": 1.0,
+                  "won_tournament": true,
+                  "top_third": true,
+                  "starting_stack": 20.0,
+                  "final_stack": 40.0,
+                  "chip_differential": 20.0,
+                  "hands_survived": 1.0,
+                  "tournament_hand_count": 1.0,
+                  "survival_ratio": 1.0,
+                  "blind_normalized_chip_sum": 2.0,
+                  "hands_observed": 1.0,
+                  "bnc_per_100": 200.0,
+                  "vpip_hands": 1.0,
+                  "vpip_rate": 1.0,
+                  "pfr_hands": 0.0,
+                  "pfr_rate": 0.0,
+                  "bet_actions": 0.0,
+                  "raise_actions": 0.0,
+                  "aggressive_actions": 0.0,
+                  "call_actions": 1.0,
+                  "aggression_factor": 0.0,
+                  "bet_raise_opportunities": 1.0,
+                  "bet_raise_frequency": 0.0,
+                  "check_bet_opportunities": 1.0,
+                  "bets_at_check_bet_opportunity": 0.0,
+                  "bet_frequency": 0.0,
+                  "call_raise_opportunities": 1.0,
+                  "calls_at_call_raise_opportunity": 1.0,
+                  "raises_at_call_raise_opportunity": 0.0,
+                  "raise_share": 0.0,
+                  "eligible_bluff_opportunities": 1.0,
+                  "bluff_actions": 0.0,
+                  "eligible_bluff_frequency": 0.0,
+                  "invalid_action_fallbacks": 0.0
+                },
+                {
+                  "seat": 1.0,
+                  "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+                  "finishing_position": 2.0,
+                  "won_tournament": false,
+                  "top_third": false,
+                  "starting_stack": 20.0,
+                  "final_stack": 0.0,
+                  "chip_differential": -20.0,
+                  "hands_survived": 1.0,
+                  "tournament_hand_count": 1.0,
+                  "survival_ratio": 1.0,
+                  "blind_normalized_chip_sum": -2.0,
+                  "hands_observed": 1.0,
+                  "bnc_per_100": -200.0,
+                  "vpip_hands": 1.0,
+                  "vpip_rate": 1.0,
+                  "pfr_hands": 0.0,
+                  "pfr_rate": 0.0,
+                  "bet_actions": 0.0,
+                  "raise_actions": 0.0,
+                  "aggressive_actions": 0.0,
+                  "call_actions": 1.0,
+                  "aggression_factor": 0.0,
+                  "bet_raise_opportunities": 1.0,
+                  "bet_raise_frequency": 0.0,
+                  "check_bet_opportunities": 1.0,
+                  "bets_at_check_bet_opportunity": 0.0,
+                  "bet_frequency": 0.0,
+                  "call_raise_opportunities": 1.0,
+                  "calls_at_call_raise_opportunity": 1.0,
+                  "raises_at_call_raise_opportunity": 0.0,
+                  "raise_share": 0.0,
+                  "eligible_bluff_opportunities": 1.0,
+                  "bluff_actions": 0.0,
+                  "eligible_bluff_frequency": 0.0,
+                  "invalid_action_fallbacks": 0.0
+                }
+              ],
+              "diagnostics": []
+            },
+            {
+              "tournament_index": 1.0,
+              "plan_id": "plan_0",
+              "plan_tournament_index": 1.0,
+              "regime_id": "regime_0",
+              "matchup_id": "matchup_0",
+              "matchup_occurrence": 1.0,
+              "rotation": 1.0,
+              "effective_seed": 1001.0,
+              "seat_map": [
+                {
+                  "seat": 0.0,
+                  "profile_id": "candidate_g0_0001_e54b36234f03d09a"
+                },
+                {
+                  "seat": 1.0,
+                  "profile_id": "candidate_g0_0000_8080441289d28bf3"
+                }
+              ],
+              "selected_profile_ids": [
+                "candidate_g0_0001_e54b36234f03d09a",
+                "candidate_g0_0000_8080441289d28bf3"
+              ],
+              "termination_reason": "winner",
+              "winner_profile_id": "candidate_g0_0001_e54b36234f03d09a",
+              "tournament_hand_count": 1.0,
+              "profile_results": [
+                {
+                  "seat": 0.0,
+                  "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+                  "finishing_position": 1.0,
+                  "won_tournament": true,
+                  "top_third": true,
+                  "starting_stack": 20.0,
+                  "final_stack": 40.0,
+                  "chip_differential": 20.0,
+                  "hands_survived": 1.0,
+                  "tournament_hand_count": 1.0,
+                  "survival_ratio": 1.0,
+                  "blind_normalized_chip_sum": 2.0,
+                  "hands_observed": 1.0,
+                  "bnc_per_100": 200.0,
+                  "vpip_hands": 1.0,
+                  "vpip_rate": 1.0,
+                  "pfr_hands": 0.0,
+                  "pfr_rate": 0.0,
+                  "bet_actions": 0.0,
+                  "raise_actions": 0.0,
+                  "aggressive_actions": 0.0,
+                  "call_actions": 1.0,
+                  "aggression_factor": 0.0,
+                  "bet_raise_opportunities": 1.0,
+                  "bet_raise_frequency": 0.0,
+                  "check_bet_opportunities": 1.0,
+                  "bets_at_check_bet_opportunity": 0.0,
+                  "bet_frequency": 0.0,
+                  "call_raise_opportunities": 1.0,
+                  "calls_at_call_raise_opportunity": 1.0,
+                  "raises_at_call_raise_opportunity": 0.0,
+                  "raise_share": 0.0,
+                  "eligible_bluff_opportunities": 1.0,
+                  "bluff_actions": 0.0,
+                  "eligible_bluff_frequency": 0.0,
+                  "invalid_action_fallbacks": 0.0
+                },
+                {
+                  "seat": 1.0,
+                  "profile_id": "candidate_g0_0000_8080441289d28bf3",
+                  "finishing_position": 2.0,
+                  "won_tournament": false,
+                  "top_third": false,
+                  "starting_stack": 20.0,
+                  "final_stack": 0.0,
+                  "chip_differential": -20.0,
+                  "hands_survived": 1.0,
+                  "tournament_hand_count": 1.0,
+                  "survival_ratio": 1.0,
+                  "blind_normalized_chip_sum": -2.0,
+                  "hands_observed": 1.0,
+                  "bnc_per_100": -200.0,
+                  "vpip_hands": 1.0,
+                  "vpip_rate": 1.0,
+                  "pfr_hands": 0.0,
+                  "pfr_rate": 0.0,
+                  "bet_actions": 0.0,
+                  "raise_actions": 0.0,
+                  "aggressive_actions": 0.0,
+                  "call_actions": 1.0,
+                  "aggression_factor": 0.0,
+                  "bet_raise_opportunities": 1.0,
+                  "bet_raise_frequency": 0.0,
+                  "check_bet_opportunities": 1.0,
+                  "bets_at_check_bet_opportunity": 0.0,
+                  "bet_frequency": 0.0,
+                  "call_raise_opportunities": 1.0,
+                  "calls_at_call_raise_opportunity": 1.0,
+                  "raises_at_call_raise_opportunity": 0.0,
+                  "raise_share": 0.0,
+                  "eligible_bluff_opportunities": 1.0,
+                  "bluff_actions": 0.0,
+                  "eligible_bluff_frequency": 0.0,
+                  "invalid_action_fallbacks": 0.0
+                }
+              ],
+              "diagnostics": []
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "6171bd8bcd9470640aec4c59f3fe0a2ff7dda88843165583c34dc2b2213d3cc4"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_near_integral_count",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "tournament_hand_count"
+          ],
+          "value": 1.000000001
+        }
+      ]
+    },
+    {
+      "id": "invalid_near_integral_parameter",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "parameters",
+            "bluff_rate"
+          ],
+          "value": 1.000000001
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "257e374db9ab5d5c6a92703c20799a0d1250c6876d470fcfcb86bbc2df280203"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:bb3eb661d814066b0009018018a616e44600e317e93936864249419f5070899e",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "valid_upper_safe_seed_edge",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": 9007199254740990
+        },
+        {
+          "path": [
+            "tournaments",
+            0,
+            "effective_seed"
+          ],
+          "value": 9007199254740990
+        },
+        {
+          "path": [
+            "tournaments",
+            1,
+            "effective_seed"
+          ],
+          "value": 9007199254740991
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "6f879b055ecf89cce7da7114e3e22078b83a5fdc7b51d85e0378984ecc962dd0"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "valid_lower_safe_seed_edge",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": -9007199254740991
+        },
+        {
+          "path": [
+            "tournaments",
+            0,
+            "effective_seed"
+          ],
+          "value": -9007199254740991
+        },
+        {
+          "path": [
+            "tournaments",
+            1,
+            "effective_seed"
+          ],
+          "value": -9007199254740990
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "67507496fda18d10059e684149c73be7270d8f4c279e9128e979d7b17e3ca63d"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_unsafe_json_seed_9007199254740992",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": 9007199254740992
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "f190e202714c3cf164fdb6a12bdbda84c7bf1d354521f089c19eef91fbc3c53d"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_unsafe_json_seed_9007199254740993",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": 9007199254740993
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "6737959c3f735b7a6dacd0d2a0905a06655148951269841ed873857574ab22ef"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_unsafe_json_seed_-9007199254740992",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": -9007199254740992
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "0f4bdb33f28a08600b5df4372c4318cf828d59608e29847d17109ca4ad29fd42"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_unsafe_json_seed_-9007199254740993",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": -9007199254740993
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "a9a6a9bb222da18bda7dd80315d8732d90bf0b1012fae84197f35bb4079a6388"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_safe_seed_range_overflow",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": 9007199254740991
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "6bd352508e837f5b2f30779e78a23efdcdb97717bf588288395608034591cd53"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "valid_random_benchmark",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles"
+          ],
+          "value": [
+            {
+              "profile_id": "candidate_g0_0000_8080441289d28bf3",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 43,
+                "passive_vs_aggressive": 49,
+                "call_vs_raise": 21,
+                "bluff_rate": 6
+              }
+            },
+            {
+              "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 13,
+                "passive_vs_aggressive": 29,
+                "call_vs_raise": 49,
+                "bluff_rate": 48
+              }
+            },
+            {
+              "profile_id": "benchmark",
+              "model_id": "random",
+              "parameters": {
+                "fold_weight": 1,
+                "passive_weight": 4,
+                "aggressive_weight": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "fd5314611aed2e2447bd42bcdbbd8e298a83b75c9e5787e7f62ab85f2af5ba69"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:21fac0c565314e9ac5c31ea9ace570a092a9e914ba1734e55b766170128325fb",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a",
+              "benchmark"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "valid_tight_passive_benchmark",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles"
+          ],
+          "value": [
+            {
+              "profile_id": "candidate_g0_0000_8080441289d28bf3",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 43,
+                "passive_vs_aggressive": 49,
+                "call_vs_raise": 21,
+                "bluff_rate": 6
+              }
+            },
+            {
+              "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 13,
+                "passive_vs_aggressive": 29,
+                "call_vs_raise": 49,
+                "bluff_rate": 48
+              }
+            },
+            {
+              "profile_id": "benchmark",
+              "model_id": "tight_passive",
+              "parameters": {
+                "minimum_preflop_high_rank": 10,
+                "raise_frequency": 5
+              }
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "75b6f5a9ffb4a7bb4c42a65e3ee5137d5f6f18fb9e78da042712636b2b6ca317"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:d3f9e00b8b1b3a7d8a5b2dc90f4dc54b925173d9038d66f7de8877bd8570018f",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a",
+              "benchmark"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "valid_loose_aggressive_benchmark",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles"
+          ],
+          "value": [
+            {
+              "profile_id": "candidate_g0_0000_8080441289d28bf3",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 43,
+                "passive_vs_aggressive": 49,
+                "call_vs_raise": 21,
+                "bluff_rate": 6
+              }
+            },
+            {
+              "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 13,
+                "passive_vs_aggressive": 29,
+                "call_vs_raise": 49,
+                "bluff_rate": 48
+              }
+            },
+            {
+              "profile_id": "benchmark",
+              "model_id": "loose_aggressive",
+              "parameters": {
+                "fold_frequency": 10,
+                "aggression_frequency": 55
+              }
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "41faadf4527cb7709c2631491cf7a5134585953eb6180f09cd46cd541b6b8c98"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:530e2fb177f01cba6815d7518b2f9a4cd6d82c707416854800bfe7d6b94d5f5e",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a",
+              "benchmark"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_shard_count_collection",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "shard",
+            "count"
+          ],
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "invalid_result_seat_collection",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            0,
+            "seat"
+          ],
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "invalid_plan_matchup_element",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "evaluation_plans",
+            0,
+            "matchup_ids"
+          ],
+          "value": [
+            {}
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "50f31b049d9cf7dc19168ebad2313e96c8838daf789ab4a4daf35888337be666"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_parameter_collection",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "parameters"
+          ],
+          "value": []
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "8f2aefc74a345978aeb2fd8fc7d4ee19fe64078d26f0b53c3be69af45ecd75e9"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:24ec9b5c863deab2d2943c0f4a0139f765bb1e2882dae0861343e93025198e04",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_parameter_extra_gene",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "parameters"
+          ],
+          "value": {
+            "tight_vs_loose": 13,
+            "passive_vs_aggressive": 29,
+            "call_vs_raise": 49,
+            "bluff_rate": 48,
+            "extra": 10
+          }
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "60f34d4240d1d276d2b31ac3c710d246f2803611a81a5a154a8a8960b99c20fa"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:69247b1312ff78062e67280bc9466740397b7a85a40b5543956b3cbdc2bfb95a",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_manifest_collection",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "regimes"
+          ],
+          "value": {}
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "96853f7e73bd74f5f929ba41dd90f4bb5ad5e0994863b1215f2225f49e26ed9c"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_profile_results_collection",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results"
+          ],
+          "value": "wrong"
+        }
+      ]
+    },
+    {
+      "id": "invalid_schema_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "schema_version"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "62de11088964f9cb1c68d0d2185872d3f43e493b13d0ee1ffddd17fa5dad370e"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_stack_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            0,
+            "final_stack"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "invalid_count_fraction",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "tournament_hand_count"
+          ],
+          "value": 1.5
+        }
+      ]
+    },
+    {
+      "id": "invalid_seat_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "seat_map",
+            0,
+            "seat"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "id": "invalid_seed_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "effective_seed"
+          ],
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "invalid_parameter_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "parameters",
+            "bluff_rate"
+          ],
+          "value": true
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "7303a64f281b042242782b543da28c3d14384f4a9bab8ef8fe26a99f6c1eff20"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:83a5ebac234df8bccca51b347ca888a467b3ad93517efdb778be4588cec577a6",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_parameter_fraction",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "parameters",
+            "bluff_rate"
+          ],
+          "value": 0.5
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "10fda8b8d8b3f1cbab62a0539b89cc1fd12886a5d9f908a009560e3a8c22ea0c"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9641aa5a4c4293a83072f7938141f1819dec8fef41a2e432211a98fd099e1fd6",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_parameter_range",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "parameters",
+            "bluff_rate"
+          ],
+          "value": 101
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "05ab89d296068bcbfc74a7d9291e99979f3844f3b182d5493d57068bea182717"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:8865258c4cbdcaffa9af29824fde76af7b638f454d1dffcc78a3d59bef477176",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_profile_model",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "model_id"
+          ],
+          "value": "unknown_model"
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "e2508b64caf4a18b24f1b8f7312ad8295b6c52c5853661d39919a65f25c70fc4"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:97fc6a6b892a9ef596834a0a0fc6234a8e523504ce2ee8872b78892fef16794a",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_seed_zero",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": 0
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "0c82e19add537947d5f181c9bf59164c52df330edca39f58fe411ed43fe424df"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_seed_above_signed64",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": 9223372036854775808
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "7e3d1b117888cf54c3eae5be1f2383f54e24a1ea1e761d47a85e0cf2d86a32ca"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_seed_below_signed64",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": -9223372036854775809
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "5170e377a9fe6da4a5fc50be7ff9ac61ab3b60678633d365c3134757abc2be36"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_seed_range_overflow",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": 9223372036854775807
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "b741d0cdc67f06d2b47df0eb6dd56da8935149a96bebce4d4203a2e09905054f"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_seed_zero_crossing",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "seed_start"
+          ],
+          "value": -1
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "5c2499c5df56cdc28102f2947ec42d7a4ee6c48a37c1590150368472ca194dc7"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_duplicate_profile_id",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles",
+            1,
+            "profile_id"
+          ],
+          "value": "candidate_g0_0000_8080441289d28bf3"
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "b53ed1987176d5160ea936997558561d35ff76296f30e941a0e22435b441a788"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:2faf3e36de79e5ed3d34b0fcd6927772bd73e67ede0f3c47052bfaf94af53906",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0000_8080441289d28bf3"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_duplicate_regime_id",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "regimes"
+          ],
+          "value": [
+            {
+              "regime_id": "regime_0",
+              "player_count": 2,
+              "starting_stack": 20,
+              "starting_small_blind": 5,
+              "starting_big_blind": 10,
+              "blind_progression": "normative_hand_based_v1"
+            },
+            {
+              "regime_id": "regime_0",
+              "player_count": 2,
+              "starting_stack": 20,
+              "starting_small_blind": 5,
+              "starting_big_blind": 10,
+              "blind_progression": "normative_hand_based_v1"
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "727f3fcb172d02283b7179c633b6111e6f8cb2d71192cc4021730e66f6c9fa6f"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_duplicate_plan_id",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "evaluation_plans"
+          ],
+          "value": [
+            {
+              "plan_id": "plan_0",
+              "regime_id": "regime_0",
+              "matchup_ids": [
+                "matchup_0"
+              ],
+              "tournament_count": 2,
+              "seat_rotation": "cyclic",
+              "minimum_profile_samples": 2,
+              "uncertainty_estimator": "normal_95"
+            },
+            {
+              "plan_id": "plan_0",
+              "regime_id": "regime_0",
+              "matchup_ids": [
+                "matchup_0"
+              ],
+              "tournament_count": 2,
+              "seat_rotation": "cyclic",
+              "minimum_profile_samples": 2,
+              "uncertainty_estimator": "normal_95"
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "3b6c677d0382237ee6e2f5a232973c05b295b2c9a8e6a029b03b1663a9417c1c"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_duplicate_result_seat",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            1,
+            "seat"
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "invalid_duplicate_tournament",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            1,
+            "tournament_index"
+          ],
+          "value": 0
+        }
+      ]
+    },
+    {
+      "id": "invalid_derived_vpip_rate",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            0,
+            "vpip_rate"
+          ],
+          "value": 0.5
+        }
+      ]
+    },
+    {
+      "id": "invalid_derived_bnc",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            0,
+            "bnc_per_100"
+          ],
+          "value": 0.0
+        }
+      ]
+    },
+    {
+      "id": "invalid_derived_aggression",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            0,
+            "aggressive_actions"
+          ],
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "invalid_estimator_bootstrap",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "evaluation_plans",
+            0,
+            "uncertainty_estimator"
+          ],
+          "value": "bootstrap_95"
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "3b56e4f3710c332d835c37000bc9ddbb7988648722f8ee9d3d98e12177785324"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_starting_stack_limit",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "regimes",
+            0,
+            "starting_stack"
+          ],
+          "value": 1000001
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "a392f9e98166b32c71d9e9c955b2f4c3ccf2a38f0d50dfb1b8943af84c492fe0"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_blind_order",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "regimes",
+            0,
+            "starting_small_blind"
+          ],
+          "value": 11
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "0f2fc6cfd87fb94ba86ac846613fcaf47ab706b180595c3252cd0d529d9c11dd"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:9ed4ecb719eb44949973051577d3384ed3b78cf4551f6955d1ecca8201fc4059",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_terminal_stack_ownership",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            0,
+            "final_stack"
+          ],
+          "value": 30
+        },
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            0,
+            "chip_differential"
+          ],
+          "value": 10
+        },
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            1,
+            "final_stack"
+          ],
+          "value": 10
+        },
+        {
+          "path": [
+            "tournaments",
+            0,
+            "profile_results",
+            1,
+            "chip_differential"
+          ],
+          "value": -10
+        }
+      ]
+    },
+    {
+      "id": "invalid_random_all_zero",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles"
+          ],
+          "value": [
+            {
+              "profile_id": "candidate_g0_0000_8080441289d28bf3",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 43,
+                "passive_vs_aggressive": 49,
+                "call_vs_raise": 21,
+                "bluff_rate": 6
+              }
+            },
+            {
+              "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 13,
+                "passive_vs_aggressive": 29,
+                "call_vs_raise": 49,
+                "bluff_rate": 48
+              }
+            },
+            {
+              "profile_id": "benchmark",
+              "model_id": "random",
+              "parameters": {
+                "fold_weight": 0,
+                "passive_weight": 0,
+                "aggressive_weight": 0
+              }
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "990a2702dcd7e4554cd98a9cd21a6628c2d766d8dbd349d8014c3abbd4dbd633"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:249c22527da4359a7a1f0d534506d131eacec5bd24b963b6b421c1a875baa82c",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a",
+              "benchmark"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_random_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "manifest",
+            "profiles"
+          ],
+          "value": [
+            {
+              "profile_id": "candidate_g0_0000_8080441289d28bf3",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 43,
+                "passive_vs_aggressive": 49,
+                "call_vs_raise": 21,
+                "bluff_rate": 6
+              }
+            },
+            {
+              "profile_id": "candidate_g0_0001_e54b36234f03d09a",
+              "model_id": "strategy_parameterized",
+              "parameters": {
+                "tight_vs_loose": 13,
+                "passive_vs_aggressive": 29,
+                "call_vs_raise": 49,
+                "bluff_rate": 48
+              }
+            },
+            {
+              "profile_id": "benchmark",
+              "model_id": "random",
+              "parameters": {
+                "fold_weight": true,
+                "passive_weight": 4,
+                "aggressive_weight": 2
+              }
+            }
+          ]
+        },
+        {
+          "path": [
+            "manifest_checksum"
+          ],
+          "value": "6264737d306ad26b04a168b9bdcc707c6c276f13aea1361b5add3f06f82f2d55"
+        },
+        {
+          "path": [
+            "roster"
+          ],
+          "value": {
+            "version": "manifest_profiles_v1:8e73901eecba70044186ba91d8853af1e3e04295ef8589f4a14c8ce7c2076177",
+            "profile_ids": [
+              "candidate_g0_0000_8080441289d28bf3",
+              "candidate_g0_0001_e54b36234f03d09a",
+              "benchmark"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid_roster_version_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "roster",
+            "version"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "id": "invalid_roster_ids_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "roster",
+            "profile_ids"
+          ],
+          "value": false
+        }
+      ]
+    },
+    {
+      "id": "invalid_roster_id_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "roster",
+            "profile_ids"
+          ],
+          "value": [
+            false
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invalid_provenance_revision_boolean",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "execution_provenance",
+            "code_revision"
+          ],
+          "value": false
+        }
+      ]
+    }
+  ]
+}

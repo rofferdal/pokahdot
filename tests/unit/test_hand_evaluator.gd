@@ -98,6 +98,105 @@ func test_returned_collections_cannot_mutate_rank() -> void:
 	assert_eq(rank.selected_cards.size(), 5)
 
 
+func test_independent_seven_card_oracles_under_all_suit_relabelings() -> void:
+	# Expected values are poker-rule deductions, not output from another call to
+	# HandEvaluator. These stress choosing five cards across competing patterns.
+	var cases: Array[Dictionary] = [
+		{
+			"cards": "AS AD AC KS KD KC 2H",
+			"category": HandRank.Category.FULL_HOUSE,
+			"ties": [14, 13]
+		},
+		{
+			"cards": "AS AD KS KD QS QD JC",
+			"category": HandRank.Category.TWO_PAIR,
+			"ties": [14, 13, 12]
+		},
+		{
+			"cards": "2S 3S 4S 5S 9S 6D 7C",
+			"category": HandRank.Category.FLUSH,
+			"ties": [9, 5, 4, 3, 2]
+		},
+		{
+			"cards": "AS 2S 3S 4S 5S KD KC",
+			"category": HandRank.Category.STRAIGHT_FLUSH,
+			"ties": [5]
+		},
+		{
+			"cards": "AS AD AC AH KS KD 2C",
+			"category": HandRank.Category.FOUR_OF_A_KIND,
+			"ties": [14, 13]
+		},
+		{"cards": "AS 2D 3C 4H 5S 6D KC", "category": HandRank.Category.STRAIGHT, "ties": [6]},
+		{
+			"cards": "AS QS TS 8S 7S 4S 2S",
+			"category": HandRank.Category.FLUSH,
+			"ties": [14, 12, 10, 8, 7]
+		},
+		{
+			"cards": "AS AD 8C 7H 6S 4D 2C",
+			"category": HandRank.Category.ONE_PAIR,
+			"ties": [14, 8, 7, 6]
+		},
+	]
+	for case: Dictionary in cases:
+		for suits: Array[int] in _suit_permutations():
+			var cards: Array[CardData] = []
+			for card: CardData in _cards(case.cards):
+				cards.push_front(CardData.new(card.rank, suits[card.suit] as CardData.Suit))
+			var context: String = "oracle=%s suits=%s reversed=true" % [case.cards, suits]
+			var rank: HandRank = HandEvaluator.new().evaluate(cards)
+			assert_eq(rank.category, case.category, context)
+			assert_eq(rank.tie_break_values, case.ties, context)
+
+
+func test_seeded_card_permutations_and_suit_permutations_preserve_rank() -> void:
+	var rng := RandomNumberGenerator.new()
+	for replay_seed: int in [1, 7, 23, 104729, 2147483646]:
+		rng.seed = replay_seed
+		for sample: int in range(12):
+			var cards: Array[CardData] = []
+			var ids: Array[int] = []
+			while ids.size() < 5 + sample % 3:
+				var card_id: int = rng.randi_range(0, 51)
+				if card_id not in ids:
+					ids.append(card_id)
+					cards.append(CardData.new(2 + card_id / 4, (card_id % 4) as CardData.Suit))
+			var expected: HandRank = HandEvaluator.new().evaluate(cards)
+			for suits: Array[int] in _suit_permutations():
+				var changed: Array[CardData] = []
+				for card: CardData in cards:
+					changed.append(CardData.new(card.rank, suits[card.suit] as CardData.Suit))
+				for index: int in range(changed.size() - 1, 0, -1):
+					var other: int = rng.randi_range(0, index)
+					var temporary: CardData = changed[index]
+					changed[index] = changed[other]
+					changed[other] = temporary
+				var context: String = (
+					"seed=%d sample=%d ids=%s suits=%s permuted=%s"
+					% [replay_seed, sample, ids, suits, changed]
+				)
+				var actual: HandRank = HandEvaluator.new().evaluate(changed)
+				assert_eq(actual.category, expected.category, context)
+				assert_eq(actual.tie_break_values, expected.tie_break_values, context)
+
+
+func _suit_permutations() -> Array[Array]:
+	var permutations: Array[Array] = []
+	for first: int in range(4):
+		for second: int in range(4):
+			for third: int in range(4):
+				for fourth: int in range(4):
+					var suits: Array[int] = [first, second, third, fourth]
+					if (
+						first != second
+						and third not in [first, second]
+						and fourth not in [first, second, third]
+					):
+						permutations.append(suits)
+	return permutations
+
+
 func _cards(description: String) -> Array[CardData]:
 	var result: Array[CardData] = []
 	for token: String in description.split(" ", false):

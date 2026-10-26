@@ -1,0 +1,2 @@
+# Optional exported-Web regression tooling; never packaged with the game.
+playwright==1.55.0
