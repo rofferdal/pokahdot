@@ -1,6 +1,6 @@
 # Local Wi-Fi Web Testing Tasks
 
-Status: In progress — LAN-01–03 complete; trusted-browser/device verification pending.
+Status: Complete — LAN-01–08 complete; resolution limitations accepted by the user.
 Created: 2026-10-26.
 
 ## Goal
@@ -104,10 +104,11 @@ screenshots under ignored `localtmp/`; do not commit them.
   error. Initial mobile HTTPS attempts showed certificate warnings, and the
   iPad first opened through Advanced/unsafe continuation. After downloading the
   certificate, the user now reports that it works on the iPad (2026-10-26).
-  This confirms the physical iPad can reach the LAN game. The exact iPad model,
-  OS/browser versions and six-player tournament startup are still to be
-  confirmed; Android acceptance remains pending. The CA download page explains
-  profile installation and full SSL trust as separate steps.
+  The user subsequently checked LAN-04 and LAN-05 and explicitly confirmed
+  that Wi-Fi access required HTTPS. These checks are accepted as user device
+  sign-off. Exact model/OS/browser measurements were not supplied and must not
+  be inferred. The CA download page explains profile installation and full
+  SSL trust as separate steps.
 
 - [x] **LAN-05 — Verify HTTP browser capabilities and provide HTTPS if needed.**
   Test the actual export over its LAN HTTP URL on the intended mobile
@@ -123,13 +124,13 @@ screenshots under ignored `localtmp/`; do not commit them.
   certificate; `serve` supports certificate, key and CA verification options.
   Device trust is an explicit user action. Do not mark this task complete from
   an HTTP-client TLS check or a browser certificate-error bypass.
-  Mac trust is pending explicit approval after automatic approval review
-  rejected persistent CA installation. The CA was generated, but the tooling
-  has not installed it in the login keychain. The user reports iPad success
-  after downloading the certificate. Detailed iPad capability/input results
-  and Android certificate/browser results remain pending.
+  The user has completed this verification and confirmed the HTTPS requirement.
+  Earlier automatic approval review rejected persistent Mac CA installation;
+  the tooling did not install it in the login keychain. That historical
+  approval request does not block the accepted user device verification.
+  Detailed game-flow/rebuild acceptance remains owned by LAN-06.
 
-- [ ] **LAN-06 — Exercise the real game and the rebuild loop.**
+- [x] **LAN-06 — Exercise the real game and the rebuild loop.**
   On the LAN-served build, test startup configuration, a normal hand, wager
   keypad Cancel/Done, pointer/keyboard focus where available, all-in runout,
   showdown, and Quit. Use supported phone portrait counts and representative
@@ -138,8 +139,35 @@ screenshots under ignored `localtmp/`; do not commit them.
   separately. Make a visible development change, rebuild, reload and verify
   the new build identity on the second device. Done: the flows and rebuild
   behavior pass, or concrete defects are linked to their owning task list.
+  Implementation and host verification on 2026-10-26: development exports now
+  stamp the browser tab with `Pokahdot · LAN <first-eight-build-ID-characters>`
+  before payload hashing. Two additional builder regressions verify distinct
+  rebuild identities, preserved older exports and failure on a missing title.
+  The real rebuild passed 591 GUT tests (95,281 assertions), 89 profile-evolution
+  Python tests and 32 LAN tests. Current build:
+  `1c180039042e4c88bb217d5809891c86`; previous:
+  `5c823781f3e54fb1ae22129065781e7c`. A CA-verified host HTTPS request confirms
+  the root selects the new build and title; this is not second-device evidence.
+  The unchanged production source snapshot was exercised in Chromium
+  140.0.7339.16 over loopback: desktop keyboard startup configuration, a normal
+  hand through showdown, Quit/Continue and confirmed Quit, touch startup keypad
+  Cancel/Done, and a short-stack all-in runout through tournament completion.
+  Screenshots cover CSS 1280×720, 390×844, 390×700, 768×1024 and rotation to
+  844×390 and back, at DPR 1, with no browser errors. These observations are
+  functional host evidence, not a physical-device visual acceptance claim.
+  The existing instrumented exported-input suite separately passed all four
+  pointer/touch startup/table cases, including wager Cancel/Done and focus.
+  Evidence: `localtmp/lan/continuation/browser/`, `web-input/results.json`,
+  `visible-rebuild.json` and `marked-build.log` under the same continuation
+  directory. Physical portrait player-count coverage and deferred landscape
+  remain owned by [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md).
+  User acceptance on 2026-10-26: the user completed their best-effort LAN-06
+  verification and explicitly accepted and checked this task despite issues at
+  some resolutions. This closes LAN-06 by user decision; it does not imply
+  that every resolution passed or that unreported measurements were collected.
+  Remaining layout coverage stays in the phone GUI task list linked above.
 
-- [ ] **LAN-07 — Automate the build/server regressions.**
+- [x] **LAN-07 — Automate the build/server regressions.**
   Add focused checks for export failure, missing payloads, an occupied port,
   server startup/shutdown, HTTP asset responses and stale-build prevention.
   Reuse the existing exported-browser input coverage where it fits the server
@@ -147,11 +175,19 @@ screenshots under ignored `localtmp/`; do not commit them.
   a loopback browser test cannot certify it. Done: automated failures return
   nonzero status and cleanup leaves no server running, with the manual device
   result recorded separately.
-  Automation is implemented alongside LAN-02–03: 30 regressions cover builds,
-  stale status, payloads, routing, headers, ports, shutdown, TLS and CLI defaults.
-  Final acceptance remains ordered after the pending device tasks.
+  Verified on 2026-10-26: 34 LAN regressions cover builds, stale status,
+  payloads, routing, headers, ports, shutdown, TLS and CLI defaults. Subprocess
+  checks prove failed build/serve commands return status 1; a failed build
+  replaces ready status with failed status and neither command publishes server
+  state. Listener tests verify authenticated shutdown and port release,
+  including cleanup after startup failure and an idle TLS connection.
+  `make check` includes these regressions and passed alongside all 591 GUT
+  tests (95,281 assertions), 89 profile-evolution Python tests, lint and format
+  checks. Evidence: `localtmp/lan/continuation/final-check.log`.
+  Existing exported-browser input coverage passed four cases during LAN-06;
+  physical-device results and user acceptance remain recorded separately above.
 
-- [ ] **LAN-08 — Publish the verified runbook and evidence format.**
+- [x] **LAN-08 — Publish the verified runbook and evidence format.**
   Document prerequisites, exact build/serve/rebuild/stop commands, example LAN
   URLs, firewall/network troubleshooting and the tested HTTP/HTTPS route in
   [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md) and the
@@ -161,8 +197,17 @@ screenshots under ignored `localtmp/`; do not commit them.
   viewport/DPR, results and screenshot/defect locations. Done: another developer
   can reproduce the Wi-Fi test without merging to `main`, and all new local
   documentation links resolve.
-  Build/serve/trust/troubleshooting guidance is written; final verified device
-  results and rebuild-loop evidence still need to be reconciled into it.
+  Completed on 2026-10-26: the runbook lists prerequisites, foreground and
+  second-terminal commands, certificate bootstrap/trust, network troubleshooting,
+  immutable rebuild URLs and visible tab identities. README and the developer
+  guide agree with the implemented CLI/Make targets. The compact evidence
+  template includes provenance, device/browser measurements, viewport/DPR,
+  flow/rebuild results and screenshot/defect locations. Accepted iPad/HTTPS and
+  best-effort LAN-06 results are recorded with their resolution limitations;
+  unreported measurements remain explicitly unreported.
+  All local links and Markdown anchors in the changed workflow documents
+  resolve, and `git diff --check` passes. Evidence:
+  `localtmp/lan/continuation/final-documentation-check.json`.
 
 ## Acceptance and ownership
 

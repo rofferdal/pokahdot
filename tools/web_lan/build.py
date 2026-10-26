@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+from html import escape
 from html.parser import HTMLParser
 import json
 import os
@@ -134,6 +135,66 @@ class _References(HTMLParser):
                     self.paths.append(unquote(url.path))
 
 
+class _DocumentTitle(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.openings = 0
+        self.closings = 0
+        self.in_title = False
+        self.malformed = False
+        self.text: list[str] = []
+
+    def handle_starttag(self, tag: str, _attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() == "title":
+            self.openings += 1
+            if self.in_title:
+                self.malformed = True
+            self.in_title = True
+        elif self.in_title:
+            self.malformed = True
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() == "title":
+            self.closings += 1
+            if not self.in_title:
+                self.malformed = True
+            self.in_title = False
+        elif self.in_title:
+            self.malformed = True
+
+    def handle_data(self, data: str) -> None:
+        if self.in_title:
+            self.text.append(data)
+
+
+def _stamp_browser_title(export: Path, build_id: str) -> str:
+    index = export / "index.html"
+    document = index.read_text()
+    title_parser = _DocumentTitle()
+    title_parser.feed(document)
+    title_pattern = re.compile(r"(?is)(<title\b[^>]*>)(.*?)(</title\s*>)")
+    matches = list(title_pattern.finditer(document))
+    original_title = "".join(title_parser.text).strip()
+    if (
+        title_parser.openings != 1
+        or title_parser.closings != 1
+        or title_parser.in_title
+        or title_parser.malformed
+        or len(matches) != 1
+        or not original_title
+    ):
+        raise BuildError("LAN export must contain exactly one HTML title.")
+
+    browser_title = f"{original_title} · LAN {build_id[:8]}"
+    match = matches[0]
+    stamped_title = (
+        match.group(1) + escape(browser_title) + match.group(3)
+        + f'<meta name="pokahdot-lan-build" content="{build_id}">'
+    )
+    index.write_text(document[:match.start()] + stamped_title + document[match.end():])
+    return browser_title
+
+
 def _payloads(export: Path) -> dict[str, str]:
     files = {path.relative_to(export).as_posix(): path for path in export.rglob("*")
              if path.is_file() and path.name != "build-info.json"}
@@ -237,9 +298,11 @@ def build_project(godot: str, output: Path, root: Path = ROOT) -> dict:
                     directory / "import.log", 180)
             _logged([executable, "--headless", "--path", str(project), "--export-release", "Web",
                      str(export / "index.html")], root, directory / "export.log", 180)
+            browser_title = _stamp_browser_title(export, build_id)
             metadata = {"build_id": build_id, **identity, "godot_version": version_text,
                         "source_snapshot_sha256": snapshot_hash.hexdigest(),
-                        "built_at": _now(), "files": _payloads(export)}
+                        "built_at": _now(), "browser_title": browser_title,
+                        "files": _payloads(export)}
             _atomic_json(export / "build-info.json", metadata)
             _atomic_json(directory / "record.json", metadata)
             verify_build(output, build_id, root)

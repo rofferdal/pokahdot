@@ -6,8 +6,11 @@ Use this workflow to test the current working tree on the development Mac,
 an iPad or an Android phone without pushing or merging. Progress and physical
 device evidence are tracked in [`LanTestTasks.md`](LanTestTasks.md).
 
-Install the normal development dependencies and Godot 4.7.2 with matching Web
-export templates. From the repository root:
+Install the [normal development dependencies](../README.md#development-checks)
+and Godot 4.7.2 with matching Web export templates. The CLI uses Python 3's
+standard library; `git`, `make`, `strings` and `openssl` must be on `PATH`.
+On macOS, install the Command Line Tools if the build tools are missing.
+From the repository root:
 
 ```bash
 make web-lan-network
@@ -50,7 +53,8 @@ the root URL. DHCP may change the Mac's address after reconnecting. A request
 made by the Mac to its own LAN address does not verify a second device.
 
 The root URL redirects to an immutable `/builds/<build-id>/index.html` URL;
-all its assets come from that same export. To rebuild while serving:
+all its assets come from that same export. The server runs in the foreground;
+leave that terminal open and rebuild from another terminal:
 
 ```bash
 make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-lan-rebuild
@@ -58,6 +62,8 @@ make web-lan-status
 ```
 
 Reopen the root URL after a successful rebuild to select the new build ID.
+The browser tab shows `Pokahdot · LAN <first-eight-build-ID-characters>`;
+compare it with `web-lan-status` and the pinned URL on each test device.
 Refreshing an old pinned URL intentionally keeps its original build. Responses
 disable browser caching for development; previous exports remain identified
 for comparison. During a rebuild or after failure, the root returns HTTP 503.
@@ -171,6 +177,34 @@ Results / defects / screenshot locations / untested flows:
 Physical-device success is separate from the automated `make web-lan-test`
 regressions and the host's own requests to its Wi-Fi address. This LAN record
 does not certify the rolling Pages build.
+
+### Automated checks and accepted session
+
+Run the focused build/server regressions independently, or run the full checks
+that every LAN build requires:
+
+```bash
+make web-lan-test
+make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check
+```
+
+The regression tests create temporary exports and loopback listeners, verify
+failure exit status and stale-build prevention, and shut down their test
+servers. They leave an independently running development server available.
+For pointer/touch keypad and focus coverage, follow
+[Exercise exported Web input](../devdocs/how-to/running-and-testing.md#exercise-exported-web-input).
+That instrumented fixture is separate from the production LAN export and
+does not establish physical Wi-Fi reachability.
+
+On 2026-10-26 the user confirmed that the iPad worked after downloading the
+certificate and that Wi-Fi access required HTTPS. The user accepted LAN-04–06,
+including best-effort game/rebuild verification despite issues at some
+resolutions. Exact device/OS/browser versions and affected resolutions were
+not supplied. This acceptance closes the LAN workflow; it does not establish
+that every layout passed. Remaining phone layout checks and deferred landscape
+support stay in [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md).
+Build identities, host/browser evidence and the acceptance decision are
+recorded in [LanTestTasks.md](LanTestTasks.md).
 
 ## Published HTTPS verification
 

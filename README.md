@@ -339,7 +339,8 @@ make web-lan-serve
 
 Trust the generated development CA on the test clients, then open the printed
 HTTPS LAN URL from devices on the same Wi-Fi. `web-lan-rebuild` produces a new
-identified export; reopen the root URL to select it. Stop with Ctrl+C or
+identified export; reopen the root URL to select it and compare the tab's
+`Pokahdot · LAN <build-ID-prefix>` with `make web-lan-status`. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
 Physical-browser verification is tracked in [LanTestTasks.md](docs/LanTestTasks.md).
 

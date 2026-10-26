@@ -257,7 +257,11 @@ The workflow is `web-lan-network`, `web-lan-tls WEB_LAN_ADDRESS=<Wi-Fi-IP>`,
 `web-lan-build`, and `web-lan-serve`. It runs the normal production startup
 scene, permits identified uncommitted changes, and uses local HTTPS with
 explicitly trusted test-device certificates. Reopen the root URL after
-`web-lan-rebuild`; `web-lan-stop` performs authenticated shutdown. Device
+`web-lan-rebuild` and compare the browser tab's build ID with `web-lan-status`.
+The server runs in the foreground; use another terminal for these commands.
+`web-lan-stop` performs authenticated shutdown. `make web-lan-test` runs the
+focused build/server regressions, also included in `make check`. The exported
+Web input checks above remain separate from physical Wi-Fi evidence. Device
 acceptance remains tracked in [LanTestTasks.md](../../docs/LanTestTasks.md).
 
 To export the web release target to `build/web/index.html`:

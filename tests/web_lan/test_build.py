@@ -56,7 +56,10 @@ class BuildTests(unittest.TestCase):
                 kwargs["stdout"].write("ERROR: No export template found at expected location.\n")
                 return subprocess.CompletedProcess(arguments, 0)
             export = Path(arguments[-1]).parent
-            (export / "index.html").write_text('<html><script src="index.js"></script></html>')
+            html = '<html><head><title>Pokahdot</title></head><script src="index.js"></script></html>'
+            if self.mode == "missing_title":
+                html = '<html><head><script src="index.js"></script></head></html>'
+            (export / "index.html").write_text(html)
             (export / "index.js").write_text("// exported runtime")
             (export / "index.pck").write_bytes(b"GDPC payload")
             if self.mode != "missing_payload":
@@ -88,6 +91,41 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(status["state"], "failed")
         self.assertNotEqual(status["build_id"], previous["build_id"])
         self.assertTrue((self.output / "builds" / previous["build_id"] / "export/index.html").is_file())
+
+    def test_each_build_gets_a_unique_visible_marker_and_preserves_previous_export(self) -> None:
+        previous = self.build()
+        previous_html_path = (
+            self.output / "builds" / previous["build_id"] / "export/index.html"
+        )
+        previous_html = previous_html_path.read_bytes()
+
+        current = self.build()
+        current_html_path = self.output / "builds" / current["build_id"] / "export/index.html"
+        current_html = current_html_path.read_bytes()
+
+        self.assertNotEqual(previous["build_id"], current["build_id"])
+        self.assertEqual(previous["browser_title"], f"Pokahdot · LAN {previous['build_id'][:8]}")
+        self.assertEqual(current["browser_title"], f"Pokahdot · LAN {current['build_id'][:8]}")
+        self.assertIn(f"<title>{previous['browser_title']}</title>".encode(), previous_html)
+        self.assertIn(
+            f'<meta name="pokahdot-lan-build" content="{previous["build_id"]}">'.encode(),
+            previous_html,
+        )
+        self.assertIn(f"<title>{current['browser_title']}</title>".encode(), current_html)
+        self.assertIn(
+            f'<meta name="pokahdot-lan-build" content="{current["build_id"]}">'.encode(),
+            current_html,
+        )
+        self.assertNotEqual(previous_html, current_html)
+        self.assertEqual(previous_html_path.read_bytes(), previous_html)
+        self.assertEqual(verify_build(self.output, previous["build_id"], self.root), previous)
+        self.assertEqual(verify_build(self.output, current["build_id"], self.root), current)
+
+    def test_export_without_title_never_publishes(self) -> None:
+        self.mode = "missing_title"
+        with self.assertRaisesRegex(BuildError, "exactly one HTML title"):
+            self.build()
+        self.assertEqual(load_status(self.output, self.root)["state"], "failed")
 
     def test_zero_exit_import_error_and_missing_template_never_publish(self) -> None:
         for mode, message in (("import_failure", "Broken script"),

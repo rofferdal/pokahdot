@@ -2,7 +2,10 @@
 
 import contextlib
 import io
+import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -12,6 +15,30 @@ from tools.web_lan.cli import main
 
 
 class CliTests(unittest.TestCase):
+    def test_failed_build_exits_nonzero_and_invalidates_latest_status(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as name:
+            output = Path(name)
+            (output / "status.json").write_text(json.dumps({"state": "ready", "build_id": "old"}))
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "tools/web-lan"), "build", "--output", name,
+                 "--godot", str(output / "missing-godot")],
+                cwd=ROOT, capture_output=True, text=True, timeout=15, check=False,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertIn("Godot executable not found", result.stderr)
+            self.assertEqual(json.loads((output / "status.json").read_text())["state"], "failed")
+            self.assertFalse((output / "server.json").exists())
+
+    def test_failed_serve_exits_nonzero_without_publishing_server_state(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as name:
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "tools/web-lan"), "serve", "--output", name],
+                cwd=ROOT, capture_output=True, text=True, timeout=15, check=False,
+            )
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertIn("Prepare HTTPS", result.stderr)
+            self.assertFalse((Path(name) / "server.json").exists())
+
     def test_serve_uses_managed_https_and_passes_the_ca_to_shutdown(self) -> None:
         with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as name:
             output = Path(name)
