@@ -312,7 +312,7 @@ passing-after evidence before checking implementation tasks.
   and the phone, iPad, desktop, and historical GUI invariant matrices all
   passed. The repeated-raise regression explicitly observes `Pot 80`, stages
   and submits street total `100`, and verifies an `80`-chip stack delta.
-- [ ] **Perform physical/browser acceptance.** Deploy one clean SHA and verify
+- [x] **Perform physical/browser acceptance.** Deploy one clean SHA and verify
   the recorded failing example plus unopened bets, raises facing a wager,
   raises after a blind or prior contribution, repeated raises, and insufficient-
   stack cases on affected phone and desktop browsers. Record the SHA and the

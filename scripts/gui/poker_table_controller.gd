@@ -24,6 +24,9 @@ const OPPONENT_AVATAR_SIZE := Vector2(112, 112)
 const HERO_AVATAR_SIZE := Vector2(128, 128)
 const OPPONENT_CARD_SIZE := Vector2(60, 76)
 const PHONE_CARD_SIZE := Vector2(18, 26)
+const PHONE_SHOWDOWN_CARD_SIZE := Vector2(46, 30)
+const PHONE_SHOWDOWN_CARD_GAP: float = 2.0
+const PHONE_SHOWDOWN_RANK_WIDTH_RATIO: float = 0.55
 const GUI_MINIMUM_FONT_SIZE: int = 20
 const OPPONENT_CHIP_FONT_SIZE: int = 44
 const SEAT_TEXT_FONT_SIZE: int = 40
@@ -571,12 +574,13 @@ func _create_phone_opponent_token(player_view: PlayerView) -> PanelContainer:
 	content.add_child(badge)
 	var cards := _create_phone_opponent_hole_cards(player_view)
 	cards.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	cards.offset_left = -42.0
+	cards.offset_left = -cards.size.x - 2.0
 	cards.offset_top = 30.0
 	cards.offset_right = -2.0
-	cards.offset_bottom = 30.0 + PHONE_CARD_SIZE.y
+	cards.offset_bottom = 30.0 + cards.size.y
 	content.add_child(cards)
 	var action_badge := _create_phone_action_badge(player_view.seat)
+	action_badge.visible = action_badge.visible and not _phone_token_shows_cards(cards)
 	content.add_child(action_badge)
 	var details_button := Button.new()
 	details_button.name = "DetailsButton"
@@ -659,6 +663,15 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 		if action_badge == null:
 			continue
 		var action_width: float = _phone_action_badge_width(action_badge)
+		var cards := seat_widget.find_child("HoleCards", true, false) as Control
+		var revealed_cards: bool = _phone_token_shows_cards(cards)
+		action_badge.visible = action_badge.visible and not revealed_cards
+		var cards_width: float = (
+			PHONE_SHOWDOWN_CARD_SIZE.x * 2.0 + PHONE_SHOWDOWN_CARD_GAP if revealed_cards else 40.0
+		)
+		var reserved_action_width: float = (
+			action_width if action_badge.visible or not revealed_cards else 0.0
+		)
 		if landscape:
 			# Landscape retains the two-row emergency composition and abbreviates
 			# exact-thousand all-ins; full landscape support remains deferred.
@@ -671,8 +684,8 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 			# Anchor from the fixed card fields so Web-font glyph width, rather
 			# than an exact middle-cell split, owns the action badge width.
 			action_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-			action_badge.offset_left = -40.0 - action_width
-			action_badge.offset_right = -40.0
+			action_badge.offset_left = -cards_width - reserved_action_width
+			action_badge.offset_right = -cards_width
 			action_badge.offset_top = 30.0
 			action_badge.offset_bottom = 60.0
 		action_badge.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
@@ -682,13 +695,14 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 		stack.set_anchors_preset(Control.PRESET_TOP_LEFT if landscape else Control.PRESET_TOP_WIDE)
 		stack.offset_left = 4.0
 		stack.offset_top = 23.0 if landscape else 30.0
-		stack.offset_right = 62.0 if landscape else -40.0 - action_width
+		stack.offset_right = 62.0 if landscape else -cards_width - reserved_action_width
 		stack.offset_bottom = 47.0 if landscape else 60.0
-		var cards := seat_widget.find_child("HoleCards", true, false) as Control
-		cards.offset_left = -42.0 if landscape else -40.0
+		cards.offset_left = -cards_width - 2.0 if landscape else -cards_width
 		cards.offset_top = 30.0
 		cards.offset_right = -2.0 if landscape else 0.0
-		cards.offset_bottom = cards.offset_top + PHONE_CARD_SIZE.y
+		cards.offset_bottom = (
+			cards.offset_top + (PHONE_SHOWDOWN_CARD_SIZE.y if revealed_cards else PHONE_CARD_SIZE.y)
+		)
 
 
 func _phone_action_badge_width(
@@ -768,7 +782,8 @@ func _refresh_rendered_phone_action_badges() -> void:
 		if badge == null:
 			continue
 		badge.text = _phone_opponent_action_for_seat(seat)
-		badge.visible = not badge.text.is_empty()
+		var cards := _seat_widgets[seat].find_child("HoleCards", true, false) as Control
+		badge.visible = not badge.text.is_empty() and not _phone_token_shows_cards(cards)
 		badge.tooltip_text = _phone_action_tooltip(seat)
 
 
@@ -779,12 +794,21 @@ func _phone_action_tooltip(seat: int) -> String:
 	return _action_record_text(latest_action)
 
 
+func _phone_token_shows_cards(cards: Control) -> bool:
+	return cards != null and cards.find_child("ShowdownCard1", false, false) != null
+
+
 func _create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
 	var cards := Control.new()
 	cards.name = "HoleCards"
-	cards.size = Vector2(40, PHONE_CARD_SIZE.y)
 	cards.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var revealed_cards: Array = _bound_view.revealed_hole_cards.get(player_view.seat, [])
+	var shows_cards: bool = (
+		revealed_cards.size() == 2 and not player_view.folded and not player_view.busted
+	)
+	var card_size: Vector2 = PHONE_SHOWDOWN_CARD_SIZE if shows_cards else PHONE_CARD_SIZE
+	var card_gap: float = PHONE_SHOWDOWN_CARD_GAP if shows_cards else 2.0
+	cards.size = Vector2(maxf(40.0, card_size.x * 2.0 + card_gap), card_size.y)
 	for index: int in range(2):
 		var card: Control
 		if player_view.folded or player_view.busted:
@@ -804,12 +828,17 @@ func _create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
 				. create_card_face(
 					revealed_cards[index],
 					"ShowdownCard%d" % (index + 1),
-					PHONE_CARD_SIZE,
+					card_size,
 					GUI_MINIMUM_FONT_SIZE,
 					Color("f5f0dc"),
 					Color("d9b56d"),
+					true,
 				)
 			)
+			var rank := card.get_node("Content/Rank") as Label
+			var suit := card.get_node("Content/Suit") as TextureRect
+			rank.anchor_right = PHONE_SHOWDOWN_RANK_WIDTH_RATIO
+			suit.anchor_left = PHONE_SHOWDOWN_RANK_WIDTH_RATIO
 		else:
 			var card_back := Label.new()
 			card_back.name = "CardBack%d" % (index + 1)
@@ -821,8 +850,8 @@ func _create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
 				)
 			)
 			card = card_back
-		card.position = Vector2(index * 20, 0)
-		card.size = PHONE_CARD_SIZE
+		card.position = Vector2(index * (card_size.x + card_gap), 0)
+		card.size = card_size
 		cards.add_child(card)
 	return cards
 

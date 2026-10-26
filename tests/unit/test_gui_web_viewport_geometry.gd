@@ -41,6 +41,54 @@ func test_normalized_android_portrait_browser_heights_use_real_phone_composition
 	await _assert_phone_composition(Vector2i(1080, 2340), 3.0)
 
 
+func test_web_dpr_paths_keep_showdown_rank_suit_and_privacy() -> void:
+	for web_case: Dictionary in [
+		{"backing_size": Vector2i(360, 780), "pixel_ratio": 1.0},
+		{"backing_size": Vector2i(720, 1560), "pixel_ratio": 2.0},
+		{"backing_size": Vector2i(1080, 2340), "pixel_ratio": 3.0},
+	]:
+		var logical_size: Vector2i = GuiWebViewportGeometryScript.logical_size(
+			web_case.backing_size, web_case.pixel_ratio
+		)
+		var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"showdown-long", 6)
+		descriptor.view._revealed_hole_cards[5] = [
+			CardData.new(10, CardData.Suit.DIAMONDS),
+			CardData.new(14, CardData.Suit.CLUBS),
+		]
+		var table := PokerTableScene.instantiate() as PokerTableController
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = Vector2(logical_size)
+		add_child_autofree(table)
+		table.bind_view(descriptor.view, {}, {})
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+		for seat: int in range(1, 6):
+			var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat)
+			var is_revealed: bool = descriptor.view.revealed_hole_cards.has(seat)
+			for card_index: int in range(1, 3):
+				var card_face := (
+					panel.find_child("ShowdownCard%d" % card_index, true, false) as Control
+				)
+				var card_back := panel.find_child("CardBack%d" % card_index, true, false)
+				if not is_revealed:
+					assert_null(card_face, "DPR %s seat %d privacy" % [web_case.pixel_ratio, seat])
+					assert_not_null(
+						card_back, "DPR %s seat %d card back" % [web_case.pixel_ratio, seat]
+					)
+					continue
+				assert_not_null(card_face)
+				assert_null(card_back)
+				var rank := card_face.get_node("Content/Rank") as Label
+				var suit := card_face.get_node("Content/Suit") as TextureRect
+				assert_eq(rank.get_theme_font("font"), ThemeDB.fallback_font)
+				assert_true(card_face.get_global_rect().encloses(rank.get_global_rect()))
+				assert_true(card_face.get_global_rect().encloses(suit.get_global_rect()))
+				assert_gte(suit.size.x, 18.0)
+				assert_gte(suit.size.y, 18.0)
+
+
 func test_normalized_android_landscape_uses_real_phone_composition() -> void:
 	await _assert_phone_composition(Vector2i(1920, 1080), 3.0)
 

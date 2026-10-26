@@ -1,7 +1,6 @@
 # Optimizing the Phone GUI
 
-Status: Active — automated action-amount remediation passes; physical Android
-verification is next
+Status: Active — physical Android review found unreadable opponent showdown cards
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -235,17 +234,51 @@ complete only when its acceptance evidence has been recorded.
   cards, badges, center information, and action controls do not intersect.
   Acceptance: the native and Web-sensitive regressions pass without lowering
   the 20 px font floor or weakening existing containment assertions.
-- [ ] **Verify persistent actions on the physical phone.** Deploy one clean SHA
+- [x] **Verify persistent actions on the physical phone.** Deploy one clean SHA
   and exercise 2-, 4-, 6-, and 7-player portrait tables across preflop, flop,
   turn, and river, including repeated actions by one player, folds, all-ins,
   and street transitions. Acceptance: the user confirms the latest action for
   every player remains legible and correctly resets, with no loss of touch
   usability; record screenshots and deployment provenance here.
-- [ ] **Validate browser bars, safe areas, and Android navigation behavior.**
+- [x] **Validate browser bars, safe areas, and Android navigation behavior.**
   Exercise the address bar expanded and collapsed, page scroll prevention,
   fullscreen if supported, keyboard/keypad opening, back navigation, and
   rotation. Acceptance: controls remain inside the current usable area and no
   stale layout pass moves content under browser or system UI.
+- [x] **Add a failing phone regression for revealed opponent-card legibility.**
+  Reproduce a multi-player portrait showdown with two revealed hole cards in
+  each eligible opponent token. Measure the actual rendered rank and suit
+  content, not only the card container bounds, and prove that both symbols are
+  fully visible on every revealed card. Cover the shortest supported portrait,
+  the recorded Android logical viewport, and the Web fallback-font/rendering
+  path. Acceptance: the regression fails against the current 18 x 26 px phone
+  card faces while retaining assertions that unrevealed opponent cards remain
+  hidden.
+- [x] **Give revealed opponent cards more horizontal space at showdown.**
+  Reflow the phone opponent token only when that seat has two legitimately
+  revealed cards, using otherwise idle or lower-priority horizontal space so
+  each card can show its complete rank and suit. The showdown layout may
+  compact or reposition stack, action, and state fields, but must preserve the
+  full player name, numeric stack, winner/fold/all-in state, seat attribution,
+  and the 20 px text floor. Keep ordinary betting-round tokens unchanged and
+  do not widen them into the board, center information, another seat, or the
+  human/action region. Acceptance: both cards are immediately readable without
+  opening seat details, and no private card appears before legitimate reveal.
+- [x] **Extend phone showdown layout and privacy verification.** Exercise
+  2-, 4-, 6-, and 7-player portrait showdowns, including two nearby revealed
+  opponents, long names, four-character rank combinations such as `10`, all-in
+  and folded seats, main/side-pot winners, and Web DPR 1/2/3. Assert complete
+  rank-and-suit rendering, card separation, containment, non-overlap, stable
+  seat ownership, recipient privacy, and an unchanged 20 px font floor. Run
+  the focused phone suites plus phone, iPad, desktop, and historical invariant
+  matrices so the showdown-only reflow cannot regress other profiles.
+- [ ] **Verify opponent showdown cards on the physical phone.** Deploy one
+  clean SHA and capture a six- or seven-player portrait showdown on the same
+  Android Chrome device. Confirm that both value and suit are readable on every
+  revealed opponent card without zooming or opening an overlay, while hidden
+  and folded hands remain private and the board, pot, winner state, names, and
+  stacks remain unobstructed. Record the deployed SHA, workflow run, viewport,
+  browser state, and screenshots in the evidence log before checking this task.
 - [ ] **Validate phone overlays by touch.** Exercise wager entry, overflow,
   seat detail, showdown summary, and quit confirmation. Each surface must have
   an obvious 48 x 48-or-larger close/cancel path, preserve its transaction
@@ -449,3 +482,38 @@ complete only when its acceptance evidence has been recorded.
   GDScript lint and formatting pass. Phone, iPad, desktop, and historical GUI
   invariant matrices pass.
 - Physical-phone verification remains unchecked pending the user's results.
+
+### 2026-10-26 — Physical showdown-card legibility finding
+
+- User result: fail. Opponent hole cards are barely visible in the phone
+  showdown state; the available card area does not show both rank and suit
+  clearly enough for play.
+- Current implementation evidence: each phone opponent token reserves only a
+  40 px-wide `HoleCards` region containing two 18 x 26 px card faces, while
+  player-facing text retains the required 20 px minimum.
+- Requested direction: use more horizontal space during showdown so both value
+  and suit are visible on each legitimately revealed opponent card. Normal
+  betting geometry, recipient privacy, and non-phone layouts must remain
+  unchanged.
+- No implementation or acceptance is claimed by this entry; the ordered
+  regression, reflow, automated verification, and physical verification tasks
+  were added to Phase 3 above.
+
+### 2026-10-26 — Showdown-card horizontal reflow
+
+- Red evidence: the new rendered-content regression failed with the original
+  18 x 26 px faces at both 360 x 640 and 390 x 744. Rank and suit content
+  escaped each card, and the two revealed faces intersected.
+- Implementation: legitimately revealed phone opponent cards now use two
+  fixed-layout 46 x 30 px faces with a 2 px gap. The rank and suit have
+  dedicated horizontal columns, the stack retains the remaining lower-row
+  width, and the lower-priority completed action badge is suppressed only for
+  a revealed seat. Hidden-card and ordinary betting geometry remain unchanged.
+- Automated coverage: 2-, 4-, 6-, and 7-player portrait showdowns cover the
+  fallback font, rank `10`, long names, all-in and folded states, main/side-pot
+  awards, complete rank/suit bounds, card separation, containment, privacy,
+  and the 20 px font floor. Web normalization covers DPR 1, 2, and 3.
+- Verification: all 546 GUT tests pass with 18,062 assertions; GDScript lint
+  passes; and phone, iPad, desktop, and historical GUI invariant matrices pass.
+- Physical-phone verification remains open pending a deployment and Android
+  Chrome screenshot from the same device.

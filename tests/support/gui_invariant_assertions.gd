@@ -192,6 +192,52 @@ static func _validate_phone_token_content(
 		"seat-content: seat_%d stack intersects cards" % seat,
 		failures,
 	)
+	_validate_phone_showdown_cards(panel, cards, seat, failures)
+
+
+static func _validate_phone_showdown_cards(
+	panel: Control, cards: Control, seat: int, failures: PackedStringArray
+) -> void:
+	var previous_card: Control
+	for index: int in range(2):
+		var card := panel.find_child("ShowdownCard%d" % (index + 1), true, false) as Control
+		if card == null:
+			continue
+		var context := "seat-content: seat_%d card_%d" % [seat, index + 1]
+		var rank := card.get_node("Content/Rank") as Label
+		var suit := card.get_node("Content/Suit") as TextureRect
+		_require(cards.get_global_rect().encloses(card.get_global_rect()), context, failures)
+		_require(panel.get_global_rect().encloses(card.get_global_rect()), context, failures)
+		_require(card.get_global_rect().encloses(rank.get_global_rect()), context, failures)
+		_require(card.get_global_rect().encloses(suit.get_global_rect()), context, failures)
+		_require(
+			rank.get_global_rect().end.x <= suit.get_global_rect().position.x,
+			"%s rank intersects suit" % context,
+			failures,
+		)
+		var rank_size: Vector2 = (
+			rank
+			. get_theme_font("font")
+			. get_string_size(
+				rank.text,
+				HORIZONTAL_ALIGNMENT_LEFT,
+				-1.0,
+				rank.get_theme_font_size("font_size"),
+			)
+		)
+		_require(rank_size.x <= rank.size.x, "%s rank is clipped" % context, failures)
+		_require(
+			suit.size.x >= 18.0 and suit.size.y >= 18.0,
+			"%s suit is too small" % context,
+			failures,
+		)
+		if previous_card != null:
+			_require(
+				not previous_card.get_global_rect().intersects(card.get_global_rect()),
+				"%s intersects the other revealed card" % context,
+				failures,
+			)
+		previous_card = card
 
 
 static func _validate_compact_seat_content(

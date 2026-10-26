@@ -125,13 +125,31 @@ func _validate_phone_contract(
 				failures.append("%s: seat %d omits empty card fields" % [context, player_view.seat])
 			continue
 		var has_revealed_cards: bool = view.revealed_hole_cards.has(player_view.seat)
-		var card_back := panel.find_child("CardBack1", true, false)
-		var card_face := panel.find_child("ShowdownCard1", true, false)
-		if has_revealed_cards and (card_face == null or card_back != null):
+		var first_card_back := panel.find_child("CardBack1", true, false)
+		var second_card_back := panel.find_child("CardBack2", true, false)
+		var first_card_face := panel.find_child("ShowdownCard1", true, false)
+		var second_card_face := panel.find_child("ShowdownCard2", true, false)
+		if (
+			has_revealed_cards
+			and (
+				first_card_face == null
+				or second_card_face == null
+				or first_card_back != null
+				or second_card_back != null
+			)
+		):
 			failures.append(
 				"%s: seat %d revealed-card presentation is incorrect" % [context, player_view.seat]
 			)
-		elif not has_revealed_cards and (card_back == null or card_face != null):
+		elif (
+			not has_revealed_cards
+			and (
+				first_card_back == null
+				or second_card_back == null
+				or first_card_face != null
+				or second_card_face != null
+			)
+		):
 			failures.append(
 				"%s: seat %d exposes or omits private cards" % [context, player_view.seat]
 			)

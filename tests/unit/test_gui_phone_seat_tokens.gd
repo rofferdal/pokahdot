@@ -4,6 +4,7 @@ const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd
 const GuiPhoneSeatLayoutScript := preload("res://scripts/gui/gui_phone_seat_layout.gd")
 const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
+const PHONE_SHOWDOWN_VIEWPORTS: Array[Vector2] = [Vector2(360, 640), Vector2(390, 744)]
 
 
 func test_phone_opponents_use_canonical_tokens_with_public_state() -> void:
@@ -179,6 +180,64 @@ func test_phone_token_and_detail_never_reveal_private_opponent_cards() -> void:
 	assert_false(overlay.visible)
 
 
+func test_phone_showdown_cards_keep_complete_rank_and_suit_visible() -> void:
+	for viewport_size: Vector2 in PHONE_SHOWDOWN_VIEWPORTS:
+		for player_count: int in [2, 4, 6, 7]:
+			var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(
+				&"showdown-long", player_count
+			)
+			var view: GameView = descriptor.view
+			var revealed_seat: int = player_count - 1
+			view._revealed_hole_cards[revealed_seat] = [
+				CardData.new(10, CardData.Suit.HEARTS),
+				CardData.new(14, CardData.Suit.SPADES),
+			]
+			view._seats[revealed_seat].all_in = true
+			view._seats[revealed_seat].stack = 0
+			view._action_history = [
+				PublicActionRecord.new(revealed_seat, PlayerAction.Kind.ALL_IN, 1000),
+			]
+			var first_winner: int = maxi(0, revealed_seat - 1)
+			view._pot_awards = [
+				PotAward.new(0, 120, [revealed_seat], {revealed_seat: 120}),
+				PotAward.new(1, 40, [first_winner], {first_winner: 40}),
+			]
+			if player_count >= 4:
+				view._seats[1].folded = true
+			var table: PokerTableController = await _phone_view_table_at(
+				view, viewport_size, {revealed_seat: "Benedikt"}
+			)
+			var token: PanelContainer = _seat(table, revealed_seat)
+			var cards := token.find_child("HoleCards", true, false) as Control
+			var name_label := token.find_child("Name", true, false) as Label
+			var stack_label := token.find_child("Stack", true, false) as Label
+			var state_badge := token.find_child("Badge", true, false) as Label
+			var action_badge := token.find_child("ActionBadge", true, false) as Label
+			var context := "%d players at %s" % [player_count, viewport_size]
+			assert_eq(name_label.text, "Benedikt", context)
+			assert_eq(stack_label.text, "0", context)
+			assert_string_contains(state_badge.text, "AI", context)
+			assert_eq(action_badge.text, "A1000", context)
+			assert_false(action_badge.visible, "%s lower-priority completed action" % context)
+			var previous_card: Control
+			for index: int in range(2):
+				var card := token.find_child("ShowdownCard%d" % (index + 1), true, false) as Control
+				_assert_complete_showdown_card(card, cards, token, context)
+				if previous_card != null:
+					assert_false(
+						previous_card.get_global_rect().intersects(card.get_global_rect()),
+						"%s revealed cards remain separate" % context,
+					)
+				previous_card = card
+			if player_count >= 4:
+				_assert_empty_card_fields(_seat(table, 1))
+
+	var hidden_table: PokerTableController = await _phone_table(&"human-turn-river", 7)
+	for seat: int in range(1, 7):
+		assert_null(hidden_table.find_child("ShowdownCard1", true, false))
+		assert_not_null(_seat(hidden_table, seat).find_child("CardBack1", true, false))
+
+
 func test_folded_and_busted_phone_tokens_keep_two_empty_card_fields() -> void:
 	var folded_descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"human-turn-preflop", 4)
 	folded_descriptor.view._seats[2].folded = true
@@ -231,13 +290,51 @@ func _phone_table(state_id: StringName, player_count: int) -> PokerTableControll
 
 
 func _phone_view_table(view: GameView) -> PokerTableController:
+	return await _phone_view_table_at(view, Vector2(390, 844))
+
+
+func _phone_view_table_at(
+	view: GameView, viewport_size: Vector2, names: Dictionary[int, String] = {}
+) -> PokerTableController:
 	var table := PokerTableScene.instantiate() as PokerTableController
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	table.size = Vector2(390, 844)
+	table.size = viewport_size
 	add_child_autofree(table)
-	table.bind_view(view, {}, {})
+	table.bind_view(view, {}, names)
 	await _settle()
 	return table
+
+
+func _assert_complete_showdown_card(
+	card: Control, cards: Control, token: PanelContainer, context: String
+) -> void:
+	var rank := card.get_node("Content/Rank") as Label
+	var suit := card.get_node("Content/Suit") as TextureRect
+	assert_eq(rank.get_theme_font("font"), ThemeDB.fallback_font, context)
+	assert_gte(rank.get_theme_font_size("font_size"), 20, context)
+	assert_true(card.get_global_rect().encloses(rank.get_global_rect()), context)
+	assert_true(card.get_global_rect().encloses(suit.get_global_rect()), context)
+	assert_lte(
+		rank.get_global_rect().end.x,
+		suit.get_global_rect().position.x,
+		"%s rank and suit use separate columns" % context,
+	)
+	var rendered_rank_width: float = (
+		rank
+		. get_theme_font("font")
+		. get_string_size(
+			rank.text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1.0,
+			rank.get_theme_font_size("font_size"),
+		)
+		. x
+	)
+	assert_lte(rendered_rank_width, rank.size.x, "%s complete rank" % context)
+	assert_gte(suit.size.x, 18.0, "%s distinguishable suit" % context)
+	assert_gte(suit.size.y, 18.0, "%s distinguishable suit" % context)
+	assert_true(cards.get_global_rect().encloses(card.get_global_rect()), context)
+	assert_true(token.get_global_rect().encloses(card.get_global_rect()), context)
 
 
 func _seat(table: PokerTableController, seat: int) -> PanelContainer:
