@@ -69,9 +69,14 @@ half of it (for example, 5/10 becomes 7/14, then 9/18). The CLI and table show
 the current blinds, level, completed hands, and hands remaining in the level.
 
 When it is a legal bet or raise and the hero can cover it, the GUI's **Pot
-bet** or **Pot raise** button submits the currently displayed pot amount
-through the normal wager-validation path. It is disabled if that target is not
-a legal wager; **All-in** and the free wager entry remain separate controls.
+bet** or **Pot raise** button submits an exact pot-sized target total through
+the normal wager-validation path. With pot `P`, existing hero street wager
+`H`, and call amount `C`, that total is `H + P + 2C`. An unopened pot bet is
+therefore the displayed pot amount, while a pot raise also accounts for the
+call and the resulting pot growth. The control is disabled when the exact
+target is outside the legal minimum/maximum range; **All-in** and free wager
+entry remain separate controls. This is a No Limit convenience preset, not a
+Pot Limit game mode.
 
 ### Bot roster selection
 

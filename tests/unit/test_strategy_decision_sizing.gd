@@ -65,8 +65,23 @@ func test_raise_sizing_emits_a_total_wager_including_existing_call() -> void:
 	var action: PlayerAction = model.choose_action(view)
 
 	assert_eq(action.kind, PlayerAction.Kind.RAISE)
-	assert_eq(action.amount, 60)
+	assert_eq(action.amount, 65)
 	assert_between(action.amount, view.minimum_wager_total, view.maximum_wager_total)
+
+
+func test_strong_raise_reuses_the_exact_post_call_pot_target() -> void:
+	var parameters := StrategyParametersScript.new()
+	parameters.tight_vs_loose = 100
+	parameters.passive_vs_aggressive = 100
+	parameters.call_vs_raise = 100
+	var model := _model_with_parameters(59, parameters)
+	var view := _view_for_call_with_cards("9H 9D", 100, 10, 200, 0, "2C 7D 9S")
+	var action: PlayerAction = model.choose_action(view)
+	var trace: Variant = model.get_last_decision_trace_for_testing()
+
+	assert_eq(action.kind, PlayerAction.Kind.RAISE)
+	assert_eq(action.amount, 120)
+	assert_eq(trace.hand_potential_band, &"strong")
 
 
 func _model_with_parameters(seed_value: int, parameters: DecisionModelParameters) -> DecisionModel:
@@ -114,7 +129,12 @@ func _view_for_bet_with_cards(
 
 
 func _view_for_call_with_cards(
-	card_codes: String, pot: int, call: int, stack: int, button: int
+	card_codes: String,
+	pot: int,
+	call: int,
+	stack: int,
+	button: int,
+	board_codes: String = "",
 ) -> GameView:
 	var players: Array[Player] = [
 		Player.new(&"hero", "Hero", 0, stack),
@@ -124,9 +144,25 @@ func _view_for_call_with_cards(
 		players[0].add_hole_card(card)
 	var table := Table.new(players, 5, 10)
 	table.button_seat = button
-	var view := GameView.for_preflop(
-		table, 0, BettingRound.new(table, 0, call), PotManager.new(), []
-	)
+	var betting_round := BettingRound.new(table, 0, call)
+	var view: GameView
+	if board_codes.is_empty():
+		view = GameView.for_preflop(table, 0, betting_round, PotManager.new(), [])
+	else:
+		view = (
+			GameView
+			. for_hand(
+				table,
+				0,
+				betting_round,
+				PotManager.new(),
+				[],
+				&"flop",
+				_cards(board_codes),
+				[],
+				{},
+			)
+		)
 	view.pot_amount = pot
 	return view
 

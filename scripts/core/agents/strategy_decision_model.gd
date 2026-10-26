@@ -15,6 +15,7 @@ const HandPotentialContextScript := preload("res://scripts/core/agents/hand_pote
 const HandPotentialEstimatorScript := preload(
 	"res://scripts/core/agents/hand_potential_estimator.gd"
 )
+const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
 
 var _parameters: DecisionModelParameters
 var _rng: RandomNumberGenerator
@@ -184,22 +185,29 @@ func _wager_target_for_estimate(view: GameView, estimate: HandPotentialEstimate)
 		return _clamped_wager_target(view, minimum_total)
 	var band: StringName = _band_for(estimate)
 	var target_total: int = minimum_total
-	var current_wager_total: int = _hero_wager_total(view)
+	var pot_fraction: PotWagerTargetResult
+	var existing_wager: int = _hero_existing_wager(view)
 	match band:
 		TraceScript.MARGINAL_BAND:
-			target_total = current_wager_total + floori(float(view.pot_amount) / 2.0)
+			pot_fraction = PotWagerTargetScript.calculate_fraction(
+				view.pot_amount, existing_wager, view.call_amount, 2
+			)
 		TraceScript.STRONG_BAND:
-			target_total = current_wager_total + view.pot_amount
+			pot_fraction = PotWagerTargetScript.calculate_fraction(
+				view.pot_amount, existing_wager, view.call_amount, 1
+			)
 		TraceScript.PREMIUM_BAND:
 			target_total = view.maximum_wager_total
+	if pot_fraction != null and pot_fraction.available:
+		target_total = pot_fraction.total
 	return _clamped_wager_target(view, target_total)
 
 
-func _hero_wager_total(view: GameView) -> int:
+func _hero_existing_wager(view: GameView) -> int:
 	for seat: PlayerView in view.seats:
 		if seat.seat == view.hero_seat:
-			return seat.bet_this_round + view.call_amount
-	return view.call_amount
+			return seat.bet_this_round
+	return 0
 
 
 func _clamped_wager_target(view: GameView, target_total: int) -> int:

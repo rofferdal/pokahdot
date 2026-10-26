@@ -151,6 +151,12 @@ The recipient-specific, read-only snapshot provided to agents and UI.
 | `maximum_wager_total`| `int` | All-in wager total. |
 | `seats` | `Array[PlayerView]` | Public info for all seats (stacks, bets, folded/busted status). |
 
+GUI and strategic-agent pot-size presets derive target totals entirely from
+this recipient-safe snapshot. With pot `P`, the recipient's existing street
+wager `H`, and call amount `C`, an exact pot-sized target is `H + P + 2C`.
+This is a No Limit sizing convenience; `BettingRound` still validates the
+result against `minimum_wager_total`, `maximum_wager_total`, and legal actions.
+
 ---
 
 ## 5. Agent, Strategy & Catalog Domain

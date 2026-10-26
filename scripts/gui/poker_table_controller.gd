@@ -15,6 +15,7 @@ const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_
 const GuiPhoneLayoutPlanScript := preload("res://scripts/gui/gui_phone_layout_plan.gd")
 const GuiPhoneSeatLayoutScript := preload("res://scripts/gui/gui_phone_seat_layout.gd")
 const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
+const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
 const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_formatter.gd")
 const TableSeatLayoutScript := preload("res://scripts/gui/table_seat_layout.gd")
 const TournamentStatusFormatterScript := preload("res://scripts/gui/tournament_status_formatter.gd")
@@ -300,6 +301,7 @@ func submit_wager_total(total: int) -> void:
 func show_wager_keypad() -> void:
 	if _bound_view == null or not WagerKeypadScript.can_wager(_bound_view):
 		return
+	var pot_target: PotWagerTargetResult = _resolved_pot_wager_target()
 	(
 		_wager_keypad
 		. open(
@@ -308,7 +310,7 @@ func show_wager_keypad() -> void:
 			_bound_view.maximum_wager_total,
 			GuiMobileTableLayoutScript.content_scale(_current_usable_size()),
 			GuiLayoutProfileScript.is_phone(get_layout_profile()),
-			displayed_pot_amount,
+			pot_target.total,
 			Vector2i(size),
 		)
 	)
@@ -1230,6 +1232,7 @@ func _refresh_action_controls() -> void:
 
 func _configure_action_control_copy(legal: Array) -> void:
 	var compact_copy: bool = _uses_compact_table_copy()
+	var pot_target: PotWagerTargetResult = _resolved_pot_wager_target()
 	if PlayerAction.Kind.CHECK in legal:
 		_check_call_button.text = "Check"
 	elif PlayerAction.Kind.CALL in legal:
@@ -1242,9 +1245,7 @@ func _configure_action_control_copy(legal: Array) -> void:
 		if compact_copy
 		else "Min %s %d" % [wager_name, _bound_view.minimum_wager_total]
 	)
-	_pot_raise_button.text = (
-		"Pot" if compact_copy else "Pot bet" if PlayerAction.Kind.BET in legal else "Pot raise"
-	)
+	_pot_raise_button.text = "Pot %d" % pot_target.total
 	_wager_button.text = wager_name
 	_wager_input.placeholder_text = "Total" if compact_copy else "Wager total"
 	_wager_input.custom_minimum_size.x = 72.0 if compact_copy else 200.0
@@ -1408,8 +1409,27 @@ func _can_submit_pot_wager(legal: Array, is_human_turn: bool) -> bool:
 		return false
 	if PlayerAction.Kind.BET not in legal and PlayerAction.Kind.RAISE not in legal:
 		return false
-	var target: int = displayed_pot_amount
-	return target >= _bound_view.minimum_wager_total and target <= _bound_view.maximum_wager_total
+	return _resolved_pot_wager_target().available
+
+
+func _resolved_pot_wager_target() -> PotWagerTargetResult:
+	if _bound_view == null:
+		return PotWagerTargetScript.resolve(0, 0, 0, 1, 0)
+	var existing_wager: int = -1
+	for seat: PlayerView in _bound_view.seats:
+		if seat.seat == _bound_view.hero_seat:
+			existing_wager = seat.bet_this_round
+			break
+	return (
+		PotWagerTargetScript
+		. resolve(
+			displayed_pot_amount,
+			existing_wager,
+			_bound_view.call_amount,
+			_bound_view.minimum_wager_total,
+			_bound_view.maximum_wager_total,
+		)
+	)
 
 
 func _on_fold_pressed() -> void:
@@ -1436,7 +1456,8 @@ func _on_pot_raise_pressed() -> void:
 		_bound_view.legal_actions, _bound_view.acting_seat == _bound_view.hero_seat
 	):
 		return
-	submit_wager_total(displayed_pot_amount)
+	var pot_target: PotWagerTargetResult = _resolved_pot_wager_target()
+	submit_wager_total(pot_target.total)
 
 
 func _on_wager_pressed() -> void:

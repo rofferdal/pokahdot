@@ -1,7 +1,7 @@
 # Optimizing the Phone GUI
 
-Status: Active — portrait amount and symmetry remediation passes automated
-verification; physical verification remains
+Status: Active — physical Android follow-up still shows clipped opponent and
+human action amounts; corrective implementation and verification remain
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -202,6 +202,39 @@ complete only when its acceptance evidence has been recorded.
   action states. Acceptance: mirrored pairs have equal offsets and sizes,
   Lior's corresponding five-opponent slot is top-centered, and no seat/status
   region intersects the board or human/action region.
+- [ ] **Add a Web-font regression for complete opponent and human action
+  amounts.** Reproduce
+  `localtmp/from_real_tests/Screenshot_20261026_004126_Chrome.jpg` with the
+  deployed Web font/rendering path and a current wager of 310. Require Linh's
+  seat-owned action to show its complete amount instead of `R31`, and require
+  the human summary to show the complete latest action instead of only `R`.
+  Cover Bet, Call, and Raise values with one through four digits plus an all-in
+  boundary value. Acceptance: the regression fails against the captured
+  geometry before production changes and measures the rendered glyph width,
+  not only the label's assigned rectangle or native desktop font metrics.
+- [ ] **Reserve sufficient portrait width for opponent action amounts.** Stop
+  relying on an exact 48 px opponent action cell that only barely fits selected
+  three-digit fixtures. Reflow the compact token's stack, action, and card
+  fields so the complete recipient-safe action value fits with visible internal
+  padding at the 20 px font floor. Preserve the full name, numeric stack,
+  position/state marker, and both card fields without increasing token overlap
+  or breaking the symmetric 2-, 4-, 6-, and 7-player footprints. Acceptance:
+  no action suffix is clipped or ellipsized in native or Web rendering.
+- [ ] **Give the human latest-action badge content-driven space.** Rework the
+  bottom summary so the complete human Check, Call, Bet, Raise, All-in, or Fold
+  value remains visible alongside the hero cards, stack, and `More`. The badge
+  must not collapse to a single action prefix when sibling controls consume the
+  row. Acceptance: representative `B120`, `C310`, `R310`, and large all-in
+  values render in full with padding while `More` remains at least 48 x 48 and
+  the legal-action buttons remain unobstructed.
+- [ ] **Extend the phone invariant matrix with action-content padding.** Check
+  both opponent tokens and the human summary at the shortest supported portrait
+  viewport, the recorded Android logical viewport, browser-bar expansion and
+  collapse, DPR 1/2/3, and portrait resize restoration. Assert rendered text
+  plus intentional horizontal padding fits its owned cell and that stack,
+  cards, badges, center information, and action controls do not intersect.
+  Acceptance: the native and Web-sensitive regressions pass without lowering
+  the 20 px font floor or weakening existing containment assertions.
 - [ ] **Verify persistent actions on the physical phone.** Deploy one clean SHA
   and exercise 2-, 4-, 6-, and 7-player portrait tables across preflop, flop,
   turn, and river, including repeated actions by one player, folds, all-ins,
@@ -375,3 +408,22 @@ complete only when its acceptance evidence has been recorded.
   GDScript lint and formatting pass. Phone, iPad, desktop, and historical
   visual invariant gates pass.
 - Physical-phone verification remains unchecked pending the user's results.
+
+### 2026-10-26 — Physical Web action-amount regression
+
+- Evidence:
+  `localtmp/from_real_tests/Screenshot_20261026_004126_Chrome.jpg`, a 1080 x
+  2340 Android Chrome JPEG showing a six-player preflop human turn.
+- Center and placement result: the pot (`645`), current wager (`310`), board,
+  and symmetric opponent arc are visible, so this capture does not reproduce
+  the earlier center-label or placement failures.
+- Opponent result: fail. Linh's highlighted latest-action badge shows `R31`
+  beside a current wager of `310`, demonstrating that the final amount digit is
+  cropped in the physical Web rendering.
+- Human result: fail. The latest-action badge between the hero stack and
+  `More` has collapsed to `R`, so the human player's numeric action amount is
+  absent even though sufficient attribution is required for every player.
+- The earlier native automated checks did not catch either physical Web result.
+  New work must include rendered-content padding and the actual Web font path,
+  not another equality-at-the-cell-boundary assertion.
+- Physical-phone action verification remains unchecked.

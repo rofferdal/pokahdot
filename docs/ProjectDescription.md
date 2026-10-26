@@ -154,6 +154,17 @@ An all-in raise below the minimum full raise is legal, but does **not** reopen
 raising for players who already acted and matched the previous full raise.
 Players who have not yet acted must still fold, call, or raise.
 
+The GUI's **Pot bet** and **Pot raise** controls are No Limit convenience
+presets, not Pot Limit rules. Wagers remain target totals for the current
+street. Let `P` be the pot before the hero acts, `H` the hero's existing wager
+on the street, and `C` the additional amount required to call. The exact
+pot-sized target is `H + C + (P + C)`, equivalently `H + P + 2C`. An unopened
+postflop pot bet therefore targets `P`; a pot raise includes both the call and
+the pot growth caused by calling. The preset is available only when that exact
+target is within `minimum_wager_total` and `maximum_wager_total`. Otherwise the
+Pot control is unavailable, while Minimum, All-in, and free wager entry remain
+separate choices. The ordinary betting-round validation remains authoritative.
+
 A betting round is complete when:
 
 - every remaining player has acted at least once after the latest full bet or

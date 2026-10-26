@@ -463,6 +463,13 @@ broadway hands. Each target is clamped to the
 recipient-safe `GameView` minimum and maximum wager totals, and bet/raise
 requests always carry a target total rather than a chip delta.
 
+Pot fractions use the same post-call basis as the human Pot shortcut. For pot
+`P`, existing recipient street wager `H`, and call amount `C`, the exact
+one-pot target total is `H + C + (P + C)`, or `H + P + 2C`; a half-pot target
+adds half of `P + C` after reaching the called total. Calculations use only the
+recipient-safe `GameView` and are clamped or rejected according to the caller's
+documented policy without bypassing `BettingRound` validation.
+
 Published schema-1 profile values migrate explicitly by calculating
 `round(passive_vs_aggressive * call_vs_bet / 100)` and assigning that result
 to both schema-2 aggression fields. This preserves the old aggregate
@@ -567,7 +574,7 @@ The completed implementation history proceeded through the interactive CLI first
 1. Show a startup panel prefilled with 6 participants, 1000 chips, small blind 5, and big blind 10; starting immediately without editing is valid.
 2. Validate edits locally for immediate feedback, then create a fresh validated match configuration and construct `TournamentMatch`; do not create players, chips, or cards while the input is invalid.
 3. Call `start()` and render the returned human `GameView`: board, pots, stacks, current blinds, level progress, acting seat, hero cards, active/eliminated participants, and final winner when applicable. Opponent cards remain hidden unless the view explicitly reveals them.
-4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, minimum Bet/Raise, a Pot bet/raise target, All-in, and free-entry amounts as applicable. The Pot wager control sends the displayed pot amount through the ordinary wager-validation path and is disabled unless that target is a legal bet or raise the hero can cover.
+4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, minimum Bet/Raise, an exact Pot bet/raise target, All-in, and free-entry amounts as applicable. The Pot control is a No Limit convenience preset. It submits the street-total target `H + P + 2C`, where `P` is the pre-action pot, `H` is the hero's existing street wager, and `C` is the call amount. It is disabled unless that exact target is a legal bet or raise the hero can cover; the ordinary wager-validation path remains authoritative.
 5. On a button press, create `PlayerAction`, submit it, and render the next result.
 6. Keep `Quit` available at all times; confirm in the GUI and then call `request_quit()`.
 
