@@ -88,7 +88,7 @@ screenshots under ignored `localtmp/`; do not commit them.
   ```
 
   Prepare the local certificate first and trust its CA on test devices, as
-  described in the [runbook](OPTIONAL_WEB_SETUP.md#https-certificates-and-test-device-trust).
+  described in the [LAN how-to](../devdocs/how-to/local-wifi-web-testing.md#https-certificates-and-test-device-trust).
   The device opens `https://<development-computer-LAN-IP>:8080/`.
 
 - [x] **LAN-04 — Verify access from another Wi-Fi device.**
@@ -208,6 +208,10 @@ screenshots under ignored `localtmp/`; do not commit them.
   All local links and Markdown anchors in the changed workflow documents
   resolve, and `git diff --check` passes. Evidence:
   `localtmp/lan/continuation/final-documentation-check.json`.
+  Follow-up: the maintained LAN instructions now live in the dedicated
+  [local Wi-Fi how-to](../devdocs/how-to/local-wifi-web-testing.md), including
+  separate first-time setup and rebuild instructions and an explanation of
+  already-running server errors. The Web publishing runbook links to it.
 
 ## Acceptance and ownership
 

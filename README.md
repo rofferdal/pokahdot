@@ -327,19 +327,16 @@ to `main` automatically validates and deploys that commit to GitHub Pages; follo
 ## Local Wi-Fi testing
 
 Build and serve the production game from your working tree before merging or
-deploying. Follow the [LAN setup and certificate-trust runbook](docs/OPTIONAL_WEB_SETUP.md#local-wi-fi-development-before-merging):
+deploying. Follow [Build and serve the latest game over local Wi-Fi](devdocs/how-to/local-wifi-web-testing.md)
+for first-time HTTPS setup and device trust. If the LAN server is already
+running, save your files and rebuild from another terminal:
 
 ```bash
-make web-lan-network
-# Replace the example address with the Wi-Fi address printed above:
-make web-lan-tls WEB_LAN_ADDRESS=192.168.1.42
-make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-lan-build
-make web-lan-serve
+make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-lan-rebuild && make web-lan-status
 ```
 
-Trust the generated development CA on the test clients, then open the printed
-HTTPS LAN URL from devices on the same Wi-Fi. `web-lan-rebuild` produces a new
-identified export; reopen the root URL to select it and compare the tab's
+Reopen the HTTPS root URL from devices on the same Wi-Fi to select the new
+export; starting a second server is unnecessary. Compare the tab's
 `Pokahdot · LAN <build-ID-prefix>` with `make web-lan-status`. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
 Physical-browser verification is tracked in [LanTestTasks.md](docs/LanTestTasks.md).

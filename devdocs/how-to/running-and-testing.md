@@ -252,9 +252,10 @@ make check
 ## 6. Building the Web Release
 
 For working-tree testing on the Mac, iPad or Android over Wi-Fi, use the
-[local LAN runbook](../../docs/OPTIONAL_WEB_SETUP.md#local-wi-fi-development-before-merging).
-The workflow is `web-lan-network`, `web-lan-tls WEB_LAN_ADDRESS=<Wi-Fi-IP>`,
-`web-lan-build`, and `web-lan-serve`. It runs the normal production startup
+[dedicated local Wi-Fi how-to](local-wifi-web-testing.md).
+First-time setup uses `web-lan-network`, `web-lan-tls WEB_LAN_ADDRESS=<Wi-Fi-IP>`,
+`web-lan-build`, and `web-lan-serve`. Subsequent game changes need only
+`web-lan-rebuild` while the existing server runs. It runs the normal production startup
 scene, permits identified uncommitted changes, and uses local HTTPS with
 explicitly trusted test-device certificates. Reopen the root URL after
 `web-lan-rebuild` and compare the browser tab's build ID with `web-lan-status`.

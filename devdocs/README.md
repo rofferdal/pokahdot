@@ -40,6 +40,10 @@ Practical step-by-step instructions to get everyday development tasks done.
   authoritative visual evidence contract is in
   **[GUI Visual Testing](../docs/GUI_VISUAL_TESTING.md)**, with the standard
   **[GUI Defect Record](../docs/templates/GUI_DEFECT.md)**.
+- **[Build and Serve over Local Wi-Fi](how-to/local-wifi-web-testing.md)**:
+  How to serve the latest saved game code over HTTPS to the Mac, iPad and
+  Android, rebuild while serving, trust the local certificate, and recover
+  from an already-running server or an outdated browser build.
 - **[Switching GitHub Pages to Manual Deployment](how-to/switching-github-pages-to-manual-deployment.md)**:
   How to replace the default automatic `main` deployment with an explicitly
   requested manual workflow that always deploys the latest commit on `main`,
