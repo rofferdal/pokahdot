@@ -11,7 +11,11 @@ func test_help_prints_available_shell_and_poker_commands() -> void:
 	assert_true(io.contains_write("Available commands:"))
 	assert_true(io.contains_write("  help - show this help"))
 	assert_true(io.contains_write("  quit, exit - exit Pokahdot"))
-	assert_true(io.contains_write("  fold, check, call, bet <total>, raise <total>, allin"))
+	assert_true(
+		io.contains_write(
+			"  fold, check, call, bet <total>, raise <total>, potbet, potraise, allin"
+		)
+	)
 	assert_write_precedes(io, "Available commands:", "Goodbye.")
 
 
@@ -38,6 +42,17 @@ func test_unknown_command_is_reported_and_loop_recovers() -> void:
 		io.contains_write("Unknown command 'deal now'. Type 'help' for available commands.")
 	)
 	assert_true(io.contains_write("Goodbye."))
+
+
+func test_pot_commands_are_recognized_without_an_active_human_turn() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("potbet").queue_line("potraise").queue_line("quit")
+
+	var status := _run_loop(io)
+
+	assert_eq(status, CliCommandLoop.Status.QUIT)
+	assert_eq(io.count_writes_containing("No active human turn."), 2)
+	assert_eq(io.count_writes_containing("Unknown command"), 0)
 
 
 func test_quit_ends_loop_with_quit_status() -> void:

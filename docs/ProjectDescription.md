@@ -154,11 +154,12 @@ An all-in raise below the minimum full raise is legal, but does **not** reopen
 raising for players who already acted and matched the previous full raise.
 Players who have not yet acted must still fold, call, or raise.
 
-The GUI's **Pot bet** and **Pot raise** controls are No Limit convenience
-presets, not Pot Limit rules. Wagers remain target totals for the current
-street. Let `P` be the pot before the hero acts, `H` the hero's existing wager
-on the street, and `C` the additional amount required to call. The product
-shortcut's exact street-total target is `T = H + P`, so the action adds
+The GUI's **Pot bet**/**Pot raise** controls and CLI `potbet`/`potraise`
+commands are No Limit convenience presets, not Pot Limit rules. Wagers remain
+target totals for the current street. Let `P` be the pot before the hero acts,
+`H` the hero's existing wager on the street, and `C` the additional amount
+required to call. The product shortcut visibly presents contribution `P`; its
+distinct street-total target is `T = H + P`, so the action adds
 `T - H = P` chips and leaves a pot of `2P`. When a call is due, that
 contribution consists of call `C` plus a raise increment of `P - C`; `C` is not
 added a second time. The preset is available only when that exact target is
@@ -359,8 +360,9 @@ cards were actually shown.
   active/eliminated players, and the tournament winner.
 - Hide opponent cards until legitimately revealed at showdown.
 - Provide Fold, Check/Call, and Bet/Raise controls with minimum, Pot bet/raise,
-  all-in, and free-entry amounts. The Pot wager shortcut uses the displayed pot
-  total through ordinary wager validation and is disabled when that target is
+  all-in, and free-entry amounts. The Pot wager shortcut displays the observed
+  pot contribution separately from the internal street total, uses both from
+  the same bound view, and is disabled when that target is
   not a legal bet or raise the human can cover.
 - Provide a clearly visible `Quit` control at all times and request
   confirmation before quitting.
@@ -453,8 +455,10 @@ godot --headless --path . --script res://scripts/cli/cli_app.gd
   `[ A♠ | 10♥ | K♦ ]`. Never render internal card IDs or numeric rank/suit
   pairs.
 - Assume UTF-8 and handle rank `10` without fixed-width padding assumptions.
-- Read `fold`, `check`, `call`, `bet 50`, `raise 100`, `allin`, `quit`, and
-  `exit` from stdin.
+- Read `fold`, `check`, `call`, `bet 50`, `raise 100`, `potbet`, `potraise`,
+  `allin`, `quit`, and `exit` from stdin. Pot commands take no numeric argument;
+  their legal-action entry shows contribution `P`, while execution submits
+  street total `H + P` through ordinary validation.
 - For an invalid command, show an error and prompt again without crashing.
 - Bots act without waiting for stdin.
 - Human `quit` or `exit` ends the tournament immediately.

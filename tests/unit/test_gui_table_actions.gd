@@ -40,7 +40,7 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_false(table.get_node("%WagerButton").disabled)
 	assert_false(table.get_node("%AllInButton").disabled)
 	assert_true(table.get_node("%MinWagerButton").text in ["Min Raise 20", "Min 20"])
-	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 20")
+	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 15")
 	assert_eq(table.get_node("%WagerButton").text, "Raise")
 	assert_eq(table.get_node("%AllInButton").text, "All-in")
 	var wager_input: LineEdit = table.get_node("%WagerInput")
@@ -48,7 +48,7 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	assert_false(wager_input.virtual_keyboard_show_on_focus)
 	assert_eq(wager_input.virtual_keyboard_type, LineEdit.KEYBOARD_TYPE_NUMBER)
 	table.get_node("%MinWagerButton").emit_signal("pressed")
-	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Raise 20" in text))
+	assert_true(_event_texts(table).any(func(text: String) -> bool: return "Raise to 20" in text))
 
 	# Rebind the unchanged initial view so the remaining input controls can be tested.
 	table.bind_view(match_instance.get_view_for(0), _empty_assignments())
@@ -87,7 +87,7 @@ func test_live_wager_input_uses_touch_keypad_and_pointer_keyboard_across_profile
 		assert_true(keypad.visible, "touch profile %d" % profile)
 		assert_eq(
 			(keypad.get_node("Content/Keys/KeyPot") as Button).text,
-			"Pot 20",
+			"Pot 15",
 			"pot target profile %d" % profile,
 		)
 		keypad.cancel()
@@ -161,6 +161,7 @@ func test_pot_bet_submits_the_exact_target_through_the_live_match() -> void:
 	assert_true(PlayerAction.Kind.BET in view.legal_actions)
 	assert_eq(view.pot_amount, 20)
 	assert_eq(view.minimum_wager_total, 10)
+	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 20")
 	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 20")
 	assert_false(table.get_node("%PotRaiseButton").disabled)
 
@@ -195,6 +196,7 @@ func test_pot_raise_doubles_the_pre_action_pot_through_the_live_match() -> void:
 	assert_true(PlayerAction.Kind.RAISE in view.legal_actions)
 	assert_eq(view.pot_amount, 30)
 	assert_eq(view.minimum_wager_total, 20)
+	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 30")
 	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 30")
 	assert_false(table.get_node("%PotRaiseButton").disabled)
 
@@ -237,19 +239,29 @@ func test_live_repeated_raise_uses_existing_wager_and_reopens_action() -> void:
 	assert_eq(reraised_view.pot_amount, 80)
 	assert_eq(_seat_view(reraised_view, 0).bet_this_round, 20)
 	assert_eq(reraised_view.call_amount, 20)
-	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 100")
+	assert_eq(reraised_view.minimum_wager_total, 50)
+	assert_eq(reraised_view.maximum_wager_total, 490)
+	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 80")
+	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 80")
 	assert_false((table.get_node("%PotRaiseButton") as Button).disabled)
+	table.show_wager_keypad()
+	var keypad := table.get_node("WagerKeypad") as WagerKeypad
+	assert_eq((keypad.get_node("Content/Keys/KeyPot") as Button).text, "Pot 80")
+	keypad.get_node("Content/Keys/KeyPot").emit_signal("pressed")
+	assert_eq((keypad.get_node("Content/Value") as Label).text, "100")
 
 	var pre_action_pot: int = reraised_view.pot_amount
 	var pre_action_wager: int = _seat_view(reraised_view, 0).bet_this_round
+	var pre_action_stack: int = _seat_view(reraised_view, 0).stack
 	_freeze_action_pacing(table)
-	table.get_node("%PotRaiseButton").emit_signal("pressed")
+	keypad.get_node("Content/Done").emit_signal("pressed")
 	var submitted_view: GameView = match_instance.get_view_for(0)
 	var submitted_action: PublicActionRecord = _latest_player_action_for(submitted_view, 0)
 	assert_eq(submitted_action.kind, PlayerAction.Kind.RAISE)
 	assert_eq(submitted_action.amount, 100)
 	assert_eq(_seat_view(submitted_view, 0).bet_this_round, 100)
 	assert_eq(_seat_view(submitted_view, 0).bet_this_round - pre_action_wager, pre_action_pot)
+	assert_eq(pre_action_stack - _seat_view(submitted_view, 0).stack, 80)
 	assert_eq(_current_bet(submitted_view), 100)
 	assert_eq(submitted_view.pot_amount, 160)
 	assert_eq(submitted_view.pot_amount, pre_action_pot * 2)
@@ -274,7 +286,8 @@ func test_live_short_stack_disables_exact_pot_without_clamping_to_all_in() -> vo
 	table.get_node("%PotRaiseButton").emit_signal("pressed")
 	var short_view: GameView = match_instance.get_view_for(0)
 	assert_eq(short_view.maximum_wager_total, 90)
-	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 100")
+	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 80")
+	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 80")
 	assert_true((table.get_node("%PotRaiseButton") as Button).disabled)
 	assert_false((table.get_node("%AllInButton") as Button).disabled)
 	var action_count_before: int = short_view.action_history.size()
@@ -297,7 +310,8 @@ func test_live_below_minimum_pot_target_is_disabled_without_submission() -> void
 	assert_eq(view.minimum_wager_total, 20)
 	assert_eq(view.maximum_wager_total, 100)
 	assert_true(PlayerAction.Kind.RAISE in view.legal_actions)
-	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 12")
+	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 11")
+	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 11")
 	assert_true((table.get_node("%PotRaiseButton") as Button).disabled)
 	assert_false((table.get_node("%AllInButton") as Button).disabled)
 
@@ -307,6 +321,35 @@ func test_live_below_minimum_pot_target_is_disabled_without_submission() -> void
 	assert_eq(unchanged_view.action_history.size(), action_count_before)
 	assert_eq(unchanged_view.pot_amount, 11)
 	assert_eq(_total_chips(unchanged_view), 200)
+
+
+func test_live_exact_minimum_and_maximum_pot_target_settles_without_clamping() -> void:
+	var match_instance := _waiting_match_with_stack([PlayerAction.fold_action()], 20)
+	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(table)
+	_disable_action_pacing(table)
+	table.bind_match(match_instance, 0, _empty_assignments())
+	var before := match_instance.get_view_for(0)
+
+	assert_eq(before.pot_amount, 15)
+	assert_eq(_seat_view(before, 0).bet_this_round, 5)
+	assert_eq(before.minimum_wager_total, 20)
+	assert_eq(before.maximum_wager_total, 20)
+	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 15")
+	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 15")
+	assert_false((table.get_node("%PotRaiseButton") as Button).disabled)
+	var stack_before: int = _seat_view(before, 0).stack
+	_freeze_action_pacing(table)
+	table.get_node("%PotRaiseButton").emit_signal("pressed")
+	var after := match_instance.get_view_for(0)
+	var action := _latest_player_action_for(after, 0)
+
+	assert_eq(action.kind, PlayerAction.Kind.RAISE)
+	assert_eq(action.amount, 20)
+	assert_eq(stack_before - _seat_view(after, 0).stack, 15)
+	assert_eq(after.pot_amount, 30)
+	assert_eq(_current_bet(after), 20)
+	assert_eq(_total_chips(after), 40)
 
 
 func test_pot_wager_shortcut_respects_legal_action_and_inclusive_total_bounds() -> void:
@@ -860,7 +903,10 @@ func test_each_seat_displays_its_latest_public_action_below_its_panel() -> void:
 	assert_eq(
 		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status").text, "Big blind 10"
 	)
-	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status").text, "Raise 30")
+	assert_eq(
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status").text,
+		"Raise to 30",
+	)
 	assert_eq(
 		(
 			table
@@ -880,7 +926,7 @@ func test_new_hand_view_clears_previous_hand_action_labels() -> void:
 	]
 	table.bind_view(first_hand_view, _empty_assignments())
 	var action_label := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label
-	assert_eq(action_label.text, "Call 10")
+	assert_eq(action_label.text, "Call to 10")
 	assert_true(action_label.visible)
 
 	var next_hand_view := _action_view(3)
@@ -966,7 +1012,10 @@ func test_seat_identity_keeps_stack_below_name_and_all_in_outside_the_panel() ->
 	assert_eq(identity.get_child(1).name, "Stack")
 	assert_eq(stack_label.text, "100 chips")
 	assert_false(stack_label.text.contains("ALL-IN"))
-	assert_eq(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status").text, "All-in 100")
+	assert_eq(
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status").text,
+		"All-in to 100",
+	)
 	assert_eq(marker.custom_minimum_size.x, 96.0)
 
 

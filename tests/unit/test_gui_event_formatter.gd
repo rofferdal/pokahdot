@@ -16,7 +16,7 @@ func test_formatter_makes_every_game_event_explicit_and_recipient_safe() -> void
 		DomainEvent.Kind.HAND_STARTED: "Hand 3 started",
 		DomainEvent.Kind.BLIND_POSTED: "Hero (you) posted a blind of 5",
 		DomainEvent.Kind.CARDS_DEALT: "Hole cards dealt",
-		DomainEvent.Kind.ACTION_APPLIED: "River Bot: Call 40",
+		DomainEvent.Kind.ACTION_APPLIED: "River Bot: Call to 40",
 		DomainEvent.Kind.ACTION_REJECTED: "River Bot action was rejected",
 		DomainEvent.Kind.STREET_CHANGED: "River begins",
 		DomainEvent.Kind.COMMUNITY_CARDS_DEALT: "Community cards dealt",

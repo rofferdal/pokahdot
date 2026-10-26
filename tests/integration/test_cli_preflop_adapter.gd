@@ -11,7 +11,6 @@ func test_match_loop_renders_before_prompt_rejects_without_losing_turn_and_settl
 	var match_instance := TournamentMatch.new(_config(3, 1000, 5, 10), _folding_agents(3))
 
 	var status := CliCommandLoop.new(io).run_match(match_instance, 0)
-
 	assert_eq(status, CliCommandLoop.Status.EOF)
 	assert_true(io.writes.find("Hand 1 - preflop") < io.writes.find("pokahdot> "))
 	assert_true(
@@ -24,6 +23,175 @@ func test_match_loop_renders_before_prompt_rejects_without_losing_turn_and_settl
 	assert_true(io.contains_write("Hand complete. Seat 0 wins by folds."))
 	assert_true(io.contains_write("  Seat 0 raises to 20"))
 	_assert_no_bot_cards_are_rendered(io, match_instance)
+
+
+func test_match_loop_executes_potbet_from_the_current_recipient_safe_view() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("check").queue_line("potbet")
+	var agents: Dictionary[int, Agent] = {
+		0: HumanAgent.new(),
+		1:
+		(
+			ScriptedAgent
+			. new(
+				[
+					PlayerAction.call_action(),
+					PlayerAction.fold_action(),
+				]
+			)
+		),
+	}
+	var match_instance := TournamentMatch.new(_config(2, 100, 5, 10), agents)
+
+	var status := CliCommandLoop.new(io).run_match(match_instance, 0)
+	assert_eq(status, CliCommandLoop.Status.EOF)
+	assert_true(
+		io.contains_write("Legal actions: fold, check, bet (10-90 total), potbet (20), allin")
+	)
+	assert_true(io.contains_write("  Seat 0 bets to 20"))
+	assert_true(io.contains_write("Hand complete. Seat 0 wins by folds."))
+
+
+func test_match_loop_rejects_wrong_kind_and_unavailable_pot_target_actionably() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("potbet").queue_line("potraise").queue_line("raise 20")
+	var match_instance := TournamentMatch.new(_config(3, 35, 5, 10), _folding_agents(3))
+
+	var status := CliCommandLoop.new(io).run_match(match_instance, 0)
+
+	assert_eq(status, CliCommandLoop.Status.EOF)
+	assert_true(io.contains_write("Action rejected: potbet is available only when Bet is legal."))
+	assert_true(
+		io.contains_write(
+			"Action rejected: The exact Pot target is unavailable; use raise <total> or allin."
+		)
+	)
+	assert_true(io.contains_write("  Seat 0 raises to 20"))
+	assert_eq(io.count_writes_containing("Unknown command"), 0)
+
+
+func test_cli_potraise_adds_observed_pot_and_submits_street_total_after_blind() -> void:
+	var io := FakeCliIO.new()
+	var match_instance := TournamentMatch.new(_config(3, 100, 5, 10), _folding_agents(3))
+	assert_eq(match_instance.start().status, StepResult.Status.WAITING_FOR_HUMAN)
+	var before := match_instance.get_view_for(0)
+	var stack_before: int = _seat_view(before, 0).stack
+	var chips_before: int = _total_chips_and_pot(before)
+	var parsed := CommandParser.new().parse("potraise")
+	var action: PlayerAction = CliCommandLoop.new(io)._resolve_pot_action(before, parsed)
+
+	assert_not_null(action)
+	assert_eq(before.pot_amount, 30)
+	assert_eq(_seat_view(before, 0).bet_this_round, 10)
+	assert_eq(before.call_amount, 0)
+	assert_eq(action.kind, PlayerAction.Kind.RAISE)
+	assert_eq(action.amount, 40)
+	assert_eq(
+		match_instance.submit_human_action_without_advance(action).status,
+		StepResult.Status.YIELDED,
+	)
+	var after := match_instance.get_view_for(0)
+	assert_eq(stack_before - _seat_view(after, 0).stack, 30)
+	assert_eq(after.pot_amount, 60)
+	assert_eq(_current_bet(after), 40)
+	assert_eq(_total_chips_and_pot(after), chips_before)
+	assert_eq(_latest_player_action_for(after, 0).amount, 40)
+	CliRenderer.new(io).render_hand(after)
+	assert_true(io.contains_write("  Seat 0 raises to 40"))
+
+
+func test_cli_potraise_facing_wager_doubles_pot_and_reopens_action() -> void:
+	var io := FakeCliIO.new()
+	var agents: Dictionary[int, Agent] = {
+		0: HumanAgent.new(),
+		1: ScriptedAgent.new([PlayerAction.call_action(), PlayerAction.bet_to(10)]),
+	}
+	var match_instance := TournamentMatch.new(_config(2, 100, 5, 10), agents)
+	assert_eq(match_instance.start().status, StepResult.Status.WAITING_FOR_HUMAN)
+	assert_eq(
+		match_instance.submit_human_action(PlayerAction.check_action()).status,
+		StepResult.Status.WAITING_FOR_HUMAN,
+	)
+	assert_eq(
+		match_instance.submit_human_action(PlayerAction.check_action()).status,
+		StepResult.Status.WAITING_FOR_HUMAN,
+	)
+	var before := match_instance.get_view_for(0)
+	var stack_before: int = _seat_view(before, 0).stack
+	var chips_before: int = _total_chips_and_pot(before)
+	var action: PlayerAction = CliCommandLoop.new(io)._resolve_pot_action(
+		before, CommandParser.new().parse("potraise")
+	)
+
+	assert_eq(before.pot_amount, 30)
+	assert_eq(_seat_view(before, 0).bet_this_round, 0)
+	assert_eq(before.call_amount, 10)
+	assert_eq(action.amount, 30)
+	assert_eq(
+		match_instance.submit_human_action_without_advance(action).status,
+		StepResult.Status.YIELDED,
+	)
+	var after := match_instance.get_view_for(0)
+	assert_eq(stack_before - _seat_view(after, 0).stack, 30)
+	assert_eq(after.pot_amount, 60)
+	assert_eq(_current_bet(after), 30)
+	assert_eq(_total_chips_and_pot(after), chips_before)
+	var opponent_view := match_instance.get_view_for(1)
+	assert_eq(opponent_view.call_amount, 20)
+	assert_has(opponent_view.legal_actions, PlayerAction.Kind.RAISE)
+
+
+func test_cli_repeated_potraises_preserve_observed_contribution_and_total_target() -> void:
+	var io := FakeCliIO.new()
+	var agents: Dictionary[int, Agent] = {
+		0: HumanAgent.new(),
+		1: ScriptedAgent.new([PlayerAction.call_action(), PlayerAction.raise_to(40)]),
+	}
+	var match_instance := TournamentMatch.new(_config(2, 500, 5, 10), agents)
+	assert_eq(match_instance.start().status, StepResult.Status.WAITING_FOR_HUMAN)
+	assert_eq(
+		match_instance.submit_human_action(PlayerAction.check_action()).status,
+		StepResult.Status.WAITING_FOR_HUMAN,
+	)
+	var flop_view := match_instance.get_view_for(0)
+	var pot_bet: PlayerAction = CliCommandLoop.new(io)._resolve_pot_action(
+		flop_view, CommandParser.new().parse("potbet")
+	)
+	assert_eq(
+		match_instance.submit_human_action(pot_bet).status, StepResult.Status.WAITING_FOR_HUMAN
+	)
+	var before := match_instance.get_view_for(0)
+	var stack_before: int = _seat_view(before, 0).stack
+	var chips_before: int = _total_chips_and_pot(before)
+	var repeated_raise: PlayerAction = CliCommandLoop.new(io)._resolve_pot_action(
+		before, CommandParser.new().parse("potraise")
+	)
+
+	assert_eq(before.pot_amount, 80)
+	assert_eq(_seat_view(before, 0).bet_this_round, 20)
+	assert_eq(before.call_amount, 20)
+	assert_eq(repeated_raise.amount, 100)
+	assert_eq(
+		match_instance.submit_human_action_without_advance(repeated_raise).status,
+		StepResult.Status.YIELDED,
+	)
+	var after := match_instance.get_view_for(0)
+	assert_eq(stack_before - _seat_view(after, 0).stack, 80)
+	assert_eq(after.pot_amount, 160)
+	assert_eq(_current_bet(after), 100)
+	assert_eq(_total_chips_and_pot(after), chips_before)
+
+
+func test_pot_command_between_hands_is_rejected_without_starting_next_hand() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("raise 20").queue_line("potbet").queue_line("quit")
+	var match_instance := TournamentMatch.new(_config(3, 100, 5, 10), _folding_agents(3))
+
+	var status := CliCommandLoop.new(io).run_match(match_instance, 0)
+
+	assert_eq(status, CliCommandLoop.Status.QUIT)
+	assert_true(io.contains_write("Action rejected: No active human turn."))
+	assert_eq(io.count_writes_containing("Hand 2 -"), 0)
 
 
 func test_quit_routes_through_match_and_renders_player_quit() -> void:
@@ -259,6 +427,35 @@ func _assert_no_bot_cards_are_rendered(io: FakeCliIO, match_instance: Tournament
 		for token: String in write.trim_prefix("Your cards: [ ").trim_suffix(" ]").split(" | "):
 			assert_true(token in hero_cards)
 			assert_false(token.contains(":"))
+
+
+func _seat_view(view: GameView, seat: int) -> PlayerView:
+	for seat_view: PlayerView in view.seats:
+		if seat_view.seat == seat:
+			return seat_view
+	return null
+
+
+func _total_chips_and_pot(view: GameView) -> int:
+	var total := view.pot_amount
+	for seat_view: PlayerView in view.seats:
+		total += seat_view.stack
+	return total
+
+
+func _current_bet(view: GameView) -> int:
+	var current_bet := 0
+	for seat_view: PlayerView in view.seats:
+		current_bet = maxi(current_bet, seat_view.bet_this_round)
+	return current_bet
+
+
+func _latest_player_action_for(view: GameView, seat: int) -> PublicActionRecord:
+	for index: int in range(view.action_history.size() - 1, -1, -1):
+		var record: PublicActionRecord = view.action_history[index]
+		if record.record_kind == PublicActionRecord.Kind.ACTION and record.seat == seat:
+			return record
+	return null
 
 
 func _diagnostic_profile_count(diagnostics: PackedStringArray) -> int:

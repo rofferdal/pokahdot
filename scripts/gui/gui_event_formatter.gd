@@ -72,9 +72,9 @@ static func _format_action(player_name: String, action_record: PublicActionRecor
 	var action_names: Dictionary[PlayerAction.Kind, String] = {
 		PlayerAction.Kind.FOLD: "Fold",
 		PlayerAction.Kind.CHECK: "Check",
-		PlayerAction.Kind.CALL: "Call %d" % action_record.amount,
-		PlayerAction.Kind.BET: "Bet %d" % action_record.amount,
-		PlayerAction.Kind.RAISE: "Raise %d" % action_record.amount,
-		PlayerAction.Kind.ALL_IN: "All-in %d" % action_record.amount,
+		PlayerAction.Kind.CALL: "Call to %d" % action_record.amount,
+		PlayerAction.Kind.BET: "Bet to %d" % action_record.amount,
+		PlayerAction.Kind.RAISE: "Raise to %d" % action_record.amount,
+		PlayerAction.Kind.ALL_IN: "All-in to %d" % action_record.amount,
 	}
 	return "%s: %s" % [player_name, action_names.get(action_record.kind, "Action")]

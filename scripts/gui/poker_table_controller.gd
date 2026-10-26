@@ -313,7 +313,8 @@ func show_wager_keypad() -> void:
 			_bound_view.maximum_wager_total,
 			GuiMobileTableLayoutScript.content_scale(_current_usable_size()),
 			GuiLayoutProfileScript.is_phone(get_layout_profile()),
-			pot_target.total,
+			pot_target.contribution,
+			pot_target.wager_total,
 			Vector2i(size),
 		)
 	)
@@ -761,12 +762,21 @@ func _refresh_rendered_phone_action_badges() -> void:
 		return
 	_phone_hero_action_badge.text = _phone_hero_action_for_seat(_bound_view.hero_seat)
 	_phone_hero_action_badge.visible = not _phone_hero_action_badge.text.is_empty()
+	_phone_hero_action_badge.tooltip_text = _phone_action_tooltip(_bound_view.hero_seat)
 	for seat: int in _seat_widgets:
 		var badge := _seat_widgets[seat].find_child("ActionBadge", true, false) as Label
 		if badge == null:
 			continue
 		badge.text = _phone_opponent_action_for_seat(seat)
 		badge.visible = not badge.text.is_empty()
+		badge.tooltip_text = _phone_action_tooltip(seat)
+
+
+func _phone_action_tooltip(seat: int) -> String:
+	var latest_action: PublicActionRecord = _active_round_latest_actions.get(seat)
+	if latest_action == null or latest_action.record_kind != PublicActionRecord.Kind.ACTION:
+		return ""
+	return _action_record_text(latest_action)
 
 
 func _create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
@@ -1211,13 +1221,13 @@ func _action_record_text(latest_record: PublicActionRecord) -> String:
 			PlayerAction.Kind.CHECK:
 				action_text = "Check"
 			PlayerAction.Kind.CALL:
-				action_text = "Call %d" % latest_record.amount
+				action_text = "Call to %d" % latest_record.amount
 			PlayerAction.Kind.BET:
-				action_text = "Bet %d" % latest_record.amount
+				action_text = "Bet to %d" % latest_record.amount
 			PlayerAction.Kind.RAISE:
-				action_text = "Raise %d" % latest_record.amount
+				action_text = "Raise to %d" % latest_record.amount
 			PlayerAction.Kind.ALL_IN:
-				action_text = "All-in %d" % latest_record.amount
+				action_text = "All-in to %d" % latest_record.amount
 	return action_text
 
 
@@ -1303,7 +1313,7 @@ func _configure_action_control_copy(legal: Array) -> void:
 		if compact_copy
 		else "Min %s %d" % [wager_name, _bound_view.minimum_wager_total]
 	)
-	_pot_raise_button.text = "Pot %d" % pot_target.total
+	_pot_raise_button.text = "Pot %d" % pot_target.contribution
 	_wager_button.text = wager_name
 	_wager_input.placeholder_text = "Total" if compact_copy else "Wager total"
 	_wager_input.custom_minimum_size.x = 72.0 if compact_copy else 200.0
@@ -1515,7 +1525,7 @@ func _on_pot_raise_pressed() -> void:
 	):
 		return
 	var pot_target: PotWagerTargetResult = _resolved_pot_wager_target()
-	submit_wager_total(pot_target.total)
+	submit_wager_total(pot_target.wager_total)
 
 
 func _on_wager_pressed() -> void:

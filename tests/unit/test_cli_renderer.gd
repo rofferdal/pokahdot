@@ -46,9 +46,10 @@ func test_renderer_outputs_ordered_blinds_and_action_limits() -> void:
 		PublicActionRecord.blind(0, 5, true),
 		PublicActionRecord.blind(1, 10, false),
 	]
-	var view := GameView.for_preflop(
-		table, 0, BettingRound.new(table, 0, 10), PotManager.new(), history
-	)
+	var pots := PotManager.new()
+	pots.record_contribution(0, 15)
+	pots.record_contribution(1, 15)
+	var view := GameView.for_preflop(table, 0, BettingRound.new(table, 0, 10), pots, history)
 	var io := FakeCliIO.new()
 
 	CliRenderer.new(io).render_preflop(view)
@@ -61,7 +62,55 @@ func test_renderer_outputs_ordered_blinds_and_action_limits() -> void:
 			< io.writes.find("  Seat 1 posts big blind 10")
 		)
 	)
-	assert_true(io.contains_write("Legal actions: fold, call (5), raise (20-100 total), allin"))
+	assert_true(
+		io.contains_write(
+			"Legal actions: fold, call (5), raise (20-100 total), potraise (30), allin"
+		)
+	)
+
+
+func test_renderer_exposes_potbet_with_observed_pot_contribution() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 100),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var pots := PotManager.new()
+	pots.record_contribution(0, 10)
+	pots.record_contribution(1, 10)
+	var view := GameView.for_hand(
+		table, 0, BettingRound.new(table, 0), pots, [], &"flop", [], [], {}
+	)
+	var io := FakeCliIO.new()
+
+	CliRenderer.new(io).render_hand(view)
+
+	assert_true(
+		io.contains_write("Legal actions: fold, check, bet (10-100 total), potbet (20), allin")
+	)
+	assert_eq(io.count_writes_containing("potraise"), 0)
+
+
+func test_renderer_omits_pot_command_when_exact_target_is_outside_legal_range() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 100),
+	]
+	var table := Table.new(players, 5, 10)
+	var pots := PotManager.new()
+	pots.record_contribution(0, 2)
+	pots.record_contribution(1, 3)
+	var view := GameView.for_hand(
+		table, 0, BettingRound.new(table, 0), pots, [], &"flop", [], [], {}
+	)
+	var io := FakeCliIO.new()
+
+	CliRenderer.new(io).render_hand(view)
+
+	assert_true(io.contains_write("Legal actions: fold, check, bet (10-100 total), allin"))
+	assert_eq(io.count_writes_containing("potbet"), 0)
+	assert_eq(io.count_writes_containing("potraise"), 0)
 
 
 func test_card_formatter_covers_every_rank_and_suit() -> void:

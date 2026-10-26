@@ -120,7 +120,8 @@ func open(
 	maximum: int,
 	content_scale: float = 1.0,
 	bottom_sheet: bool = false,
-	pot_target: int = -1,
+	pot_contribution: int = -1,
+	pot_wager_total: int = -1,
 	usable_size: Vector2i = Vector2i.ZERO,
 ) -> void:
 	_input = input
@@ -139,9 +140,9 @@ func open(
 	_minimum_button.text = "Min %d" % minimum
 	_minimum_button.set_meta("wager_value", minimum)
 	_pot_button.visible = bottom_sheet
-	_pot_button.text = "Pot %d" % maxi(0, pot_target)
-	_pot_button.set_meta("wager_value", pot_target)
-	_pot_button.disabled = pot_target < minimum or pot_target > maximum
+	_pot_button.text = "Pot %d" % maxi(0, pot_contribution)
+	_pot_button.set_meta("wager_value", pot_wager_total)
+	_pot_button.disabled = pot_wager_total < minimum or pot_wager_total > maximum
 	var scale: float = clampf(content_scale, 1.0, 2.0)
 	_refresh_popup_layout(scale, usable_size)
 

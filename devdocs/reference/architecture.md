@@ -157,9 +157,10 @@ At each street:
 - **Under-raises (All-in)**: An all-in bet below the minimum raise is legal, but does **not reopen the betting** for players who already faced and matched the previous full wager.
 - **Raise Rights**: Tracks which seats still have the option to reopen raising on this street.
 
-The GUI Pot shortcut uses the displayed pre-action pot while retaining the
-target-total contract. For pre-action pot `P` and existing player street wager
-`H`, its exact target is `T = H + P`; it adds `P` chips and leaves a pot of
+The GUI and CLI Pot shortcuts use the displayed pre-action pot while retaining
+the target-total contract. Their typed result separates visible contribution
+`P` from the exact target `T = H + P` for existing player street wager `H`;
+the action adds `P` chips and leaves a pot of
 `2P`. An unopened pot bet therefore targets `P`. This No Limit convenience
 intentionally differs from the conventional Pot Limit post-call formula
 `H + P + 2C` and does not replace betting-round validation.

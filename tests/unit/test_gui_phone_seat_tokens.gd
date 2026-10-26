@@ -96,6 +96,8 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 		assert_eq(hole_cards.get_child_count(), 2, "seat %d hole-card fields" % seat)
 		if action_badge.visible:
 			assert_eq(action_badge.text, expected_actions[seat], "seat %d action" % seat)
+			if actions[seat - 1].kind in [PlayerAction.Kind.BET, PlayerAction.Kind.RAISE]:
+				assert_string_contains(action_badge.tooltip_text, " to ")
 			assert_false(
 				action_badge.get_global_rect().intersects(name_label.get_global_rect()),
 				(

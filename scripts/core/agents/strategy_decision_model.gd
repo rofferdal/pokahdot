@@ -201,7 +201,7 @@ func _wager_target_for_estimate(view: GameView, estimate: HandPotentialEstimate)
 		TraceScript.PREMIUM_BAND:
 			target_total = view.maximum_wager_total
 	if pot_fraction != null and pot_fraction.available:
-		target_total = pot_fraction.total
+		target_total = pot_fraction.wager_total
 	return _clamped_wager_target(view, target_total)
 
 

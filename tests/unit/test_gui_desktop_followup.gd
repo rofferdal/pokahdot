@@ -218,7 +218,7 @@ func test_seven_player_ipad_details_remain_visible_with_or_without_latest_action
 	var player_two_action := (
 		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status") as Label
 	)
-	player_two_action.text = "Raise 999999 • long status text remains in its reserved line"
+	player_two_action.text = "Raise to 999999 • long status text remains in its reserved line"
 	table._queue_layout()
 	await _settle_layout()
 	assert_true(surface_rect.encloses(player_two_action.get_global_rect()))
@@ -489,7 +489,8 @@ func test_six_player_action_labels_are_owned_by_their_seats() -> void:
 		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as Control
 		var label_rect := label.get_global_rect()
 		assert_eq(
-			label.text, ["", "Small blind 5", "Call 10", "Raise 30", "", "Big blind 10"][seat]
+			label.text,
+			["", "Small blind 5", "Call to 10", "Raise to 30", "", "Big blind 10"][seat],
 		)
 		assert_almost_eq(label_rect.get_center().x, panel.get_global_rect().get_center().x, 0.01)
 		assert_gte(label_rect.position.y, panel.get_global_rect().end.y)
@@ -586,7 +587,7 @@ func test_desktop_browser_keeps_active_betting_actions_visible_after_refresh() -
 	var surface_rect := Rect2(Vector2.ZERO, _surface(table).size)
 	var expected_text: Dictionary[int, String] = {
 		1: "Small blind 5",
-		2: "Call 10",
+		2: "Call to 10",
 		5: "Big blind 10",
 	}
 	for seat: int in [1, 2, 5]:
@@ -676,7 +677,7 @@ func test_event_action_matching_keeps_latest_action_on_its_owning_seat() -> void
 	)
 	assert_eq(
 		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).text,
-		"Call 10",
+		"Call to 10",
 	)
 	assert_true(
 		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).visible
@@ -696,7 +697,7 @@ func test_action_labels_are_rebuilt_from_recipient_history_during_refresh() -> v
 	table._refresh_seat_status_labels()
 	assert_eq(
 		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).text,
-		"Call 10",
+		"Call to 10",
 	)
 	assert_true(
 		(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status") as Label).visible

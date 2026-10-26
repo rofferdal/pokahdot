@@ -1,6 +1,6 @@
 # Correct Pot-Sized Bet and Raise Targets
 
-Status: Reopened — separate the observed Pot amount from the core wager total
+Status: Automated work complete — awaiting physical/browser acceptance
 Started: 2026-10-26
 
 ## Scope
@@ -215,37 +215,85 @@ passing-after evidence before checking implementation tasks.
   GUI invariant matrices. Acceptance: `Pot N` remains unclipped at the 20 px
   text floor and all automated checks pass with the revised amounts.
 
+### CLI Pot bet and raise commands
+
+- [x] **Add failing CLI contract tests for `potbet` and `potraise`.** Extend
+  parser, help, legal-action rendering, and live-match coverage before changing
+  production code. Require the exact single-word commands `potbet` and
+  `potraise`; do not require or accept a numeric argument. In the rendered
+  `Legal actions` line, list only the command appropriate to the current wager
+  kind and show the observable Pot contribution in parentheses in the same
+  style as Call, for example `potbet (20)` or `potraise (30)`. Acceptance: the
+  tests fail because neither command nor its amount is currently exposed, while
+  existing `bet <total>` and `raise <total>` behavior remains covered.
+- [x] **Represent Pot commands as CLI intents and resolve them from the current
+  view.** Keep parsing independent of match state: parse `potbet` and
+  `potraise` into explicit command intents, then have the active match loop use
+  the shared typed Pot-target calculator with the current recipient-safe
+  `GameView`. Submit the resulting ordinary `PlayerAction.bet_to(T)` or
+  `PlayerAction.raise_to(T)`, where the displayed contribution is `P` and the
+  core street-total target is `T = H + P`. Do not duplicate the formula in the
+  CLI or move presentation concerns into `scripts/core/`. Acceptance: command
+  execution observes the same availability, overflow, minimum, maximum, and
+  No Limit validation rules as the GUI controls.
+- [x] **Expose only executable Pot commands in CLI help and turn output.** Add
+  `potbet` and `potraise` to `help`, and extend the current turn's available-
+  command rendering so `potbet (P)` appears only when Bet and the exact Pot
+  target are available, while `potraise (P)` appears only when Raise and the
+  exact Pot target are available. If the target is unavailable or the command
+  does not match the legal wager kind, keep the command recognized but reject
+  it with a specific, actionable message rather than treating it as unknown or
+  silently clamping it. Acceptance: the amount beside the available command is
+  the same displayed Pot value used by the shortcut, analogous to `call (C)`,
+  and is not the internal `H + P` street total when `H > 0`.
+- [x] **Verify CLI Pot commands through settlement.** Cover unopened betting,
+  a raise facing a wager, a posted blind or earlier hero contribution, repeated
+  raises, exact legal boundaries, below-minimum targets, insufficient stacks,
+  and command use outside an active human turn. For successful actions, assert
+  displayed command amount `P`, submitted total `H + P`, stack delta `P`, final
+  pot `2P`, current bet, action reopening, chip conservation, and action-history
+  wording. Acceptance: CLI and GUI produce identical settlement from the same
+  public state, and the complete CLI, GUT, and Python suites pass.
+
 ### Latest correction tasks: literal observed-Pot contribution
 
-- [ ] **Capture the failing physical case as a complete value trace.** Record
+- [x] **Capture the failing physical case as a complete value trace.** Record
   the visible Pot amount `P`, hero's existing street wager `H`, call amount
   `C`, minimum and maximum totals, Pot-control text, submitted public action,
   chips removed from the hero stack, and pot after the action. Add the same
   state as a deterministic real-`TournamentMatch` regression. Acceptance: the
   regression proves which boundary is wrong instead of inferring correctness
   only from the calculator result or final pot.
-- [ ] **Give the shared result separate contribution and total fields.** Replace
+
+  Recorded deterministic trace on 2026-10-26: visible `Pot: 80`, `H=20`,
+  `C=20`, minimum total `50`, maximum total `490`, and the incorrect control
+  text `Pot 100`. Pressing it still submitted `Raise to 100`, removed exactly
+  `80` chips, and produced a pot of `160`. The real-`TournamentMatch`
+  regression therefore isolates presentation as the failing boundary. Before
+  production changes, the focused file passed 34/35 tests and 326/327
+  assertions; its only failure was `Pot 100` versus the required `Pot 80`.
+- [x] **Give the shared result separate contribution and total fields.** Replace
   the ambiguous single `total` result with a typed result that exposes the
   observed shortcut contribution `P` and the core street-total target `H + P`
   independently, together with availability and failure reason. Retain checked
   overflow, invalid-input, minimum-total, and maximum-total handling.
   Acceptance: no caller can accidentally present `H + P` as the observed Pot
   amount or submit `P` where the core requires a street total.
-- [ ] **Make every Pot control display and preserve the observed Pot amount.**
+- [x] **Make every Pot control display and preserve the observed Pot amount.**
   Desktop, tablet, phone, and the phone keypad must show `Pot P`, using the same
   `P` visible in the Pot field for that bound view. Pressing the control must
   submit the paired internal target `H + P`; opening or closing the keypad must
   not recalculate from a later or unrelated view. Acceptance: `Pot: 30` always
   produces a `Pot 30` control, including when `H=5`, while the submitted total
   is 35 and the added chips are 30.
-- [ ] **Clarify action feedback without changing the core action contract.**
+- [x] **Clarify action feedback without changing the core action contract.**
   Audit the human action badge, opponent action badge, event text, and action
   history rendering so a street-total record is not mislabeled as newly added
   chips. Use explicit wording such as `Raise to T` when showing the core total,
   or show the added contribution only when it is derived from before/after
   public state. Acceptance: the UI never claims that a player added `H + P`
   when the stack delta was `P`.
-- [ ] **Add click-to-settlement regressions for bets and raises.** In real match
+- [x] **Add click-to-settlement regressions for bets and raises.** In real match
   states, snapshot the displayed Pot label immediately before the click and
   cover an unopened bet, facing a wager, a posted blind, an earlier wager in
   the same street, repeated raises, exact minimum/maximum boundaries, below-
@@ -253,11 +301,17 @@ passing-after evidence before checking implementation tasks.
   total `H + P`, stack delta `P`, final pot `2P`, current bet, action reopening,
   and chip conservation. Acceptance: tests fail if any layer substitutes the
   call amount, current wager, minimum raise, or cached prior pot for `P`.
-- [ ] **Repeat automated verification with distinct display and submission
+- [x] **Repeat automated verification with distinct display and submission
   assertions.** Run the complete GUT and Python suites, lint, formatting, and
   phone, iPad, desktop, and historical invariant matrices. Add explicit GUI
   assertions for both numbers when `H > 0`: the visible shortcut remains `P`
   while the submitted street total is `H + P`.
+
+  Verified on 2026-10-26: 544/544 GUT tests with 17,692 assertions, 72/72
+  Python tests, full GDScript lint and formatting checks, whitespace validation,
+  and the phone, iPad, desktop, and historical GUI invariant matrices all
+  passed. The repeated-raise regression explicitly observes `Pot 80`, stages
+  and submits street total `100`, and verifies an `80`-chip stack delta.
 - [ ] **Perform physical/browser acceptance.** Deploy one clean SHA and verify
   the recorded failing example plus unopened bets, raises facing a wager,
   raises after a blind or prior contribution, repeated raises, and insufficient-
@@ -267,6 +321,19 @@ passing-after evidence before checking implementation tasks.
   are added.
 
 ## Historical automated verification
+
+CLI Pot-command red phase on 2026-10-26: the focused parser, help, renderer,
+and live-match suite produced the expected 5 failing tests with 31/36 tests and
+424/434 assertions passing before production changes. Failures were limited to
+the missing Pot intent kinds, help entry, legal-action amount, and live command
+execution; existing numeric `bet <total>` and `raise <total>` coverage passed.
+
+CLI Pot-command passing phase on 2026-10-26: 543/543 GUT tests with 17,654
+assertions and 72/72 Python tests passed. Focused GDScript lint, formatting, and
+whitespace validation also passed. Live CLI regressions cover the observed Pot
+amount, submitted street total, stack delta, doubled pot, current bet, action
+reopening, chip conservation, history wording, unavailable targets, and use
+outside an active turn.
 
 Verified on 2026-10-26:
 

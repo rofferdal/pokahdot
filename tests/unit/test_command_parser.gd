@@ -59,6 +59,27 @@ func test_parser_maps_bet_and_raise_target_totals() -> void:
 	assert_eq(raise.action.amount, 60)
 
 
+func test_parser_maps_exact_pot_commands_to_explicit_intents() -> void:
+	var pot_bet_kind: int = CliCommand.Kind.keys().find("POT_BET")
+	var pot_raise_kind: int = CliCommand.Kind.keys().find("POT_RAISE")
+	var pot_bet := CommandParser.new().parse("  POTBET  ")
+	var pot_raise := CommandParser.new().parse("potraise")
+
+	assert_gte(pot_bet_kind, 0)
+	assert_gte(pot_raise_kind, 0)
+	assert_eq(pot_bet.kind, pot_bet_kind)
+	assert_eq(pot_bet.text, "potbet")
+	assert_null(pot_bet.action)
+	assert_eq(pot_raise.kind, pot_raise_kind)
+	assert_eq(pot_raise.text, "potraise")
+	assert_null(pot_raise.action)
+
+
+func test_parser_rejects_numeric_arguments_for_pot_commands() -> void:
+	for text: String in ["potbet 20", "potraise 30"]:
+		assert_eq(CommandParser.new().parse(text).kind, CliCommand.Kind.UNKNOWN, text)
+
+
 func test_parser_rejects_missing_non_integer_and_non_positive_amounts() -> void:
 	for text: String in ["bet", "raise nope", "bet 0", "raise -5", "call 10"]:
 		assert_eq(CommandParser.new().parse(text).kind, CliCommand.Kind.UNKNOWN, text)

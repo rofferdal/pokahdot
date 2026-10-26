@@ -2,6 +2,7 @@ class_name CliRenderer
 extends RefCounted
 
 const CliCardFormatterScript = preload("res://scripts/cli/cli_card_formatter.gd")
+const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
 
 var _io: CliIO
 
@@ -170,6 +171,7 @@ func _category_name(category: HandRank.Category) -> String:
 
 func _legal_actions(view: GameView) -> String:
 	var descriptions := PackedStringArray()
+	var pot_target: PotWagerTargetResult = _pot_wager_target(view)
 	for kind: PlayerAction.Kind in view.legal_actions:
 		var name: String = (
 			"allin"
@@ -181,7 +183,29 @@ func _legal_actions(view: GameView) -> String:
 		elif kind == PlayerAction.Kind.BET or kind == PlayerAction.Kind.RAISE:
 			name += " (%d-%d total)" % [view.minimum_wager_total, view.maximum_wager_total]
 		descriptions.append(name)
+		if pot_target.available and kind == PlayerAction.Kind.BET:
+			descriptions.append("potbet (%d)" % view.pot_amount)
+		elif pot_target.available and kind == PlayerAction.Kind.RAISE:
+			descriptions.append("potraise (%d)" % view.pot_amount)
 	return ", ".join(descriptions) if not descriptions.is_empty() else "none"
+
+
+func _pot_wager_target(view: GameView) -> PotWagerTargetResult:
+	var existing_wager := 0
+	for seat_view: PlayerView in view.seats:
+		if seat_view.seat == view.hero_seat:
+			existing_wager = seat_view.bet_this_round
+			break
+	return (
+		PotWagerTargetScript
+		. resolve(
+			view.pot_amount,
+			existing_wager,
+			view.call_amount,
+			view.minimum_wager_total,
+			view.maximum_wager_total,
+		)
+	)
 
 
 func _format_action(record: PublicActionRecord) -> String:
@@ -195,4 +219,6 @@ func _format_action(record: PublicActionRecord) -> String:
 		return "Seat %d %ss to %d" % [record.seat, action_name, record.amount]
 	if record.kind == PlayerAction.Kind.CALL:
 		return "Seat %d calls to %d" % [record.seat, record.amount]
+	if record.kind == PlayerAction.Kind.ALL_IN:
+		return "Seat %d goes all-in to %d" % [record.seat, record.amount]
 	return "Seat %d %ss" % [record.seat, action_name]

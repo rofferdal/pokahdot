@@ -18,15 +18,23 @@ static func resolve(
 	maximum_total: int,
 ) -> PotWagerTargetResult:
 	if minimum_total < 0 or maximum_total < minimum_total:
-		return PotWagerTargetResult.new(0, false, INVALID_INPUT)
+		return PotWagerTargetResult.new(0, 0, false, INVALID_INPUT)
 	var calculated: PotWagerTargetResult = calculate_fraction(
 		pot_amount, existing_wager, call_amount, 1
 	)
 	if not calculated.available:
 		return calculated
-	var available: bool = calculated.total >= minimum_total and calculated.total <= maximum_total
-	return PotWagerTargetResult.new(
-		calculated.total, available, AVAILABLE if available else OUTSIDE_LEGAL_RANGE
+	var available: bool = (
+		calculated.wager_total >= minimum_total and calculated.wager_total <= maximum_total
+	)
+	return (
+		PotWagerTargetResult
+		. new(
+			calculated.contribution,
+			calculated.wager_total,
+			available,
+			AVAILABLE if available else OUTSIDE_LEGAL_RANGE,
+		)
 	)
 
 
@@ -34,10 +42,10 @@ static func calculate_fraction(
 	pot_amount: int, existing_wager: int, call_amount: int, pot_fraction_divisor: int
 ) -> PotWagerTargetResult:
 	if pot_amount < 0 or existing_wager < 0 or call_amount < 0 or pot_fraction_divisor <= 0:
-		return PotWagerTargetResult.new(0, false, INVALID_INPUT)
+		return PotWagerTargetResult.new(0, 0, false, INVALID_INPUT)
 
 	@warning_ignore("integer_division")
 	var pot_fraction: int = pot_amount / pot_fraction_divisor
 	if pot_fraction > MAX_INT_64 - existing_wager:
-		return PotWagerTargetResult.new(0, false, OVERFLOW)
-	return PotWagerTargetResult.new(existing_wager + pot_fraction, true, AVAILABLE)
+		return PotWagerTargetResult.new(0, 0, false, OVERFLOW)
+	return PotWagerTargetResult.new(pot_fraction, existing_wager + pot_fraction, true, AVAILABLE)

@@ -8,10 +8,9 @@ func parse(input: String) -> CliCommand:
 	var normalized := input.strip_edges().to_lower()
 	if normalized.is_empty():
 		return CliCommand.new(CliCommand.Kind.EMPTY)
-	if normalized == "help":
-		return CliCommand.new(CliCommand.Kind.HELP, normalized)
-	if normalized == "quit" or normalized == "exit":
-		return CliCommand.new(CliCommand.Kind.QUIT, normalized)
+	var simple_command: CliCommand = _parse_simple_command(normalized)
+	if simple_command != null:
+		return simple_command
 	var parts: PackedStringArray = normalized.split(" ", false)
 	var fixed_actions: Dictionary[String, PlayerAction.Kind] = {
 		"fold": PlayerAction.Kind.FOLD,
@@ -30,3 +29,15 @@ func parse(input: String) -> CliCommand:
 				CliCommand.Kind.ACTION, normalized, PlayerAction.new(kind, int(parts[1]))
 			)
 	return CliCommand.new(CliCommand.Kind.UNKNOWN, normalized)
+
+
+func _parse_simple_command(normalized: String) -> CliCommand:
+	if normalized == "help":
+		return CliCommand.new(CliCommand.Kind.HELP, normalized)
+	if normalized == "quit" or normalized == "exit":
+		return CliCommand.new(CliCommand.Kind.QUIT, normalized)
+	if normalized == "potbet":
+		return CliCommand.new(CliCommand.Kind.POT_BET, normalized)
+	if normalized == "potraise":
+		return CliCommand.new(CliCommand.Kind.POT_RAISE, normalized)
+	return null

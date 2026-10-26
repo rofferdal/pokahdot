@@ -151,9 +151,10 @@ The recipient-specific, read-only snapshot provided to agents and UI.
 | `maximum_wager_total`| `int` | All-in wager total. |
 | `seats` | `Array[PlayerView]` | Public info for all seats (stacks, bets, folded/busted status). |
 
-GUI and strategic-agent pot-size presets derive target totals entirely from
+GUI, CLI, and strategic-agent pot-size presets derive target totals entirely from
 this recipient-safe snapshot. With pot `P`, the recipient's existing street
-wager `H`, the GUI Pot shortcut uses the exact street-total target `T = H + P`.
+wager `H`, the human Pot shortcut exposes contribution `P` separately from its
+exact street-total target `T = H + P`.
 It therefore adds `P` chips and leaves a pot of `2P`; call amount `C` does not
 get added a second time. This is a No Limit sizing convenience, deliberately
 distinct from the conventional Pot Limit post-call formula `H + P + 2C`.

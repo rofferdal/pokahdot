@@ -6,6 +6,8 @@ enum Kind {
 	HELP,
 	QUIT,
 	ACTION,
+	POT_BET,
+	POT_RAISE,
 	UNKNOWN,
 }
 

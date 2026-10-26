@@ -55,8 +55,8 @@ On macOS without `godot` in `PATH`:
 ```
 
 The terminal interface supports a complete tournament with optional startup
-overrides, poker actions, `help`, `quit`, and `exit`. Game rules remain in
-`scripts/core/`, not in either presentation layer.
+overrides, poker actions including `potbet` and `potraise`, `help`, `quit`, and
+`exit`. Game rules remain in `scripts/core/`, not in either presentation layer.
 
 ## Blind levels and Pot wager
 
@@ -69,15 +69,17 @@ half of it (for example, 5/10 becomes 7/14, then 9/18). The CLI and table show
 the current blinds, level, completed hands, and hands remaining in the level.
 
 When it is a legal bet or raise and the hero can cover it, the GUI's **Pot
-bet** or **Pot raise** button submits an exact pot-sized target total through
-the normal wager-validation path. With pot `P`, existing hero street wager
-`H`, and call amount `C`, the product target is `T = H + P`. The action adds
-exactly `P` chips and leaves a pot of `2P`; when a call is due, the remaining
-part of that contribution is the raise increment. The control is disabled when
-the exact target is outside the legal minimum/maximum range; **All-in** and
-free wager entry remain separate controls. This is a No Limit convenience
-preset, not a Pot Limit game mode: the conventional Pot Limit post-call raise
-formula is intentionally not used for this GUI shortcut.
+bet**/**Pot raise** control and the CLI's `potbet`/`potraise` command submit an
+exact pot-sized target total through the normal wager-validation path. With pot
+`P`, existing hero street wager `H`, and call amount `C`, the product target is
+`T = H + P`. The action adds exactly `P` chips and leaves a pot of `2P`; when a
+call is due, the remaining part of that contribution is the raise increment.
+The visible shortcut amount remains `P`; the internal total remains `H + P`.
+The shortcut is unavailable when the exact target is outside the legal
+minimum/maximum range; **All-in** and free wager entry remain separate controls.
+This is a No Limit convenience preset, not a Pot Limit game mode: the
+conventional Pot Limit post-call raise formula is intentionally not used for
+this product shortcut.
 
 ### Bot roster selection
 
