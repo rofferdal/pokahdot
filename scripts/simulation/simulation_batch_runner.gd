@@ -25,12 +25,13 @@ func run(
 	inputs: Array[SimulationTournamentInput],
 	max_transitions: int = 256,
 	trace_config: SimulationTraceConfig = null,
+	minimum_samples_by_plan: Dictionary = {},
 ) -> RefCounted:
 	var outcomes: Array[SimulationTournamentOutcome] = []
 	var resolved_trace_config := TRACE_CONFIG_SCRIPT.new() if trace_config == null else trace_config
 	for input: SimulationTournamentInput in inputs:
 		outcomes.append(_run_one(base_config, input, max_transitions, resolved_trace_config))
-	return BATCH_RESULT_SCRIPT.new(outcomes)
+	return BATCH_RESULT_SCRIPT.new(outcomes, minimum_samples_by_plan)
 
 
 # gdlint: disable=max-returns
@@ -73,11 +74,14 @@ func _run_one(
 		execution_config.starting_stack,
 		max_transitions,
 		trace_config,
-		creation.effective_seed
+		creation.effective_seed,
+		creation.rng_algorithm_version,
 	)
 	var result: StepResult = execution.result
 	if result.status != StepResult.Status.TOURNAMENT_FINISHED:
-		return _failure_outcome(input, SimulationDiagnostic.Stage.EXECUTION, result.message)
+		return _failure_outcome(
+			input, SimulationDiagnostic.Stage.EXECUTION, result.message, execution.traces
+		)
 	var outcome := (
 		SimulationTournamentOutcome
 		. new(
@@ -114,6 +118,7 @@ func _run_with_metrics(
 	max_transitions: int,
 	trace_config: SimulationTraceConfig,
 	effective_seed: int,
+	rng_algorithm_version: String,
 ) -> Dictionary:
 	var profiles: Dictionary[int, StringName] = _seat_mapping(input)
 	var starting_stacks: Dictionary[int, int] = {}
@@ -123,10 +128,11 @@ func _run_with_metrics(
 	var traces: Array[SimulationTraceEntry] = []
 	var trace_rng := (
 		RngStreamFactory
-		. new()
+		. new(Callable(), rng_algorithm_version)
 		. create_named(effective_seed, ["trace_sampling"])
 		. get_trace_sampling_rng()
 	)
+	var trace_sampling_state := {&"observed": 0}
 	var event_cursor: int = 0
 	var decision_cursors: Dictionary[int, int] = {}
 	var result: StepResult = match_instance.start(max_transitions)
@@ -136,6 +142,7 @@ func _run_with_metrics(
 			traces,
 			trace_config,
 			trace_rng,
+			trace_sampling_state,
 			match_instance,
 			input,
 			event_cursor,
@@ -147,7 +154,14 @@ func _run_with_metrics(
 			in [StepResult.Status.HAND_COMPLETED, StepResult.Status.TOURNAMENT_FINISHED]
 		):
 			_capture_completed_hand(metrics, match_instance)
-			_capture_hand_trace(traces, trace_config, trace_rng, match_instance, input)
+			_capture_hand_trace(
+				traces,
+				trace_config,
+				trace_rng,
+				trace_sampling_state,
+				match_instance,
+				input,
+			)
 		if result.status == StepResult.Status.HAND_COMPLETED:
 			# HandController starts a fresh event list for the next hand.
 			event_cursor = 0
@@ -184,6 +198,7 @@ func _capture_decisions(
 	traces: Array[SimulationTraceEntry],
 	trace_config: SimulationTraceConfig,
 	trace_rng: RandomNumberGenerator,
+	trace_sampling_state: Dictionary,
 	match_instance: TournamentMatch,
 	input: SimulationTournamentInput,
 	event_cursor: int,
@@ -222,6 +237,7 @@ func _capture_decisions(
 			traces,
 			trace_config.max_entries_per_tournament,
 			trace_rng,
+			trace_sampling_state,
 			TRACE_ENTRY_SCRIPT.decision(
 				input.tournament_index,
 				match_instance.hand_number,
@@ -238,6 +254,7 @@ func _capture_hand_trace(
 	traces: Array[SimulationTraceEntry],
 	trace_config: SimulationTraceConfig,
 	trace_rng: RandomNumberGenerator,
+	trace_sampling_state: Dictionary,
 	match_instance: TournamentMatch,
 	input: SimulationTournamentInput,
 ) -> void:
@@ -250,6 +267,7 @@ func _capture_hand_trace(
 		traces,
 		trace_config.max_entries_per_tournament,
 		trace_rng,
+		trace_sampling_state,
 		TRACE_ENTRY_SCRIPT.hand_outcome(
 			input.tournament_index, view.hand_number, view.hand_winner_seat, &"hand_completed"
 		)
@@ -260,12 +278,15 @@ func _append_sample(
 	traces: Array[SimulationTraceEntry],
 	limit: int,
 	rng: RandomNumberGenerator,
+	sampling_state: Dictionary,
 	entry: SimulationTraceEntry,
 ) -> void:
+	var observed: int = int(sampling_state.get(&"observed", 0)) + 1
+	sampling_state[&"observed"] = observed
 	if traces.size() < limit:
 		traces.append(entry)
 		return
-	var replacement := rng.randi_range(0, traces.size())
+	var replacement := rng.randi_range(0, observed - 1)
 	if replacement < traces.size():
 		traces[replacement] = entry
 
@@ -330,7 +351,10 @@ func _invalid_outcome(
 
 
 func _failure_outcome(
-	input: SimulationTournamentInput, stage: SimulationDiagnostic.Stage, message: String
+	input: SimulationTournamentInput,
+	stage: SimulationDiagnostic.Stage,
+	message: String,
+	traces: Array[SimulationTraceEntry] = [],
 ) -> SimulationTournamentOutcome:
 	var index: int = -1 if input == null else input.tournament_index
 	var seed: int = 0 if input == null else input.effective_seed
@@ -338,7 +362,7 @@ func _failure_outcome(
 		&"" if input == null or input.matchup == null else input.matchup.matchup_id
 	)
 	var mapping: Dictionary[int, StringName] = {} if input == null else _seat_mapping(input)
-	return (
+	var outcome := (
 		SimulationTournamentOutcome
 		. new(
 			index,
@@ -347,5 +371,14 @@ func _failure_outcome(
 			mapping,
 			SimulationCompletionResult.new(SimulationCompletionResult.Status.FAILED),
 			[SimulationDiagnostic.new(stage, message)],
+			{},
+			traces,
+			&"" if input == null else input.regime_id,
 		)
 	)
+	if input != null:
+		outcome.plan_id = input.plan_id
+		outcome.plan_tournament_index = input.plan_tournament_index
+		outcome.matchup_occurrence = input.matchup_occurrence
+		outcome.rotation = input.rotation
+	return outcome

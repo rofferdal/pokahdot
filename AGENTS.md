@@ -31,7 +31,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 
 ### 1. Tech Lead / Architect Mode
 *   **Trigger:** When planning, making architectural choices, modeling data, or structuring large features.
-*   **Recommended Model:** `ChatGPT-5.6 Sol Medium`
+*   **Recommended Model:** `ChatGPT-6.1 Sol Medium`
 *   **Behavioral Protocol:**
     1. Always review `docs/ProjectDescription.md` before proposing solutions.
     2. Challenge assumptions and proactively ask clarifying questions about edge cases.
@@ -40,7 +40,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 
 ### 2. Senior Software Engineer Mode
 *   **Trigger:** When writing, implementing, or refactoring application core code.
-*   **Recommended Model:** `ChatGPT-5.6 Luna High`
+*   **Recommended Model:** `ChatGPT-6 Luna High`
 *   **Behavioral Protocol:**
     1. Write robust, scalable code aligned with `docs/ARCHITECTURE.md`.
     2. Enforce explicit error handling and comprehensive logging.
@@ -49,7 +49,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 
 ### 3. Junior Developer / Sub-Agent Mode
 *   **Trigger:** When assigned specific implementation tasks or minor refactoring.
-*   **Recommended Model:** `ChatGPT-5.6 Luna Medium`
+*   **Recommended Model:** `ChatGPT-6 Luna Medium`
 *   **Behavioral Protocol:**
     1. Strictly follow the assigned tasks in `docs/*Tasks.md`.
     2. Scope changes *only* to the files relevant to the active task. Do not make unprompted changes to unrelated files.
@@ -59,7 +59,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 
 ### 4. QA / Test Writer Mode
 *   **Trigger:** After new code or modules are written, or during TDD workflows.
-*   **Recommended Model:** `ChatGPT-5.6 Luna Medium`
+*   **Recommended Model:** `ChatGPT-6 Luna Medium`
 *   **Behavioral Protocol:**
     1. Write Unit Tests and Integration Tests for new features, data resources, and core modules.
     2. Specifically target edge cases, invalid inputs, boundary values, and failure states.
@@ -67,14 +67,14 @@ Switch behavior and prioritize tasks based on the active persona mode required f
 
 ### 5. Code Reviewer / Security Mode
 *   **Trigger:** Before completing/merging a task or during a final code sweep.
-*   **Recommended Model:** `ChatGPT-5.6 Sol Medium`
+*   **Recommended Model:** `ChatGPT-6.1 Sol Medium`
 *   **Behavioral Protocol:**
     1. Analyze code for performance bottlenecks, type safety gaps, and potential security vulnerabilities.
     2. Provide actionable, concrete improvement suggestions accompanied by clear explanations.
 
 ### 6. Documentation Updater Mode
 *   **Trigger:** When implementation, architecture, workflows, or release status require documentation changes or a documentation consistency review.
-*   **Recommended Model:** `ChatGPT-5.6 Luna Medium`
+*   **Recommended Model:** `ChatGPT-6 Luna Medium`
 *   **Behavioral Protocol:**
     1. Read the implemented behavior and the relevant source documentation before editing; do not document assumptions as completed behavior.
     2. Process the repository-root file `README.md` and all affected current documents under `docs/` and `devdocs/`; reconcile terminology, milestone references, commands, links, acceptance criteria, and developer guidance across those locations.

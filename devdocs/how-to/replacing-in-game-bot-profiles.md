@@ -93,9 +93,14 @@ tools/profile-evolution confirm-candidate \
 
 The tool verifies:
 - Independent mirrored and mixed reports with non-overlapping seeds.
-- Adequate sample sizes ($N \ge 300$).
+- At least 300 tournaments per matchup and 100 candidate observations in every
+  seat; caller-selected plan minimums are exploratory only.
+- A strictly positive lower normal-95 bound on paired composite advantage over
+  every declared benchmark in each matchup.
 - Zero invalid-action fallbacks.
-- Behavioral diversity: L1 distance across the four strategy genes must be $\ge 10$ from every comparable declared legacy and champion profile.
+- Genetic diversity: L1 distance across the four strategy genes must be $\ge 10$ from every comparable declared legacy and champion profile.
+- Measured behavior: confirmation records count-weighted VPIP, PFR,
+  bet/raise frequency, bet frequency, and raise share for roster review.
 - If successful, it writes `artifacts/confirmation.json` with `"promotion_eligible": true`.
 
 ---
@@ -118,7 +123,10 @@ The reviewer opens `promotion_review_plan.json` and changes each candidate's
 single `"decision": "pending"` value to exactly `"approve"` or `"reject"`.
 The optional `display_name` and `review_note` fields may also be filled in.
 Candidate snapshots, confirmation checksums, and eligibility fields must not
-be edited.
+be edited. Review the generated `roster_diversity.pairwise_comparisons` for
+every proposed-candidate pair: it keeps genetic parameter distance separate
+from differences in measured VPIP, PFR, and action splits. These comparisons
+inform the decision but never replace explicit human approval.
 
 Finalize the entire plan once, supplying the same complete confirmation set:
 
@@ -147,10 +155,12 @@ tools/profile-evolution publish-profile \
   --project-root .
 ```
 
-This writes a versioned `.tres` file under `resources/bot_profiles/published/` (e.g. `resources/bot_profiles/published/candidate_id__v1.tres`).
+This writes a versioned `.tres` file and adjacent `.provenance.json` under
+`resources/bot_profiles/published/`. The sidecar binds the profile ID and exact
+Resource SHA-256 to the confirmation and consolidated-review checksums.
 - Repeat publication only for candidates approved in the single batch review.
 - The plan's `display_name` is used by default; `--display-name` can override it.
-- It uses no-clobber atomic writes and refuses to overwrite an existing file.
+- It uses no-clobber writes and refuses to overwrite either file.
 - It does **not** modify `PlayableBotRoster`; activating the profile is a deliberate, reviewed source code change.
 
 ---

@@ -190,6 +190,7 @@ def validate_selection(payload: dict[str, Any]) -> dict[str, Any]:
         "fitness",
         "ineligibility_reasons",
         "plan_sample_counts",
+        "point_fitness",
         "sample_count",
         "style_checks",
         "uncertainty_95_half_width",
@@ -201,14 +202,15 @@ def validate_selection(payload: dict[str, Any]) -> dict[str, Any]:
         require_exact_fields(benchmark, benchmark_fields, "historical benchmark")
         if validate_candidate(benchmark["candidate"]) != candidate or benchmark["eligible"] is not True:
             _fail("invalid_selection", "Historical benchmark identity or eligibility is invalid.")
-        value = benchmark["fitness"]
-        if (
-            isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(float(value))
-            or not 0.0 <= float(value) <= 1.0
-        ):
-            _fail("invalid_selection", "Historical benchmark fitness is invalid.")
+        for fitness_field in ("fitness", "point_fitness"):
+            value = benchmark[fitness_field]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or not 0.0 <= float(value) <= 1.0
+            ):
+                _fail("invalid_selection", f"Historical benchmark {fitness_field} is invalid.")
         for field in ("component_means", "uncertainty_95_half_width"):
             values = benchmark[field]
             if not isinstance(values, dict):
@@ -223,12 +225,15 @@ def validate_selection(payload: dict[str, Any]) -> dict[str, Any]:
             )
             require_exact_fields(values, component_names, f"historical benchmark {field}")
             if any(
-                isinstance(item, bool)
-                or not isinstance(item, (int, float))
-                or not math.isfinite(float(item))
-                or not 0.0 <= float(item) <= 1.0
+                item is not None
+                and (
+                    isinstance(item, bool)
+                    or not isinstance(item, (int, float))
+                    or not math.isfinite(float(item))
+                    or not 0.0 <= float(item) <= 1.0
+                )
                 for item in values.values()
-            ):
+            ) or (field == "component_means" and any(item is None for item in values.values())):
                 _fail("invalid_selection", f"Historical benchmark {field} is invalid.")
         if benchmark["ineligibility_reasons"] != []:
             _fail("invalid_selection", "Historical benchmarks cannot have ineligibility reasons.")
@@ -252,6 +257,7 @@ def validate_selection(payload: dict[str, Any]) -> dict[str, Any]:
         "batch_id",
         "code_revision",
         "command_version",
+        "execution_provenance",
         "manifest_checksum",
         "report_checksum",
         "seed_range",
@@ -278,6 +284,9 @@ def validate_selection(payload: dict[str, Any]) -> dict[str, Any]:
                 character not in "0123456789abcdef" for character in checksum_value
             ):
                 _fail("invalid_selection", "Selection report checksum is invalid.")
+        provenance = item["execution_provenance"]
+        if not isinstance(provenance, dict) or provenance.get("code_revision") != item["code_revision"]:
+            _fail("invalid_selection", "Selection report provenance is invalid.")
         seed_range = item["seed_range"]
         if not isinstance(seed_range, dict):
             _fail("invalid_selection", "Selection seed range must be an object.")

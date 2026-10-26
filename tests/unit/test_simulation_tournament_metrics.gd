@@ -64,6 +64,60 @@ func test_handcrafted_public_events_produce_documented_hand_and_tournament_metri
 	assert_almost_eq(beta.aggression_factor, 0.0, 0.0001)
 
 
+func test_finishing_positions_follow_elimination_history_instead_of_seat_order() -> void:
+	var metrics := (
+		METRICS_SCRIPT
+		. new(
+			{0: &"winner", 1: &"third", 2: &"fourth", 3: &"second"},
+			{0: 100, 1: 100, 2: 100, 3: 100},
+		)
+	)
+	_observe_elimination(metrics, [0, 1, 2, 3], {0: 140, 1: 120, 2: 0, 3: 140})
+	_observe_elimination(metrics, [0, 1, 3], {0: 220, 1: 0, 2: 0, 3: 180})
+	_observe_elimination(metrics, [0, 3], {0: 400, 1: 0, 2: 0, 3: 0})
+
+	metrics.finish({0: 400, 1: 0, 2: 0, 3: 0}, 0, 3)
+
+	var by_seat := metrics.get_seat_metrics()
+	assert_eq(by_seat[0].finishing_position, 1)
+	assert_eq(by_seat[3].finishing_position, 2)
+	assert_eq(by_seat[1].finishing_position, 3)
+	assert_eq(by_seat[2].finishing_position, 4)
+
+
+func test_same_hand_eliminations_share_competition_rank_and_top_third_status() -> void:
+	var metrics := (
+		METRICS_SCRIPT
+		. new(
+			{0: &"winner", 1: &"tied", 2: &"earlier", 3: &"tied"},
+			{0: 100, 1: 100, 2: 100, 3: 100},
+		)
+	)
+	_observe_elimination(metrics, [0, 1, 2, 3], {0: 150, 1: 125, 2: 0, 3: 125})
+	_observe_elimination(metrics, [0, 1, 3], {0: 400, 1: 0, 2: 0, 3: 0})
+
+	metrics.finish({0: 400, 1: 0, 2: 0, 3: 0}, 0, 2)
+
+	var by_seat := metrics.get_seat_metrics()
+	assert_eq(by_seat[1].finishing_position, 2)
+	assert_eq(by_seat[3].finishing_position, 2)
+	assert_eq(by_seat[2].finishing_position, 4)
+	assert_true(by_seat[1].top_third)
+	assert_true(by_seat[3].top_third)
+	assert_false(by_seat[2].top_third)
+
+
+func _observe_elimination(
+	metrics: RefCounted, active_at_start: Array[int], stacks_after: Dictionary[int, int]
+) -> void:
+	var stacks_before: Dictionary[int, int] = {}
+	for seat: int in stacks_after:
+		stacks_before[seat] = 100 if seat in active_at_start else 0
+	var actions: Array[PublicActionRecord] = []
+	var events: Array[DomainEvent] = []
+	metrics.observe_hand(active_at_start, stacks_before, stacks_after, 10, actions, events)
+
+
 func test_style_metrics_deduplicate_preflop_hands_and_include_postflop_actions() -> void:
 	var metrics := METRICS_SCRIPT.new({0: &"alpha", 1: &"beta"}, {0: 100, 1: 100})
 	(

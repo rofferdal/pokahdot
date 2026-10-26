@@ -15,6 +15,8 @@ from tools.profile_evolution.cli import main
 from tools.profile_evolution.errors import ToolError
 from tools.profile_evolution.evolution import initialize_generation
 from tools.profile_evolution.fitness import (
+    _competition_positions_are_valid,
+    _half_width,
     _roster_provenance,
     _simulation_manifest_checksum,
     evaluate_fitness,
@@ -23,6 +25,21 @@ from tools.profile_evolution.fitness import (
 
 def _bounds() -> dict[str, dict[str, int]]:
     return {gene: {"minimum": 0, "maximum": 100} for gene in GENES}
+
+
+def _provenance() -> dict[str, object]:
+    return {
+        "algorithm_versions": {
+            "aggregate_statistics": "normal_95_v1",
+            "rng_streams": "named_stream_v1",
+            "simulation_runner": "tournament_match_v1",
+            "tournament_metrics": "elimination_history_v1",
+        },
+        "code_revision": "a" * 40,
+        "dirty_source_fingerprint": "",
+        "engine_version": "4.7.2",
+        "source_state": "clean",
+    }
 
 
 def _profile_result(
@@ -177,12 +194,13 @@ def _case(
     reports: list[Path] = []
     for shard_index in range(shard_count):
         report = {
-            "report_schema_version": 3,
+            "report_schema_version": 4,
             "manifest": copy.deepcopy(manifest),
             "manifest_checksum": _simulation_manifest_checksum(manifest),
             "roster": _roster_provenance(manifest),
-            "code_revision": "abc123",
-            "command_version": "simulation_cli_v4",
+            "code_revision": "a" * 40,
+            "command_version": "simulation_cli_v6",
+            "execution_provenance": _provenance(),
             "shard": {"index": shard_index, "count": shard_count},
             "started_at": "2026-01-01T00:00:00",
             "finished_at": "2026-01-01T00:01:00",
@@ -199,6 +217,28 @@ def _case(
 
 
 class FitnessTests(unittest.TestCase):
+    def test_competition_rank_validation_accepts_same_hand_ties(self) -> None:
+        self.assertTrue(
+            _competition_positions_are_valid(
+                [
+                    {"finishing_position": 1},
+                    {"finishing_position": 2},
+                    {"finishing_position": 2},
+                    {"finishing_position": 4},
+                ]
+            )
+        )
+        self.assertFalse(
+            _competition_positions_are_valid(
+                [
+                    {"finishing_position": 1},
+                    {"finishing_position": 2},
+                    {"finishing_position": 2},
+                    {"finishing_position": 3},
+                ]
+            )
+        )
+
     def test_roster_provenance_matches_the_cross_language_fixture(self) -> None:
         fixture = json.loads(
             Path("tests/fixtures/roster_provenance_v1.json").read_text(encoding="utf-8")
@@ -249,8 +289,14 @@ class FitnessTests(unittest.TestCase):
         self.assertEqual(result["component_means"]["win_score"], 0.5)
         self.assertEqual(result["component_means"]["survival_score"], 1.0)
         self.assertAlmostEqual(result["uncertainty_95_half_width"]["win_score"], 0.98)
-        self.assertEqual(result["uncertainty_penalty"], 0.10)
-        self.assertAlmostEqual(result["fitness"], 0.45)
+        self.assertAlmostEqual(result["uncertainty_penalty"], 0.10 / math.sqrt(2))
+        self.assertAlmostEqual(result["point_fitness"], 0.55)
+        self.assertAlmostEqual(result["fitness"], 0.55 - 0.10 / math.sqrt(2))
+
+    def test_sparse_and_boundary_uncertainty_is_not_false_zero(self) -> None:
+        self.assertIsNone(_half_width([1.0]))
+        self.assertGreater(_half_width([1.0, 1.0]), 0.0)
+        self.assertGreater(_half_width([0.0, 0.0]), 0.0)
 
     def test_mixed_regimes_are_normalized_per_observation(self) -> None:
         with tempfile.TemporaryDirectory() as name:
@@ -305,6 +351,27 @@ class FitnessTests(unittest.TestCase):
             with self.assertRaisesRegex(ToolError, "every shard"):
                 evaluate_fitness(generation, [reports[0]])
 
+    def test_shards_require_identical_executable_provenance(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            generation, reports = _case(Path(name), shard_count=2)
+            changed = json.loads(reports[1].read_text(encoding="utf-8"))
+            changed["execution_provenance"]["engine_version"] = "4.8.0"
+            reports[1].write_text(json.dumps(changed), encoding="utf-8")
+
+            with self.assertRaisesRegex(ToolError, "execution provenance"):
+                evaluate_fitness(generation, reports)
+
+    def test_report_requires_a_real_code_revision(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            generation, reports = _case(Path(name))
+            report = json.loads(reports[0].read_text(encoding="utf-8"))
+            report["code_revision"] = ""
+            report["execution_provenance"]["code_revision"] = ""
+            reports[0].write_text(json.dumps(report), encoding="utf-8")
+
+            with self.assertRaisesRegex(ToolError, "Git revision"):
+                evaluate_fitness(generation, reports)
+
     def test_incomplete_plan_and_failed_tournament_are_rejected(self) -> None:
         for mutation in ("remove", "fail"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as name:
@@ -343,7 +410,7 @@ class FitnessTests(unittest.TestCase):
                 with self.assertRaises(ToolError):
                     evaluate_fitness(generation, reports)
 
-    def test_repeated_profile_ids_are_counted_once_per_seat(self) -> None:
+    def test_repeated_profile_ids_are_clustered_once_per_tournament(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             generation, reports = _case(Path(name), minimum_samples=4)
             report = json.loads(reports[0].read_text(encoding="utf-8"))
@@ -366,8 +433,9 @@ class FitnessTests(unittest.TestCase):
             reports[0].write_text(json.dumps(report), encoding="utf-8")
             artifact = evaluate_fitness(generation, reports)
         first, second = artifact["payload"]["candidate_results"]
-        self.assertEqual(first["sample_count"], 4)
-        self.assertTrue(first["eligible"])
+        self.assertEqual(first["sample_count"], 2)
+        self.assertFalse(first["eligible"])
+        self.assertEqual(first["ineligibility_reasons"], ["insufficient_samples:plan_0"])
         self.assertEqual(second["sample_count"], 0)
 
     def test_result_seat_must_match_planned_seat(self) -> None:

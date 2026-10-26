@@ -7,6 +7,7 @@ func test_same_nonzero_seed_produces_same_stream_sequences() -> void:
 
 	assert_eq(first.effective_seed, 123456)
 	assert_eq(second.effective_seed, 123456)
+	assert_eq(first.algorithm_version, RngStreamFactory.ALGORITHM_VERSION)
 	assert_eq(
 		_capture_sequence(first.get_deck_rng()),
 		_capture_sequence(second.get_deck_rng()),
@@ -21,6 +22,35 @@ func test_same_nonzero_seed_produces_same_stream_sequences() -> void:
 			_capture_sequence(second.get_bot_rng(seat)),
 			"bot seat %d" % seat,
 		)
+
+
+func test_sha256_derivation_does_not_alias_legacy_modulus_seeds() -> void:
+	var first := _create_streams(1)
+	var legacy_alias := _create_streams(1 + RngStreamFactory.HASH_MODULUS)
+
+	assert_ne(
+		first.get_stream_seed(RngStreamFactory.DECK_STREAM_ID),
+		legacy_alias.get_stream_seed(RngStreamFactory.DECK_STREAM_ID),
+	)
+	assert_ne(
+		_capture_sequence(first.get_deck_rng()), _capture_sequence(legacy_alias.get_deck_rng())
+	)
+
+
+func test_legacy_derivation_retains_modulus_alias_for_replay() -> void:
+	var factory := RngStreamFactory.new(Callable(), RngStreamFactory.LEGACY_ALGORITHM_VERSION)
+	var first := factory.create(_resolve_config(1))
+	var legacy_alias := factory.create(_resolve_config(1 + RngStreamFactory.HASH_MODULUS))
+
+	assert_eq(first.algorithm_version, RngStreamFactory.LEGACY_ALGORITHM_VERSION)
+	assert_eq(first.get_stream_seed(RngStreamFactory.DECK_STREAM_ID), 4002858)
+	assert_eq(
+		first.get_stream_seed(RngStreamFactory.DECK_STREAM_ID),
+		legacy_alias.get_stream_seed(RngStreamFactory.DECK_STREAM_ID),
+	)
+	assert_eq(
+		_capture_sequence(first.get_deck_rng()), _capture_sequence(legacy_alias.get_deck_rng())
+	)
 
 
 func test_named_streams_are_distinct_instances_and_sequences() -> void:
@@ -115,7 +145,7 @@ func test_zero_time_seed_provider_still_produces_nonzero_effective_seed() -> voi
 
 
 func _create_streams(seed: int, player_count: int = 6) -> RngStreams:
-	var factory: RngStreamFactory = RngStreamFactory.new()
+	var factory := RngStreamFactory.new(Callable(), RngStreamFactory.ALGORITHM_VERSION)
 	return factory.create(_resolve_config(seed, player_count))
 
 

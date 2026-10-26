@@ -10,6 +10,14 @@ const ROSTER_MANIFEST_SETTINGS_SCRIPT := preload(
 const BATCH_RUNNER_SCRIPT := preload("res://scripts/simulation/simulation_batch_runner.gd")
 
 
+func test_evaluation_plan_rejects_unimplemented_bootstrap_estimator() -> void:
+	var plan := SimulationEvaluationPlan.new(
+		&"bootstrap", &"regime", [&"matchup"], 10, 1, &"bootstrap_95"
+	)
+
+	assert_has(plan.validate(), "Only the normal_95 uncertainty estimator is supported.")
+
+
 func test_roster_generator_creates_a_valid_schema_two_snapshot_manifest() -> void:
 	var roster := PlayableBotRoster.new()
 	var generated := MANIFEST_GENERATOR_SCRIPT.new().generate(roster)

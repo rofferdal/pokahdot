@@ -20,12 +20,17 @@ batches:
 - `mixed_confirmation_report.json`: three cyclic three-player tournaments
   containing the candidate, legacy profile, and historical champion.
 
-`confirmation.json` records that the candidate is not promotion-eligible
-because the mixed batch observed invalid-action fallbacks. The files prefixed
-with `rejected_candidate_` preserve the same gate rejecting the other
-generation-1 candidate. Consequently there is intentionally no candidate
-bundle: `export-candidates` rejects ineligible confirmations, and no command
-in this workflow edits the playable roster.
+`confirmation.json` is immutable historical smoke evidence from before the
+fixed `promotion_evidence_v1` contract. It records that the candidate was not
+promotion-eligible because the mixed batch observed invalid-action fallbacks;
+under the current policy, its four- and three-tournament batches are also
+exploratory-only because they are below 300 tournaments per matchup and 100
+candidate observations per seat. The files prefixed with
+`rejected_candidate_` preserve the same historical gate rejecting the other
+generation-1 candidate. These artifacts are not rewritten to claim current
+provenance or policy compliance. Consequently there is intentionally no
+candidate bundle: `export-candidates` rejects ineligible confirmations, and no
+command in this workflow edits the playable roster.
 
 Run the Python contract tests with:
 

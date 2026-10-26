@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import re
 import tempfile
 from pathlib import Path
 from typing import Any
 
+from .artifacts import canonical_json_bytes
 from .confirmation import validate_confirmation
 from .errors import ExitCode, ToolError
 from .promotion_review import promotion_decision_for_candidate
@@ -120,9 +122,36 @@ def publish_approved_profile(
         resolved_name = f"Promoted {candidate['candidate_id']} {version}"
     root = project_root.resolve()
     output_path = root / "resources" / "bot_profiles" / "published" / f"{profile_id}.tres"
-    _write_new_file(output_path, _resource_text(profile_id, candidate, resolved_name))
+    provenance_path = output_path.with_suffix(".provenance.json")
+    for path in (output_path, provenance_path):
+        if path.exists():
+            _fail(
+                "published_profile_exists",
+                f"Published profile evidence '{path}' already exists and cannot be overwritten.",
+                ExitCode.INVARIANT_FAILURE,
+            )
+    resource_text = _resource_text(profile_id, candidate, resolved_name)
+    resource_sha256 = hashlib.sha256(resource_text.encode("utf-8")).hexdigest()
+    provenance = {
+        "confirmation_checksum": confirmation_artifact["checksum"],
+        "profile_id": profile_id,
+        "resource_sha256": resource_sha256,
+        "review_checksum": review_artifact["checksum"],
+    }
+    _write_new_file(output_path, resource_text)
+    try:
+        _write_new_file(
+            provenance_path, canonical_json_bytes(provenance).decode("utf-8")
+        )
+    except ToolError:
+        output_path.unlink(missing_ok=True)
+        raise
     return {
         "candidate_id": candidate["candidate_id"],
+        "confirmation_checksum": confirmation_artifact["checksum"],
         "profile_id": profile_id,
+        "provenance_path": str(provenance_path),
         "resource_path": str(output_path),
+        "resource_sha256": resource_sha256,
+        "review_checksum": review_artifact["checksum"],
     }

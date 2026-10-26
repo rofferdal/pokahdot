@@ -6,9 +6,10 @@ extends RefCounted
 ## The manifest snapshot is copied verbatim from the canonical manifest
 ## dictionary. Report serialization remains in the simulation adapter.
 
-const REPORT_SCHEMA_VERSION: int = 3
-const COMMAND_VERSION: StringName = &"simulation_cli_v4"
+const REPORT_SCHEMA_VERSION: int = 4
+const COMMAND_VERSION: StringName = &"simulation_cli_v6"
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
+const PROVENANCE_SCRIPT := preload("res://scripts/simulation/simulation_provenance.gd")
 const TOURNAMENT_FIELDS := [
 	"tournament_index",
 	"plan_id",
@@ -122,6 +123,7 @@ var manifest: Dictionary = {}
 var manifest_checksum: String
 var roster: Dictionary = {}
 var code_revision: String
+var execution_provenance: Dictionary = {}
 var command_version: StringName = COMMAND_VERSION
 var shard: SimulationShard
 var started_at: String
@@ -138,13 +140,19 @@ static func from_batch(
 	batch: SimulationBatchResult,
 	started: String = "",
 	finished: String = "",
-	revision: String = "",
+	provenance_value: Dictionary = {},
 ) -> RefCounted:
 	var report = REPORT_SCRIPT.new()
+	var provenance := (
+		PROVENANCE_SCRIPT.unavailable()
+		if provenance_value.is_empty()
+		else provenance_value.duplicate(true)
+	)
 	report.manifest = manifest_value.canonical_dictionary()
 	report.manifest_checksum = manifest_value.checksum()
 	report.roster = manifest_value.roster_provenance()
-	report.code_revision = revision
+	report.execution_provenance = provenance
+	report.code_revision = String(provenance.get("code_revision", ""))
 	report.shard = SimulationShard.new(shard_value.index, shard_value.count)
 	report.started_at = started
 	report.finished_at = finished
@@ -166,6 +174,9 @@ func validate() -> PackedStringArray:
 		errors.append("Simulation report manifest is required.")
 	if manifest_checksum.is_empty():
 		errors.append("Simulation report manifest checksum is required.")
+	errors.append_array(PROVENANCE_SCRIPT.validate(execution_provenance))
+	if code_revision != execution_provenance.get("code_revision"):
+		errors.append("Simulation code revision does not match execution provenance.")
 	_validate_roster(roster, errors)
 	_validate_roster_matches_manifest(roster, manifest, errors)
 	if shard == null:
@@ -219,6 +230,7 @@ func to_dictionary() -> Dictionary:
 		"manifest_checksum": manifest_checksum,
 		"roster": _copy_dictionary(roster),
 		"code_revision": code_revision,
+		"execution_provenance": _copy_dictionary(execution_provenance),
 		"command_version": String(command_version),
 		"shard": shard.to_dictionary() if shard != null else {},
 		"started_at": started_at,
@@ -247,6 +259,7 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 		"manifest_checksum": TYPE_STRING,
 		"roster": TYPE_DICTIONARY,
 		"code_revision": TYPE_STRING,
+		"execution_provenance": TYPE_DICTIONARY,
 		"command_version": TYPE_STRING,
 		"shard": TYPE_DICTIONARY,
 		"started_at": TYPE_STRING,
@@ -286,6 +299,11 @@ static func from_dictionary(data: Dictionary) -> RefCounted:
 	)
 	report.code_revision = (
 		data.code_revision if typeof(data.get("code_revision")) == TYPE_STRING else ""
+	)
+	report.execution_provenance = (
+		data.execution_provenance.duplicate(true)
+		if typeof(data.get("execution_provenance")) == TYPE_DICTIONARY
+		else {}
 	)
 	report.command_version = (
 		StringName(data.command_version)

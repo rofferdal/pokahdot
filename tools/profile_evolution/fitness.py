@@ -20,6 +20,7 @@ REPORT_FIELDS = (
     "roster",
     "code_revision",
     "command_version",
+    "execution_provenance",
     "shard",
     "started_at",
     "finished_at",
@@ -27,6 +28,20 @@ REPORT_FIELDS = (
     "aggregates",
     "traces",
 )
+EXECUTION_PROVENANCE_FIELDS = (
+    "algorithm_versions",
+    "code_revision",
+    "dirty_source_fingerprint",
+    "engine_version",
+    "source_state",
+)
+SUPPORTED_ALGORITHM_VERSIONS = {
+    "aggregate_statistics": "normal_95_v1",
+    "rng_streams": "named_stream_sha256_v2",
+    "simulation_runner": "tournament_match_v1",
+    "tournament_metrics": "elimination_history_v1",
+}
+SUPPORTED_RNG_STREAM_VERSIONS = ("named_stream_v1", "named_stream_sha256_v2")
 MANIFEST_FIELDS = (
     "schema_version",
     "batch_id",
@@ -169,6 +184,39 @@ WEIGHTS = (0.30, 0.20, 0.15, 0.15, 0.10, 0.10)
 
 def _invalid(code: str, message: str, details: dict[str, Any] | None = None) -> None:
     raise ToolError(code, message, ExitCode.INVALID_INPUT, details)
+
+
+def _validate_execution_provenance(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        _invalid("invalid_simulation_report", "Execution provenance must be an object.")
+    require_exact_fields(value, EXECUTION_PROVENANCE_FIELDS, "execution provenance")
+    algorithms = value["algorithm_versions"]
+    expected_algorithms = dict(SUPPORTED_ALGORITHM_VERSIONS)
+    rng_algorithm = algorithms.get("rng_streams") if isinstance(algorithms, dict) else None
+    expected_algorithms["rng_streams"] = rng_algorithm
+    if (
+        algorithms != expected_algorithms
+        or rng_algorithm not in SUPPORTED_RNG_STREAM_VERSIONS
+    ):
+        _invalid("unsupported_simulation_report", "Simulation algorithm versions are unsupported.")
+    for field in ("code_revision", "dirty_source_fingerprint", "engine_version", "source_state"):
+        if not isinstance(value[field], str):
+            _invalid("invalid_simulation_report", f"Execution provenance {field} must be a string.")
+    revision = value["code_revision"]
+    if len(revision) not in (40, 64) or any(character not in "0123456789abcdef" for character in revision):
+        _invalid("invalid_simulation_report", "Execution provenance requires a Git revision.")
+    if not value["engine_version"]:
+        _invalid("invalid_simulation_report", "Execution provenance requires an engine version.")
+    state = value["source_state"]
+    fingerprint = value["dirty_source_fingerprint"]
+    if state not in ("clean", "dirty"):
+        _invalid("invalid_simulation_report", "Execution provenance source state is invalid.")
+    if state == "dirty":
+        if len(fingerprint) != 64 or any(character not in "0123456789abcdef" for character in fingerprint):
+            _invalid("invalid_simulation_report", "Dirty source fingerprint must be SHA-256.")
+    elif fingerprint:
+        _invalid("invalid_simulation_report", "Clean source must not have a dirty fingerprint.")
+    return value
 
 
 def _integer(value: Any, context: str, minimum: int | None = None) -> int:
@@ -462,13 +510,35 @@ def _mean(values: list[float]) -> float:
     return math.fsum(values) / len(values) if values else 0.0
 
 
-def _half_width(values: list[float]) -> float:
+def _half_width(values: list[float]) -> float | None:
     if len(values) < 2:
-        return 0.0
+        return None
     mean = _mean(values)
     squared = math.fsum((value - mean) ** 2 for value in values)
     standard_error = math.sqrt(squared / (len(values) - 1)) / math.sqrt(len(values))
-    return 1.96 * standard_error
+    normal_half_width = 1.96 * standard_error
+    z = 1.96
+    count = len(values)
+    wilson_half_width = (
+        z
+        * math.sqrt(mean * (1.0 - mean) / count + z**2 / (4.0 * count**2))
+        / (1.0 + z**2 / count)
+    )
+    return max(normal_half_width, wilson_half_width)
+
+
+def _competition_positions_are_valid(results: list[dict[str, Any]]) -> bool:
+    counts: dict[int, int] = {}
+    for result in results:
+        position = result["finishing_position"]
+        counts[position] = counts.get(position, 0) + 1
+    expected_position = 1
+    while expected_position <= len(results):
+        tied_count = counts.get(expected_position, 0)
+        if tied_count == 0:
+            return False
+        expected_position += tied_count
+    return expected_position == len(results) + 1
 
 
 def _report_evidence(path: Path, report: dict[str, Any], source: bytes) -> dict[str, Any]:
@@ -477,6 +547,7 @@ def _report_evidence(path: Path, report: dict[str, Any], source: bytes) -> dict[
         "batch_id": report["manifest"]["batch_id"],
         "code_revision": report["code_revision"],
         "command_version": report["command_version"],
+        "execution_provenance": copy.deepcopy(report["execution_provenance"]),
         "manifest_checksum": report["manifest_checksum"],
         "report_checksum": hashlib.sha256(source).hexdigest(),
         "seed_range": {"maximum": max(seeds), "minimum": min(seeds)},
@@ -507,8 +578,8 @@ def evaluate_fitness(
         if (
             isinstance(report["report_schema_version"], bool)
             or not isinstance(report["report_schema_version"], int)
-            or report["report_schema_version"] != 3
-            or report["command_version"] != "simulation_cli_v4"
+            or report["report_schema_version"] != 4
+            or report["command_version"] != "simulation_cli_v6"
         ):
             _invalid("unsupported_simulation_report", "Simulation report or command version is unsupported.")
         if (
@@ -518,6 +589,9 @@ def evaluate_fitness(
             or not isinstance(report["finished_at"], str)
         ):
             _invalid("invalid_simulation_report", "Report identity fields have invalid types.")
+        _validate_execution_provenance(report["execution_provenance"])
+        if report["code_revision"] != report["execution_provenance"]["code_revision"]:
+            _invalid("invalid_simulation_report", "Report code revision contradicts provenance.")
         if (
             not isinstance(report["aggregates"], dict)
             or not isinstance(report["traces"], list)
@@ -540,6 +614,22 @@ def evaluate_fitness(
         for _, report, _ in reports[1:]
     ):
         _invalid("incompatible_reports", "Simulation reports do not share an identical manifest.")
+    reference_provenance = reports[0][1]["execution_provenance"]
+    differing_provenance_fields = sorted(
+        {
+            field
+            for _, report, _ in reports[1:]
+            for field in EXECUTION_PROVENANCE_FIELDS
+            if report["execution_provenance"].get(field) != reference_provenance.get(field)
+        }
+    )
+    if differing_provenance_fields:
+        _invalid(
+            "incompatible_report_provenance",
+            "Simulation report shards do not share identical execution provenance: "
+            + ", ".join(differing_provenance_fields),
+            {"fields": differing_provenance_fields},
+        )
     indexes = _validate_manifest(manifest)
     manifest_profiles = indexes["profiles"]
     candidate_ids = [candidate["candidate_id"] for candidate in generation["candidates"]]
@@ -626,6 +716,7 @@ def evaluate_fitness(
                 _invalid("invalid_simulation_report", "Profile result count does not match the regime.")
             result_seats: set[int] = set()
             winner_ids: list[str] = []
+            tournament_samples: dict[str, list[tuple[dict[str, float], dict[str, Any]]]] = {}
             for result in results:
                 profile_id = _string(result.get("profile_id"), "profile_result.profile_id")
                 seat = result.get("seat")
@@ -648,13 +739,16 @@ def evaluate_fitness(
                 if result["won_tournament"]:
                     winner_ids.append(profile_id)
                 if profile_id in observations:
-                    observations[profile_id].append((tournament["plan_id"], components, style))
+                    tournament_samples.setdefault(profile_id, []).append((components, style))
             if result_seats != set(range(regime["player_count"])):
                 _invalid("invalid_simulation_report", "Profile results do not match the planned seat map.")
             if winner_ids != [tournament["winner_profile_id"]]:
                 _invalid("invalid_simulation_report", "Tournament winner fields are inconsistent.")
-            if len({result["finishing_position"] for result in results}) != regime["player_count"]:
-                _invalid("invalid_simulation_report", "Tournament finishing positions must be unique.")
+            if not _competition_positions_are_valid(results):
+                _invalid(
+                    "invalid_simulation_report",
+                    "Tournament finishing positions must use competition ranking.",
+                )
             expected_total = regime["player_count"] * regime["starting_stack"]
             if (
                 sum(result["starting_stack"] for result in results) != expected_total
@@ -662,6 +756,19 @@ def evaluate_fitness(
                 or sum(result["chip_differential"] for result in results) != 0
             ):
                 _invalid("invalid_metric", "Tournament stacks do not conserve chips.")
+            for profile_id, seat_samples in tournament_samples.items():
+                clustered_components = {
+                    component: _mean([sample[0][component] for sample in seat_samples])
+                    for component in COMPONENTS
+                }
+                clustered_style = {
+                    "invalid_action_fallbacks": sum(
+                        sample[1]["invalid_action_fallbacks"] for sample in seat_samples
+                    )
+                }
+                observations[profile_id].append(
+                    (tournament["plan_id"], clustered_components, clustered_style)
+                )
             seen.add(tournament_index)
             actual_shard.add(tournament_index)
         if actual_shard != expected_shard:
@@ -675,7 +782,7 @@ def evaluate_fitness(
         values = {component: [sample[1][component] for sample in samples] for component in COMPONENTS}
         means = {component: _mean(values[component]) for component in COMPONENTS}
         uncertainty = {component: _half_width(values[component]) for component in COMPONENTS}
-        penalty = min(0.10, max(0.0, _mean(list(uncertainty.values()))))
+        penalty = min(0.10, 0.10 / math.sqrt(len(samples))) if samples else 0.10
         plan_counts = {
             plan["plan_id"]: sum(1 for sample in samples if sample[0] == plan["plan_id"])
             for plan in manifest["evaluation_plans"]
@@ -697,14 +804,16 @@ def evaluate_fitness(
         }
         eligible = not reasons
         raw_fitness = math.fsum(weight * means[name] for weight, name in zip(WEIGHTS, COMPONENTS))
+        point_fitness = max(0.0, min(1.0, raw_fitness))
         candidate_results.append(
             {
                 "candidate": candidate,
                 "component_means": means,
                 "eligible": eligible,
-                "fitness": max(0.0, min(1.0, raw_fitness - penalty)) if eligible else None,
+                "fitness": max(0.0, point_fitness - penalty) if eligible else None,
                 "ineligibility_reasons": reasons,
                 "plan_sample_counts": plan_counts,
+                "point_fitness": point_fitness,
                 "sample_count": len(samples),
                 "style_checks": style_checks,
                 "uncertainty_95_half_width": uncertainty,

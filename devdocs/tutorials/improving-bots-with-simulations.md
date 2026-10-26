@@ -9,7 +9,7 @@ In this tutorial, you will learn how to formulate a candidate bot hypothesis, be
 By the end of this tutorial, you will be able to:
 1. Understand the 4 strategy parameters of [`StrategyDecisionModel`](../../scripts/core/agents/strategy_decision_model.gd).
 2. Export a schema-2 snapshot of the active roster, then author a separate candidate-inclusive manifest.
-3. Run the simulation CLI and inspect the generated schema-3 report.
+3. Run the simulation CLI and inspect the generated schema-4 report and executable provenance.
 4. Interpret the 6-component fitness score, style metrics, and 95% confidence intervals.
 5. Use the external promotion tools to verify eligibility, review approvals, and publish the `.tres` Resource.
 6. Safely integrate the new profile into [`PlayableBotRoster`](../../scripts/core/agents/playable_bot_roster.gd) and verify your changes with automated tests.
@@ -146,7 +146,7 @@ Create a manifest file named `solid_tag_manifest.json`:
       "tournament_count": 300,
       "seat_rotation": "cyclic",
       "minimum_profile_samples": 100,
-      "uncertainty_estimator": "bootstrap_95"
+      "uncertainty_estimator": "normal_95"
     }
   ]
 }
@@ -155,6 +155,9 @@ Create a manifest file named `solid_tag_manifest.json`:
 ### Key Details:
 - **`tournament_count: 300`**: Cycles each bot through seats 0, 1, and 2 exactly 100 times under cyclic rotation, eliminating positional bias.
 - **`seed_start: 500000`**: Provides reproducible pseudo-random streams.
+- **`normal_95` only**: Both the Godot manifest/runtime path and Python
+  evaluator reject `bootstrap_95`; no component silently relabels normal
+  intervals as bootstrap output.
 - **Separate artifacts**: `curated_roster_baseline.json` captures the whole
   product field before a change; `solid_tag_manifest.json` answers the focused
   candidate question. Do not overwrite or silently edit either after its run.
@@ -224,7 +227,7 @@ Profile: nit_caller (N = 300)
 1. **Statistical Significance**: The difference in fitness between `candidate_solid_tag` ($0.584$) and `nit_caller` ($0.385$) is $\Delta = 0.199$, far exceeding the uncertainty half-width ($0.021$).
 2. **Chip Differential**: The candidate earns $+182.4$ chips on average, while `nit_caller` bleeds $-216.6$ chips.
 3. **Behavioral Integrity**: `Invalid Actions` is `0`.
-4. **Behavioral Diversity**: Comparing genes `[68, 45, 40, 10]` to `nit_caller` `[60, 4, 4, 2]` yields an L1 distance of $|68-60| + |45-4| + |40-4| + |10-2| = 8 + 41 + 36 + 8 = 93 \ge 10$.
+4. **Genetic Diversity**: Comparing genes `[68, 45, 40, 10]` to `nit_caller` `[60, 4, 4, 2]` yields an L1 distance of $|68-60| + |45-4| + |40-4| + |10-2| = 8 + 41 + 36 + 8 = 93 \ge 10$.
 
 Conclusion: **The candidate is a statistically sound, behaviorally diverse upgrade.**
 
@@ -249,6 +252,11 @@ tools/profile-evolution confirm-candidate \
   --output artifacts/confirmation.json
 ```
 
+Promotion uses the fixed `promotion_evidence_v1` policy, regardless of each
+plan's exploratory minimum: at least 300 tournaments per matchup, at least 100
+candidate observations in every seat, and a positive lower normal-95 bound on
+paired composite advantage over every declared benchmark.
+
 ### 2. Record the Consolidated Reviewer Decisions
 
 Collect all proposed candidates in one plan (repeat `--confirmation` for each):
@@ -262,7 +270,10 @@ tools/profile-evolution prepare-promotion-review \
 
 An independent reviewer opens that one file, changes each candidate's single
 `decision` from `pending` to `approve` or `reject`, and may fill in
-`display_name` and `review_note`. Finalize all decisions once:
+`display_name` and `review_note`. Before deciding, inspect the complete
+`roster_diversity` pair list: gene distance and measured VPIP/PFR/action-rate
+differences are separate so genetically different candidates are not assumed
+to play differently. Finalize all decisions once:
 
 ```bash
 tools/profile-evolution finalize-promotion-review \
@@ -285,6 +296,9 @@ tools/profile-evolution publish-profile \
 ```
 This generates `resources/bot_profiles/published/candidate_solid_tag__v1.tres`.
 It uses the review plan's display name unless `--display-name` overrides it.
+It also creates `candidate_solid_tag__v1.provenance.json`, binding the exact
+Resource hash to the confirmation and review checksums. Neither file may exist
+before publication.
 
 ---
 

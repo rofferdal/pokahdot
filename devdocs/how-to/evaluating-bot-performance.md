@@ -12,7 +12,9 @@ To make sound decisions, you must observe enough tournaments to reduce statistic
 
 ### The Minimum Sample Size Rule
 - **Minimum for initial exploration**: $N = 100$ tournaments per matchup.
-- **Minimum for promotion decisions**: **$N \ge 300$ tournaments** per matchup (minimum 100 samples per seat position under cyclic rotation).
+- **Minimum for promotion decisions**: **$N \ge 300$ tournaments** per matchup
+  and at least 100 candidate samples per seat under cyclic rotation. Thus a
+  six-seat matchup needs at least 600 tournaments and a nine-seat matchup 900.
 - **Gold standard benchmark**: $N \ge 1,000$ tournaments.
 
 ### Interpreting the 95% Confidence Interval (`uncertainty_95_half_width`)
@@ -29,13 +31,20 @@ Bot A: [=== 0.45 ===]
 Bot B:                  [=== 0.56 ===]   <-- No overlap; Bot B is reliably superior.
 ```
 
-**Decision Rule**: Only conclude that Profile B is superior to Profile A if:
-$$\text{Fitness}(B) - \text{uncertainty}(B) > \text{Fitness}(A) + \text{uncertainty}(A)$$
+**Decision Rule**: For promotion evidence, pair Profile B and Profile A within
+each tournament seed and calculate a confidence interval for those differences.
+Conclude that B is superior only when the lower bound of the paired difference
+is greater than zero. Comparing two independently calculated interval bounds
+is not the promotion test.
 
 ### The `uncertainty_penalty`
-The simulation engine automatically applies an uncertainty penalty to the composite fitness score:
-$$\text{uncertainty\_penalty} = \text{clamp}\left(\frac{1}{6} \sum_{i=1}^6 \text{half\_width}_i, \; 0.0, \; 0.10\right)$$
-If sample sizes are small, the penalty docks up to $0.10$ from the bot's fitness score.
+The simulation engine applies a finite-sample penalty that is separate from a
+confidence interval:
+$$\text{uncertainty\_penalty} = \min\left(0.10, \frac{0.10}{\sqrt{N}}\right)$$
+Here, $N$ is the number of independent tournament/seed observations, after
+averaging repeated seats for the same profile within each tournament. The
+penalty docks up to $0.10$ from the point fitness score without presenting
+that deduction as an interval estimate.
 
 ---
 
@@ -97,7 +106,8 @@ creates one roster-sized 100bb regime. Treat that report as a baseline and
 diagnostic, not as proof across regimes or as candidate promotion evidence.
 Build separate candidate-inclusive manifests for the mirrored and mixed runs
 required by the promotion gate; retain their manifest checksums, reports, and
-non-overlapping seed ranges.
+non-overlapping effective seed identities. Confirmation interprets the ranges
+using each report's recorded RNG stream derivation version.
 
 ### 1. Positional Neutrality (Cyclic Seat Rotation)
 Because the dealer button acts last postflop, position is a major advantage in Hold'em. 
@@ -119,20 +129,29 @@ Test candidate bots against both regimes:
 
 Pokahdot enforces promotion rigor through the [`confirm-candidate`](../../tools/profile_evolution/confirmation.py) tool. An eligible candidate must satisfy each of the following strict criteria:
 
-### The 7 Automated Promotion Criteria (`confirm-candidate`):
+### The 8 Automated Promotion Criteria (`confirm-candidate`):
 1. **Lineage Provenance**: The candidate profile must be present in the lineage registry with complete generation, crossover, and mutation ancestry.
 2. **Independent Dual Regimes**: Must be evaluated in both **Mirrored** (identical candidate copies at table) and **Mixed-Table** (competing against legacy and champion baselines) simulation reports.
-3. **Non-Overlapping Seed Sequences**: Mirrored and mixed benchmark reports must have independent, non-overlapping pseudo-random seed ranges. Reused reports or shared seeds are automatically rejected.
+3. **Non-Overlapping Seed Sequences**: Mirrored and mixed benchmark reports must have independent, non-overlapping effective seed identities. Reused reports, RNG-version mismatches, shared seeds, and legacy modulo aliases are automatically rejected.
 4. **Sample Thresholds**: Must satisfy sample requirements ($N \ge 300$ tournaments, minimum 100 per seat under cyclic rotation).
-5. **Zero Invalid Actions**: `invalid_action_fallbacks == 0` across all evaluation runs without exception.
-6. **Multi-Opponent Coverage**: Candidate must face declared legacy archetypes (`random_default`, `tight_passive_default`, `loose_aggressive_default`) and historical champions.
-7. **Behavioral Diversity Gate (L1 Distance $\ge 10$)**:
+5. **Demonstrated Improvement**: Against every declared benchmark in each
+   matchup, the lower normal-95 bound of the paired per-tournament raw
+   composite difference must be strictly positive. Ties and overlapping
+   intervals remain exploratory results.
+6. **Zero Invalid Actions**: `invalid_action_fallbacks == 0` across all evaluation runs without exception.
+7. **Multi-Opponent Coverage**: Candidate must face declared legacy archetypes (`random_default`, `tight_passive_default`, `loose_aggressive_default`) and historical champions.
+8. **Genetic Diversity Gate (L1 Distance $\ge 10$)**:
    To avoid cloning existing archetypes, the tool calculates the L1 distance across the four percentage genes:
    $$\text{L1 Distance} = |\Delta\text{tight}| + |\Delta\text{passive}| + |\Delta\text{call}| + |\Delta\text{bluff}|$$
    The distance to every comparable declared legacy or historical champion profile must be **at least 10 percentage points**.
 
 ### Post-Confirmation Human Gate:
 - Passing automated confirmation marks the candidate as `"promotion_eligible": true` and `"review_required": true`.
-- Collect every proposed candidate with `prepare-promotion-review`. An independent human reviewer must change each candidate's one `decision` field from `pending` to `approve` or `reject`, then run `finalize-promotion-review` against the complete confirmation set.
+- Collect every proposed candidate with `prepare-promotion-review`. Its roster
+  review compares every candidate pair using gene L1 distance and separately
+  measured VPIP, PFR, bet/raise frequency, bet frequency, and raise share. An
+  independent human reviewer must still change each candidate's one `decision`
+  field from `pending` to `approve` or `reject`, then run
+  `finalize-promotion-review` against the complete confirmation set.
 - `publish-profile` may generate a Godot `.tres` resource only when the single finalized batch review contains an approved decision bound to that exact candidate and confirmation checksum. A review note is optional.
 - No automated script can bypass human approval or modify the playable roster.

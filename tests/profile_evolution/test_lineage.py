@@ -43,6 +43,7 @@ def _fitness_for_generation(generation: dict[str, object]) -> dict[str, object]:
                 "fitness": 1.0 - index / 20.0,
                 "ineligibility_reasons": [],
                 "plan_sample_counts": {"plan": 20},
+                "point_fitness": 1.0 - index / 20.0,
                 "sample_count": 20,
                 "style_checks": {
                     "bounded_behavioral_rates": {"passed": True, "violations": []},
@@ -57,7 +58,7 @@ def _fitness_for_generation(generation: dict[str, object]) -> dict[str, object]:
         {
             "bounds": copy.deepcopy(payload["bounds"]),
             "candidate_results": results,
-            "code_revisions": ["revision-a"],
+            "code_revisions": ["a" * 40],
             "evaluation_configuration": {
                 "plans": [{"plan_id": "plan"}],
                 "regimes": [{"regime_id": "regime"}],
@@ -69,8 +70,20 @@ def _fitness_for_generation(generation: dict[str, object]) -> dict[str, object]:
             "report_evidence": [
                 {
                     "batch_id": "batch",
-                    "code_revision": "revision-a",
-                    "command_version": "simulation_cli_v4",
+                    "code_revision": "a" * 40,
+                    "command_version": "simulation_cli_v6",
+                    "execution_provenance": {
+                        "algorithm_versions": {
+                            "aggregate_statistics": "normal_95_v1",
+                            "rng_streams": "named_stream_v1",
+                            "simulation_runner": "tournament_match_v1",
+                            "tournament_metrics": "elimination_history_v1",
+                        },
+                        "code_revision": "a" * 40,
+                        "dirty_source_fingerprint": "",
+                        "engine_version": "4.7.2",
+                        "source_state": "clean",
+                    },
                     "manifest_checksum": "a" * 64,
                     "report_checksum": "b" * 64,
                     "seed_range": {"minimum": 100, "maximum": 119},

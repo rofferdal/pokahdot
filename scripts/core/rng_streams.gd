@@ -7,7 +7,12 @@ var effective_seed: int:
 	get:
 		return _effective_seed
 
+var algorithm_version: String:
+	get:
+		return _algorithm_version
+
 var _effective_seed: int
+var _algorithm_version: String
 var _streams: Dictionary[String, RandomNumberGenerator]
 var _stream_seeds: Dictionary[String, int]
 
@@ -16,8 +21,10 @@ func _init(
 	stream_effective_seed: int,
 	streams: Dictionary[String, RandomNumberGenerator],
 	stream_seeds: Dictionary[String, int],
+	stream_algorithm_version: String,
 ) -> void:
 	_effective_seed = stream_effective_seed
+	_algorithm_version = stream_algorithm_version
 	_streams = streams.duplicate()
 	_stream_seeds = stream_seeds.duplicate()
 

@@ -78,7 +78,7 @@ opponents, effective stack is bounded by the largest live opponent, and the
 table big blind is used directly. Reports from the earlier behavior are
 historical diagnostics only. They cannot rank, confirm, or promote any
 `strategy_parameterized` profile. Re-evaluate every affected built-in and
-published strategic profile in fresh command-v4 reports before it can
+published strategic profile in fresh current command-v6 reports before it can
 participate in a new promotion comparison. The manifest review and approval
 requirement below still applies to those reruns.
 
@@ -301,25 +301,31 @@ of the ten proposed profiles:
    selection, crossover, mutation, and fitness artifact. Use
    `tools/profile-evolution build-lineage`; validate it with
    `inspect-lineage`.
-2. Run independent confirmation evidence with seeds disjoint from all prior
-   reports and from each other:
+2. Run independent confirmation evidence with effective seed identities
+   disjoint from all prior reports and from each other. The confirmation tool
+   applies the recorded RNG derivation version, including legacy modulo aliases:
 
    - Mirrored cyclic heads-up plans covering the candidate against all three
      retained legacy profiles and the selected historical champion.
    - Mixed cyclic tables of at least three seats that include the candidate,
      legacy opponents, and the historical champion.
 
-   Use at least 300 tournaments per candidate and zero invalid-action
-   fallbacks. The confirmation CLI verifies the stricter exact coverage.
+   Use at least 300 tournaments per matchup, at least 100 candidate samples in
+   every seat, and zero invalid-action fallbacks. This means 600 or more
+   tournaments at six seats and 900 or more at nine. The confirmation CLI also
+   requires a positive lower 95% bound on paired composite advantage against
+   every declared benchmark; caller-selected exploratory minimums cannot relax
+   these gates.
 3. Run `confirm-candidate` with the lineage registry, all three legacy IDs,
    the declared historical champion, and the complete mirrored and mixed
    reports. Do not substitute the two ranking reports for these independent
    reports.
 4. Collect all ten confirmations with one `prepare-promotion-review` command.
-   Stop for an independent human reviewer, who inspects the evidence and edits
-   only the consolidated plan: change each candidate's one `decision` from
-   `pending` to `approve` or `reject`, and optionally add `display_name` and
-   `review_note`. The execution agent must not make these decisions.
+   Stop for an independent human reviewer, who inspects every proposed pair's
+   separate gene distance and measured VPIP/PFR/action-rate differences, then
+   edits only the consolidated plan: change each candidate's one `decision`
+   from `pending` to `approve` or `reject`, and optionally add `display_name`
+   and `review_note`. The execution agent must not make these decisions.
 5. Run `finalize-promotion-review` once with the edited plan and the same
    complete confirmation set. Finalization must fail if any candidate remains
    pending or any confirmation binding changed. For each approved candidate,

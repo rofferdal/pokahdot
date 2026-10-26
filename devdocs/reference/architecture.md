@@ -289,7 +289,7 @@ flowchart TD
         EXP["Roster Manifest Export\n(SimulationManifestGenerator)"]
         MAN["SimulationManifest (schema 2)"]
         RUN["SimulationBatchRunner (headless)"]
-        REP["SimulationReport (schema 3)"]
+        REP["SimulationReport (schema 4)"]
     end
 
     subgraph ProductCore["Curated Product Engine"]
@@ -326,8 +326,8 @@ flowchart TD
 ### 2. External Evolution & Promotion (`tools/profile-evolution`)
 - **Decoupled Python Tool**: Keeps evolutionary genetics, lineage registries, and confirmation gates outside the game runtime.
 - **Immutable Checksummed Envelopes**: All artifacts carry `schema_version`, `type`, `tool_version`, `payload`, and a SHA-256 canonical checksum.
-- **Automated Promotion Gates (`confirm-candidate`)**: Verifies lineage ancestry, dual independent regimes (mirrored & mixed), non-overlapping seeds, zero invalid actions, and behavioral diversity (L1 distance $\ge 10$).
-- **Human Review Barrier**: `prepare-promotion-review` creates one editable plan for the complete candidate set. An independent reviewer changes each candidate's single decision to `approve` or `reject`; `finalize-promotion-review` verifies every confirmation binding and creates one immutable batch review.
+- **Automated Promotion Gates (`confirm-candidate`)**: Verifies lineage ancestry, dual independent regimes (mirrored & mixed), non-overlapping seeds, zero invalid actions, and genetic diversity (L1 distance $\ge 10$), while retaining measured VPIP/PFR/action rates separately.
+- **Human Review Barrier**: `prepare-promotion-review` creates one editable plan for the complete candidate set and compares every proposed pair using genetic and measured-behavior distances. An independent reviewer changes each candidate's single decision to `approve` or `reject`; `finalize-promotion-review` verifies every confirmation binding and pairwise review before creating one immutable batch review.
 - **Publication Boundary (`publish-profile`)**: Selects an approved decision from the consolidated review and writes a new versioned `.tres` file to `resources/bot_profiles/published/` via atomic no-clobber creation.
 
 ### 3. Curated In-Game Catalog (`PlayableBotRoster`)

@@ -162,11 +162,12 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   run --config path/to/manifest.json --shard 2/4 --dry-run --format json
 ```
 
-Reports use schema 3. They retain the exact manifest/checksum, roster
-provenance derived from immutable profile snapshots, ordered selected profile
-IDs for every tournament, seeds, seat maps, metrics, diagnostics, and only
-recipient-safe traces. Inspecting is read-only; replay rebuilds one stored
-tournament and returns failure unless its outcome digest matches.
+Reports use schema 4 and command v6. They retain the exact manifest/checksum,
+roster provenance, and executable provenance: Git revision, executable-source
+dirty fingerprint, Godot version, and algorithm versions. Fitness rejects
+shards with different provenance. Replay reports outcome and provenance
+mismatches separately. Older reports remain immutable historical artifacts and
+must be rerun for current promotion use.
 
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
@@ -222,7 +223,11 @@ Build and retain lineage before confirmation. A promotion candidate needs
 independent mirrored and mixed-table reports against declared legacy bots and
 historical champions. A batch win, a single narrow matchup, an invalid-action
 fallback, or insufficient uncertainty/diversity evidence cannot promote a
-profile.
+profile. Fitness plan minimums classify exploratory results only. The fixed
+`promotion_evidence_v1` gate independently requires at least 300 tournaments
+per matchup, at least 100 candidate observations in every seat, and a positive
+lower 95% confidence bound for the paired composite advantage over every
+declared benchmark in that matchup.
 
 ```bash
 tools/profile-evolution build-lineage --artifact artifacts/generation_0.json \
@@ -240,9 +245,12 @@ tools/profile-evolution confirm-candidate --registry artifacts/lineage.json \
 An independent reviewer handles the complete proposed candidate set in one
 editable plan. Each candidate receives exactly one `approve` or `reject`
 decision, after which the plan is finalized into one immutable review artifact
-bound to every exact eligible confirmation. Publication creates a new
-versioned `.tres` file for an approved candidate and refuses to overwrite an
-existing one. It still does not activate the profile: roster membership is a
+bound to every exact eligible confirmation. The plan compares every candidate
+pair with separate genetic-distance and measured VPIP/PFR/action-rate
+evidence; those comparisons inform but never replace the human decisions.
+Publication creates a new versioned `.tres` file for an approved candidate and
+refuses to overwrite an existing one. It still does not activate the profile:
+roster membership is a
 separate reviewed source change that must retain the legacy personalities.
 
 ```bash
@@ -267,6 +275,8 @@ The editable plan also has optional `display_name` and `review_note` fields.
 Do not alter candidate or confirmation fields, checksummed artifacts,
 overwrite published profiles, or
 treat an approval as permission to change `PlayableBotRoster` automatically.
+Publication also creates an adjacent no-clobber `.provenance.json` sidecar that
+binds the profile ID and exact Resource hash to confirmation and review checksums.
 
 ## Development checks
 

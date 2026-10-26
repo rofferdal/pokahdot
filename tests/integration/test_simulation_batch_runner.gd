@@ -70,12 +70,90 @@ func test_sampled_trace_is_bounded_private_and_reproducible() -> void:
 		assert_false("opponent" in trace.message)
 
 
+func test_trace_reservoir_samples_early_and_late_entries_fairly() -> void:
+	var first_retained := 0
+	var last_retained := 0
+	var runner := BATCH_RUNNER_SCRIPT.new()
+	for seed: int in range(1, 401):
+		var traces: Array[SimulationTraceEntry] = []
+		var sampling_state := {&"observed": 0}
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed
+		for item: int in range(100):
+			(
+				runner
+				. _append_sample(
+					traces,
+					5,
+					rng,
+					sampling_state,
+					SimulationTraceEntry.error(0, str(item)),
+				)
+			)
+		assert_eq(traces.size(), 5)
+		assert_eq(sampling_state[&"observed"], 100)
+		for trace: SimulationTraceEntry in traces:
+			if trace.message == "0":
+				first_retained += 1
+			if trace.message == "99":
+				last_retained += 1
+	assert_gt(first_retained, 5)
+	assert_lt(first_retained, 45)
+	assert_gt(last_retained, 5)
+	assert_lt(last_retained, 45)
+
+
+func test_failure_outcome_preserves_identity_and_copied_partial_traces() -> void:
+	var first := _profile(&"first")
+	var second := _profile(&"second")
+	var matchup := SimulationMatchup.new(&"failed_match", [first, second])
+	var input := (
+		SimulationTournamentInput
+		. new(
+			17,
+			2717,
+			matchup,
+			{0: second, 1: first},
+			4,
+			1,
+			&"short_stack",
+			&"candidate_plan",
+			9,
+		)
+	)
+	var partial_traces: Array[SimulationTraceEntry] = [
+		SimulationTraceEntry.error(17, "safe partial evidence")
+	]
+
+	var outcome: SimulationTournamentOutcome = BATCH_RUNNER_SCRIPT.new()._failure_outcome(
+		input, SimulationDiagnostic.Stage.EXECUTION, "transition limit", partial_traces
+	)
+	partial_traces[0].message = "mutated after outcome"
+
+	assert_false(outcome.is_success())
+	assert_eq(outcome.tournament_index, 17)
+	assert_eq(outcome.effective_seed, 2717)
+	assert_eq(outcome.matchup_id, &"failed_match")
+	assert_eq(outcome.final_seat_mapping, {0: &"second", 1: &"first"})
+	assert_eq(outcome.regime_id, &"short_stack")
+	assert_eq(outcome.plan_id, &"candidate_plan")
+	assert_eq(outcome.plan_tournament_index, 9)
+	assert_eq(outcome.matchup_occurrence, 4)
+	assert_eq(outcome.rotation, 1)
+	assert_eq(outcome.diagnostics[0].stage, SimulationDiagnostic.Stage.EXECUTION)
+	assert_eq(outcome.diagnostics[0].message, "transition limit")
+	assert_eq(outcome.traces.size(), 1)
+	assert_eq(outcome.traces[0].message, "safe partial evidence")
+
+
 func test_aggregate_reports_small_samples_as_non_reportable() -> void:
 	var first := _profile(&"first")
 	var second := _profile(&"second")
 	var matchup := SimulationMatchup.new(&"aggregate_match", [first, second])
-	var input := SimulationTournamentInput.new(4, 1704, matchup, {0: first, 1: second})
-	var result := BATCH_RUNNER_SCRIPT.new().run(_config(), [input])
+	var input := SimulationTournamentInput.new(
+		4, 1704, matchup, {0: first, 1: second}, 0, 0, &"", &"strict_plan"
+	)
+	var result := BATCH_RUNNER_SCRIPT.new().run(_config(), [input], 256, null, {&"strict_plan": 2})
 
 	var profile_rows: Array = result.aggregates.by_profile
 	assert_eq(profile_rows.size(), 2)

@@ -153,6 +153,7 @@ class CliTests(unittest.TestCase):
                         "fitness": 0.5,
                         "ineligibility_reasons": [],
                         "plan_sample_counts": {"plan": 10},
+                        "point_fitness": 0.6,
                         "sample_count": 10,
                         "style_checks": {},
                         "uncertainty_95_half_width": {name: 0.1 for name in components},
@@ -168,8 +169,20 @@ class CliTests(unittest.TestCase):
                 "report_evidence": [
                     {
                         "batch_id": "batch",
-                        "code_revision": "abc123",
-                        "command_version": "simulation_cli_v4",
+                        "code_revision": "a" * 40,
+                        "command_version": "simulation_cli_v6",
+                        "execution_provenance": {
+                            "algorithm_versions": {
+                                "aggregate_statistics": "normal_95_v1",
+                                "rng_streams": "named_stream_v1",
+                                "simulation_runner": "tournament_match_v1",
+                                "tournament_metrics": "elimination_history_v1",
+                            },
+                            "code_revision": "a" * 40,
+                            "dirty_source_fingerprint": "",
+                            "engine_version": "4.7.2",
+                            "source_state": "clean",
+                        },
                         "manifest_checksum": "a" * 64,
                         "report_checksum": "b" * 64,
                         "seed_range": {"minimum": 100, "maximum": 109},

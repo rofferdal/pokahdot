@@ -46,8 +46,8 @@ func validate() -> PackedStringArray:
 		errors.append("Only cyclic seat rotation is supported.")
 	if minimum_profile_samples <= 0:
 		errors.append("Minimum profile samples must be positive.")
-	if uncertainty_estimator not in [&"normal_95", &"bootstrap_95"]:
-		errors.append("Evaluation plan uncertainty estimator is unsupported.")
+	if uncertainty_estimator != &"normal_95":
+		errors.append("Only the normal_95 uncertainty estimator is supported.")
 	var seen: Dictionary = {}
 	for matchup_id: StringName in matchup_ids:
 		if matchup_id.is_empty():

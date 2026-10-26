@@ -104,25 +104,47 @@ VPIP/PFR, all-street bet/raise and call counts, action-opportunity rates,
 call-versus-raise splits, eligible bluff frequency, and invalid-action
 fallbacks without retaining cards or mutable core state. Measurement consumes
 every applied decision independently of optional bounded trace sampling.
+The collector also records each completed hand's newly zero-stack seats as an
+elimination cohort. Final positions are assigned from those cohorts in reverse
+chronological order; seats eliminated in the same hand share a competition
+rank. `simulation_cli_v5` separates this evidence from older seat-ordered
+reports, which remain immutable and require recomputation for promotion use.
 
 `SimulationTraceConfig` restricts tracing to none, errors, or a bounded
 deterministically sampled mode. `SimulationTraceEntry` contains strategy
 branch/action metadata and hand outcomes only; it deliberately contains no
-hole cards or deck data. `SimulationAggregateCalculator` groups completed
-seat observations by profile, matchup, seat, regime, and evaluation plan.
-Behavioral rates divide summed raw numerators by summed opportunity
-denominators; tournaments with no opportunity do not become artificial zero
-observations. Aggregates also report those summed counts, 95% normal
-half-width estimates, sample-threshold eligibility, and the documented
-normalized fitness formula. Public all-ins are classified as calls, opening
+hole cards or deck data. Sampled mode uses deterministic reservoir sampling
+over the total number of eligible entries, so early and late events have the
+same retention probability. Execution failures retain already-collected safe
+traces and the input's plan, regime, matchup-occurrence, and rotation identity
+alongside their structured diagnostic. `SimulationAggregateCalculator` groups
+completed outcomes by profile, matchup, seat, regime, and evaluation plan
+using a completed tournament and its effective seed as the independent
+statistical unit. Repeated profile seats and table-level groups are averaged
+within a tournament before uncertainty is estimated, preventing correlated
+seats from inflating sample counts. Behavioral rates divide summed raw
+numerators by summed opportunity denominators for point estimates, while
+their uncertainty uses per-tournament rates; tournaments with no opportunity
+do not become artificial zero observations. Fewer than two units produce an
+explicitly missing interval, and bounded components use a Wilson floor for
+boundary samples. Aggregates also report summed counts, sample-threshold
+eligibility, point fitness, and a separate finite-sample penalty. Public
+all-ins are classified as calls, opening
 bets, or raises from their target total relative to the street's prior wager.
+`SimulationBatchResult` receives the manifest's per-plan minimums and applies
+the strictest contributing plan minimum to each aggregate row; it has no
+independent 30-sample default. Schema-2 plans accept only `normal_95`, matching
+the Python evaluator; `bootstrap_95` is rejected at manifest validation.
 
 `RngStreamFactory` derives every random stream from the effective tournament
 seed and a stable name. In addition to deck, initial-button, and per-seat bot
 streams, simulations receive `tournament_construction`,
 `seat_profile_assignment`, and `trace_sampling` streams. `RngStreams` records
-the derived seed for every name; `SimulationMatchCreationResult` preserves the
-effective seed and copied stream-seed map for subsequent outcome reporting.
+the algorithm version and derived seed for every name;
+`SimulationMatchCreationResult` preserves that identity with the effective
+seed and copied stream-seed map. New simulation runs use domain-separated SHA-256
+derivation (`named_stream_sha256_v2`) over the exact signed seed and stream
+name. Simulation replay selects the algorithm recorded by the source report.
 The simulation factory passes the same stream collection to the agents and
 `TournamentMatch`, so bot decisions and poker progression cannot accidentally
 draw from separate copies of a stream.
@@ -161,9 +183,14 @@ no argument parsing, filesystem work, or terminal output. The simulation CLI's
 options into these settings and atomically serializes only the validated
 snapshot. Neither a manifest nor an evaluation retains live product Resources.
 
-`SimulationReport` schema 3 stores the canonical manifest snapshot and checksum beside
+`SimulationReport` schema 4 stores the canonical manifest snapshot and checksum beside
 typed outcome mappings, aggregate groups, diagnostics, and recipient-safe
 traces. Report writes use a temporary sibling followed by an atomic rename.
+Command v6 also records executable provenance: Git revision, a SHA-256
+fingerprint of dirty execution-relevant sources, engine version, and explicit
+algorithm versions. Runs fail if provenance cannot be captured; fitness rejects
+mixed-provenance shards, and replay explains every differing provenance field.
+Older reports remain immutable historical artifacts rather than being backfilled.
 It also records a deterministic roster provenance object derived from the
 manifest's immutable profile snapshots, and every tournament records its
 ordered selected profile IDs beside its seat map. This lets candidate
@@ -870,23 +897,26 @@ random-number consumption, content-derived IDs, and canonical artifact writes
 make identical inputs and seeds byte-equivalent.
 
 `evaluate-fitness` consumes one immutable generation manifest and a complete
-set of schema-3 `SimulationReport` shards. It validates the simulation command
-version, canonical manifest checksum, exact candidate snapshots, deterministic
+set of schema-4 `SimulationReport` shards. It validates command v6, identical
+executable provenance, canonical manifest checksum, exact candidate snapshots, deterministic
 plan identities, unique global tournament indexes, complete shard/plan
 coverage, successful completion, finite metric inputs, bounded behavioral
 rates, and every plan's minimum candidate sample threshold. Trace and card
-data are not fitness inputs. Each candidate's six normalized per-tournament
-components are recomputed from profile results rather than trusting stored
-aggregates. Their arithmetic means and normal 95% confidence-interval
-half-widths feed the documented weighted formula and capped mean uncertainty
-penalty. The immutable `fitness` artifact records report and manifest
+data are not fitness inputs. Each candidate's six normalized components are
+recomputed from profile results rather than trusting stored aggregates, with
+repeated candidate seats averaged into one observation per tournament/seed.
+Their arithmetic means and normal 95% confidence-interval half-widths are
+reported separately from the finite-sample penalty applied to point fitness.
+Intervals are explicitly missing with fewer than two independent units. The
+immutable `fitness` artifact records report and manifest
 checksums, shard identities, regimes, plans, code revisions, component sample
 counts, uncertainty, and explicit style checks. Candidates with insufficient
 samples or invalid-action fallbacks are ineligible, have null fitness, and are
 never assigned a rank. Input generation and report bytes are never modified.
-Evaluator v1 requires `normal_95`; it rejects `bootstrap_95` rather than
-silently calculating and labeling a different estimator. Simulation regimes
-also enforce the product maximum of nine players.
+Both schema-2 simulation plans and evaluator v1 require `normal_95`; they
+reject `bootstrap_95` rather than silently calculating and labeling a
+different estimator. Simulation regimes also enforce the product maximum of
+nine players.
 
 `select` validates the complete fitness artifact and its envelope checksum,
 then retains `ceil(population_size * elite_fraction)` candidates for an
@@ -929,24 +959,38 @@ legacy profile and historical champion. Mixed plans must be cyclic tables of
 at least three seats whose matchups contain the candidate plus both opponent
 classes. All participants must have zero invalid-action fallbacks. Original,
 mirrored, and mixed evidence use disjoint report and manifest checksums and
-non-overlapping seed ranges; separate confirmation batches also have
-non-overlapping seed ranges. The immutable confirmation records the exact
+non-overlapping effective seed identities; separate confirmation batches do
+the same. Confirmation interprets ranges using their recorded RNG derivation
+version, so numerically disjoint legacy ranges that alias modulo 2147483647
+are rejected. Evidence from different RNG derivation versions is incompatible.
+The immutable confirmation records the exact
 candidate/registry identity, per-mode metrics, samples, style evidence,
-uncertainty, reports, and explicit eligibility reasons.
+uncertainty, reports, and explicit eligibility reasons. Caller-selected plan
+minimums remain exploratory and cannot relax the fixed
+`promotion_evidence_v1` policy. Each confirmation matchup requires at least
+300 completed candidate observations and at least 100 in every candidate seat
+(therefore at least 600 at six seats and 900 at nine). For every declared
+benchmark in a matchup, confirmation calculates paired per-tournament raw
+composite differences and requires `mean_difference - normal_95_half_width`
+to be strictly positive. Counts, comparisons, and pass states are retained in
+the immutable confirmation artifact.
 
-Confirmation also requires behavioral diversity before it can be eligible.
+Confirmation also requires genetic diversity before it can be eligible.
 For every comparable declared legacy or historical-champion
 `strategy_parameterized` profile, the tool records the L1 distance across the
 four percentage genes. The nearest distance must be at least ten; the recorded
-comparison is a deterministic personality-diversity proxy, while independent
-simulation evidence remains the validity and performance proof. Every
-confirmation is marked `review_required`. `prepare-promotion-review` writes one
-editable plan listing all supplied candidates and their exact confirmation
-checksums. The reviewer changes each candidate's single `decision` field from
+comparison is explicitly genetic. Confirmation separately records
+count-weighted VPIP, PFR, bet/raise frequency, bet frequency, and raise-share
+measurements from the evidence reports. Every confirmation is marked
+`review_required`. `prepare-promotion-review` writes one editable plan listing
+all supplied candidates, their exact confirmation checksums, and a complete
+pairwise proposed-roster review containing gene and measured-behavior
+distances. The reviewer changes each candidate's single `decision` field from
 `pending` to `approve` or `reject`, with optional display names and notes.
 `finalize-promotion-review` requires a completed decision for every listed
-candidate, verifies the plan against the complete supplied confirmation set,
-and emits one immutable, reviewer-identified `promotion_review_batch`.
+candidate, recomputes the complete pairwise review from the supplied
+confirmations, and emits one immutable, reviewer-identified
+`promotion_review_batch`.
 Approval cannot be finalized for ineligible evidence. These external records
 deliberately have no dependency on, access to, or mutation path for
 `PlayableBotRoster`.
@@ -962,8 +1006,9 @@ source-change workflow.
 the exact confirmation and the consolidated `promotion_review_batch`, selects
 that candidate's approved decision, verifies the snapshot and checksum
 binding, and writes a new versioned
-`BotProfile` only at `resources/bot_profiles/published/<profile-id>.tres`.
-Publication uses no-clobber atomic creation, so a published version cannot be
+`BotProfile` only at `resources/bot_profiles/published/<profile-id>.tres`, plus
+an adjacent provenance sidecar binding its SHA-256 to the confirmation and
+review checksums. Publication uses no-clobber creation for both files, so a published version cannot be
 overwritten. It does not alter `PlayableBotRoster`; activation remains a
 separate reviewed source change. The roster validates that its retained catalog
 always includes the hand-authored Random, Tight Passive, and Loose Aggressive
@@ -1041,7 +1086,7 @@ After resolving a time-based root seed when `rng_seed == 0`, derive separate RNG
 - initial button selection;
 - each randomized bot.
 
-`RngStreamFactory` derives each stream from the effective seed plus a stable identity (`deck`, `initial_button`, or `bot:<seat>`), never from stream creation order. `RngStreams` retains the effective seed for diagnostics and owns the separate `RandomNumberGenerator` instances. Consuming one stream therefore cannot change future card order, button selection, or another bot's behavior. Tests compare reproducibility and independence rather than hard-coded random values because Godot's underlying RNG algorithm is not part of this project's contract.
+`RngStreamFactory` derives each stream from the exact effective seed plus a stable identity (`deck`, `initial_button`, or `bot:<seat>`), never from stream creation order. Simulation composition selects `named_stream_sha256_v2`, a domain-separated SHA-256 derivation mapped to a positive 63-bit Godot RNG seed. `RngStreams` retains the effective seed and derivation version for diagnostics and owns the separate `RandomNumberGenerator` instances. Consuming one stream therefore cannot change future card order, button selection, or another bot's behavior. Interactive product composition retains `named_stream_v1` so existing product seeds do not silently change; simulation replay selects either version explicitly from provenance. Tests pin the legacy derivation vector while otherwise comparing reproducibility and independence because Godot's underlying RNG algorithm is not part of this project's contract.
 
 Match startup fails with a descriptive configuration error for out-of-range startup choices, unknown model/profile IDs, mismatched parameter types, invalid ranges, missing seats, or duplicate seat assignments.
 

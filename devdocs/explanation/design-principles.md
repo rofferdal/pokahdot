@@ -127,8 +127,8 @@ A single batch win or high fitness score is never sufficient to promote a bot in
 
 ### Why?
 1. **Variance & Exploitation**: A bot might perform well against a specific narrow strategy but fail disastrously against diverse opponents, or it might win due to short-term variance.
-2. **The 7 Confirmation Gates**: The tool requires independent mirrored and mixed benchmark reports, non-overlapping seed ranges, minimum sample sizes ($N \ge 300$), zero invalid-action fallbacks, and behavioral diversity (L1 distance $\ge 10$) to prevent cloning existing bots.
-3. **Mandatory Human Sign-Off**: The tool intentionally enforces one consolidated human review barrier. `prepare-promotion-review` lists the complete candidate set, the reviewer records one decision per candidate, and `finalize-promotion-review` refuses incomplete or altered plans. The tool cannot auto-approve, auto-publish, or self-promote code.
+2. **The 7 Confirmation Gates**: The tool requires independent mirrored and mixed benchmark reports, non-overlapping seed ranges, minimum sample sizes ($N \ge 300$), zero invalid-action fallbacks, and genetic diversity (L1 distance $\ge 10$) to prevent cloning existing bots. Measured VPIP/PFR/action rates remain separate evidence.
+3. **Mandatory Human Sign-Off**: The tool intentionally enforces one consolidated human review barrier. `prepare-promotion-review` lists the complete candidate set and every pair's genetic and measured-behavior distances, the reviewer records one decision per candidate, and `finalize-promotion-review` refuses incomplete or altered plans. The tool cannot auto-approve, auto-publish, or self-promote code.
 
 ---
 

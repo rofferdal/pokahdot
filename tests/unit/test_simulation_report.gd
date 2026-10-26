@@ -1,6 +1,7 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
+const PROVENANCE_SCRIPT := preload("res://scripts/simulation/simulation_provenance.gd")
 
 
 func test_roster_provenance_matches_the_cross_language_fixture() -> void:
@@ -44,7 +45,9 @@ func test_report_mirrors_manifest_identity_and_maps_outcome_fields() -> void:
 		)
 	)
 
-	var report: RefCounted = REPORT_SCRIPT.from_batch(manifest, SimulationShard.new(), batch)
+	var report: RefCounted = REPORT_SCRIPT.from_batch(
+		manifest, SimulationShard.new(), batch, "", "", _provenance()
+	)
 	assert_true(report.validate().is_empty())
 	assert_eq(report.manifest, manifest.canonical_dictionary())
 	assert_eq(report.manifest_checksum, manifest.checksum())
@@ -58,7 +61,7 @@ func test_report_mirrors_manifest_identity_and_maps_outcome_fields() -> void:
 	assert_false(report.to_dictionary().has("hole_cards"))
 
 
-func test_schema_three_rejects_legacy_command_and_incomplete_metric_payloads() -> void:
+func test_schema_four_rejects_legacy_command_and_incomplete_metric_payloads() -> void:
 	var manifest := SimulationManifest.new()
 	manifest.batch_id = &"report_validation"
 	manifest.seed_start = 300
@@ -76,13 +79,15 @@ func test_schema_three_rejects_legacy_command_and_incomplete_metric_payloads() -
 			manifest.build_plan().inputs,
 		)
 	)
-	var valid_report: RefCounted = REPORT_SCRIPT.from_batch(manifest, SimulationShard.new(), batch)
+	var valid_report: RefCounted = REPORT_SCRIPT.from_batch(
+		manifest, SimulationShard.new(), batch, "", "", _provenance()
+	)
 	var data: Dictionary = valid_report.to_dictionary()
 	data.command_version = "simulation_cli_v1"
 	var parsed: RefCounted = REPORT_SCRIPT.from_dictionary(data)
 	assert_has(parsed.validate(), "Unsupported simulation command version.")
 
-	data.command_version = "simulation_cli_v4"
+	data.command_version = "simulation_cli_v6"
 	data.tournaments[0].profile_results[0].erase("eligible_bluff_opportunities")
 	parsed = REPORT_SCRIPT.from_dictionary(data)
 	assert_has(
@@ -100,7 +105,7 @@ func test_schema_three_rejects_legacy_command_and_incomplete_metric_payloads() -
 	assert_has(parsed.validate(), "Simulation trace must be an object.")
 
 
-func test_schema_three_rejects_wrong_nested_field_types_without_conversion_errors() -> void:
+func test_schema_four_rejects_wrong_nested_field_types_without_conversion_errors() -> void:
 	var valid_data := _valid_report_dictionary()
 	valid_data.report_schema_version = {"invalid": true}
 	var parsed: RefCounted = REPORT_SCRIPT.from_dictionary(valid_data)
@@ -154,7 +159,21 @@ func _valid_report_dictionary() -> Dictionary:
 			manifest.build_plan().inputs,
 		)
 	)
-	return REPORT_SCRIPT.from_batch(manifest, SimulationShard.new(), batch).to_dictionary()
+	return (
+		REPORT_SCRIPT
+		. from_batch(manifest, SimulationShard.new(), batch, "", "", _provenance())
+		. to_dictionary()
+	)
+
+
+func _provenance() -> Dictionary:
+	return {
+		"algorithm_versions": PROVENANCE_SCRIPT.ALGORITHM_VERSIONS.duplicate(true),
+		"code_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		"dirty_source_fingerprint": "",
+		"engine_version": "4.test",
+		"source_state": "clean",
+	}
 
 
 func _profile(profile_id: StringName) -> BotProfile:

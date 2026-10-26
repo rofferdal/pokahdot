@@ -9,12 +9,24 @@ func test_factory_creates_an_all_bot_match_from_profile_snapshots() -> void:
 
 	assert_true(creation.is_ok())
 	assert_eq(creation.effective_seed, 901)
+	assert_eq(creation.rng_algorithm_version, RngStreamFactory.ALGORITHM_VERSION)
 	assert_true(creation.stream_seeds.has(RngStreamFactory.TOURNAMENT_CONSTRUCTION_STREAM_ID))
 	assert_true(creation.stream_seeds.has(RngStreamFactory.SEAT_PROFILE_ASSIGNMENT_STREAM_ID))
 	assert_true(creation.stream_seeds.has(RngStreamFactory.TRACE_SAMPLING_STREAM_ID))
 	assert_ne(creation.match_instance.start().status, StepResult.Status.ERROR)
 	assert_false(creation.match_instance.get_view_for(0).seats[0].is_human)
 	assert_false(creation.match_instance.get_view_for(0).seats[1].is_human)
+
+
+func test_factory_can_select_legacy_rng_derivation_for_replay() -> void:
+	var rng_factory := RngStreamFactory.new(Callable(), RngStreamFactory.LEGACY_ALGORITHM_VERSION)
+	var creation := SimulationMatchFactory.new(null, rng_factory).create(
+		_product_config(), _random_profiles()
+	)
+
+	assert_true(creation.is_ok())
+	assert_eq(creation.rng_algorithm_version, RngStreamFactory.LEGACY_ALGORITHM_VERSION)
+	assert_eq(creation.stream_seeds[RngStreamFactory.DECK_STREAM_ID], 835171758)
 
 
 func test_factory_rejects_missing_or_invalid_profiles() -> void:

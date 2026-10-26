@@ -9,6 +9,8 @@ extends RefCounted
 const SEAT_METRICS_SCRIPT := preload("res://scripts/simulation/simulation_seat_metrics.gd")
 
 var _by_seat: Dictionary = {}
+var _elimination_cohorts: Array = []
+var _eliminated_seats: Dictionary = {}
 
 
 func _init(
@@ -26,6 +28,7 @@ func observe_hand(
 	public_actions: Array[PublicActionRecord],
 	events: Array[DomainEvent],
 ) -> void:
+	_record_eliminations(active_at_start, stacks_before, stacks_after)
 	if big_blind_at_start <= 0:
 		return
 	for seat: int in active_at_start:
@@ -132,22 +135,57 @@ func observe_decision(
 
 
 func finish(final_stacks: Dictionary[int, int], winner_seat: int, hand_count: int) -> void:
-	var ordered_seats: Array = _by_seat.keys()
-	ordered_seats.sort_custom(
-		func(left: int, right: int) -> bool:
-			if final_stacks[left] == final_stacks[right]:
-				return left < right
-			return final_stacks[left] > final_stacks[right]
-	)
-	for index: int in range(ordered_seats.size()):
-		var seat: int = ordered_seats[index]
-		_by_seat[seat].finish(
-			final_stacks[seat], index + 1, seat == winner_seat, _by_seat.size(), hand_count
+	var positions: Dictionary[int, int] = {}
+	var has_winner: bool = winner_seat != Table.NO_SEAT and _by_seat.has(winner_seat)
+	if has_winner:
+		positions[winner_seat] = 1
+	var next_position: int = 2 if has_winner else 1
+	for cohort_index: int in range(_elimination_cohorts.size() - 1, -1, -1):
+		var cohort: Array = _elimination_cohorts[cohort_index]
+		var ranked_in_cohort: int = 0
+		for seat: int in cohort:
+			if seat == winner_seat or positions.has(seat) or not _by_seat.has(seat):
+				continue
+			positions[seat] = next_position
+			ranked_in_cohort += 1
+		next_position += ranked_in_cohort
+	var untracked_seats: Array = []
+	for seat: int in _by_seat:
+		if not positions.has(seat):
+			untracked_seats.append(seat)
+	for seat: int in untracked_seats:
+		positions[seat] = next_position
+	for seat: int in _by_seat:
+		(
+			_by_seat[seat]
+			. finish(
+				final_stacks.get(seat, 0),
+				positions[seat],
+				seat == winner_seat,
+				_by_seat.size(),
+				hand_count,
+			)
 		)
 
 
 func get_seat_metrics() -> Dictionary:
 	return _by_seat.duplicate()
+
+
+func _record_eliminations(
+	active_at_start: Array[int],
+	stacks_before: Dictionary[int, int],
+	stacks_after: Dictionary[int, int],
+) -> void:
+	var cohort: Array[int] = []
+	for seat: int in active_at_start:
+		if _eliminated_seats.has(seat):
+			continue
+		if stacks_before.get(seat, 0) > 0 and stacks_after.get(seat, 0) == 0:
+			cohort.append(seat)
+			_eliminated_seats[seat] = true
+	if not cohort.is_empty():
+		_elimination_cohorts.append(cohort)
 
 
 func _actions_by_event_phase(

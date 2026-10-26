@@ -82,8 +82,10 @@ For each profile, report these outcome metrics with sample counts:
 
 - **Tournament win rate:** tournaments won divided by tournaments completed.
 - **Average finishing position:** arithmetic mean of ordinal finishing
-  positions, where 1 is the winner. Tied eliminations use the deterministic
-  position order emitted by the core.
+  positions, where 1 is the winner. Finishes follow completed-hand elimination
+  history, never final stack or seat order. Players eliminated in the same hand
+  share a competition rank: if two players are the last eliminated before the
+  winner, both finish second and the preceding finisher is fourth.
 - **Top-third rate:** fraction finishing at or above
   `ceil(player_count / 3)`; for example, positions 1–2 at six players.
 - **Chip differential:** `final_stack - starting_stack` per tournament, plus
@@ -110,7 +112,15 @@ VPIP's conventional name is retained, but “put money in pot” is not used as 
 Pokahdot product concept.
 
 Aggregate profile, matchup, seat, and regime groups must include sample sizes
-and confidence or bootstrap intervals. Do not rank a candidate below a
+and confidence or bootstrap intervals. The independent unit is one completed
+tournament identified by its effective seed, not an individual seat. When a
+profile occupies multiple seats in one tournament, its seat metrics are
+averaged into one profile observation; table-level groups likewise average
+their correlated seats within the tournament. Raw behavior counts remain
+pooled for point estimates, while uncertainty uses per-tournament rates.
+Intervals are unavailable when fewer than two independent observations exist,
+and bounded components use a Wilson half-width floor so an all-zero or all-one
+sample does not report false certainty. Do not rank a candidate below a
 documented minimum sample threshold.
 
 ### 3.2 Compatible fitness normalization
@@ -141,11 +151,12 @@ fitness =
     uncertainty_penalty
 ```
 
-`uncertainty_penalty` is in `[0, 0.10]` and is defined by the evaluation plan
-as the capped mean 95% confidence-interval half-width of the six normalized
-components. A plan must record its estimator and minimum sample count. The
-formula compares mixed player counts and stack/blind regimes without combining
-raw values with incompatible scales.
+`point_fitness` is the weighted sum before a penalty. `uncertainty_penalty` is
+a separate finite-sample regularizer, `min(0.10, 0.10 / sqrt(N))`, where `N`
+is the number of independent tournament/seed observations. It is not a
+confidence interval. A plan must record its interval estimator and minimum
+sample count. The formula compares mixed player counts and stack/blind regimes
+without combining raw values with incompatible scales.
 
 ## 4. Simulation CLI contract
 
@@ -291,7 +302,7 @@ canonical `manifest` snapshot contains `profiles`, `regimes`, `matchups`, and
 IDs. No report-only tournament configuration, unnamed regime, or alternate
 matchup shape is permitted.
 
-A schema-3 report contains:
+A schema-4 report contains:
 
 ```text
 report_schema_version
@@ -299,6 +310,9 @@ manifest                         # exact canonical manifest snapshot
 manifest_checksum
 roster { version, profile_ids[] }
 code_revision
+execution_provenance { code_revision, source_state,
+                       dirty_source_fingerprint, engine_version,
+                       algorithm_versions }
 command_version
 shard { index, count }
 started_at, finished_at
@@ -314,6 +328,19 @@ aggregates {
 traces[]
 ```
 
+`simulation_cli_v5` is the first command version whose finishing positions use
+elimination history. Reports produced by earlier command versions retain their
+original bytes as historical artifacts, but their finish, top-third, and
+derived fitness evidence must be recomputed before it is used for comparison,
+selection, confirmation, or promotion.
+
+`simulation_cli_v6` adds executable provenance. A run records its Git object,
+dirty execution-source fingerprint when applicable, Godot version, and
+versioned algorithms. Fitness requires exact provenance equality across
+shards, while replay reports field-level provenance differences separately
+from outcome differences. Existing schema-3/v5 reports are never rewritten;
+rerun them under schema 4/v6 for current promotion evidence.
+
 Every `profile_results` entry contains finishing position, tournament-win
 indicator, top-third indicator, starting/final stack, chip differential,
 hands survived, survival ratio, the `bnc_per_100` numerator and denominator,
@@ -325,7 +352,11 @@ unrevealed opponent hole cards**, even after a tournament finishes. They may
 contain a profile's own decision-time cards in that profile's recipient-safe
 trace and cards legitimately revealed by core showdown events. Internal deck
 order, mucked cards, and another recipient's unrevealed cards are never report
-or trace fields.
+or trace fields. Sampled traces use a deterministic fixed-size reservoir over
+all eligible decision and hand-outcome entries, giving every eligible entry
+the same retention probability. If tournament execution fails, its report
+keeps the safe partial traces, structured diagnostic, and complete
+plan/regime/matchup-occurrence/rotation identity needed to reproduce it.
 
 ### 4.4 Stdout, stderr, and `--output`
 
@@ -352,7 +383,9 @@ invariant, unexpected action fallback, or replay mismatch.
 `replay` reuses the stored manifest snapshot, seed, regime, matchup,
 occurrence, rotation, and seat map. It may increase trace detail without
 changing those values. Winner, termination reason, hand count, and metric
-digest must match the stored record.
+digest must match the stored record. Replay also selects the report's recorded
+RNG stream derivation. New reports use `named_stream_sha256_v2`, while
+`named_stream_v1` is retained for replaying immutable legacy reports.
 
 ## 5. External profile-evolution tool
 
@@ -407,7 +440,7 @@ order, `seed`, `gene`, `before`, requested `delta`, bounded `after`, and a
 output and leaves its input snapshots unchanged.
 
 `evaluate-fitness` requires all shards for one identical schema-2 simulation
-manifest. It verifies `simulation_cli_v4`, the canonical manifest checksum,
+manifest. It verifies `simulation_cli_v6`, identical executable provenance, the canonical manifest checksum,
 the exact ID/model/four-gene snapshot of every candidate, deterministic plan
 and tournament identities, unique global indexes, complete shard and plan
 coverage, successful tournaments, finite metric values, and bounded rates.
@@ -417,19 +450,25 @@ the tool counts observations and applies that plan's
 ineligible and are not ranked.
 
 The tool recomputes all six normalized components in section 3.2 for every
-candidate observation, then records their means and normal 95% confidence
-interval half-widths. The uncertainty penalty is the mean of those six
-half-widths clamped to `[0, 0.10]`. Eligible fitness is the documented weighted
-sum minus that penalty, clamped to `[0, 1]`. The fitness artifact also records
+independent candidate tournament/seed observation, averaging repeated
+candidate seats within a tournament before aggregation. It records component
+means and normal 95% confidence-interval half-widths, or explicit missing
+intervals when fewer than two units exist. Eligible fitness is the documented
+point fitness minus its separate finite-sample penalty, clamped to `[0, 1]`.
+The fitness artifact also records
 source-generation identity, report and manifest checksums, shards, regime and
 plan IDs, code revisions, sample counts, and explicit style checks. Version 1
 requires zero invalid-action fallbacks and finite behavioral rates in
 `[0, 1]`; a fallback makes that candidate ineligible, while malformed or
 out-of-range report metrics invalidate the evaluation.
 External evaluator v1 requires each plan to name `normal_95`; it rejects
-`bootstrap_95` until a deterministic bootstrap contract is implemented. Its
-regime validation uses the product table-size limit of two through nine
-players.
+`bootstrap_95` until a deterministic bootstrap contract is implemented. The
+Godot schema-2 manifest validator enforces the same rule, so an estimator is
+never accepted by one runtime and silently calculated differently by the
+other. Godot aggregate `reportable` flags use the originating plan's
+`minimum_profile_samples` (the strictest contributing plan for cross-plan
+rows), not a separate default. Evaluator regime validation uses the product
+table-size limit of two through nine players.
 
 Elitist selection accepts an inclusive fraction from `0.10` through `0.20`
 and retains `ceil(population_size * elite_fraction)` candidates; ceiling is
@@ -466,9 +505,20 @@ ordered ancestors and evidence as JSON without modifying the registry.
 `confirm-candidate` evaluates mirrored and mixed-table report sets
 independently with the same strict schema-2 evaluator. Each manifest group
 must contain complete shards and plans, the exact candidate snapshot,
-successful tournaments, enough candidate observations for its declared
-normal 95% uncertainty calculation, bounded metrics, and zero invalid-action
-fallbacks for every participant. Mirrored evidence is heads-up and cyclic: it
+successful tournaments, bounded metrics, and zero invalid-action fallbacks
+for every participant. A plan's caller-selected `minimum_profile_samples`
+controls exploratory fitness eligibility only and never promotion.
+
+The fixed `promotion_evidence_v1` policy requires every confirmation matchup
+to contain at least 300 candidate observations and at least 100 observations
+in every candidate seat. The effective minimum is therefore
+`max(300, 100 * player_count)`. For every declared benchmark present in a
+matchup, the tool calculates the paired per-tournament difference between the
+candidate's and benchmark's raw six-component composite scores. Improvement
+is demonstrated only when `mean_difference - normal_95_half_width > 0` for
+every comparison; a tie or overlapping interval is exploratory-only evidence.
+The artifact records the fixed policy, actual coverage, comparisons, and
+reasons. Mirrored evidence is heads-up and cyclic: it
 must place the candidate in every seat against every declared legacy profile
 and historical champion. Mixed evidence uses tables of at least three players
 with cyclic candidate seat coverage, and every matchup must contain the
@@ -476,8 +526,12 @@ candidate plus both a declared legacy opponent and a declared historical
 champion.
 
 The original fitness evidence, mirrored confirmation, and mixed confirmation
-must have disjoint report checksums, manifest checksums, and seed ranges;
-separate confirmation batches must also use disjoint seed ranges. The
+must have disjoint report checksums, manifest checksums, and effective seed
+identities; separate confirmation batches must also use disjoint effective
+identities. The check uses each report's RNG derivation version. In particular,
+legacy `named_stream_v1` ranges separated by 2147483647 still overlap, because
+that derivation reduces seeds modulo 2147483647. Evidence recorded with
+different RNG derivation versions is incompatible. The
 immutable `confirmation` artifact records the exact candidate and registry
 checksum, exact opponent profile snapshots, per-mode
 fitness/component/style/sample evidence,
@@ -488,15 +542,22 @@ bound to the same lineage registry and exact candidate snapshots, then emits
 a `candidate_bundle` whose purpose is `review_only`. It never writes a roster,
 Resource, or source file.
 
-Every confirmation also records a behavioral-diversity gate. For each declared
+Every confirmation also records a genetic-diversity gate. For each declared
 legacy or historical-champion opponent that uses `strategy_parameterized`, the
 tool calculates the L1 distance across the four percentage genes. The nearest
 such profile must be at least 10 total percentage points away; a missing
-comparable profile or a smaller distance is ineligible. This is a stable,
-reproducible proxy for personality diversity, not a claim that a parameter
-distance alone proves game-play quality. Passing confirmations are collected
-into one editable review plan. The reviewer records exactly one `approve` or
-`reject` decision per candidate and may add a display name or note.
+comparable profile or a smaller distance is ineligible. Separately, the
+confirmation records count-weighted measured VPIP, PFR, bet/raise frequency,
+bet frequency, and call-versus-raise share from its confirmation tournaments.
+
+Passing confirmations are collected into one editable review plan. The plan
+compares every proposed-candidate pair, recording both four-gene L1 distance
+and absolute differences for the measured behavior rates. These are distinct
+review signals: parameter distance is not mislabeled as observed behavior, and
+passing candidate-versus-benchmark checks cannot hide two near-identical new
+peers. No automatic threshold approves the proposed roster. The reviewer must
+record exactly one `approve` or `reject` decision per candidate and may add a
+display name or note.
 Finalization rejects pending, missing, duplicate, altered, or ineligible
 approvals and creates one immutable `promotion_review_batch` bound to every
 exact confirmation. Neither the plan nor finalized review can publish a
@@ -543,7 +604,10 @@ The shared playable roster remains a separate source change. `publish-profile`
 requires the exact eligible confirmation and its approved decision in the
 finalized batch review, derives a versioned
 profile ID, and writes only a new file under
-`resources/bot_profiles/published/`; it rejects any existing destination.
+`resources/bot_profiles/published/`; it rejects any existing destination. An
+adjacent `.provenance.json` binds the published ID and exact Resource SHA-256
+to its confirmation and consolidated-review checksums; neither file remains
+if the pair cannot be published.
 Publication never activates a profile or edits the roster. The curated roster
 must retain the legacy Random, Tight Passive, and Loose Aggressive profiles
 alongside any later promoted personalities. Never overwrite a published

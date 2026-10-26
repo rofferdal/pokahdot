@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 import tempfile
 from pathlib import Path
 from typing import Any
 
 from .artifacts import create_artifact, validate_artifact_envelope
-from .confirmation import validate_confirmation
-from .contracts import require_exact_fields, require_identifier, validate_candidate
+from .confirmation import MEASURED_BEHAVIOR_FIELDS, validate_confirmation
+from .contracts import GENES, require_exact_fields, require_identifier, validate_candidate
 from .errors import ExitCode, ToolError
 
 PROMOTION_REVIEW_FIELDS = (
@@ -22,7 +23,12 @@ PROMOTION_REVIEW_FIELDS = (
     "review_note",
     "reviewer_id",
 )
-PROMOTION_REVIEW_PLAN_FIELDS = ("candidates", "plan_version", "reviewer_id")
+PROMOTION_REVIEW_PLAN_FIELDS = (
+    "candidates",
+    "plan_version",
+    "reviewer_id",
+    "roster_diversity",
+)
 PROMOTION_REVIEW_PLAN_ENTRY_FIELDS = (
     "candidate",
     "confirmation_checksum",
@@ -31,7 +37,7 @@ PROMOTION_REVIEW_PLAN_ENTRY_FIELDS = (
     "promotion_eligible",
     "review_note",
 )
-PROMOTION_REVIEW_BATCH_FIELDS = ("decisions", "reviewer_id")
+PROMOTION_REVIEW_BATCH_FIELDS = ("decisions", "reviewer_id", "roster_diversity")
 PROMOTION_REVIEW_BATCH_ENTRY_FIELDS = (
     "approved",
     "candidate",
@@ -40,7 +46,15 @@ PROMOTION_REVIEW_BATCH_ENTRY_FIELDS = (
     "promotion_eligible",
     "review_note",
 )
-REVIEW_PLAN_VERSION = 1
+ROSTER_DIVERSITY_FIELDS = ("candidate_ids", "pairwise_comparisons")
+ROSTER_DIVERSITY_COMPARISON_FIELDS = (
+    "first_candidate_id",
+    "genetic_parameter_distance",
+    "measured_behavior_absolute_differences",
+    "measured_behavior_l1_distance",
+    "second_candidate_id",
+)
+REVIEW_PLAN_VERSION = 2
 REVIEW_DECISIONS = ("approve", "reject")
 
 
@@ -82,6 +96,142 @@ def _confirmation_index(
     return result
 
 
+def _roster_diversity(
+    confirmations: dict[str, tuple[dict[str, Any], dict[str, Any]]],
+) -> dict[str, Any]:
+    candidate_ids = sorted(confirmations)
+    comparisons = []
+    for index, first_id in enumerate(candidate_ids):
+        first = confirmations[first_id][1]
+        for second_id in candidate_ids[index + 1 :]:
+            second = confirmations[second_id][1]
+            genetic_distance = sum(
+                abs(
+                    first["candidate"]["parameters"][gene]
+                    - second["candidate"]["parameters"][gene]
+                )
+                for gene in GENES
+            )
+            behavior_differences = {
+                field: abs(
+                    first["measured_behavior"]["metrics"][field]["rate"]
+                    - second["measured_behavior"]["metrics"][field]["rate"]
+                )
+                for field in MEASURED_BEHAVIOR_FIELDS
+            }
+            comparisons.append(
+                {
+                    "first_candidate_id": first_id,
+                    "genetic_parameter_distance": genetic_distance,
+                    "measured_behavior_absolute_differences": behavior_differences,
+                    "measured_behavior_l1_distance": sum(
+                        behavior_differences.values()
+                    ),
+                    "second_candidate_id": second_id,
+                }
+            )
+    return {
+        "candidate_ids": candidate_ids,
+        "pairwise_comparisons": comparisons,
+    }
+
+
+def _validate_roster_diversity(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        _fail("invalid_promotion_review", "Roster diversity review is invalid.")
+    require_exact_fields(value, ROSTER_DIVERSITY_FIELDS, "roster diversity review")
+    raw_ids = value["candidate_ids"]
+    if not isinstance(raw_ids, list):
+        _fail("invalid_promotion_review", "Roster diversity candidate IDs are invalid.")
+    candidate_ids = [require_identifier(item, "roster candidate_id") for item in raw_ids]
+    if candidate_ids != sorted(set(candidate_ids)) or not candidate_ids:
+        _fail("invalid_promotion_review", "Roster diversity candidate IDs are invalid.")
+    raw_comparisons = value["pairwise_comparisons"]
+    if not isinstance(raw_comparisons, list):
+        _fail("invalid_promotion_review", "Roster diversity comparisons are invalid.")
+    comparisons = []
+    actual_pairs: set[tuple[str, str]] = set()
+    for comparison in raw_comparisons:
+        if not isinstance(comparison, dict):
+            _fail("invalid_promotion_review", "Roster diversity comparison is invalid.")
+        require_exact_fields(
+            comparison,
+            ROSTER_DIVERSITY_COMPARISON_FIELDS,
+            "roster diversity comparison",
+        )
+        first_id = require_identifier(
+            comparison["first_candidate_id"], "first candidate_id"
+        )
+        second_id = require_identifier(
+            comparison["second_candidate_id"], "second candidate_id"
+        )
+        pair = (first_id, second_id)
+        if (
+            first_id not in candidate_ids
+            or second_id not in candidate_ids
+            or first_id >= second_id
+            or pair in actual_pairs
+        ):
+            _fail("invalid_promotion_review", "Roster diversity comparison pair is invalid.")
+        actual_pairs.add(pair)
+        genetic_distance = comparison["genetic_parameter_distance"]
+        if (
+            isinstance(genetic_distance, bool)
+            or not isinstance(genetic_distance, int)
+            or not 0 <= genetic_distance <= 400
+        ):
+            _fail("invalid_promotion_review", "Roster genetic distance is invalid.")
+        differences = comparison["measured_behavior_absolute_differences"]
+        if not isinstance(differences, dict):
+            _fail("invalid_promotion_review", "Roster behavior differences are invalid.")
+        require_exact_fields(
+            differences,
+            MEASURED_BEHAVIOR_FIELDS,
+            "roster behavior differences",
+        )
+        normalized_differences = {}
+        for field, difference in differences.items():
+            if (
+                isinstance(difference, bool)
+                or not isinstance(difference, (int, float))
+                or not 0.0 <= float(difference) <= 1.0
+            ):
+                _fail("invalid_promotion_review", "Roster behavior difference is invalid.")
+            normalized_differences[field] = float(difference)
+        behavior_l1 = comparison["measured_behavior_l1_distance"]
+        if (
+            isinstance(behavior_l1, bool)
+            or not isinstance(behavior_l1, (int, float))
+            or not math.isclose(
+                float(behavior_l1),
+                sum(normalized_differences.values()),
+                rel_tol=1e-12,
+                abs_tol=1e-12,
+            )
+        ):
+            _fail("invalid_promotion_review", "Roster behavior distance is inconsistent.")
+        comparisons.append(
+            {
+                "first_candidate_id": first_id,
+                "genetic_parameter_distance": genetic_distance,
+                "measured_behavior_absolute_differences": normalized_differences,
+                "measured_behavior_l1_distance": float(behavior_l1),
+                "second_candidate_id": second_id,
+            }
+        )
+    expected_pairs = {
+        (first_id, second_id)
+        for index, first_id in enumerate(candidate_ids)
+        for second_id in candidate_ids[index + 1 :]
+    }
+    if actual_pairs != expected_pairs:
+        _fail("invalid_promotion_review", "Roster diversity review is incomplete.")
+    return {
+        "candidate_ids": candidate_ids,
+        "pairwise_comparisons": comparisons,
+    }
+
+
 def create_promotion_review_plan(
     confirmation_artifacts: list[dict[str, Any]], reviewer_id: str
 ) -> dict[str, Any]:
@@ -104,6 +254,7 @@ def create_promotion_review_plan(
         "candidates": candidates,
         "plan_version": REVIEW_PLAN_VERSION,
         "reviewer_id": reviewer,
+        "roster_diversity": _roster_diversity(confirmations),
     }
 
 
@@ -165,6 +316,7 @@ def validate_promotion_review_plan(
     if plan["plan_version"] != REVIEW_PLAN_VERSION:
         _fail("invalid_promotion_review", "Promotion review plan version is invalid.")
     reviewer_id = require_identifier(plan["reviewer_id"], "reviewer_id")
+    roster_diversity = _validate_roster_diversity(plan["roster_diversity"])
     entries = plan["candidates"]
     if not isinstance(entries, list) or not entries:
         _fail("invalid_promotion_review", "Promotion review candidates must be non-empty.")
@@ -208,7 +360,16 @@ def validate_promotion_review_plan(
                 "review_note": _validate_review_text(entry["review_note"], "Review note"),
             }
         )
-    return {"candidates": candidates, "reviewer_id": reviewer_id}
+    if roster_diversity["candidate_ids"] != sorted(seen_ids):
+        _fail(
+            "invalid_promotion_review",
+            "Roster diversity candidates do not match review candidates.",
+        )
+    return {
+        "candidates": candidates,
+        "reviewer_id": reviewer_id,
+        "roster_diversity": roster_diversity,
+    }
 
 
 def finalize_promotion_review(
@@ -222,6 +383,12 @@ def finalize_promotion_review(
         _fail(
             "promotion_review_confirmation_mismatch",
             "Review plan candidates must exactly match the supplied confirmations.",
+        )
+    expected_roster_diversity = _roster_diversity(confirmations)
+    if review["roster_diversity"] != expected_roster_diversity:
+        _fail(
+            "promotion_review_diversity_mismatch",
+            "Roster diversity review differs from the supplied confirmations.",
         )
     decisions = []
     for entry in review["candidates"]:
@@ -260,7 +427,11 @@ def finalize_promotion_review(
         )
     return create_artifact(
         "promotion_review_batch",
-        {"decisions": decisions, "reviewer_id": review["reviewer_id"]},
+        {
+            "decisions": decisions,
+            "reviewer_id": review["reviewer_id"],
+            "roster_diversity": expected_roster_diversity,
+        },
     )
 
 
@@ -334,6 +505,7 @@ def validate_promotion_review_batch(artifact: dict[str, Any]) -> dict[str, Any]:
     )
     reviewer_id = require_identifier(payload["reviewer_id"], "reviewer_id")
     raw_decisions = payload["decisions"]
+    roster_diversity = _validate_roster_diversity(payload["roster_diversity"])
     if not isinstance(raw_decisions, list) or not raw_decisions:
         _fail("invalid_promotion_review", "Promotion review decisions must be non-empty.")
     decisions = []
@@ -379,7 +551,16 @@ def validate_promotion_review_batch(artifact: dict[str, Any]) -> dict[str, Any]:
                 ),
             }
         )
-    return {"decisions": decisions, "reviewer_id": reviewer_id}
+    if roster_diversity["candidate_ids"] != sorted(seen_ids):
+        _fail(
+            "invalid_promotion_review",
+            "Roster diversity candidates do not match promotion decisions.",
+        )
+    return {
+        "decisions": decisions,
+        "reviewer_id": reviewer_id,
+        "roster_diversity": roster_diversity,
+    }
 
 
 def promotion_decision_for_candidate(

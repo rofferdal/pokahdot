@@ -17,7 +17,7 @@ from .contracts import (
     validate_candidate,
 )
 from .errors import ExitCode, ToolError
-from .fitness import COMPONENTS
+from .fitness import COMPONENTS, _validate_execution_provenance
 
 FITNESS_PAYLOAD_FIELDS = (
     "bounds",
@@ -38,6 +38,7 @@ CANDIDATE_RESULT_FIELDS = (
     "fitness",
     "ineligibility_reasons",
     "plan_sample_counts",
+    "point_fitness",
     "sample_count",
     "style_checks",
     "uncertainty_95_half_width",
@@ -47,6 +48,7 @@ REPORT_EVIDENCE_FIELDS = (
     "batch_id",
     "code_revision",
     "command_version",
+    "execution_provenance",
     "manifest_checksum",
     "report_checksum",
     "seed_range",
@@ -116,13 +118,16 @@ def validate_fitness_payload(payload: dict[str, Any]) -> dict[str, Any]:
         require_exact_fields(evidence, REPORT_EVIDENCE_FIELDS, "report evidence")
         for field in ("batch_id", "command_version"):
             require_identifier(evidence[field], f"report evidence {field}")
-        if evidence["command_version"] != "simulation_cli_v4":
+        if evidence["command_version"] != "simulation_cli_v6":
             _fail(
                 "invalid_fitness_artifact",
                 "Report evidence uses an unsupported simulation command version.",
             )
         if not isinstance(evidence["code_revision"], str):
             _fail("invalid_fitness_artifact", "Report code_revision must be a string.")
+        provenance = _validate_execution_provenance(evidence["execution_provenance"])
+        if provenance["code_revision"] != evidence["code_revision"]:
+            _fail("invalid_fitness_artifact", "Report provenance contradicts code_revision.")
         _sha256(evidence["manifest_checksum"], "manifest checksum")
         _sha256(evidence["report_checksum"], "report checksum")
         seed_range = evidence["seed_range"]
@@ -167,10 +172,15 @@ def validate_fitness_payload(payload: dict[str, Any]) -> dict[str, Any]:
         require_exact_fields(uncertainty, COMPONENTS, "component uncertainty")
         normalized_means = {name: _finite(means[name], name, 0.0, 1.0) for name in COMPONENTS}
         normalized_uncertainty = {
-            name: _finite(uncertainty[name], f"{name} uncertainty", 0.0, 1.0)
+            name: (
+                None
+                if uncertainty[name] is None
+                else _finite(uncertainty[name], f"{name} uncertainty", 0.0, 1.0)
+            )
             for name in COMPONENTS
         }
         penalty = _finite(raw_result["uncertainty_penalty"], "uncertainty_penalty", 0.0, 0.10)
+        point_fitness = _finite(raw_result["point_fitness"], "point_fitness", 0.0, 1.0)
         eligible = raw_result["eligible"]
         if not isinstance(eligible, bool):
             _fail("invalid_fitness_artifact", "eligible must be boolean.")
@@ -212,6 +222,7 @@ def validate_fitness_payload(payload: dict[str, Any]) -> dict[str, Any]:
                 "component_means": normalized_means,
                 "fitness": fitness,
                 "plan_sample_counts": normalized_counts,
+                "point_fitness": point_fitness,
                 "uncertainty_95_half_width": normalized_uncertainty,
                 "uncertainty_penalty": penalty,
             }

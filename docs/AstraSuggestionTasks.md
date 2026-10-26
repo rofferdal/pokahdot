@@ -1,6 +1,6 @@
 # Astra Suggested Improvement Tasks
 
-Status: Proposed backlog; all implementation tasks remain open.
+Status: In progress; SIM-01 through SIM-03 are complete.
 Reviewed: 2026-10-26, baseline `c6166b5`.
 
 Themes and tasks are ordered by importance. **Defect** means an observed code
@@ -72,14 +72,14 @@ checkboxes or treat deferred landscape support as accepted.
 
 ## 2. Trustworthy simulation and promotion evidence
 
-- [ ] **SIM-01 — Rank finishes by elimination history. [Defect]**
+- [x] **SIM-01 — Rank finishes by elimination history. [Defect]**
   [simulation_tournament_metrics.gd](../scripts/simulation/simulation_tournament_metrics.gd)
   sorts final stacks, then seat number. Every eliminated stack is zero, so
   loser ranks, top-third results, and fitness depend on seat order. Done: track
   elimination order, define simultaneous-elimination ties, test deliberately
   non-seat-order busts, and version/recompute affected evidence.
 
-- [ ] **SIM-02 — Enforce an explicit promotion evidence policy. [Decision]**
+- [x] **SIM-02 — Enforce an explicit promotion evidence policy. [Decision]**
   [confirmation.py](../tools/profile_evolution/confirmation.py) accepts fixtures
   with mirrored samples 2+2 and mixed samples 3; caller-selected minimums can
   be one. Guidance claims 300 tournaments and 100 per seat. Done: distinguish
@@ -87,7 +87,7 @@ checkboxes or treat deferred landscape support as accepted.
   minimums and performance/uncertainty rules, and reject weak or insufficient
   evidence. Structural validity alone must not imply demonstrated improvement.
 
-- [ ] **SIM-03 — Honor estimator and sample settings consistently. [Defect]**
+- [x] **SIM-03 — Honor estimator and sample settings consistently. [Defect]**
   [evaluation plans](../scripts/simulation/simulation_evaluation_plan.gd) accept
   `bootstrap_95`, Godot aggregates calculate normal intervals, and
   [Python fitness](../tools/profile_evolution/fitness.py) rejects bootstrap.
@@ -95,7 +95,7 @@ checkboxes or treat deferred landscape support as accepted.
   default minimum of 30 instead of plan minimums. Done: implement or reject
   estimators consistently and test non-default thresholds across both runtimes.
 
-- [ ] **SIM-04 — Bind reports to executable provenance. [Defect]**
+- [x] **SIM-04 — Bind reports to executable provenance. [Defect]**
   [simulation_cli_app.gd](../scripts/simulation/simulation_cli_app.gd) never
   supplies the report's code revision; fitness permits empty/mixed revisions.
   Done: record commit, dirty-source fingerprint, engine and algorithm versions;
@@ -103,14 +103,14 @@ checkboxes or treat deferred landscape support as accepted.
   Link each published profile's ID/hash to its confirmation and review checksums.
   Preserve immutable old reports rather than rewriting their provenance.
 
-- [ ] **SIM-05 — Resolve seed aliases in independence checks. [Defect]**
+- [x] **SIM-05 — Resolve seed aliases in independence checks. [Defect]**
   [rng_stream_factory.gd](../scripts/core/rng_stream_factory.gd) reduces seeds
   modulo 2147483647: seeds 1 and 2147483648 generate identical named streams.
   Disjoint numeric ranges therefore do not guarantee independent evidence.
   Done: constrain the supported seed domain or version stronger derivation,
   detect effective overlap, and retain replay support for old algorithms.
 
-- [ ] **SIM-06 — Validate the statistical unit and uncertainty. [Decision]**
+- [x] **SIM-06 — Validate the statistical unit and uncertainty. [Decision]**
   [Aggregates](../scripts/simulation/simulation_aggregate_calculator.gd) report
   zero uncertainty for some zero/one-sample or boundary-rate cases; fitness
   treats repeated profile seats as observations. Done: define independent
@@ -118,14 +118,14 @@ checkboxes or treat deferred landscape support as accepted.
   and report uncertainty for candidate differences. Separate the fitness
   penalty from a confidence interval; test sparse and repeated-profile cases.
 
-- [ ] **SIM-07 — Preserve failure evidence and sample traces fairly. [Defect]**
+- [x] **SIM-07 — Preserve failure evidence and sample traces fairly. [Defect]**
   [simulation_batch_runner.gd](../scripts/simulation/simulation_batch_runner.gd)
   samples replacement against fixed buffer size, biasing retained traces toward
   recent events; failures discard collected traces and some plan identity.
   Done: use the total observed-item count for reservoir sampling and retain
   safe partial diagnostics plus plan/regime/rotation identity on failure.
 
-- [ ] **SIM-08 — Evaluate the complete proposed roster. [Decision]**
+- [x] **SIM-08 — Evaluate the complete proposed roster. [Decision]**
   [Confirmation diversity](../tools/profile_evolution/confirmation.py) measures
   gene distance against declared benchmarks, not observed behavior or every
   newly promoted peer. Done: distinguish genetic from behavioral diversity;

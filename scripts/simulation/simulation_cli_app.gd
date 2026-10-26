@@ -10,6 +10,7 @@ const ARGUMENT_PARSER_SCRIPT := preload(
 )
 const MANIFEST_SCRIPT := preload("res://scripts/simulation/simulation_manifest.gd")
 const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
+const PROVENANCE_SCRIPT := preload("res://scripts/simulation/simulation_provenance.gd")
 const MANIFEST_GENERATOR_SCRIPT := preload(
 	"res://scripts/simulation/simulation_manifest_generator.gd"
 )
@@ -105,6 +106,15 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 		printerr("The manifest has no resolvable simulation regime.")
 		return EXIT_INVALID
 	var started := Time.get_datetime_string_from_system(true)
+	var execution_provenance: Dictionary = PROVENANCE_SCRIPT.capture()
+	if not PROVENANCE_SCRIPT.is_available(execution_provenance):
+		printerr(
+			(
+				"Cannot capture executable provenance; run simulations from a Git worktree "
+				+ "with readable source state."
+			)
+		)
+		return EXIT_IO
 	var outcomes: Array[SimulationTournamentOutcome] = []
 	var runner := SimulationBatchRunner.new()
 	var trace_config := options.trace_config()
@@ -124,22 +134,45 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 			printraw(".")
 	if show_progress and not plan.inputs.is_empty():
 		printraw("\n")
-	var batch := SimulationBatchResult.new(outcomes)
+	var batch := SimulationBatchResult.new(outcomes, _minimum_samples_by_plan(manifest))
 	if not batch.is_success():
-		var failed_report: RefCounted = REPORT_SCRIPT.from_batch(
-			manifest, options.shard, batch, started, Time.get_datetime_string_from_system(true)
+		var failed_report: RefCounted = (
+			REPORT_SCRIPT
+			. from_batch(
+				manifest,
+				options.shard,
+				batch,
+				started,
+				Time.get_datetime_string_from_system(true),
+				execution_provenance,
+			)
 		)
 		if not _write_report(options.output_path, failed_report, options.overwrite):
 			return EXIT_IO
 		_print_errors(_batch_errors(batch))
 		return EXIT_SIMULATION
-	var report: RefCounted = REPORT_SCRIPT.from_batch(
-		manifest, options.shard, batch, started, Time.get_datetime_string_from_system(true)
+	var report: RefCounted = (
+		REPORT_SCRIPT
+		. from_batch(
+			manifest,
+			options.shard,
+			batch,
+			started,
+			Time.get_datetime_string_from_system(true),
+			execution_provenance,
+		)
 	)
 	if not _write_report(options.output_path, report, options.overwrite):
 		return EXIT_IO
 	_print_completion(report, options)
 	return EXIT_OK
+
+
+func _minimum_samples_by_plan(manifest: SimulationManifest) -> Dictionary:
+	var minimums: Dictionary = {}
+	for evaluation_plan: SimulationEvaluationPlan in manifest.evaluation_plans:
+		minimums[evaluation_plan.plan_id] = evaluation_plan.minimum_profile_samples
+	return minimums
 
 
 func _inspect_report(options: SimulationCommandOptions) -> int:
@@ -180,23 +213,45 @@ func _replay_report(options: SimulationCommandOptions) -> int:
 		printerr("The report does not contain that tournament record.")
 		return EXIT_INVALID
 	var base_config := _base_config(manifest_result.manifest)
-	var batch: SimulationBatchResult = SimulationBatchRunner.new().run(
+	var rng_algorithm := String(
+		report.execution_provenance.get("algorithm_versions", {}).get("rng_streams", "")
+	)
+	var replay_factory := SimulationMatchFactory.new(
+		null, RngStreamFactory.new(Callable(), rng_algorithm)
+	)
+	var batch: SimulationBatchResult = SimulationBatchRunner.new(replay_factory).run(
 		base_config, [selected_input], 256, SimulationTraceConfig.new()
 	)
 	if not batch.is_success():
 		_print_errors(_batch_errors(batch))
 		return EXIT_SIMULATION
+	var current_provenance: Dictionary = PROVENANCE_SCRIPT.capture()
+	if not PROVENANCE_SCRIPT.is_available(current_provenance):
+		printerr(
+			(
+				"Cannot capture executable provenance; replay requires a Git worktree "
+				+ "with readable source state."
+			)
+		)
+		return EXIT_IO
 	var replay_report: RefCounted = REPORT_SCRIPT.from_batch(
-		manifest_result.manifest, SimulationShard.new(), batch
+		manifest_result.manifest, SimulationShard.new(), batch, "", "", current_provenance
 	)
 	var replay_tournament: Dictionary = replay_report.tournaments[0]
 	var source_digest := REPORT_SCRIPT.tournament_digest(source_tournament)
 	var replay_digest := REPORT_SCRIPT.tournament_digest(replay_tournament)
+	var provenance_mismatches: Array[Dictionary] = PROVENANCE_SCRIPT.mismatches(
+		report.execution_provenance, current_provenance
+	)
+	var outcome_match: bool = source_digest == replay_digest
 	var comparison := {
 		"tournament_index": options.tournament_index,
 		"source_digest": source_digest,
 		"replay_digest": replay_digest,
-		"match": source_digest == replay_digest,
+		"outcome_match": outcome_match,
+		"provenance_match": provenance_mismatches.is_empty(),
+		"provenance_mismatches": provenance_mismatches,
+		"match": outcome_match and provenance_mismatches.is_empty(),
 	}
 	if not options.output_path.is_empty():
 		var replay_artifact := {
@@ -210,7 +265,7 @@ func _replay_report(options: SimulationCommandOptions) -> int:
 		if not _write_dictionary(options.output_path, replay_artifact, options.overwrite):
 			return EXIT_IO
 	_print_document(comparison, options.format)
-	return EXIT_OK if source_digest == replay_digest else EXIT_SIMULATION
+	return EXIT_OK if comparison.match else EXIT_SIMULATION
 
 
 func _load_manifest(path: String) -> RefCounted:
@@ -327,6 +382,7 @@ func _inspection_document(report: RefCounted) -> Dictionary:
 	return {
 		"report_schema_version": report.report_schema_version,
 		"manifest_checksum": report.manifest_checksum,
+		"execution_provenance": report.execution_provenance,
 		"batch_id": report.manifest.get("batch_id", ""),
 		"shard": report.shard.to_dictionary(),
 		"tournament_count": report.tournaments.size(),

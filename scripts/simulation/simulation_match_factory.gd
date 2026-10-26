@@ -28,10 +28,19 @@ const STRATEGY_PARAMETERS_SCRIPT := preload(
 )
 
 var _registry: DecisionModelRegistry
+var _rng_stream_factory: RngStreamFactory
 
 
-func _init(registry: DecisionModelRegistry = null) -> void:
+func _init(
+	registry: DecisionModelRegistry = null,
+	rng_stream_factory: RngStreamFactory = null,
+) -> void:
 	_registry = _default_registry() if registry == null else registry
+	_rng_stream_factory = (
+		RngStreamFactory.new(Callable(), RngStreamFactory.ALGORITHM_VERSION)
+		if rng_stream_factory == null
+		else rng_stream_factory
+	)
 
 
 func create(
@@ -55,7 +64,7 @@ func create(
 		return SimulationMatchCreationResult.new(null, errors)
 
 	var simulation_config := _simulation_config(config, snapshots)
-	var streams := RngStreamFactory.new().create(simulation_config)
+	var streams := _rng_stream_factory.create(simulation_config)
 	var factory := AgentFactory.new(_registry)
 	var agents: Dictionary[int, Agent] = {}
 	for seat: int in range(simulation_config.player_count):
@@ -83,6 +92,7 @@ func create(
 			PackedStringArray(),
 			streams.effective_seed,
 			streams.get_stream_seeds(),
+			streams.algorithm_version,
 		)
 	)
 

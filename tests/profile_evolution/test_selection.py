@@ -44,6 +44,7 @@ def fitness_artifact(
                 "fitness": score_values.get(candidate_id, 0.5) if eligible else None,
                 "ineligibility_reasons": [] if eligible else ["insufficient_samples:plan"],
                 "plan_sample_counts": {"plan": 10},
+                "point_fitness": score_values.get(candidate_id, 0.6),
                 "sample_count": 10,
                 "style_checks": {
                     "bounded_behavioral_rates": {"passed": True, "violations": []},
@@ -62,7 +63,7 @@ def fitness_artifact(
                 }
             },
             "candidate_results": results,
-            "code_revisions": ["abc123"],
+            "code_revisions": ["a" * 40],
             "evaluation_configuration": {"plans": [], "regimes": []},
             "generation": 0,
             "generation_id": "generation_g0",
@@ -71,8 +72,20 @@ def fitness_artifact(
             "report_evidence": [
                 {
                     "batch_id": "batch",
-                    "code_revision": "abc123",
-                    "command_version": "simulation_cli_v4",
+                    "code_revision": "a" * 40,
+                    "command_version": "simulation_cli_v6",
+                    "execution_provenance": {
+                        "algorithm_versions": {
+                            "aggregate_statistics": "normal_95_v1",
+                            "rng_streams": "named_stream_v1",
+                            "simulation_runner": "tournament_match_v1",
+                            "tournament_metrics": "elimination_history_v1",
+                        },
+                        "code_revision": "a" * 40,
+                        "dirty_source_fingerprint": "",
+                        "engine_version": "4.7.2",
+                        "source_state": "clean",
+                    },
                     "manifest_checksum": "a" * 64,
                     "report_checksum": "b" * 64,
                     "seed_range": {"minimum": 100, "maximum": 109},

@@ -11,10 +11,13 @@ var outcomes: Array[SimulationTournamentOutcome] = []
 var aggregates: Dictionary = {}
 
 
-func _init(batch_outcomes: Array[SimulationTournamentOutcome] = []) -> void:
+func _init(
+	batch_outcomes: Array[SimulationTournamentOutcome] = [],
+	minimum_samples_by_plan: Dictionary = {},
+) -> void:
 	for outcome: SimulationTournamentOutcome in batch_outcomes:
 		outcomes.append(outcome)
-	aggregates = SimulationAggregateCalculator.new().calculate(outcomes)
+	aggregates = SimulationAggregateCalculator.new().calculate(outcomes, minimum_samples_by_plan)
 
 
 func is_success() -> bool:
