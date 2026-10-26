@@ -13,6 +13,13 @@ func test_game_window_starts_at_full_hd_size() -> void:
 	assert_eq(ProjectSettings.get_setting("display/window/size/viewport_height"), 1080)
 
 
+func test_physical_mouse_input_is_not_emulated_as_touchscreen_input() -> void:
+	assert_false(
+		ProjectSettings.get_setting("input_devices/pointing/emulate_touch_from_mouse", true),
+		"Desktop browser clicks must remain mouse input so LineEdit uses the physical keyboard.",
+	)
+
+
 func test_startup_and_table_fonts_are_scaled_by_one_point_eight() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)

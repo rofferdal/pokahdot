@@ -219,7 +219,7 @@ digest so JSON integer/float representation cannot change reproducibility.
 | Classify GUI layout from usable geometry with explicit supplemental overrides | Phone portrait, phone landscape, tablet, small-desktop, and desktop profiles derive from the canvas remaining after browser chrome and safe areas. Known device evidence may override ambiguous geometry; in particular, the observed 2388 x 1450 iPad fixture declares a tablet override instead of making every desktop window of that size a tablet. |
 | Give manually positioned GUI regions one layout owner | The central board/pot/wager stack uses a plain `Control`; `PokerTableController` atomically assigns its centered bounds and its three child panel rectangles. A Godot `Container` must not compete with those explicit rectangles or resize the stack from late child minimum-size notifications. |
 | Preserve mobile usability targets | Interactive controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows. |
-| Select numeric entry from the input source, not viewport geometry | A touch press opens the shared transactional in-canvas keypad on every layout profile; pointer focus leaves the native `LineEdit` available for physical-keyboard digits and editing keys, including on phone-sized windows. Done commits a touch draft and Cancel preserves the previously committed value. |
+| Select numeric entry from the input source, not viewport geometry | A touch press opens the shared transactional in-canvas keypad on every layout profile; pointer focus leaves the native `LineEdit` available for physical-keyboard digits and editing keys, including on phone-sized windows. Project-level mouse-to-touch emulation stays disabled so a desktop Web click cannot be reclassified as a touch press. Done commits a touch draft and Cancel preserves the previously committed value. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
 
 ## 5. Core module responsibilities
@@ -654,7 +654,10 @@ The phone composition does not instantiate or expose event history; the
 underlying recipient-safe history remains unchanged for core state and larger
 profiles. Numeric entry is selected from the actual input event: touch opens
 the transactional in-canvas keypad on every profile, while pointer focus and
-physical-keyboard editing remain native even in a phone-sized window.
+physical-keyboard editing remain native even in a phone-sized window. Godot's
+project-level mouse-to-touch emulation is disabled because browsers already
+report the real pointer modality; genuine touchscreen events still follow the
+touch path.
 The phone More control occupies reserved space in the bottom action region,
 never a perimeter seat slot. Phone quit confirmation uses a bounded in-canvas
 panel with two explicit 48 px actions; desktop retains the native confirmation
