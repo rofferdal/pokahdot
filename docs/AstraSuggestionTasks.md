@@ -1,6 +1,6 @@
 # Astra Suggested Improvement Tasks
 
-Status: In progress. Sections 1–4 and 6, plus GUI-02–04, are complete. GUI-01 implementation is updated; the archived phone review preserves its recorded acceptance limitations.
+Status: In progress. Sections 1–4, 6 and 7, plus GUI-02–04, are complete. GUI-01 implementation is updated; the archived phone review preserves its recorded acceptance limitations.
 Reviewed: 2026-10-26, baseline `c6166b5`.
 
 Themes and tasks are ordered by importance. **Defect** means an observed code
@@ -708,34 +708,72 @@ failure for a regression in a previously clear layout.
 
 ## 7. CLI and experiment workflow usability
 
-- [ ] **CLI-01 — Handle commands by phase and return real failure statuses. [Defect]**
+- [x] **CLI-01 — Handle commands by phase and return real failure statuses. [Defect]**
   [cli_command_loop.gd](../scripts/cli/cli_command_loop.gd) lets unknown/ordinary
   action commands advance between hands; errors become EOF and the app exits
   successfully. Done: explicit continue/blank semantics, phase-specific errors
   without advancement, and distinct completion/quit/EOF/error results with
   nonzero failure exits.
+  Verified 2026-10-27: only blank/`continue` starts the next hand; poker actions,
+  help and unknown commands preserve phase. Completion, quit, EOF and fatal
+  error are distinct; the process maps fatal errors to exit 1. Full check passes
+  667 GUT tests / 102,616 assertions and all Python/docs/lint/format checks
+  (`localtmp/cli01-check.log`); targeted phase/start/advancement regressions
+  and independent code review pass.
 
-- [ ] **CLI-02 — Make setup correction and game reproduction easy. [Improvement]**
+- [x] **CLI-02 — Make setup correction and game reproduction easy. [Improvement]**
   [Startup arguments](../scripts/cli/cli_startup_arguments.gd) expose only the
   legacy flag; cross-field setup failures restart all fields. Done: validated
   help/config/seed options, effective-seed reporting, retained valid edits,
   and reproducible transcripts. Keep immediate default startup; add compact
   updates and an explicit full-state/history command if repeated output obscures play.
+  Verified 2026-10-27: strict help/configuration/seed switches reject invalid
+  startup arguments before a hand starts. Field corrections preserve valid
+  edits; the match's actual effective seed and complete reproduction options
+  are printed. Compact updates retain recipient privacy and new public actions;
+  `state`/`history` inspect without advancing, and history cursors reset per
+  hand/match. Five captured process contracts include seeded and time-seed
+  transcript replay. Full check passes 675 GUT tests / 102,677 assertions,
+  all five CLI process tests, Python/docs/lint/format checks
+  (`localtmp/cli02-check.log`); independent code review passes.
 
-- [ ] **CLI-03 — Make simulation output and replay contracts reliable. [Defect]**
+- [x] **CLI-03 — Make simulation output and replay contracts reliable. [Defect]**
   [simulation_cli_app.gd](../scripts/simulation/simulation_cli_app.gd) sends text
   progress to stdout despite the documented stderr contract; replay does not
   collect the promised traces. Done: separate progress/results, test captured
   stdout/stderr for both formats, and implement or explicitly remove unsupported
   replay claims. Show completed/total, elapsed time and throughput for long runs.
+  Verified 2026-10-27: both formats send plan/timed progress only to stderr;
+  stdout carries results and argument errors/usage stay on stderr. Replay
+  honors none/error/sampled policies and records bounded safe traces without
+  changing outcome/provenance checks. Captured process tests cover both streams,
+  deterministic sampled replay, failures and resumed counts. A 1,000-tournament
+  smoke confirms intermediate timed progress. Full check passes 675 GUT tests /
+  102,679 assertions, 9 CLI process tests and all existing Python/docs/lint/format
+  checks (`localtmp/cli03-check.log`); independent code review passes.
 
-- [ ] **CLI-04 — Automate experiment preparation and comparison. [Improvement]**
+- [x] **CLI-04 — Automate experiment preparation and comparison. [Improvement]**
   [ImprovingBotScript.md](arkiv/ImprovingBotScript.md) requires manual manifest and
   cross-generation comparison work. Done: validated experiment configuration
   generates candidate/confirmation manifests with independent seeds, compares
   compatible cohorts, and prepares a consolidated review. Dry-run explains
   commands, artifacts and incompatibilities; publication still requires the
   existing explicit review decision.
+  Verified 2026-10-27: strict experiment configuration snapshots lineage and
+  benchmarks, generates one common heads-up evaluation cohort plus independent
+  per-candidate mirrored/mixed confirmations, and checks complete cyclic seat
+  counts, seed blocks and prior evidence compatibility. Dry-run reports commands,
+  artifact identities and incompatibilities without writes. Comparison recomputes
+  cross-generation fitness from one validated cohort, preserves original creation
+  checksums/history, and emits an evaluated registry for confirmation. Generated
+  recipes end at one consolidated pending review; publication gates are unchanged.
+  Seventeen new tests cover cohort/provenance rejection, reconstructible lineage,
+  ineligible ranks, malformed inputs, no-clobber races/cleanup and explicit review.
+  All five generated manifest fixtures pass actual Godot validation with exact
+  Python/Godot checksum parity (`localtmp/cli04-manifest-smoke/`). Full check
+  passes 675 GUT tests / 102,677 assertions, 179 Python tests across five suites,
+  lint/format and documentation checks (`localtmp/cli04-check.log`); independent
+  code review passes. No ranking experiment or profile publication was run.
 
 ## Execution notes
 

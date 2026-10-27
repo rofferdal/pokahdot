@@ -182,6 +182,18 @@ def _entry_from_collection(
     }
 
 
+def evaluation_record(fitness_artifact: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
+    """Copy one validated fitness result into the registry's evidence contract."""
+    payload = fitness_artifact["payload"]
+    record = {
+        field: copy.deepcopy(result[field] if field in result else payload[field])
+        for field in EVALUATION_FIELDS
+        if field != "fitness_artifact_checksum"
+    }
+    record["fitness_artifact_checksum"] = fitness_artifact["checksum"]
+    return record
+
+
 def build_lineage_registry(artifacts: Iterable[dict[str, Any]]) -> dict[str, Any]:
     unique: dict[str, dict[str, Any]] = {}
     for artifact in artifacts:
@@ -252,6 +264,7 @@ def build_lineage_registry(artifacts: Iterable[dict[str, Any]]) -> dict[str, Any
                     f"Parent '{parent_id}' must precede candidate '{candidate_id}'.",
                 )
 
+    artifact_by_checksum = unique
     for fitness_checksum in sorted(fitness_by_checksum):
         fitness = fitness_by_checksum[fitness_checksum]
         if fitness["source_generation_checksum"] not in generation_checksums:
@@ -276,28 +289,7 @@ def build_lineage_registry(artifacts: Iterable[dict[str, Any]]) -> dict[str, Any
                     f"Fitness generation does not match candidate '{candidate_id}'.",
                 )
             entries[candidate_id]["evaluations"].append(
-                {
-                    "code_revisions": copy.deepcopy(fitness["code_revisions"]),
-                    "component_means": copy.deepcopy(result["component_means"]),
-                    "eligible": result["eligible"],
-                    "evaluation_configuration": copy.deepcopy(
-                        fitness["evaluation_configuration"]
-                    ),
-                    "fitness": result["fitness"],
-                    "fitness_artifact_checksum": fitness_checksum,
-                    "ineligibility_reasons": copy.deepcopy(result["ineligibility_reasons"]),
-                    "plan_ids": copy.deepcopy(fitness["plan_ids"]),
-                    "plan_sample_counts": copy.deepcopy(result["plan_sample_counts"]),
-                    "point_fitness": result["point_fitness"],
-                    "regime_ids": copy.deepcopy(fitness["regime_ids"]),
-                    "report_evidence": copy.deepcopy(fitness["report_evidence"]),
-                    "sample_count": result["sample_count"],
-                    "style_checks": copy.deepcopy(result["style_checks"]),
-                    "uncertainty_95_half_width": copy.deepcopy(
-                        result["uncertainty_95_half_width"]
-                    ),
-                    "uncertainty_penalty": result["uncertainty_penalty"],
-                }
+                evaluation_record(artifact_by_checksum[fitness_checksum], result)
             )
 
     for selection_checksum, selection in sorted(selections):

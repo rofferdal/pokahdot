@@ -201,7 +201,8 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 `--format json|text` (default `json`), `--trace none|errors|sampled` (default
 `errors`), `--trace-sample <count>` for sampled traces, `--dry-run`, and
 `--overwrite`. `replay` accepts `--format json|text` and optional
-`--output <path>`. `validate` and `inspect` never write artifacts.
+`--output <path>`, plus the same `--trace` and `--trace-sample` policy as
+`run`. `validate` and `inspect` never write artifacts.
 
 `--dry-run` performs parsing, validation, seed planning, regime and matchup
 selection, rotation, and shard filtering without playing or writing a report.
@@ -456,20 +457,28 @@ plan/regime/matchup-occurrence/rotation identity needed to reproduce it.
   the report.
 - `replay` writes its comparison to stdout in both modes. Optional `--output`
   writes a replay artifact containing the comparison and recomputed tournament.
-  The current implementation collects no replay traces; `traces` is empty.
-- Current stream limitation: text `run` prints evaluation-plan headings and
-  progress dots on stdout before its completion summary. JSON `run` emits no
-  progress. Application errors use stderr. Godot itself can additionally emit
-  an engine banner/startup diagnostics; capture artifacts through `--output`.
-  Progress/results separation and replay traces remain tracked in
-  [CLI-03](AstraSuggestionTasks.md#7-cli-and-experiment-workflow-usability).
+  It records the selected trace policy and bounded recipient-safe traces.
+  Successful replay defaults to error-only tracing (usually empty); request
+  `--trace sampled --trace-sample 100` for decision/hand diagnostics.
+- Both `run` formats write evaluation-plan headings and progress to stderr,
+  leaving stdout for results. Progress shows completed/assigned tournaments,
+  elapsed seconds and throughput at startup, at most once per second after a
+  completed tournament, and at completion. On resume, completed counts include
+  reused checkpoint records; timing and throughput describe processing in the
+  current invocation, including checkpoint reads.
+- Application errors and invalid-argument usage use stderr. Godot itself can
+  additionally emit startup diagnostics. Use Godot's `--no-header` to suppress
+  its banner when parsing stdout; `--quiet` suppresses application results too.
+  The full report remains in `--output`.
 
 Exit code `0` means verified success; `2` means invalid arguments or manifest;
 `3` means input/output or report-read failure; and `4` means a simulation
 invariant, unexpected action fallback, or replay mismatch.
 
 `replay` reuses the stored manifest snapshot, seed, regime, matchup,
-occurrence, rotation, and seat map. It does not increase trace detail. Winner, termination reason, hand count, and metric
+occurrence, rotation, and seat map. Replay may request more trace detail than
+the source report; trace sampling uses its own RNG stream and does not change
+the outcome. Winner, termination reason, hand count, and metric
 digest and executable provenance must match the stored record for success.
 This checks semantic reproduction, not byte-identical reports. Replay also selects the report's recorded
 RNG stream derivation. New reports use `named_stream_sha256_v2`, while
@@ -499,6 +508,8 @@ profile-evolution <command> [options]
 | `build-lineage` | `--artifact <path>` (repeatable) `--output <path>` | deterministic lineage registry rebuilt from immutable generation, candidate, fitness, and selection history |
 | `inspect-lineage` | `--registry <path> --candidate-id <id>` | read-only ancestry and evidence summary on stdout |
 | `confirm-candidate` | `--registry <path> --candidate-id <id> --legacy-id <id>` (repeatable) `--historical-champion-id <id>` (repeatable) `--mirrored-report <path>` (repeatable) `--mixed-report <path>` (repeatable) `--output <path>` | independent confirmation evidence and promotion-gate result |
+| `prepare-experiment` | `--config <path> --output-dir <new-directory> [--dry-run]` | validated common candidate evaluation plus independent mirrored/mixed manifests, frozen inputs, commands and pending-review recipe; dry-run writes nothing |
+| `compare-experiment` | `--config <path> --report <path>` (repeatable) `--output-dir <new-directory>` | recomputed common-cohort ranking, per-candidate fitness and evaluated lineage registry; explicit review remains required |
 | `prepare-promotion-review` | `--confirmation <path>` (repeatable) `--reviewer-id <id> --output <path>` | one editable JSON plan listing every candidate, exact confirmation binding, and one initially `pending` decision field per candidate |
 | `finalize-promotion-review` | `--plan <path> --confirmation <path>` (repeatable) `--output <path>` | one immutable `promotion_review_batch` after every candidate decision is changed to `approve` or `reject` and revalidated against its confirmation |
 | `publish-profile` | `--confirmation <path> --review <path> --version <id> [--display-name <text>] [--project-root <path>]` | manually write one candidate approved in the consolidated review as a new no-clobber versioned `BotProfile` Resource; never edits the roster |
@@ -676,6 +687,48 @@ generation, creation command/version, seeds, regime and evaluation-plan IDs,
 simulation report checksums, fitness components, uncertainty, code revision,
 and champion selection history. Selected elites remain immutable historical
 benchmarks; confirmation and export remain separate immutable artifacts.
+
+### 5.1 Experiment preparation and compatible comparison
+
+The [experiment guide](../devdocs/how-to/preparing-bot-experiments.md) defines
+schema-1 configuration and concrete commands. Input paths resolve relative to
+the config. Candidate IDs may span generations; original lineage, source
+checksums, parents and champion selection history remain intact. Benchmarks
+are immutable schema-2 profile snapshots. The preparer supports at most eight
+benchmarks so mixed tables stay within nine seats. Selected candidate and
+benchmark classes are unique and disjoint; historical champions must match
+selected registry entries exactly.
+
+A shared heads-up evaluation plan exposes every selected candidate to every
+benchmark. Per-candidate mirrored plans cover all benchmarks; each mixed plan
+contains its candidate and all benchmarks. Each matchup has at least 300
+tournaments, rounded to complete cyclic rotations; mixed confirmation also
+requires at least 100 candidate samples in every seat. All generated seed
+blocks exclude zero, fit the lossless JSON domain, and are disjoint from one
+another and selected candidates' prior evaluation ranges. Current
+`named_stream_sha256_v2` evidence is required; incompatible prior RNG history
+is reported rather than rewritten or discarded.
+
+Dry-run reports manifest checksums, counts, seed blocks, artifact paths,
+shell-quoted commands and incompatibilities without filesystem mutations.
+Preparation freezes config/registry/benchmark inputs. The plan's
+`config_checksum` binds its emitted config; `source_config_checksum` binds the
+original input before path rewriting. Directory reservation and no-clobber
+file publication reject existing output directories and symlinks. The final
+`experiment.json` or `comparison.json` marks readiness; failed operations
+remove only files with known ownership and preserve uncertain/foreign files.
+
+Comparison accepts only complete report shards of the exact generated common
+evaluation manifest with identical executable provenance. It recomputes
+fitness through the existing strict evaluator, ranks eligible results by
+fitness descending then candidate ID, and retains ineligible rows without a
+rank. It does not pool incompatible historical fitness scores. Per-candidate
+fitness binds the original creation artifact; a copied evaluated registry
+preserves all prior history and appends the common evaluation for subsequent
+confirmation. Its readiness artifact binds both source and evaluated registry
+checksums. Ranking alone does not demonstrate superiority or authorize
+promotion. Generated recipes use the existing consolidated review, whose
+candidate decisions all start `pending`.
 
 ## 6. Validation and promotion
 

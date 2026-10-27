@@ -10,6 +10,17 @@ const CliStartupArgumentsScript = preload("res://scripts/cli/cli_startup_argumen
 
 func _initialize() -> void:
 	var io := TerminalIO.new()
+	var options := CliStartupArgumentsScript.parse(OS.get_cmdline_user_args())
+	if not options.errors.is_empty():
+		for error: String in options.errors:
+			io.write_line(error)
+		io.write_line(CliStartupArgumentsScript.usage())
+		quit(1)
+		return
+	if options.show_help:
+		io.write_line(CliStartupArgumentsScript.usage())
+		quit()
+		return
 	io.write_line("Pokahdot CLI")
 
 	var defaults := load("res://resources/default_tournament_config.tres") as TournamentConfig
@@ -18,9 +29,17 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	defaults = options.apply_to(defaults)
+	var validation := ConfigResolver.new().resolve(defaults, null)
+	if not validation.is_ok():
+		for error: ConfigError in validation.get_errors():
+			io.write_line("%s: %s" % [error.field, error.message])
+		quit(1)
+		return
 	var prompt := StartupConfigPrompt.new(io)
-	var use_legacy_models := CliStartupArgumentsScript.use_legacy_models(OS.get_cmdline_user_args())
-	var result: StartupPromptResult = prompt.run(defaults, use_legacy_models)
+	var result: StartupPromptResult = prompt.run(
+		defaults, defaults.use_legacy_models, options.configure
+	)
 	if result.status == StartupPromptResult.Status.ERROR:
 		quit(1)
 		return
@@ -33,6 +52,6 @@ func _initialize() -> void:
 	io.write_line("Seat agents:")
 	for diagnostic: String in creation.diagnostics:
 		io.write_line("  %s" % diagnostic)
-	var command_loop := CliCommandLoop.new(io)
-	command_loop.run_match(creation.match_instance, creation.human_seat)
-	quit()
+	var command_loop := CliCommandLoop.new(io, null, null, true)
+	var status := command_loop.run_match(creation.match_instance, creation.human_seat)
+	quit(CliCommandLoop.exit_code(status))

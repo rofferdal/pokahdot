@@ -50,6 +50,7 @@ Practical step-by-step instructions to get everyday development tasks done.
   and how to restore automatic deployment.
 - **[Adding a Bot Strategy](how-to/adding-a-bot-strategy.md)**: How to create a new `DecisionModel`, define validated parameter resources, register models with `PlayableBotRoster`, and write unit tests.
 - **[Running Simulations](how-to/running-simulations.md)**: How to execute non-interactive batch simulations, validate manifests, run parallel shards, inspect reports, and replay runs.
+- **[Preparing and Comparing Bot Experiments](how-to/preparing-bot-experiments.md)**: Generate validated common-cohort and independent confirmation manifests, dry-run commands, compare cross-generation candidates and prepare consolidated review.
 - **[Evaluating Bot Performance & Statistical Decisions](how-to/evaluating-bot-performance.md)**: How to analyze simulation metrics, interpret 95% confidence intervals, evaluate behavioral style leaks, and verify the automated promotion criteria.
 - **[Replacing In-Game Bot Profiles](how-to/replacing-in-game-bot-profiles.md)**: The exact workflow and checklist for candidate confirmation, consolidated human promotion review, profile publishing, and updating `PlayableBotRoster`.
 

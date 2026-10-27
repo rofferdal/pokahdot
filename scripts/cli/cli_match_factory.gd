@@ -26,6 +26,20 @@ func create_with_diagnostics(config: ResolvedTournamentConfig) -> CliMatchCreati
 	var profiles := selection.get_profiles()
 	var agents: Dictionary[int, Agent] = {}
 	var lines := _roster_diagnostics(config, profiles)
+	lines.append("Effective seed: %d" % streams.effective_seed)
+	lines.append(
+		(
+			"Reproduce options: --players %d --stack %d --small-blind %d --big-blind %d --seed %d%s"
+			% [
+				config.player_count,
+				config.starting_stack,
+				config.small_blind,
+				config.big_blind,
+				streams.effective_seed,
+				" --use-legacy-models" if config.use_legacy_models else ""
+			]
+		)
+	)
 	var profile_index: int = 0
 	var resolved_human_seat: int = Table.NO_SEAT
 	for seat: int in range(config.player_count):

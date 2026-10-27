@@ -2,8 +2,10 @@ class_name CliCommandLoop
 extends RefCounted
 
 enum Status {
+	COMPLETED,
 	QUIT,
 	EOF,
+	ERROR,
 }
 
 const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
@@ -11,10 +13,14 @@ const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
 var _io: CliIO
 var _parser: CommandParser
 var _renderer: CliRenderer
+var _compact: bool
 
 
-func _init(io: CliIO, parser: CommandParser = null, renderer: CliRenderer = null) -> void:
+func _init(
+	io: CliIO, parser: CommandParser = null, renderer: CliRenderer = null, compact: bool = false
+) -> void:
 	_io = io
+	_compact = compact
 	_parser = parser if parser != null else CommandParser.new()
 	_renderer = renderer if renderer != null else CliRenderer.new(io)
 
@@ -40,6 +46,10 @@ func run() -> Status:
 				return Status.QUIT
 			CliCommand.Kind.ACTION:
 				_io.write_line("No active human turn.")
+			CliCommand.Kind.STATE, CliCommand.Kind.HISTORY:
+				_io.write_line("No active tournament.")
+			CliCommand.Kind.CONTINUE:
+				_io.write_line("Continue is available only between hands.")
 			CliCommand.Kind.POT_BET, CliCommand.Kind.POT_RAISE:
 				_io.write_line("No active human turn.")
 			CliCommand.Kind.UNKNOWN:
@@ -51,19 +61,20 @@ func run() -> Status:
 
 
 func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
+	_renderer.reset_updates()
 	var result: StepResult = match_instance.start()
 	var exit_status: Status = Status.EOF
 	if result.status == StepResult.Status.ERROR:
 		_io.write_line("Unable to start tournament: %s" % result.message)
-		return exit_status
+		return Status.ERROR
 	_render(match_instance, human_seat)
 
 	while true:
 		if result.status == StepResult.Status.ERROR:
 			_io.write_line("Tournament error: %s" % result.message)
-			break
+			return Status.ERROR
 		if result.status == StepResult.Status.HAND_COMPLETED:
-			_io.write_text("Press Enter for the next hand, or type 'quit': ")
+			_io.write_text("Press Enter or type 'continue' for the next hand, or 'quit': ")
 			var between_hands_input: CliInputLine = _io.read_line()
 			if between_hands_input.is_eof:
 				match_instance.request_quit()
@@ -77,20 +88,32 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 				_io.write_line("Goodbye.")
 				exit_status = Status.QUIT
 				break
+			if between_hands_command.kind in [CliCommand.Kind.STATE, CliCommand.Kind.HISTORY]:
+				_render_requested(match_instance, human_seat, between_hands_command)
+				continue
 			if between_hands_command.kind == CliCommand.Kind.HELP:
 				_print_help()
 				continue
 			if (
 				between_hands_command.kind == CliCommand.Kind.POT_BET
 				or between_hands_command.kind == CliCommand.Kind.POT_RAISE
+				or between_hands_command.kind == CliCommand.Kind.ACTION
 			):
 				_io.write_line("Action rejected: No active human turn.")
+				continue
+			if between_hands_command.kind not in [CliCommand.Kind.EMPTY, CliCommand.Kind.CONTINUE]:
+				_io.write_line(
+					(
+						"Unknown command '%s'. Type 'help' for available commands."
+						% between_hands_command.text
+					)
+				)
 				continue
 			result = match_instance.advance_until_blocked()
 			_render(match_instance, human_seat)
 			continue
 		if result.status == StepResult.Status.TOURNAMENT_FINISHED:
-			break
+			return Status.COMPLETED
 		if result.status == StepResult.Status.YIELDED:
 			result = match_instance.advance_until_blocked()
 			_render(match_instance, human_seat)
@@ -108,6 +131,10 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 				continue
 			CliCommand.Kind.HELP:
 				_print_help()
+			CliCommand.Kind.STATE, CliCommand.Kind.HISTORY:
+				_render_requested(match_instance, human_seat, command)
+			CliCommand.Kind.CONTINUE:
+				_io.write_line("Continue is available only between hands.")
 			CliCommand.Kind.QUIT:
 				match_instance.request_quit()
 				_render(match_instance, human_seat)
@@ -139,7 +166,26 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 func _render(match_instance: TournamentMatch, human_seat: int) -> void:
 	var view: GameView = match_instance.get_view_for(human_seat)
 	if view != null:
+		if _compact:
+			_renderer.render_update(view)
+		else:
+			_renderer.render_hand(view)
+
+
+func _render_requested(
+	match_instance: TournamentMatch, human_seat: int, command: CliCommand
+) -> void:
+	var view := match_instance.get_view_for(human_seat)
+	if view == null:
+		return
+	if command.kind == CliCommand.Kind.STATE:
 		_renderer.render_hand(view)
+	else:
+		_renderer.render_history(view)
+
+
+static func exit_code(status: Status) -> int:
+	return 1 if status == Status.ERROR else 0
 
 
 func _resolve_pot_action(view: GameView, command: CliCommand) -> PlayerAction:
@@ -189,5 +235,7 @@ func _resolve_pot_action(view: GameView, command: CliCommand) -> PlayerAction:
 func _print_help() -> void:
 	_io.write_line("Available commands:")
 	_io.write_line("  help - show this help")
+	_io.write_line("  state, history - show the full state or current hand action history")
 	_io.write_line("  quit, exit - exit Pokahdot")
+	_io.write_line("  continue, Enter - start the next hand only between hands")
 	_io.write_line("  fold, check, call, bet <total>, raise <total>, potbet, potraise, allin")

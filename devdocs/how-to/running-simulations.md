@@ -54,8 +54,8 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 - `--dry-run`: Validates plan and prints shard metadata without playing tournaments.
 - `--checkpoint DIR`: Run checkpoint directory (default `OUTPUT.checkpoint`); use a separate directory for each shard.
 - `--resume`: Reuse validated completed records from the same checkpoint, manifest, provenance, shard and trace settings. Supported only by `run`.
-- `--trace none|errors|sampled`: Decision trace recording mode (`errors` by default for `run`).
-- `--trace-sample COUNT`: Number of decisions to deterministically sample when `--trace sampled` is enabled.
+- `--trace none|errors|sampled`: Decision trace recording mode (`errors` by default for `run` and `replay`).
+- `--trace-sample COUNT`: Maximum trace entries per tournament (decisions and hand outcomes) to deterministically sample when `--trace sampled` is enabled.
 - `--tournament-index INDEX`: Specific tournament index to reproduce during `replay` (required; no default index).
 - `--batch-id ID`: Optional batch identity for `export-roster-manifest`; the default derives from the roster version.
 - `--seed INTEGER`: Non-zero export seed (default `71001`).
@@ -114,6 +114,13 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   --trace sampled --trace-sample 5 --format json
 ```
 
+Both output formats write progress to stderr: completed/assigned tournaments,
+elapsed time and throughput. Stdout contains the completion summary. To capture
+JSON stdout without the engine banner, add Godot's `--no-header` before `--`;
+redirect stdout and stderr separately. `--quiet` suppresses application output
+too. On resume, counts include reused records; elapsed time and throughput cover
+the current invocation, including checkpoint reads.
+
 For an immutable roster baseline, use a separate report path and retain both
 the manifest and report. A later roster export is a new benchmark; never
 overwrite the pre-change artifact merely because its catalog version changed.
@@ -154,9 +161,11 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   replay --report artifacts/batch_report.json --tournament-index 0 --format json
 ```
 The command exits with code `0` only when both outcome and provenance match.
-Replay currently collects no traces, including with `--output`.
-See the authoritative [stream and replay contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output)
-for current progress/trace limitations.
+Request bounded recipient-safe traces with `--trace sampled --trace-sample 100`.
+Add `--output artifacts/replay.json` to store the recomputed tournament,
+comparison, trace policy and traces. Default error-only tracing is empty for a
+successful replay. Increasing trace detail does not affect the outcome digest.
+See the authoritative [stream and replay contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output).
 
 ---
 
@@ -165,3 +174,8 @@ for current progress/trace limitations.
 Simulation reports generated here serve as input evidence for the external profile evolution workflow:
 - `tools/profile-evolution evaluate-fitness`: Ingests generation manifests and complete simulation report shards.
 - `tools/profile-evolution confirm-candidate`: Ingests mirrored and mixed-table simulation reports to verify candidate eligibility against legacy profiles.
+
+Use [experiment preparation and comparison](preparing-bot-experiments.md) to
+generate common candidate evaluation and independent confirmation manifests
+from validated configuration, compare cross-generation candidates from one
+compatible report cohort, and prepare commands for consolidated review.

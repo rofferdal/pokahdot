@@ -124,10 +124,7 @@ func test_invalid_resolved_values_report_error_without_exposing_config_before_re
 	io.queue_line("100")
 	io.queue_line("20")
 	io.queue_line("10")
-	io.queue_line("3")
-	io.queue_line("100")
 	io.queue_line("5")
-	io.queue_line("10")
 
 	var result: StartupPromptResult = _run_prompt(io)
 
@@ -136,6 +133,10 @@ func test_invalid_resolved_values_report_error_without_exposing_config_before_re
 	assert_true(io.contains_write("Invalid tournament configuration:"))
 	assert_true(io.contains_write("  small_blind: Small blind cannot exceed big blind."))
 	assert_eq(io.count_writes_containing("Tournament configuration:"), 1)
+	assert_eq(io.count_writes_containing("Players [6]:"), 1)
+	assert_eq(io.count_writes_containing("Starting stack [1000]:"), 1)
+	assert_eq(io.count_writes_containing("Big blind [10]:"), 1)
+	assert_eq(io.count_writes_containing("Small blind [20]:"), 1)
 	assert_true(
 		(
 			io.writes.find("Invalid tournament configuration:")

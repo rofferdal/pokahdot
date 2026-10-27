@@ -28,7 +28,7 @@ func _initialize() -> void:
 	var parse_result := ARGUMENT_PARSER_SCRIPT.new().parse(OS.get_cmdline_user_args())
 	if not parse_result.is_ok():
 		_print_errors(parse_result.errors)
-		print(_usage())
+		printerr(_usage())
 		quit(EXIT_INVALID)
 		return
 	var options: SimulationCommandOptions = parse_result.options
@@ -139,15 +139,16 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 	var runner := SimulationBatchRunner.new()
 	var trace_config := options.trace_config()
 	var current_plan_id := &""
-	var show_progress := options.format == SimulationCommandOptions.OutputFormat.TEXT
+	var started_ticks := Time.get_ticks_usec()
+	var last_progress_ticks := started_ticks
+	var completed := 0
+	_print_progress(completed, cursor.assigned_count, started_ticks)
 	var had_failure: bool = false
 	while cursor.has_next():
 		var input := cursor.next_input()
-		if show_progress and input.plan_id != current_plan_id:
-			if not current_plan_id.is_empty():
-				printraw("\n")
+		if input.plan_id != current_plan_id:
 			current_plan_id = input.plan_id
-			print("Evaluation plan: %s" % current_plan_id)
+			printerr("Evaluation plan: %s" % current_plan_id)
 		var tournament: Dictionary
 		if store.has_record(input.tournament_index):
 			var record := store.load_record(input.tournament_index)
@@ -166,10 +167,11 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 			for diagnostic: Dictionary in tournament.diagnostics:
 				printerr("Tournament %d: %s" % [input.tournament_index, diagnostic.message])
 		accumulator.add_tournament(tournament, int(minimums.get(input.plan_id, 1)))
-		if show_progress:
-			printraw(".")
-	if show_progress and cursor.assigned_count > 0:
-		printraw("\n")
+		completed += 1
+		var now := Time.get_ticks_usec()
+		if now - last_progress_ticks >= 1_000_000 or completed == cursor.assigned_count:
+			_print_progress(completed, cursor.assigned_count, started_ticks)
+			last_progress_ticks = now
 	var writer := SimulationStreamReportWriter.new()
 	var summary := writer.write(
 		options.output_path,
@@ -187,6 +189,16 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 		return EXIT_SIMULATION
 	_print_document(summary, options.format)
 	return EXIT_OK
+
+
+func _print_progress(completed: int, total: int, started_ticks: int) -> void:
+	var elapsed := maxf(float(Time.get_ticks_usec() - started_ticks) / 1_000_000.0, 0.000001)
+	printerr(
+		(
+			"Completed %d/%d | elapsed %.2fs | throughput %.2f tournaments/s"
+			% [completed, total, elapsed, float(completed) / elapsed]
+		)
+	)
 
 
 func _minimum_samples_by_plan(manifest: SimulationManifest) -> Dictionary:
@@ -238,7 +250,7 @@ func _replay_report(options: SimulationCommandOptions) -> int:
 		null, RngStreamFactory.new(Callable(), rng_algorithm)
 	)
 	var batch: SimulationBatchResult = SimulationBatchRunner.new(replay_factory).run(
-		base_config, [selected_input], 256, SimulationTraceConfig.new()
+		base_config, [selected_input], 256, options.trace_config()
 	)
 	if not batch.is_success():
 		_print_errors(_batch_errors(batch))
@@ -270,6 +282,7 @@ func _replay_report(options: SimulationCommandOptions) -> int:
 		"provenance_match": provenance_mismatches.is_empty(),
 		"provenance_mismatches": provenance_mismatches,
 		"match": outcome_match and provenance_mismatches.is_empty(),
+		"trace_count": replay_report.traces.size(),
 	}
 	if not options.output_path.is_empty():
 		var replay_artifact := {
@@ -279,6 +292,11 @@ func _replay_report(options: SimulationCommandOptions) -> int:
 			"comparison": comparison,
 			"tournament": replay_tournament,
 			"traces": replay_report.traces,
+			"trace_policy":
+			{
+				"mode": SimulationTraceConfig.Mode.keys()[options.trace_mode].to_lower(),
+				"max_entries_per_tournament": options.trace_sample_count,
+			},
 		}
 		if not _write_dictionary(options.output_path, replay_artifact, options.overwrite):
 			return EXIT_IO

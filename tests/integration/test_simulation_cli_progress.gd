@@ -14,7 +14,7 @@ func after_each() -> void:
 	_remove_manifest()
 
 
-func test_run_prints_plan_once_and_one_dot_per_completed_tournament() -> void:
+func test_run_prints_plan_once_and_completed_counts_with_timing() -> void:
 	var output: Array[String] = []
 	var arguments := PackedStringArray(
 		[
@@ -40,15 +40,12 @@ func test_run_prints_plan_once_and_one_dot_per_completed_tournament() -> void:
 	assert_true(FileAccess.file_exists(_output_path()))
 	assert_eq(command_output.count("Evaluation plan: first_plan"), 1, command_output)
 	assert_eq(command_output.count("Evaluation plan: second_plan"), 1, command_output)
-	assert_true(
-		command_output.contains(
-			"Evaluation plan: first_plan\n.\nEvaluation plan: second_plan\n.\n"
-		),
-		command_output
-	)
+	assert_true(command_output.contains("Completed 0/2 | elapsed"), command_output)
+	assert_true(command_output.contains("Completed 2/2 | elapsed"), command_output)
+	assert_true(command_output.contains("throughput"), command_output)
 
 
-func test_json_run_suppresses_progress_and_emits_one_machine_document() -> void:
+func test_json_run_emits_completion_with_progress_on_the_captured_error_stream() -> void:
 	var output: Array[String] = []
 	var arguments := PackedStringArray(
 		[
@@ -71,7 +68,7 @@ func test_json_run_suppresses_progress_and_emits_one_machine_document() -> void:
 	var command_output := "\n".join(output)
 
 	assert_eq(exit_code, 0, command_output)
-	assert_false(command_output.contains("Evaluation plan:"), command_output)
+	assert_true(command_output.contains("Completed 2/2 | elapsed"), command_output)
 	var completion_line := _last_json_line(command_output)
 	var completion: Variant = JSON.parse_string(completion_line)
 	assert_true(typeof(completion) == TYPE_DICTIONARY, command_output)

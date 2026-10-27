@@ -452,7 +452,8 @@ godot --headless --path . --script res://scripts/cli/cli_app.gd
 
 - Before constructing a tournament, display defaults and allow immediate
   startup without supplied values. In configuration mode, each field may be
-  overridden independently; blank input retains that field's default.
+  overridden independently; blank input retains that field's displayed value.
+  Correction retains valid edits and reprompts fields with validation errors.
 - Explain invalid startup values and prompt again. No hand starts from invalid
   configuration.
 - Write readable game state to stdout.
@@ -472,6 +473,12 @@ godot --headless --path . --script res://scripts/cli/cli_app.gd
   their legal-action entry shows contribution `P`, while execution submits
   street total `H + P` through ordinary validation.
 - For an invalid command, show an error and prompt again without crashing.
+- Between hands, only blank input or `continue` starts another hand. During a
+  human turn, blank input keeps the turn and `continue` reports a phase error.
+- CLI startup options may select configuration and a deterministic seed. Report
+  the actual effective seed used to create the match, including time-seeded
+  games. `state` and `history` inspect the recipient-safe state and current
+  hand's public actions without advancing play.
 - Bots act without waiting for stdin.
 - Human `quit` or `exit` ends the tournament immediately.
 

@@ -5,6 +5,8 @@ const CliCardFormatterScript = preload("res://scripts/cli/cli_card_formatter.gd"
 const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
 
 var _io: CliIO
+var _last_hand_number: int = -1
+var _history_count: int = 0
 
 
 func _init(io: CliIO) -> void:
@@ -15,7 +17,7 @@ func render_preflop(view: GameView) -> void:
 	render_hand(view)
 
 
-func render_hand(view: GameView) -> void:
+func render_hand(view: GameView, history_from: int = 0) -> void:
 	_io.write_line("Hand %d - %s" % [view.hand_number, view.street])
 	(
 		_io
@@ -80,9 +82,7 @@ func render_hand(view: GameView) -> void:
 					% [pot_index + 1, pot.amount, _seat_list(pot.eligible_seats)]
 				)
 			)
-	_io.write_line("Action history:")
-	for record: PublicActionRecord in view.action_history:
-		_io.write_line("  %s" % _format_action(record))
+	render_history(view, history_from)
 	_io.write_line("Your cards: %s" % CliCardFormatterScript.format_cards(view.hero_hole_cards))
 	if not view.revealed_hole_cards.is_empty():
 		_io.write_line("Showdown:")
@@ -133,6 +133,44 @@ func render_hand(view: GameView) -> void:
 		_io.write_line("Tournament winner: seat %d" % view.tournament_winner_seat)
 	if view.end_reason == &"player_quit":
 		_io.write_line("Tournament ended: player_quit")
+
+
+func reset_updates() -> void:
+	_last_hand_number = -1
+	_history_count = 0
+
+
+func render_update(view: GameView) -> void:
+	var new_hand := view.hand_number != _last_hand_number
+	if new_hand:
+		_history_count = 0
+	if new_hand or view.hand_complete:
+		render_hand(view, _history_count)
+	else:
+		_io.write_line("Hand %d - %s" % [view.hand_number, view.street])
+		render_history(view, _history_count)
+		_io.write_line("Pot: %d | Acting: %d" % [view.pot_amount, view.acting_seat])
+		_io.write_line("Board: %s" % CliCardFormatterScript.format_cards(view.community_cards))
+		_io.write_line("Your cards: %s" % CliCardFormatterScript.format_cards(view.hero_hole_cards))
+		var stacks := PackedStringArray()
+		for seat: PlayerView in view.seats:
+			stacks.append(
+				(
+					"%d: %s = %d"
+					% [seat.seat, _player_display_name(seat, view.button_seat), seat.stack]
+				)
+			)
+		_io.write_line("Stacks: %s" % "; ".join(stacks))
+		_io.write_line("Legal actions: %s" % _legal_actions(view))
+	_last_hand_number = view.hand_number
+	_history_count = view.action_history.size()
+
+
+func render_history(view: GameView, history_from: int = 0) -> void:
+	_io.write_line("Action history:" if history_from == 0 else "New actions:")
+	var history := view.action_history
+	for index: int in range(history_from, history.size()):
+		_io.write_line("  %s" % _format_action(history[index]))
 
 
 func _player_display_name(seat_view: PlayerView, button_seat: int) -> String:

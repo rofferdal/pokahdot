@@ -20,7 +20,7 @@ check:
 	$(MAKE) --no-print-directory profile-evolution-test
 	$(MAKE) --no-print-directory web-lan-test
 	$(MAKE) --no-print-directory web-layout-test
-	$(GODOT) --headless --path . --import
+	$(MAKE) --no-print-directory cli-process-test
 	$(GDLINT) scripts tests
 	$(GDFORMAT) --check scripts tests
 	$(GUT_COMMAND)
@@ -138,3 +138,8 @@ docs-check:
 .PHONY: web-layout-test
 web-layout-test:
 	python3 -B -m unittest discover -s tests/web_layout -t . -v
+
+.PHONY: cli-process-test
+cli-process-test:
+	$(GODOT) --headless --path . --import
+	GODOT="$(GODOT)" python3 -B -m unittest discover -s tests/cli -t . -v

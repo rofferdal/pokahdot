@@ -92,3 +92,46 @@ func _run_loop(io: FakeCliIO) -> CliCommandLoop.Status:
 
 func assert_write_precedes(io: FakeCliIO, earlier: String, later: String) -> void:
 	assert_true(io.writes.find(earlier) < io.writes.find(later))
+
+
+class FailingMatch:
+	extends TournamentMatch
+
+	func _init() -> void:
+		super(null, {})
+
+	func start(_max_transitions: int = 32) -> StepResult:
+		return StepResult.new(StepResult.Status.YIELDED)
+
+	func advance_until_blocked(_max_transitions: int = 32) -> StepResult:
+		return StepResult.new(StepResult.Status.ERROR, "Injected advancement failure.")
+
+	func get_view_for(_seat: int) -> GameView:
+		return null
+
+
+func test_advancement_failure_returns_error_instead_of_eof() -> void:
+	var io := FakeCliIO.new()
+	var status := CliCommandLoop.new(io).run_match(FailingMatch.new(), 0)
+	assert_eq(status, CliCommandLoop.Status.ERROR)
+	assert_true(io.contains_write("Tournament error: Injected advancement failure."))
+
+
+func test_match_start_failure_returns_error_with_nonzero_exit() -> void:
+	var io := FakeCliIO.new()
+	var match_instance := TournamentMatch.new(null, {})
+	var status := CliCommandLoop.new(io).run_match(match_instance, 0)
+	assert_eq(status, CliCommandLoop.Status.ERROR)
+	assert_eq(CliCommandLoop.exit_code(status), 1)
+	assert_eq(io.count_writes_containing("Unable to start tournament:"), 1)
+	for success: CliCommandLoop.Status in [
+		CliCommandLoop.Status.COMPLETED, CliCommandLoop.Status.QUIT, CliCommandLoop.Status.EOF
+	]:
+		assert_eq(CliCommandLoop.exit_code(success), 0)
+
+
+func test_inspection_commands_in_shell_report_no_active_tournament() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("state").queue_line("history").queue_line("quit")
+	assert_eq(_run_loop(io), CliCommandLoop.Status.QUIT)
+	assert_eq(io.count_writes_containing("No active tournament."), 2)

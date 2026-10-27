@@ -205,6 +205,41 @@ func test_pot_command_between_hands_is_rejected_without_starting_next_hand() -> 
 	assert_eq(io.count_writes_containing("Hand 2 -"), 0)
 
 
+func test_between_hands_rejects_every_action_and_unknown_command_without_advancing() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("raise 20")
+	for command: String in [
+		"fold",
+		"call",
+		"check",
+		"bet 10",
+		"raise 20",
+		"allin",
+		"potraise",
+		"state",
+		"history",
+		"typo",
+		"help"
+	]:
+		io.queue_line(command)
+	io.queue_line("quit")
+	var match_instance := TournamentMatch.new(_config(3, 100, 5, 10), _folding_agents(3))
+	assert_eq(CliCommandLoop.new(io).run_match(match_instance, 0), CliCommandLoop.Status.QUIT)
+	assert_eq(match_instance.hand_number, 1)
+	assert_eq(io.count_writes_containing("No active human turn."), 7)
+	assert_eq(io.count_writes_containing("Unknown command 'typo'"), 1)
+
+
+func test_only_blank_or_continue_advances_between_hands() -> void:
+	for next_hand: String in ["", "continue"]:
+		var io := FakeCliIO.new()
+		io.queue_line("continue").queue_line("raise 20").queue_line(next_hand).queue_line("quit")
+		var match_instance := TournamentMatch.new(_config(3, 100, 5, 10), _folding_agents(3))
+		assert_eq(CliCommandLoop.new(io).run_match(match_instance, 0), CliCommandLoop.Status.QUIT)
+		assert_eq(match_instance.hand_number, 2)
+		assert_true(io.contains_write("Continue is available only between hands."))
+
+
 func test_quit_routes_through_match_and_renders_player_quit() -> void:
 	var io := FakeCliIO.new()
 	io.queue_line("quit")
@@ -373,7 +408,7 @@ func test_cli_runs_seeded_short_stack_tournament_to_a_displayed_winner() -> void
 
 	var status := CliCommandLoop.new(io).run_match(match_instance, factory.human_seat(config))
 
-	assert_eq(status, CliCommandLoop.Status.EOF)
+	assert_eq(status, CliCommandLoop.Status.COMPLETED)
 	assert_eq(match_instance.state, TournamentMatch.State.FINISHED)
 	assert_eq(match_instance.end_reason, &"winner")
 	assert_true(match_instance.winner_seat >= 0)

@@ -55,9 +55,18 @@ On macOS without `godot` in `PATH`:
 /Applications/Godot.app/Contents/MacOS/Godot --headless --path . --script res://scripts/cli/cli_app.gd
 ```
 
-The terminal interface supports a complete tournament with optional startup
-overrides, poker actions including `potbet` and `potraise`, `help`, `quit`, and
-`exit`. Game rules remain in `scripts/core/`, not in either presentation layer.
+Press Enter to start immediately, or type `configure` to edit setup. Options
+after `--` include `--help`, `--configure`, `--players`, `--stack`,
+`--small-blind`, `--big-blind`, and `--seed`. Startup prints the effective seed
+and reproduction options for the actual match. Invalid setup fields can be
+corrected without reentering valid edits.
+
+The terminal interface supports a complete tournament with poker actions
+including `potbet` and `potraise`, compact updates, `state` for the complete
+recipient-safe snapshot, and `history` for the current hand's public actions.
+Between hands, only Enter or `continue` deals again; `help`, `quit`, and `exit`
+are available during play. See the [CLI guide](devdocs/how-to/running-and-testing.md#launch-the-interactive-cli)
+for reproducible transcript commands. Game rules remain in `scripts/core/`.
 
 ## Blind levels and Pot wager
 
@@ -148,8 +157,8 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 ```
 
 Run a batch by choosing a new output path. `run` writes the complete report
-atomically. JSON mode prints a compact completion summary without progress;
-text mode also prints progress on stdout.
+atomically. Both formats print a compact completion summary to stdout and
+progress counts, elapsed time and throughput to stderr.
 Application failures use stderr. See the authoritative
 [stream and replay contract](docs/Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output). Existing outputs are protected; use `--overwrite` only
 when intentionally regenerating the same artifact.
@@ -201,6 +210,11 @@ reuse a filename for a different run. The checked-in
 small three-profile, three-seat smoke batch; it demonstrates validation,
 cyclic rotation, inspection, and replay. It is not promotion evidence.
 
+Simulation progress uses stderr in both formats; stdout contains the completion
+summary. Replay accepts `--trace sampled --trace-sample 100` for bounded safe
+traces in its optional output artifact. See the [run guide](devdocs/how-to/running-and-testing.md#headless-batch-simulation-runner)
+for captured-stream and replay commands.
+
 ### External profile evolution and reviewed promotion
 
 `tools/profile-evolution` is a separate Python workflow that writes strict,
@@ -212,6 +226,13 @@ tools/profile-evolution init-generation \
   --bounds examples/profile_evolution/milestone5/bounds.json \
   --population-size 20 --seed 7001 --output artifacts/generation_0.json
 ```
+
+For selected candidates across generations, use
+[`prepare-experiment` and `compare-experiment`](devdocs/how-to/preparing-bot-experiments.md)
+to generate a common evaluation cohort and independent confirmation manifests,
+preview commands without writes, and rank compatible reports. Comparison
+preserves original lineage and prepares an evaluated registry; consolidated
+promotion decisions remain with an independent reviewer.
 
 Build a simulation manifest that contains the candidate snapshots from that
 generation plus the required baselines. Run every planned shard with the

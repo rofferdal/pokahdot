@@ -276,3 +276,47 @@ func test_renderer_outputs_showdown_awards_and_final_stacks_without_hidden_cards
 	assert_true(io.contains_write("  Seat 2: Folded (dealer) - 85 chips"))
 	for card: CardData in hidden_cards:
 		assert_eq(io.count_writes_containing(CliCardFormatterScript.format_card(card)), 0)
+
+
+func test_compact_updates_emit_new_actions_once_and_reset_on_new_hands_or_matches() -> void:
+	var io := FakeCliIO.new()
+	var renderer := CliRenderer.new(io)
+	var history: Array[PublicActionRecord] = [PublicActionRecord.blind(0, 5, true)]
+	renderer.render_update(_compact_view(1, history))
+	history.append(PublicActionRecord.new(0, PlayerAction.Kind.RAISE, 20))
+	renderer.render_update(_compact_view(1, history))
+	renderer.render_update(_compact_view(1, history))
+	assert_eq(io.count_writes_containing("  Seat 0 posts small blind 5"), 1)
+	assert_eq(io.count_writes_containing("  Seat 0 raises to 20"), 1)
+	assert_eq(io.count_writes_containing("Seat 0: Human (you)"), 1)
+	assert_eq(io.count_writes_containing("Stacks: 0: Human (you)"), 2)
+	renderer.render_update(_compact_view(2, history))
+	assert_eq(io.count_writes_containing("  Seat 0 posts small blind 5"), 2)
+	renderer.reset_updates()
+	renderer.render_update(_compact_view(2, history))
+	assert_eq(io.count_writes_containing("  Seat 0 posts small blind 5"), 3)
+
+
+func test_full_state_and_history_remain_available_without_consuming_compact_history() -> void:
+	var io := FakeCliIO.new()
+	var renderer := CliRenderer.new(io)
+	var history: Array[PublicActionRecord] = [PublicActionRecord.blind(0, 5, true)]
+	renderer.render_update(_compact_view(1, history))
+	history.append(PublicActionRecord.new(0, PlayerAction.Kind.RAISE, 20))
+	var view := _compact_view(1, history)
+	renderer.render_hand(view)
+	renderer.render_history(view)
+	renderer.render_update(view)
+	assert_eq(io.count_writes_containing("  Seat 0 raises to 20"), 3)
+	assert_eq(io.count_writes_containing("  Seat 0 posts small blind 5"), 3)
+
+
+func _compact_view(hand_number: int, history: Array[PublicActionRecord]) -> GameView:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 100),
+	]
+	var table := Table.new(players, 5, 10)
+	return GameView.for_preflop(
+		table, 0, BettingRound.new(table, 0), PotManager.new(), history, hand_number
+	)

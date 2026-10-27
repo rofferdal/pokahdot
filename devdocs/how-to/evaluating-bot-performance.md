@@ -4,6 +4,12 @@ This guide explains how to analyze simulation metrics, evaluate bot strengths an
 
 ---
 
+For selected candidates from different generations, use the
+[common-cohort experiment workflow](preparing-bot-experiments.md). It evaluates
+all candidates against the same fixed heads-up benchmarks and retains their
+original lineage. Compare those shared reports rather than ranking historical
+scores from different opponents or source builds.
+
 ## 1. How Much Data is "Enough Information"?
 
 Poker tournaments have high inherent variance. A weak player can win a single tournament through fortunate card runouts, while a strong player can bust early. 

@@ -19,9 +19,14 @@ func _init(io: CliIO, resolver: ConfigResolver = null) -> void:
 	_resolver = resolver if resolver != null else ConfigResolver.new()
 
 
-func run(defaults: TournamentConfig, use_legacy_models: bool = false) -> StartupPromptResult:
+# gdlint: disable=max-returns
+func run(
+	defaults: TournamentConfig, use_legacy_models: bool = false, configure: bool = false
+) -> StartupPromptResult:
 	_io.write_line("Pokahdot tournament setup")
 	_io.write_line(_defaults_summary(defaults))
+	if configure:
+		return _run_custom_configuration(defaults, use_legacy_models)
 
 	while true:
 		_io.write_text("Press Enter to start, or type 'configure', 'short-stack', or 'quit': ")
@@ -49,43 +54,35 @@ func run(defaults: TournamentConfig, use_legacy_models: bool = false) -> Startup
 func _run_custom_configuration(
 	defaults: TournamentConfig, use_legacy_models: bool
 ) -> StartupPromptResult:
+	var edited := defaults.duplicate(true) as TournamentConfig
+	var fields: Array[StringName] = [
+		&"player_count", &"starting_stack", &"small_blind", &"big_blind"
+	]
+	var labels: Dictionary[StringName, String] = {
+		&"player_count": "Players",
+		&"starting_stack": "Starting stack",
+		&"small_blind": "Small blind",
+		&"big_blind": "Big blind",
+	}
 	while true:
-		var overrides := _startup_overrides(use_legacy_models)
-		var player_count := _read_optional_integer("Players", defaults.player_count)
-		var early_result := _handle_non_value_status(player_count)
-		if early_result != null:
-			return early_result
-		if player_count.has_value:
-			overrides.set_player_count(player_count.value)
-
-		var starting_stack := _read_optional_integer("Starting stack", defaults.starting_stack)
-		early_result = _handle_non_value_status(starting_stack)
-		if early_result != null:
-			return early_result
-		if starting_stack.has_value:
-			overrides.set_starting_stack(starting_stack.value)
-
-		var small_blind := _read_optional_integer("Small blind", defaults.small_blind)
-		early_result = _handle_non_value_status(small_blind)
-		if early_result != null:
-			return early_result
-		if small_blind.has_value:
-			overrides.set_small_blind(small_blind.value)
-
-		var big_blind := _read_optional_integer("Big blind", defaults.big_blind)
-		early_result = _handle_non_value_status(big_blind)
-		if early_result != null:
-			return early_result
-		if big_blind.has_value:
-			overrides.set_big_blind(big_blind.value)
-
-		var resolution: ConfigResolution = _resolver.resolve(defaults, overrides)
+		for field: StringName in fields:
+			var value := _read_optional_integer(labels[field], int(edited.get(field)))
+			var early_result := _handle_non_value_status(value)
+			if early_result != null:
+				return early_result
+			if value.has_value:
+				edited.set(field, value.value)
+		var resolution := _resolver.resolve(edited, _startup_overrides(use_legacy_models))
 		if resolution.is_ok():
 			return _report_ready(resolution.get_config())
-
 		_report_errors(resolution.get_errors())
-		_io.write_line("Please enter the startup values again.")
-
+		fields.clear()
+		for error: ConfigError in resolution.get_errors():
+			if not labels.has(error.field):
+				return StartupPromptResult.new(StartupPromptResult.Status.ERROR)
+			if error.field not in fields:
+				fields.append(error.field)
+		_io.write_line("Correct the invalid fields; other edits are retained.")
 	return StartupPromptResult.new(StartupPromptResult.Status.ERROR)
 
 

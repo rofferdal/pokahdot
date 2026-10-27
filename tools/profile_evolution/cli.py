@@ -26,6 +26,8 @@ from .errors import ExitCode, ToolError
 from .evolution import crossover_candidates, initialize_generation, mutate_candidates
 from .export import export_candidates
 from .fitness import evaluate_fitness
+from .experiment import prepare_experiment
+from .experiment_comparison import compare_experiment
 from .lineage import build_lineage_registry, inspect_lineage
 from .promotion_review import (
     create_promotion_review,
@@ -87,6 +89,16 @@ def build_parser() -> argparse.ArgumentParser:
         description="Create immutable profile-evolution workflow artifacts.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
+
+    prepare = commands.add_parser("prepare-experiment")
+    prepare.add_argument("--config", required=True, type=Path)
+    prepare.add_argument("--output-dir", required=True, type=Path)
+    prepare.add_argument("--dry-run", action="store_true")
+
+    compare = commands.add_parser("compare-experiment")
+    compare.add_argument("--config", required=True, type=Path)
+    compare.add_argument("--report", required=True, action="append", type=Path)
+    compare.add_argument("--output-dir", required=True, type=Path)
 
     init = commands.add_parser("init-generation")
     init.add_argument("--bounds", required=True, type=Path)
@@ -190,6 +202,26 @@ def _load_configuration(path: Path, artifact_type: str) -> dict[str, object]:
 
 
 def run(arguments: argparse.Namespace) -> None:
+    if arguments.command == "prepare-experiment":
+        result = prepare_experiment(arguments.config, arguments.output_dir, arguments.dry_run)
+        sys.stdout.write(canonical_json_bytes(result).decode("utf-8"))
+        if result["payload"]["incompatibilities"]:
+            raise ToolError(
+                "incompatible_experiment",
+                "Dry-run found incompatibilities; no files were written.",
+                ExitCode.INVALID_INPUT,
+                {"incompatibilities": result["payload"]["incompatibilities"]},
+            )
+        return
+    if arguments.command == "compare-experiment":
+        result = compare_experiment(arguments.config, arguments.report, arguments.output_dir)
+        completion = {
+            "type": result["type"],
+            "checksum": result["checksum"],
+            "output": str(arguments.output_dir / "comparison.json"),
+        }
+        sys.stdout.write(canonical_json_bytes(completion).decode("utf-8"))
+        return
     if arguments.command == "init-generation":
         bounds = validate_bounds(_load_configuration(arguments.bounds, "gene_bounds"))
         _write_result(

@@ -85,6 +85,13 @@ in the example below), or copy the export and add the candidate while changing
 the regime to the new profile count. In either case, make the tournament count
 a multiple of the table size and keep cyclic rotation.
 
+For a registry-backed experiment, the
+[experiment preparation workflow](../how-to/preparing-bot-experiments.md)
+automates candidate and independent confirmation manifests from strict config.
+It also compares retained and new candidates against the same validated cohort,
+preserves their lineage, and prepares commands for consolidated human review.
+The manually authored example below explains the manifest fields.
+
 Simulations are configured using a JSON manifest file conforming to schema 2.
 
 Create a manifest file named `solid_tag_manifest.json`:

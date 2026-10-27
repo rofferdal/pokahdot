@@ -4,6 +4,11 @@ This guide provides the complete, authoritative procedure for updating or replac
 
 ---
 
+The [experiment preparation guide](preparing-bot-experiments.md) generates
+common-cohort evaluation and independent per-candidate confirmation manifests,
+then prepares commands for the consolidated pending review below. It does not
+make reviewer decisions, publish Resources or alter roster membership.
+
 ## 1. Understanding Playable Rosters and `PlayableBotRoster`
 
 Pokahdot manages all playable in-game bots through a centralized, source-controlled catalog class: [`PlayableBotRoster`](../../scripts/core/agents/playable_bot_roster.gd).

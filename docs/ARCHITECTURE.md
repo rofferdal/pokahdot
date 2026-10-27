@@ -271,6 +271,12 @@ counts even when a family has fewer profiles than seats.
 interactive CLI or reads stdin. Replay rebuilds the manifest plan, executes
 the same simulation composition path, and compares a normalized outcome
 digest so JSON integer/float representation cannot change reproducibility.
+Both run formats write throttled progress (completed/assigned, monotonic elapsed
+time and throughput) to stderr; stdout carries only the result document or
+text summary. Resume counts include reused records and timing covers the current
+invocation. Replay honors the requested bounded trace policy through the same
+runner and isolated trace RNG, recording policy/traces in its optional artifact.
+Trace detail does not change outcome digests or provenance checks.
 
 ## 4. Key decisions
 
@@ -1086,13 +1092,33 @@ and is enabled only by an explicit project-owner request.
 
 1. Start through `godot --headless --path . --script res://scripts/cli/cli_app.gd`.
 2. Display the defaults and offer an immediate start that supplies no overrides. If configuration is requested, allow participant count, starting stack, small blind, and big blind to be overridden independently; an empty field supplies no override.
-3. Merge overrides onto a fresh default configuration. Report invalid explicit input and repeat setup until the complete configuration is valid. After validation succeeds, print its summary and require no further setup input.
+3. Merge overrides onto a fresh default configuration. Report invalid explicit input and repeat only fields named by validation errors, retaining all other edits. Blank correction retains the displayed value. After validation succeeds, print its summary and require no further setup input.
 4. Follow the common match API and render snapshots as text. In every player list, append the literal suffix `(you)` immediately after the display name of the one `PlayerView` whose human flag is true; never apply it to a bot. Format every visible card as `[Rank][Suit]` using the canonical Unicode suit glyphs, and format card collections as `[ Card1 | Card2 | CardN ]`, exactly as specified in `docs/POKERCARDS_IN_CLI.md`. Never render stable IDs, enum ordinals, or numeric rank/suit pairs to the player.
-5. During play, read stdin only when the result is `WAITING_FOR_HUMAN`.
+5. During play, read stdin only at `WAITING_FOR_HUMAN` or `HAND_COMPLETED`. Between hands, only blank input or `continue` advances; help, unknown commands and poker actions preserve the completed hand. At a human turn, blank input preserves the turn and `continue` reports a phase error.
 6. Parse `fold`, `check`, `call`, `bet <amount>`, `raise <amount>`, and `allin` into `PlayerAction`; report parsing or action errors and prompt again without crashing.
 7. Map `quit` and `exit` directly to `request_quit()`.
 
 `cli_app.gd` is the composition/process-exit entry point. `TerminalIO` is the only class that reads stdin or writes stdout, behind an injectable `CliIO` boundary used by `StartupConfigPrompt` and `CliCommandLoop`. `CommandParser` converts normalized terminal text to typed shell commands; poker-action parsing is added only when the corresponding core actions exist. Terminal input reads bytes through `OS.read_buffer_from_stdin()` so an intentional blank line remains distinguishable from EOF; EOF terminates cleanly rather than causing an input-retry loop. Blocking reads are permitted only in this headless adapter, never in `scripts/core/` or the GUI.
+
+`CliCommandLoop` returns distinct `COMPLETED`, `QUIT`, `EOF` and `ERROR` results. Normal completion, voluntary quit and EOF exit with status 0; startup and tournament failures exit with status 1. Recoverable input/action rejections keep prompting.
+
+`CliStartupArguments` strictly parses `--help`, `--configure`, `--players`,
+`--stack`, `--small-blind`, `--big-blind`, `--seed` and the legacy-roster flag.
+It rejects duplicate/unknown switches and unsafe integer conversion; the entry
+point applies options to a copy and validates the complete configuration through
+`ConfigResolver` before prompting. Seed 0 remains time-based. `CliMatchFactory`
+prints the effective seed and reproduction options from the same `RngStreams`
+instance used for roster assignment and tournament construction, rather than
+creating a separate time seed for diagnostics.
+
+The product entry point enables compact rendering: full snapshots at hand
+start/completion and incremental public history with board/pot/stacks/cards and
+legal actions during play. `state` and `history` inspect the full recipient-safe
+view or current hand history without advancement. The renderer resets its
+history cursor at each new hand and match; explicit inspection does not consume
+that cursor. Injected command loops may retain full rendering for callers that
+need every snapshot. Reproduction requires the same source, roster and stdin
+sequence; this is not a cross-version game-record format.
 
 CLI card formatting belongs in a small presentation helper used by the renderer. It accepts `CardData` snapshots and produces UTF-8 text only; it must not mutate cards or influence comparisons, dealing, evaluation, or visibility. Collection formatting joins dynamically rendered cards with ` | ` and wraps them with `[ ` and ` ]`. It must not assume a fixed card width because rank `10` occupies one more character position than the other ranks.
 
@@ -1112,10 +1138,11 @@ Ordinary reports and traces never contain unrevealed opponent hole cards.
 The adapter writes the complete `run` report only to `--output`; stdout is
 reserved for one canonical validation/plan document, a compact completion
 summary, an inspection summary, or a replay comparison according to the
-selected command and format. Current text `run` also emits progress on stdout;
-JSON `run` has no progress. Errors use stderr. Replay currently collects no
-traces. The authoritative [stream/replay contract](Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output)
-records these CLI-03 limitations.
+selected command and format. Both formats write throttled completed/total,
+elapsed-time and throughput progress to stderr. Replay collects bounded safe
+traces when explicitly requested, separately from its outcome digest. The
+[stream/replay contract](Simulation_And_Evolutionary_Bot_Strategy.md#44-stdout-stderr-and---output)
+specifies these boundaries.
 
 Profile evolution is owned by a separate non-interactive external tool, not a
 fourth game composition root. It operates only on immutable `BotProfile`
@@ -1129,13 +1156,42 @@ reviewed source change.
 The repository entry point is `tools/profile-evolution`, backed by the Python
 3 standard-library package `tools/profile_evolution`; it is outside both the
 Godot runtime and the simulation CLI. Its strict `argparse` interface exposes
-`init-generation`, `evaluate-fitness`, `select`, `crossover`, `mutate`,
-`build-lineage`, `inspect-lineage`, `confirm-candidate`, and
+`prepare-experiment`, `compare-experiment`, `init-generation`,
+`evaluate-fitness`, `select`, `crossover`, `mutate`, `build-lineage`, `inspect-lineage`, `confirm-candidate`, and
 `prepare-promotion-review`, `finalize-promotion-review`, `publish-profile`,
 and `export-candidates`. The older single-candidate `review-promotion` command
 remains only for artifact compatibility; new workflows must use one
 consolidated review. JSON
 inputs must be UTF-8 objects without duplicate keys or non-finite numbers.
+`prepare-experiment --config PATH --output-dir DIR [--dry-run]` validates a
+schema-1 experiment configuration against immutable lineage and benchmark
+snapshots. One common heads-up evaluation cohort covers selected candidates
+from any generation against the same benchmarks. Separate mirrored/mixed
+manifests contain one candidate each, use independent seed blocks, and meet
+cyclic seat/sample minimums. Historical champions require matching selected
+lineage; prior evaluation ranges/RNG versions remain explicit compatibility
+constraints. Dry-run writes nothing and reports artifacts, checksums, commands
+and incompatibilities. Generated commands end at one pending consolidated
+promotion review; they do not publish or decide approvals.
+
+`compare-experiment --config PATH --report PATH... --output-dir DIR` requires
+the exact generated common manifest, complete shards and matching current RNG
+and executable provenance. Existing fitness validation recomputes each selected
+candidate's results from raw tournament rows; eligible fitness sorts descending
+with candidate ID as tie-breaker. Ineligible candidates remain unranked. The
+comparison retains original generation/creation context, emits per-candidate
+fitness bound to the original creation artifact, and appends this evidence to a
+copied lineage registry for confirmation. It never fabricates a merged
+population or compares unrelated historical score cohorts.
+
+Multi-file experiment outputs reserve a new directory and publish complete
+files through the shared no-clobber writer. `experiment.json` or
+`comparison.json` is the readiness marker, committed last. Failure cleanup
+removes known owned files only; competing files and uncertain post-publication
+failures remain for inspection. Existing/dangling output symlinks are refused.
+The [experiment guide](../devdocs/how-to/preparing-bot-experiments.md) specifies
+the config and generated workflow.
+
 Every persisted artifact has an exact envelope of `schema_version`, `type`,
 `tool_version`, object `payload`, and SHA-256 `checksum`.
 Checksums cover sorted compact UTF-8 canonical JSON with one trailing newline

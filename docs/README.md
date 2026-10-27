@@ -39,6 +39,8 @@ as historical evidence; retain their recorded names and limitations.
 - [`Simulation_And_Evolutionary_Bot_Strategy.md`](Simulation_And_Evolutionary_Bot_Strategy.md)
   — simulation manifest/report contract, metrics, privacy, and profile
   evolution, including curated-roster baseline export.
+- [Preparing and comparing bot experiments](../devdocs/how-to/preparing-bot-experiments.md)
+  — strict configuration, generated manifests, compatible cohorts and pending review.
 - [`POKERCARDS_IN_CLI.md`](POKERCARDS_IN_CLI.md) — interactive CLI card text
   format.
 - [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md) — automatic `main`-branch

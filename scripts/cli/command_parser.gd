@@ -32,12 +32,14 @@ func parse(input: String) -> CliCommand:
 
 
 func _parse_simple_command(normalized: String) -> CliCommand:
-	if normalized == "help":
-		return CliCommand.new(CliCommand.Kind.HELP, normalized)
-	if normalized == "quit" or normalized == "exit":
-		return CliCommand.new(CliCommand.Kind.QUIT, normalized)
-	if normalized == "potbet":
-		return CliCommand.new(CliCommand.Kind.POT_BET, normalized)
-	if normalized == "potraise":
-		return CliCommand.new(CliCommand.Kind.POT_RAISE, normalized)
-	return null
+	var commands: Dictionary[String, CliCommand.Kind] = {
+		"state": CliCommand.Kind.STATE,
+		"history": CliCommand.Kind.HISTORY,
+		"continue": CliCommand.Kind.CONTINUE,
+		"help": CliCommand.Kind.HELP,
+		"quit": CliCommand.Kind.QUIT,
+		"exit": CliCommand.Kind.QUIT,
+		"potbet": CliCommand.Kind.POT_BET,
+		"potraise": CliCommand.Kind.POT_RAISE,
+	}
+	return CliCommand.new(commands[normalized], normalized) if commands.has(normalized) else null

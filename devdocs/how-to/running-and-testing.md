@@ -4,6 +4,9 @@ This guide provides step-by-step commands for running the game in GUI or CLI mod
 
 ---
 
+For validated manifest preparation, common-cohort comparison and pending human
+review, see [Preparing and comparing bot experiments](preparing-bot-experiments.md).
+
 ## 1. Prerequisites
 
 - **Godot 4.7.2**: Download from [godotengine.org](https://godotengine.org) or ensure the `godot` binary is in your `PATH` (on macOS, `/Applications/Godot.app/Contents/MacOS/Godot`).
@@ -31,6 +34,42 @@ To play an interactive poker tournament in your terminal:
 godot --headless --path . --script res://scripts/cli/cli_app.gd
 ```
 
+Press Enter for the displayed defaults, or type `configure` to edit them.
+Blank configuration fields retain their displayed value. After validation
+fails, only fields with errors are prompted again; other edits remain intact.
+Use `--configure` to open the configuration fields directly.
+
+Options after Godot's `--` separator are validated before setup: `--players`
+(2–9), `--stack`, `--small-blind`, `--big-blind` (each 1–1,000,000), `--seed`
+(a signed 64-bit integer), and `--use-legacy-models`. The small blind cannot
+exceed the big blind. Unknown, duplicate, missing, malformed and out-of-range
+options exit with status 1 before a hand starts. `--help` prints usage without
+reading stdin. With no options, immediate Enter startup remains available.
+
+```bash
+godot --headless --path . --script res://scripts/cli/cli_app.gd -- \
+  --players 3 --stack 100 --small-blind 5 --big-blind 10 --seed 4242
+```
+
+Seed 0 chooses a time seed. Startup prints the **effective seed** from the same
+RNG streams used for profile selection and the match, followed by reproduction
+options. Copy those options to repeat the game using the same source/roster
+and command sequence. A saved stdin transcript includes the initial Enter:
+
+```bash
+printf '\nstate\nhistory\nraise 20\nquit\n' > localtmp/cli-transcript.txt
+godot --headless --no-header --path . --script res://scripts/cli/cli_app.gd -- \
+  --players 3 --stack 100 --seed 4242 < localtmp/cli-transcript.txt \
+  > localtmp/cli-transcript.log
+```
+
+The app prints a full state when a hand starts or completes. Intermediate
+updates show new public actions, board, pot, stacks, your cards and legal
+actions. `state` prints the full recipient-safe snapshot; `history` prints
+the current hand's complete public action history. Both commands preserve
+the current turn or completed-hand phase. Reproduction is tied to the same
+source/roster; the seed alone does not promise compatibility across versions.
+
 By default, product games select only strategic `StrategyDecisionModel`
 profiles. To include legacy heuristic profiles in the CLI roster:
 ```bash
@@ -48,8 +87,14 @@ When it is your turn, enter any of the following commands:
 - `bet <total>` (e.g. `bet 20` to make your street bet 20 chips)
 - `raise <total>` (e.g. `raise 60` to raise the wager to 60 chips)
 - `allin` (push all remaining chips)
+- `state` (full recipient-safe state) and `history` (current hand public actions)
 - `help` (list available commands)
 - `quit` or `exit` (conclude and exit the tournament)
+
+Between hands, press Enter or type `continue` to deal the next hand. Poker
+actions and unknown commands leave the completed hand unchanged. Blank input
+during a human turn leaves that turn unchanged. Completion, quit and EOF exit
+with status 0; startup/tournament errors exit with status 1.
 
 ---
 
@@ -79,6 +124,17 @@ Use `-gtest=` with the resource path:
 ```bash
 godot --headless --path . -s addons/gut/gut_cmdln.gd -gtest=res://tests/unit/test_playable_bot_roster.gd
 ```
+
+### Run CLI Process Contracts
+
+```bash
+make GODOT=godot cli-process-test
+```
+
+These tests capture actual process exit codes and output, including help,
+invalid startup options, retained edits and deterministic stdin transcripts,
+as well as separate simulation stdout/stderr, progress and bounded replay traces.
+They run as part of `make check`.
 
 ### Run Python Profile Evolution Tests
 ```bash
@@ -239,6 +295,26 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
   replay --report artifacts/report.json --tournament-index 0
 ```
+
+Both simulation formats send progress to stderr: completed/total, elapsed time
+and tournaments/second. Stdout contains the completion summary. Use
+`--no-header` before `--` when consuming stdout as JSON:
+
+```bash
+godot --headless --no-header --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  run --config path/to/manifest.json --output artifacts/report.json --format json \
+  > localtmp/simulation-result.json 2> localtmp/simulation-progress.log
+
+godot --headless --no-header --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  replay --report artifacts/report.json --tournament-index 0 \
+  --trace sampled --trace-sample 100 --output artifacts/replay.json
+```
+
+Replay's optional artifact records its trace policy and bounded recipient-safe
+traces. Default error-only tracing produces no traces for a successful replay.
+Requesting sampled traces does not alter outcome/provenance comparison. Resume
+progress counts reused records too; elapsed time and throughput cover the
+current invocation, including checkpoint reads.
 
 ### External Profile Evolution CLI
 To run genetic evolution operations, inspect lineages, or verify candidate promotion eligibility:
