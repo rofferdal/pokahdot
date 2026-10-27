@@ -289,10 +289,10 @@ checkboxes or treat deferred landscape support as accepted.
   boundary at 360 × 640. Full check: 616 GUT tests, 98,158 assertions, 89
   evolution and 34 LAN tests; all four layout gates and five exported Chromium
   cases pass. Single-winner Web and seven-winner native captures were reviewed.
-  Real-flow coverage preserves only byte-identical preexisting board-rank
-  clipping measured before settlement; it does not certify those old glyph
-  gaps fixed. New/changed failures and winner-text clipping always fail.
-  See GUI-05-D for the separately recorded rank/name defects. No fix cycle was
+  Initial real-flow coverage permitted byte-identical preexisting board-rank
+  clipping measured before settlement. GUI-05-D has since fixed the recorded
+  rank/name defects and removed those exemptions: pre/post-settlement layouts
+  now require all supported portrait content checks to pass. No fix cycle was
   observed; existing clear layouts remain regression controls.
   - [x] Implement and automatically verify default visible phone winner feedback.
   Physical acceptance is still owned by the unchecked named-winner task in
@@ -480,7 +480,7 @@ failure for a regression in a previously clear layout.
   remain explicitly tracked by D/E. No fix cycle occurred; physical acceptance
   remains F.
 
-- [ ] **GUI-05-D — Preserve complete seat identity and stack copy. [Defect]**
+- [x] **GUI-05-D — Preserve complete seat identity and stack copy. [Defect]**
   Fix clipped `Human`, `Youssef` and stack-label text in captures 1/2 at normal
   970–1000-chip values. Done: names, numeric stacks, chosen chip-label format,
   position badges and card cells fit without masking one another, ellipsis or
@@ -494,15 +494,42 @@ failure for a regression in a previously clear layout.
   all-in state. These failures exist before the winner change. Include them
   in this task's glyph/cell measurements and failing regressions; do not fix
   them through repeated viewport-specific offsets or hide them from acceptance.
+  Verified 2026-10-27: small-desktop and portrait-tablet seats consistently
+  display full numeric stacks, resolved by core seat ID even after source-array
+  reordering. Fixed card faces measure rank width at the current font; portrait
+  board cards use 48 × 54 px with 5 px gaps, retaining at least 18 px suit cells.
+  A finite three-row phone content plan preserves names, stacks, complete
+  role/state components, exact actions and hidden/revealed cards, including
+  active heads-up and positive stacks after settlement. All prior winner-flow
+  clipping exemptions are removed. Same-widget resize cycles are covered.
+  Final exported report `localtmp/gui05-d-final-browser/results.json` passes
+  all 39 content and geometry cases; eight order cases remain E. Full checks
+  pass 629 GUT tests / 99,464 assertions, plus docs/evolution/LAN/checker suites;
+  all four current layout matrices pass (`localtmp/gui05-d-verified-layouts.log`).
+  Post-scope targeted checks pass 31 tests / 1,985 assertions. The native
+  seven-player 360 × 640 showdown capture in `localtmp/gui05-d-phone-review/`
+  was visually reviewed. New complete-component overlap checks apply to
+  supported portrait; all preexisting landscape checks remain. Landscape's
+  preexisting name/stack overlap and insufficient 38 px card width stay deferred.
+  No fix cycle occurred; physical acceptance remains F.
 
-- [ ] **GUI-05-E — Keep visual clockwise order stable across profiles. [Defect]**
+- [x] **GUI-05-E — Keep visual clockwise order stable across profiles. [Defect]**
   Correct the observed pair reversals in capture 2. Done: the same recipient
   remains at the bottom and opponents retain their clockwise core-seat order
   across all recorded layouts and resize transitions; Yael/Chidi and
   Haruto/Youssef do not swap apparent poker position. Verify using stable seat
   IDs and role markers, without changing the match or assigning new names.
+  Verified 2026-10-27: small-desktop placement retains the occupied authored
+  cells, sorts their centers clockwise and assigns them by relative core seat
+  ID instead of dictionary iteration. Pure/rendered regressions cover 2–9
+  players, nonzero human seats, reversed source arrays, profile transitions
+  and exact name/stack/role ownership. All 39 exported cases now pass geometry,
+  content and complete clockwise order (`localtmp/gui05-e-final/results.json`).
+  Full checks and all four current GUI matrices pass: 632 GUT tests / 100,922
+  assertions, plus docs/evolution/LAN/checker suites and lint/format
+  (`localtmp/gui05-e-check-final.log`). No new geometry resolver or fix cycle.
 
-- [ ] **GUI-05-F — Verify corrections and finish the device review. [Acceptance]**
+- [x] **GUI-05-F — Verify corrections and finish the device review. [Acceptance]**
   Review corrected captures at the identified failing sizes plus the clear
   sizes/iPad, then run full checks, current layout gates and exported input
   tests against one identified candidate. Complete the still-open
@@ -512,6 +539,17 @@ failure for a regression in a previously clear layout.
   Done: results and remaining limitations are recorded for the same pinned
   build and the user accepts the reviewed experience. The current iPad report
   is a pass for its reviewed screen only. Phone landscape remains deferred.
+  - [x] Verify corrected source automatically and prepare one pinned LAN candidate.
+    Build `b5766701eb8a40f4a70ae283836e2d24` is ready and served by the existing
+    HTTPS server, source `7ba6598d044faa9336ac6c7b98e75b3887eaa96e`, dirty-source
+    fingerprint `123af41c3b928ae1d8b618732ff361266f844ff5d3388f22d67ea331af0c9744`.
+    Full check: 632 tests / 100,922 assertions; all four current layout matrices
+    and 39 strict exported content/geometry/order cases pass. Five exported input
+    cases pass (`localtmp/gui05-f-input/results.json`). Production LAN startup
+    passes at desktop 1377 × 777 / DPR 1 and phone 390 × 844 / DPR 3 without
+    browser errors (`localtmp/gui05-f-production-smoke/results.json`). The root
+    redirects to this build and its index returns HTTP 200. Corrected measured
+    desktop captures and the native seven-player phone showdown were reviewed.
 
 ## 6. Code readability, economy, and runtime cost
 

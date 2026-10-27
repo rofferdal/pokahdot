@@ -3,11 +3,6 @@ extends "res://tests/support/poker_gut_test.gd"
 const Fixtures := preload("res://tests/support/gui_visual_state_fixtures.gd")
 const Harness := preload("res://tests/support/gui_scene_harness.gd")
 const Invariants := preload("res://tests/support/gui_invariant_assertions.gd")
-const KNOWN_CONTENT_GAP_PATTERN: String = (
-	"^text-clipping: TableMargin/Felt/TableSurface/"
-	+ "(CenterZone/BoardZone/BoardContent/CardSlots/CardSlot[1-5]/Content/Rank"
-	+ "|Seats/Seat[0-9]+/PhoneTokenContent/Name) needs [0-9.]+ px but has [0-9.]+ px$"
-)
 const PHONE_COUNTS: Array[int] = [2, 4, 6, 7]
 const HERO_SEEDS: Dictionary[int, int] = {2: 1, 4: 8, 6: 2, 7: 17}
 const OPPONENT_SEEDS: Dictionary[int, int] = {2: 4, 4: 1, 6: 4, 7: 1}
@@ -163,6 +158,78 @@ func test_seven_long_named_recipients_fit_at_supported_numeric_boundaries() -> v
 	_dispose({"rendered": rendered, "harness": harness})
 
 
+func test_long_names_with_combined_roles_keep_all_components_before_and_after_settlement() -> void:
+	for count: int in PHONE_COUNTS:
+		var descriptor: Dictionary = Fixtures.by_id(&"all-in-runout", count)
+		var view: GameView = descriptor.view
+		view.button_seat = 1 if count == 2 else 0
+		view.small_blind_seat = 1
+		view.big_blind_seat = 0 if count == 2 else 2
+		view._seats[1].all_in = true
+		view._seats[1].stack = 0
+		var names: Dictionary[int, String] = {}
+		for seat: int in range(count):
+			names[seat] = "Human" if seat == 0 else "Santiago"
+		var harness: Node = Harness.new()
+		add_child(harness)
+		var rendered: Dictionary = harness.render(descriptor, Vector2i(360, 640))
+		var table: PokerTableController = rendered.table
+		table.bind_view(view, {}, names)
+		assert_true(await harness.settle_layout())
+		assert_eq(Invariants.validate(rendered), PackedStringArray(), "Combined active roles")
+		view.hand_complete = true
+		view.hand_winner_seat = 1
+		view._seats[1].stack = count * 1000000
+		view._revealed_hole_cards = {1: [CardData.new(10, 0), CardData.new(10, 1)]}
+		table.bind_view(view, {}, names)
+		for dimensions: Vector2i in [Vector2i(360, 640), Vector2i(390, 744), Vector2i(360, 640)]:
+			harness.resize_viewport(dimensions)
+			assert_true(await harness.settle_layout())
+			assert_eq(
+				Invariants.validate(rendered),
+				PackedStringArray(),
+				"Positive awarded stack and ten cards"
+			)
+			var token: Control = table._seat_widgets[1]
+			var parts: String = ""
+			for badge_name: String in ["Badge", "BadgeRow2", "BadgeRow3"]:
+				var badge := token.find_child(badge_name, true, false) as Label
+				if badge != null and badge.visible:
+					parts += badge.text
+			assert_string_contains(parts, "SB")
+			assert_string_contains(parts, "AI")
+			if count == 2:
+				assert_string_contains(parts, "D")
+		_dispose({"rendered": rendered, "harness": harness})
+
+
+func test_acting_heads_up_dealer_keeps_long_name_stack_roles_and_previous_action() -> void:
+	for stack_value: int in [1000, 1000000]:
+		var descriptor: Dictionary = Fixtures.by_id(&"bot-turn", 2)
+		var view: GameView = descriptor.view
+		view.button_seat = 1
+		view.small_blind_seat = 1
+		view.big_blind_seat = 0
+		view.acting_seat = 1
+		view._seats[1].stack = stack_value
+		view._action_history = [PublicActionRecord.new(1, PlayerAction.Kind.RAISE, stack_value)]
+		var harness: Node = Harness.new()
+		add_child(harness)
+		var rendered: Dictionary = harness.render(descriptor, Vector2i(360, 640))
+		var table: PokerTableController = rendered.table
+		table.bind_view(view, {}, {0: "Human", 1: "Santiago"})
+		assert_true(await harness.settle_layout())
+		assert_eq(
+			Invariants.validate(rendered),
+			PackedStringArray(),
+			"Acting heads-up fields must all fit"
+		)
+		var panel: Control = table._seat_widgets[1]
+		assert_eq((panel.find_child("Stack", true, false) as Label).text, str(stack_value))
+		assert_eq((panel.find_child("ActionBadge", true, false) as Label).text, "R%d" % stack_value)
+		_dispose({"rendered": rendered, "harness": harness})
+
+
 func test_real_fold_wins_remain_named_without_revealing_opponents() -> void:
 	for count: int in PHONE_COUNTS:
 		var match_instance: TournamentMatch = _match(count, 1, -1, 99, true)
@@ -302,14 +369,8 @@ func _mount(match_instance: TournamentMatch, count: int, hand_pause: float = 60.
 	descriptor.view = table._bound_view
 	rendered.descriptor = descriptor
 	_stabilize_board_slot_names(table)
-	var before_failures: PackedStringArray = Invariants.validate(rendered)
-	var known_gap := RegEx.new()
-	assert_eq(known_gap.compile(KNOWN_CONTENT_GAP_PATTERN), OK)
-	for failure: String in before_failures:
-		assert_not_null(
-			known_gap.search(failure), "Unexpected pre-settlement invariant: " + failure
-		)
-	return {"harness": harness, "rendered": rendered, "before_failures": before_failures}
+	assert_eq(Invariants.validate(rendered), PackedStringArray(), "Pre-settlement content must fit")
+	return {"harness": harness, "rendered": rendered}
 
 
 func _stabilize_board_slot_names(table: PokerTableController) -> void:
@@ -348,17 +409,11 @@ func _assert_default_result(mounted: Dictionary) -> void:
 	var result_failures := PackedStringArray()
 	Invariants._validate_label_fit(label, "phone winner feedback", result_failures)
 	assert_eq(result_failures, PackedStringArray(), "The entire named result must fit")
-	# GUI-05-D owns existing card-rank/name clipping. Preserve the exact same
-	# mounted hand's pre-settlement geometry; never excuse a new or changed
-	# clipping failure, or any non-text failure, for this winner-feedback change.
-	var known_gap := RegEx.new()
-	assert_eq(known_gap.compile(KNOWN_CONTENT_GAP_PATTERN), OK)
-	for failure: String in Invariants.validate(mounted.rendered):
-		assert_not_null(
-			known_gap.search(failure), "Unexpected completed-hand invariant: " + failure
-		)
-		assert_has(mounted.before_failures, failure, "New or changed completed-hand invariant")
-		print("Known GUI-05-D content gap (unchanged): ", failure)
+	assert_eq(
+		Invariants.validate(mounted.rendered),
+		PackedStringArray(),
+		"Completed-hand content must fit"
+	)
 	for seat: int in table._bound_view.revealed_hole_cards:
 		if seat == table._bound_view.hero_seat:
 			continue

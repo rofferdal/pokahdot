@@ -4,6 +4,7 @@ extends Control
 signal tournament_quit_confirmed
 signal return_to_startup_requested
 const FoldedSeatStyleScript := preload("res://scripts/gui/folded_seat_style.gd")
+const GuiPhoneTokenContentPlanScript := preload("res://scripts/gui/gui_phone_token_content_plan.gd")
 const CardFaceFactoryScript := preload("res://scripts/gui/card_face_factory.gd")
 const GuiActionPacerScript := preload("res://scripts/gui/gui_action_pacer.gd")
 const GuiEventFormatterScript := preload("res://scripts/gui/gui_event_formatter.gd")
@@ -28,7 +29,6 @@ const OPPONENT_CARD_SIZE := Vector2(60, 76)
 const PHONE_CARD_SIZE := Vector2(18, 26)
 const PHONE_SHOWDOWN_CARD_SIZE := Vector2(46, 30)
 const PHONE_SHOWDOWN_CARD_GAP: float = 2.0
-const PHONE_SHOWDOWN_RANK_WIDTH_RATIO: float = 0.55
 const GUI_MINIMUM_FONT_SIZE: int = 20
 const OPPONENT_CHIP_FONT_SIZE: int = 44
 const SEAT_TEXT_FONT_SIZE: int = 40
@@ -651,6 +651,20 @@ func _create_phone_opponent_token(player_view: PlayerView) -> PanelContainer:
 		"normal", GuiTableStyleScript.compact_box(Color("172331f2"), Color("d9b56d"), 1, 4)
 	)
 	content.add_child(badge)
+	var parts: Array[String] = []
+	if not player_view.busted:
+		for part: String in _seat_marker_text(player_view).split(" ", false):
+			parts.append(part)
+	if player_view.folded:
+		parts.append("F")
+	elif player_view.all_in:
+		parts.append("AI")
+	elif player_view.busted:
+		parts.append("Out")
+	elif player_view.seat == _bound_view.acting_seat:
+		parts.append("T")
+	panel.set_meta("phone_badge_parts", parts)
+	badge.set_meta("full_text", badge.text)
 	var cards := _create_phone_opponent_hole_cards(player_view)
 	cards.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	cards.offset_left = -cards.size.x - 2.0
@@ -769,6 +783,15 @@ func _layout_phone_opponent_action_badges(landscape: bool, expanded_rows: bool =
 			action_badge.offset_bottom = 60.0
 		action_badge.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		var state_badge := seat_widget.find_child("Badge", true, false) as Label
+		state_badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		state_badge.visible = not (
+			String(state_badge.get_meta("full_text", state_badge.text)).is_empty()
+		)
+		state_badge.text = state_badge.get_meta("full_text", state_badge.text)
+		for extra_name: String in ["BadgeRow2", "BadgeRow3"]:
+			var extra := seat_widget.find_child(extra_name, true, false) as Label
+			if extra != null:
+				extra.hide()
 		var state_width: float = (
 			ceilf(
 				(
@@ -785,9 +808,20 @@ func _layout_phone_opponent_action_badges(landscape: bool, expanded_rows: bool =
 			)
 			+ 4.0
 		)
+		var badge_style := state_badge.get_theme_stylebox("normal") as StyleBoxFlat
+		badge_style.content_margin_left = 2.0
+		badge_style.content_margin_right = 2.0
+		badge_style.content_margin_top = 0.0 if expanded_rows else 1.0
+		badge_style.content_margin_bottom = 0.0 if expanded_rows else 1.0
+		state_badge.offset_top = 0.0
+		state_badge.offset_right = -4.0
 		state_badge.offset_left = -state_width - 4.0
 		state_badge.offset_bottom = 30.0
 		var name_label := seat_widget.find_child("Name", true, false) as Label
+		name_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		name_label.offset_left = 4.0
+		name_label.offset_top = 0.0
+		name_label.offset_bottom = 28.0
 		name_label.offset_right = -state_width - 4.0
 		var stack := seat_widget.find_child("Stack", true, false) as Label
 		stack.set_anchors_preset(Control.PRESET_TOP_LEFT if landscape else Control.PRESET_TOP_WIDE)
@@ -795,6 +829,7 @@ func _layout_phone_opponent_action_badges(landscape: bool, expanded_rows: bool =
 		stack.offset_top = 23.0 if landscape else 30.0
 		stack.offset_right = 62.0 if landscape else -cards_width - reserved_action_width
 		stack.offset_bottom = 47.0 if landscape else 60.0
+		cards.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 		cards.offset_left = -cards_width - 2.0 if landscape else -cards_width
 		cards.offset_top = 30.0
 		cards.offset_right = -2.0 if landscape else 0.0
@@ -814,6 +849,67 @@ func _layout_phone_opponent_action_badges(landscape: bool, expanded_rows: bool =
 			action_badge.offset_bottom = 86.0
 			cards.offset_top = 56.0 if revealed_cards else 28.0
 			cards.offset_bottom = cards.offset_top + (30.0 if revealed_cards else 26.0)
+			_layout_expanded_phone_identity(seat_widget, revealed_cards, cards_width)
+
+
+func _layout_expanded_phone_identity(panel: Control, revealed: bool, cards_width: float) -> void:
+	var badge := panel.find_child("Badge", true, false) as Label
+	var parts: Array = panel.get_meta("phone_badge_parts", [])
+	# Heads-up dealer/small-blind is one established compact position alias.
+	# Keeping it together avoids paying a separate frame margin for each role.
+	if not revealed and parts.size() == 3 and parts[0] == "D" and parts[1] == "SB":
+		parts = ["DSB", parts[2]]
+	var fields: Dictionary[String, Control] = {}
+	var widths: Dictionary[String, float] = {}
+	for field_name: String in ["Name", "Stack", "HoleCards", "ActionBadge"]:
+		var field := panel.find_child(field_name, true, false) as Control
+		if field_name == "ActionBadge" and not field.visible:
+			continue
+		fields[field_name] = field
+		if field is Label:
+			widths[field_name] = _phone_action_badge_width(
+				field, 0.0, PHONE_ACTION_HORIZONTAL_PADDING if field_name == "ActionBadge" else 0.0
+			)
+		else:
+			widths[field_name] = cards_width
+	badge.hide()
+	for index: int in range(parts.size()):
+		var node_name: String = "Badge" if index == 0 else "BadgeRow%d" % (index + 1)
+		var row_badge := panel.find_child(node_name, true, false) as Label
+		if row_badge == null:
+			row_badge = _phone_token_label(node_name, "")
+			row_badge.add_theme_stylebox_override("normal", badge.get_theme_stylebox("normal"))
+			badge.get_parent().add_child(row_badge)
+		var badge_style := row_badge.get_theme_stylebox("normal") as StyleBoxFlat
+		badge_style.content_margin_left = 1.0
+		badge_style.content_margin_right = 1.0
+		row_badge.text = parts[index]
+		row_badge.show()
+		fields[node_name] = row_badge
+		widths[node_name] = _phone_action_badge_width(row_badge, 0.0, 2.0)
+	var token_width: float = (
+		GuiPhoneSeatLayoutScript.seat_rects(_surface.size, _seat_widgets.size())[1].size.x
+	)
+	var plan := GuiPhoneTokenContentPlanScript.new()
+	if not plan.configure(token_width, widths, revealed):
+		push_error(
+			(
+				"Phone token content does not fit the measured three-row plan: %s at %s px"
+				% [widths, token_width]
+			)
+		)
+		return
+	for field_name: String in fields:
+		var field: Control = fields[field_name]
+		if field is Label and field_name == "ActionBadge":
+			var style := (field as Label).get_theme_stylebox("normal") as StyleBoxFlat
+			style.content_margin_top = 0.0
+			style.content_margin_bottom = 0.0
+		field.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		field.position = plan.rects[field_name].position
+		field.size = plan.rects[field_name].size
+		if field_name == "HoleCards":
+			field.size.y = PHONE_SHOWDOWN_CARD_SIZE.y if revealed else PHONE_CARD_SIZE.y
 
 
 func _phone_numeric_rows_needed(surface_size: Vector2) -> bool:
@@ -826,6 +922,18 @@ func _phone_numeric_rows_needed(surface_size: Vector2) -> bool:
 		if seat == _bound_view.hero_seat:
 			continue
 		var panel: Control = _seat_widgets[seat]
+		var name_label := panel.find_child("Name", true, false) as Label
+		var badge := panel.find_child("Badge", true, false) as Label
+		badge.text = badge.get_meta("full_text", badge.text)
+		if (
+			(
+				_phone_action_badge_width(name_label, 0.0, 0.0)
+				+ _phone_action_badge_width(badge, 0.0, 4.0)
+				+ 8.0
+			)
+			> rects[1].size.x
+		):
+			return true
 		var stack := panel.find_child("Stack", true, false) as Label
 		var action := panel.find_child("ActionBadge", true, false) as Label
 		var cards := panel.find_child("HoleCards", true, false) as Control
@@ -972,10 +1080,6 @@ func _create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
 					true,
 				)
 			)
-			var rank := card.get_node("Content/Rank") as Label
-			var suit := card.get_node("Content/Suit") as TextureRect
-			rank.anchor_right = PHONE_SHOWDOWN_RANK_WIDTH_RATIO
-			suit.anchor_left = PHONE_SHOWDOWN_RANK_WIDTH_RATIO
 		else:
 			var card_back := Label.new()
 			card_back.name = "CardBack%d" % (index + 1)
@@ -2443,13 +2547,19 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		+ GuiMobileTableLayoutScript.STATUS_BAND_HEIGHT * seat_visual_scale
 		+ 5.0
 	)
-	var small_desktop_opponent_index: int = 0
 	var small_desktop_side_width: float = (surface_size.x - center_width) * 0.5
 	var small_desktop_column_gap: float = 6.0
 	var small_desktop_column_width: float = (
 		(small_desktop_side_width - small_desktop_column_gap) * 0.5
 	)
-	var small_desktop_cell_order: Array[int] = [1, 2, 0, 3, 5, 6, 4, 7]
+	var small_desktop_opponent_positions: Array[Vector2] = []
+	if small_desktop_layout:
+		small_desktop_opponent_positions = TableSeatLayoutScript.small_desktop_opponent_positions(
+			seat_count,
+			surface_size,
+			Rect2(center_position, center_size),
+			Vector2(small_desktop_column_width, 88.0)
+		)
 	for seat: int in _seat_widgets:
 		var is_hero: bool = seat == _bound_view.hero_seat
 		var hero_minimum_height: float = maxf(
@@ -2522,6 +2632,13 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			GuiMobileTableLayoutScript.apply_small_desktop_seat_footprint(panel)
 		elif compact_tablet_layout:
 			GuiMobileTableLayoutScript.apply_compact_tablet_seat_footprint(panel)
+		var stack_label := panel.find_child("Stack", true, false) as Label
+		var stack_value: int = _player_view_for_seat(seat).stack
+		stack_label.text = (
+			str(stack_value)
+			if small_desktop_layout or portrait_tablet_layout or stack_value >= 100000
+			else "%d chips" % stack_value
+		)
 		_reserve_full_name_width(panel, small_desktop_layout or compact_tablet_layout)
 		var minimum_size: Vector2 = panel.get_combined_minimum_size()
 		var standard_desktop_layout: bool = not compact_layout and not landscape_tablet_layout
@@ -2600,17 +2717,8 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 					),
 				)
 			else:
-				var cell: int = small_desktop_cell_order[small_desktop_opponent_index]
-				var column: int = cell % 4
-				var row: int = cell / 4
-				var cell_x_positions: Array[float] = [
-					0.0,
-					center_position.x - panel.size.x,
-					center_position.x + center_size.x,
-					surface_size.x - panel.size.x,
-				]
-				panel.position = Vector2(cell_x_positions[column], row * 172.0)
-				small_desktop_opponent_index += 1
+				var relative_seat: int = posmod(seat - _bound_view.hero_seat, seat_count)
+				panel.position = small_desktop_opponent_positions[relative_seat - 1]
 		var status_label: Label = _seat_status_widgets.get(seat)
 		var status_scale: float = (
 			_tablet_status_scale()
@@ -2748,9 +2856,9 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 	_wager_zone.custom_minimum_size.y = 28.0 if landscape else 42.0
 	for card: Control in _card_slots.get_children():
 		GuiMobileTableLayoutScript._scale_card_face(
-			card, Vector2(38.0, 42.0) if landscape else Vector2(46.0, 54.0), 22
+			card, Vector2(38.0, 42.0) if landscape else Vector2(48.0, 54.0), 22
 		)
-	_card_slots.add_theme_constant_override("separation", 2 if landscape else 6)
+	_card_slots.add_theme_constant_override("separation", 2 if landscape else 5)
 	var action_margin := _action_panel.get_node("Margin") as MarginContainer
 	action_margin.add_theme_constant_override("margin_top", 2 if landscape else 6)
 	action_margin.add_theme_constant_override("margin_bottom", 2 if landscape else 6)

@@ -208,3 +208,38 @@ static func small_desktop_positions(seat_count: int) -> Array[Vector2]:
 			Vector2(0.18, 0.24),
 		]
 	return compact_desktop_positions(seat_count)
+
+
+static func small_desktop_opponent_positions(
+	seat_count: int, surface_size: Vector2, center_rect: Rect2, cell_size: Vector2
+) -> Array[Vector2]:
+	# Preserve the occupied grid cells, then assign their perimeter order to
+	# relative core seats. Authored cell sizes keep folds/reveals from changing
+	# ownership; neither player insertion order nor optional content is an input.
+	if seat_count < 2 or seat_count > 9:
+		push_error("TableSeatLayout does not support %d small desktop seats." % seat_count)
+		return []
+	var occupancy: Array[int] = [1, 2, 0, 3, 5, 6, 4, 7]
+	var columns: Array[float] = [
+		0.0, center_rect.position.x - cell_size.x, center_rect.end.x, surface_size.x - cell_size.x
+	]
+	var cells: Array[int] = []
+	var positions: Dictionary[int, Vector2] = {}
+	var angles: Dictionary[int, float] = {}
+	for index: int in range(seat_count - 1):
+		var cell: int = occupancy[index]
+		var position := Vector2(columns[cell % 4], (cell / 4) * 172.0)
+		var delta: Vector2 = position + cell_size * 0.5 - surface_size * 0.5
+		cells.append(cell)
+		positions[cell] = position
+		angles[cell] = fposmod(atan2(delta.x, -delta.y) - PI, TAU)
+	cells.sort_custom(
+		func(first: int, second: int) -> bool:
+			if angles[first] == angles[second]:
+				return first < second
+			return angles[first] < angles[second]
+	)
+	var ordered: Array[Vector2] = []
+	for cell: int in cells:
+		ordered.append(positions[cell])
+	return ordered

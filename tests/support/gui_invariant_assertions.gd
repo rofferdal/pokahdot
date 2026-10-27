@@ -135,7 +135,7 @@ static func _validate_phone_table(rendered: Dictionary, failures: PackedStringAr
 			"intersection: More intersects seat_%d" % seat,
 			failures,
 		)
-		_validate_phone_token_content(panel, seat, failures)
+		_validate_phone_token_content(panel, seat, failures, surface.size.y >= surface.size.x)
 		for major_name: StringName in [&"center", &"action"]:
 			var major_global := Rect2(
 				regions[major_name].position + surface.global_position, regions[major_name].size
@@ -174,7 +174,7 @@ static func _validate_phone_table(rendered: Dictionary, failures: PackedStringAr
 
 
 static func _validate_phone_token_content(
-	panel: Control, seat: int, failures: PackedStringArray
+	panel: Control, seat: int, failures: PackedStringArray, portrait: bool = true
 ) -> void:
 	var name_label := panel.find_child("Name", true, false) as Label
 	var stack_label := panel.find_child("Stack", true, false) as Label
@@ -190,6 +190,34 @@ static func _validate_phone_token_content(
 	_require(
 		not stack_label.get_global_rect().intersects(cards.get_global_rect()),
 		"seat-content: seat_%d stack intersects cards" % seat,
+		failures,
+	)
+	# The complete three-row packing contract is supported portrait scope.
+	# Deferred landscape keeps its prior assertions, including card diagnostics.
+	if portrait:
+		var fields: Array[Control] = [name_label, stack_label, cards]
+		for field_name: String in ["Badge", "BadgeRow2", "BadgeRow3", "ActionBadge"]:
+			var field := panel.find_child(field_name, true, false) as Control
+			if field != null and field.is_visible_in_tree():
+				fields.append(field)
+		for index: int in range(fields.size()):
+			for other: int in range(index + 1, fields.size()):
+				_require(
+					not fields[index].get_global_rect().intersects(fields[other].get_global_rect()),
+					(
+						"seat-content: seat_%d %s intersects %s"
+						% [seat, fields[index].name, fields[other].name]
+					),
+					failures,
+				)
+	var badge_parts: String = ""
+	for field_name: String in ["Badge", "BadgeRow2", "BadgeRow3"]:
+		var component := panel.find_child(field_name, true, false) as Label
+		if component != null and component.is_visible_in_tree():
+			badge_parts += component.text.replace(" ", "")
+	_require(
+		badge_parts == String(badge.get_meta("full_text", badge.text)).replace(" ", ""),
+		"seat-content: seat_%d role/state components changed" % seat,
 		failures,
 	)
 	_validate_phone_showdown_cards(panel, cards, seat, failures)

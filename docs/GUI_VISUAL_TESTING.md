@@ -103,11 +103,13 @@ matrices and do not establish physical-device acceptance.
 The real-flow winner regressions in `test_gui_phone_winner_flow.gd` drive
 `TournamentMatch` through settlement for hero/opponent wins, splits, side pots
 and folds at 2/4/6/7 seats. Winner text must fit and appear before opening Pots;
-card privacy and hand-pause/reset behavior are checked. Identical preexisting
-board-rank text-clipping failures may remain only when measured before the
-same settlement; every new/changed failure still fails the test. Known glyph
-and long-name gaps remain owned by GUI-05-D rather than being certified clear
-by winner-specific coverage. Supplemental seven-recipient boundary coverage
+card privacy and hand-pause/reset behavior are checked. GUI-05-D removed the
+former known-clipping exemptions: pre/post-settlement supported portrait
+layouts must pass every content invariant. Measured three-row packing covers
+long names, combined roles, active heads-up actions, positive awarded stacks
+and repeated resizes without rebinds. Fixed-card tests cover all 52 rank/suit
+combinations at both portrait board and revealed-opponent sizes. Supplemental
+seven-recipient boundary coverage
 checks the largest result footer. Exported input tests include a real six-seat
 showdown and touch on Pots/Close, in addition to keypad/modal cases.
 

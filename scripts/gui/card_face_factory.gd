@@ -76,7 +76,34 @@ static func create_card_face(
 		suit.anchor_left = COMMUNITY_CARD_RANK_WIDTH_RATIO
 		suit.anchor_right = 1.0
 		suit.anchor_bottom = 1.0
+	if fixed_layout:
+		content.resized.connect(update_fixed_cells.bind(card_face))
+		update_fixed_cells(card_face)
 	return card_face
+
+
+static func update_fixed_cells(card: Control) -> void:
+	if not card.get_meta(FIXED_LAYOUT_META, false):
+		return
+	var content := card.get_node("Content") as Control
+	var rank := content.get_node("Rank") as Label
+	var suit := content.get_node("Suit") as TextureRect
+	# Reserve the widest rank at the actual font so binding a ten never changes
+	# card geometry. Compact portraits reserve an independent readable suit cell.
+	var width: float = ceilf(
+		(
+			rank
+			. get_theme_font("font")
+			. get_string_size(
+				"10", HORIZONTAL_ALIGNMENT_LEFT, -1.0, rank.get_theme_font_size("font_size")
+			)
+			. x
+		)
+	)
+	rank.anchor_right = 0.0
+	rank.offset_right = width
+	suit.anchor_left = 0.0
+	suit.offset_left = width
 
 
 static func create_main_pot_winner_star(avatar_size: Vector2) -> TextureRect:

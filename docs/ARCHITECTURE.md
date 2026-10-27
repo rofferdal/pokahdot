@@ -727,14 +727,31 @@ from 60 to 86 logical pixels: current actions use a third row, replaced by
 legitimately revealed cards at showdown. The same immutable phone plan reserves
 a 96 px center with side-by-side exact Pot/Bet totals. Large hero actions share
 a feedback row with concise turn state; More retains its own reserved width.
-Ordinary values restore the compact composition without mutating the view.
+Measured name/role overflow also selects the 86 px composition.
+`GuiPhoneTokenContentPlan` finitely assigns measured public fields to three
+rows, retaining the name and stack in their first and second rows. Revealed
+cards occupy the third row; position/state components can occupy separate
+cells without losing their combined meaning. Layout resets all anchors and
+component visibility before applying a fresh plan, including repeated resizes
+without a new view. Ordinary content restores the compact composition without
+mutating the view.
 
 Larger layouts omit the redundant `chips` suffix from large stacks and split
-long pot/blind information across two lines. Compact tablet and small-desktop
-large-value action rails keep two rows: Fold/Call/All-in and Min/Pot/Bet or
+long pot/blind information across two lines. Small-desktop and portrait-tablet
+seats consistently use bare integer stacks at ordinary values too; each layout
+refresh resolves the value by stable core seat ID. Compact tablet and
+small-desktop large-value action rails keep two rows: Fold/Call/All-in and Min/Pot/Bet or
 Raise. The wager button opens the existing keypad for free entry; both the
 inline and keypad presets retain their exact core-validated targets. Full
 desktop numeric controls retain inline input and use at least 20 px type.
+
+Fixed card faces measure the widest rank (`10`) at the current font when
+created, resized or rescaled. Portrait community cards use 48 × 54 px faces
+with 5 px gaps; revealed opponent faces retain 46 × 30 px. Both leave at least
+18 px for the suit at their supported fonts. This does not establish deferred
+phone-landscape legibility: its narrower 38 px faces cannot satisfy the same
+rank/suit widths.
+
 Seven-seat full desktops with usable height below 1200 px reuse the nine-slot
 ring footprint with two empty slots so required below-seat status bands remain
 clear; taller canvases retain the ordinary ring.
@@ -929,6 +946,13 @@ collision resolvers. Other device profiles and surfaces that cannot fit the
 complete plan retain their existing layout paths. Exported browser regressions
 check footprint clearance and full clockwise core-seat order independently
 from content fit and physical-device acceptance.
+
+The small-desktop grid retains its authored occupied cells.
+`TableSeatLayout.small_desktop_opponent_positions` sorts their centers clockwise
+from the human's bottom position, using uniform authored footprints and a
+deterministic cell-ID tie break. The controller assigns these positions by
+relative core seat ID; dictionary/source-array order and optional folded or
+revealed content cannot determine seat ownership.
 
 Every push to `main`
 automatically checks out the pushed SHA and runs `release-candidate-gate`,

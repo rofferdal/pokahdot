@@ -286,7 +286,7 @@ static func _player_views(
 			Player
 			. new(
 				StringName("fixture_player_%d" % seat),
-				"Fixture Player %d" % (seat + 1),
+				"Player %d" % (seat + 1),
 				seat,
 				stack,
 				agent,

@@ -20,10 +20,9 @@ func test_phone_opponents_use_canonical_tokens_with_public_state() -> void:
 		assert_not_null(token.find_child("Stack", true, false))
 		assert_null(token.find_child("Avatar", true, false))
 		assert_not_null(token.find_child("DetailsButton", true, false))
-	var all_in_badge: Label = _seat(table, 3).find_child("Badge", true, false)
-	assert_string_contains(all_in_badge.text, "AI")
-	assert_string_contains((_seat(table, 1).find_child("Badge", true, false) as Label).text, "BB")
-	assert_string_contains((_seat(table, 3).find_child("Badge", true, false) as Label).text, "D")
+	assert_string_contains(_visible_state_text(_seat(table, 3)), "AI")
+	assert_string_contains(_visible_state_text(_seat(table, 1)), "BB")
+	assert_string_contains(_visible_state_text(_seat(table, 3)), "D")
 
 	var public_state: Dictionary = GuiVisualStateFixturesScript.by_id(&"bot-turn", 4)
 	public_state.view._seats[1].folded = true
@@ -162,7 +161,7 @@ func test_phone_token_and_detail_never_reveal_private_opponent_cards() -> void:
 
 	(hidden_token.find_child("DetailsButton", true, false) as Button).emit_signal("pressed")
 	var overlay := table.get_node("TableMargin/Felt/TableSurface/SeatDetailOverlay")
-	assert_eq((overlay.find_child("Name", true, false) as Label).text, "Fixture Player 4")
+	assert_eq((overlay.find_child("Name", true, false) as Label).text, "Player 4")
 	assert_not_null(overlay.find_child("CardBack1", true, false))
 	assert_null(overlay.find_child("ShowdownCard1", true, false))
 	var close_button := overlay.find_child("CloseButton", true, false) as Button
@@ -173,7 +172,7 @@ func test_phone_token_and_detail_never_reveal_private_opponent_cards() -> void:
 	table.bind_view(showdown.view, {}, {})
 	await get_tree().process_frame
 	overlay = table.get_node("TableMargin/Felt/TableSurface/SeatDetailOverlay")
-	assert_eq((overlay.find_child("Name", true, false) as Label).text, "Fixture Player 4")
+	assert_eq((overlay.find_child("Name", true, false) as Label).text, "Player 4")
 	assert_null(overlay.find_child("CardBack1", true, false))
 	assert_not_null(overlay.find_child("ShowdownCard1", true, false))
 	(overlay.find_child("CloseButton", true, false) as Button).emit_signal("pressed")
@@ -211,12 +210,11 @@ func test_phone_showdown_cards_keep_complete_rank_and_suit_visible() -> void:
 			var cards := token.find_child("HoleCards", true, false) as Control
 			var name_label := token.find_child("Name", true, false) as Label
 			var stack_label := token.find_child("Stack", true, false) as Label
-			var state_badge := token.find_child("Badge", true, false) as Label
 			var action_badge := token.find_child("ActionBadge", true, false) as Label
 			var context := "%d players at %s" % [player_count, viewport_size]
 			assert_eq(name_label.text, "Benedikt", context)
 			assert_eq(stack_label.text, "0", context)
-			assert_string_contains(state_badge.text, "AI", context)
+			assert_string_contains(_visible_state_text(token), "AI", context)
 			assert_eq(action_badge.text, "A1000", context)
 			assert_false(action_badge.visible, "%s lower-priority completed action" % context)
 			var previous_card: Control
@@ -335,6 +333,15 @@ func _assert_complete_showdown_card(
 	assert_gte(suit.size.y, 18.0, "%s distinguishable suit" % context)
 	assert_true(cards.get_global_rect().encloses(card.get_global_rect()), context)
 	assert_true(token.get_global_rect().encloses(card.get_global_rect()), context)
+
+
+func _visible_state_text(token: Control) -> String:
+	var text: String = ""
+	for field_name: String in ["Badge", "BadgeRow2", "BadgeRow3"]:
+		var label := token.find_child(field_name, true, false) as Label
+		if label != null and label.visible:
+			text += label.text
+	return text
 
 
 func _seat(table: PokerTableController, seat: int) -> PanelContainer:

@@ -506,6 +506,7 @@ static func _scale_card_face(card: Control, size: Vector2, rank_font_size: int) 
 	var rank_label := card.find_child("Rank", true, false) as Label
 	if rank_label != null:
 		rank_label.add_theme_font_size_override("font_size", rank_font_size)
+	CardFaceFactoryScript.update_fixed_cells(card)
 	var suit := card.find_child("Suit", true, false) as TextureRect
 	if suit != null:
 		if card.get_meta(CardFaceFactoryScript.FIXED_LAYOUT_META, false):

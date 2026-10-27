@@ -347,8 +347,10 @@ make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-lan-rebuild && make 
 ```
 
 Reopen the HTTPS root URL from devices on the same Wi-Fi to select the new
-export; starting a second server is unnecessary. Compare the tab's
-`Pokahdot · LAN <build-ID-prefix>` with `make web-lan-status`. Stop with Ctrl+C or
+export; starting a second server is unnecessary. Compare the build ID in the
+resulting `/builds/<build-id>/index.html` URL with `make web-lan-status`.
+Godot can reset the stamped tab title after startup, so use the URL to identify
+the running build. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
 The completed server workflow is recorded in [LanTestTasks.md](docs/arkiv/LanTestTasks.md).
 Current GUI/device review and demonstrated browser defects are tracked in

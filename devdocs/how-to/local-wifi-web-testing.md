@@ -37,8 +37,11 @@ root URL. **Do not run `web-lan-serve` again for an already running server.**
 
 Each browser is redirected to `/builds/<build-id>/index.html`. Refreshing that
 pinned URL keeps the old build; re-enter the root URL to get the new one.
-Compare the tab title `Pokahdot · LAN <first-eight-build-ID-characters>` with
-`build.build_id` in `web-lan-status`. An already open game does not update
+Compare the build ID in that URL with `build.build_id` in `web-lan-status`.
+The export stamps `Pokahdot · LAN <first-eight-build-ID-characters>` into the
+initial tab title, but Godot can reset it to `Pokahdot` after startup. The
+pinned URL and its adjacent `build-info.json` identify the running build.
+An already open game does not update
 itself; reopening loads a new game session.
 
 “Latest code” means the saved files in your currently checked-out branch,

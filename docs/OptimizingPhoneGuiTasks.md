@@ -340,6 +340,20 @@ observations, keypad/focus/overlay behavior, and screenshots against that same
 build. Complete the open physical tasks only after results exist; landscape
 remains deferred. No new physical acceptance is claimed here.
 
+### 2026-10-27 — GUI-05 device candidate b5766701
+
+The corrected D/E source is available at
+`https://192.168.39.105:8080/builds/b5766701eb8a40f4a70ae283836e2d24/index.html`.
+Source SHA: `7ba6598d044faa9336ac6c7b98e75b3887eaa96e`; dirty-source fingerprint:
+`123af41c3b928ae1d8b618732ff361266f844ff5d3388f22d67ea331af0c9744`.
+Full checks (632 tests / 100,922 assertions), all four current layout matrices,
+39 strict exported layout cases and five exported input cases pass. The actual
+LAN production build boots without browser errors at desktop DPR 1 and phone
+DPR 3; this is automation, not a physical-device pass. The server root redirects
+to this candidate. Compare its pinned URL/build metadata because Godot resets
+the stamped tab title after startup. Physical results and user acceptance remain
+pending; no checkbox above changes from this preparation.
+
 ### 2026-10-27 — Visible winner implementation ready for phone verification
 
 The updated candidate names the pot winner(s) in the default phone footer,
@@ -351,8 +365,21 @@ folds, privacy and pacing; a seven-recipient boundary fits at 360 × 640.
 Single-winner Web and seven-winner native captures were reviewed. This is
 implementation evidence, not a physical-phone pass: keep the named-winner
 verification and GUI-01 unchecked until the user tests the new candidate.
-Existing board-rank/name clipping is recorded separately under GUI-05-D and
-must not be confused with winner-feedback acceptance or silently hidden.
+The separately recorded board-rank/name clipping was subsequently corrected
+by GUI-05-D, as recorded below; physical winner acceptance is still pending.
+
+### 2026-10-27 — GUI-05-D content correction verified automatically
+
+Portrait board cards now reserve measured space for every rank and suit.
+Measured three-row token packing preserves long names, role/state components,
+numeric stacks, exact actions and revealed cards through settlement and
+same-widget resize cycles. The old winner-flow clipping exemptions are removed.
+Full checks pass 629 GUT tests / 99,464 assertions; all four current layout
+matrices and 39 exported browser content/geometry cases pass. A native
+seven-player 360 × 640 showdown was visually reviewed. These results do not
+complete any physical-device checkbox. The preexisting landscape name/stack
+overlap and insufficient space in 38 px card faces remain deferred; all prior
+landscape checks are retained.
 
 ### 2026-10-27 — Phone showdown winner is not shown
 
