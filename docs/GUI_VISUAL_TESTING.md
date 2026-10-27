@@ -6,6 +6,12 @@ runbook in [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md). Local captures do
 not prove browser or physical-device support, and hosted screenshots do not
 replace deterministic geometry regressions.
 
+The [GUI replacement plan](RestructureGuiTasks.md) owns new implementation and
+device-acceptance work. Existing cases preserve product contracts and evidence;
+they do not require the replacement to retain internal node paths, exact
+legacy geometry or a past visual defect. Snapshot/observer migration precedes
+legacy deletion.
+
 ## Current support and acceptance
 
 This document owns GUI evidence terminology. The product specification owns
@@ -24,7 +30,7 @@ A rendered review proves only its captured scope; neither proves a physical
 device passed. Accepted old captures do not certify later code or matrix versions.
 The completed [LAN workflow](arkiv/LanTestTasks.md) records user acceptance with
 resolution limitations; it does not complete open recorded phone acceptance checks.
-The [current GUI-05 browser capture review](AstraSuggestionTasks.md#gui-05-browser-capture-review)
+The [historical GUI-05 browser capture review](arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
 records overlapping/clipped content in two of four same-state browser captures,
 provisionally clear content in the other two, and the user's positive iPad
 screen review. This is limited state-level evidence: exact environments and
@@ -150,7 +156,7 @@ requires the optional browser environment and returns nonzero for defects.
 
 Report mode exits successfully when measurement completes, even with recorded
 layout defects. Engine/browser errors fail. Never treat report completion as
-layout acceptance. See the [GUI-05-A evidence record](AstraSuggestionTasks.md#gui-05-browser-capture-review)
+layout acceptance. See the [GUI-05-A evidence record](arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
 for the initial 39 measured environments/transitions, reproduced defects,
 explicit unknowns and clear automated controls. Physical safe areas, browser
 chrome and browser zoom are not measured by this headless report.

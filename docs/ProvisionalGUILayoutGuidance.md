@@ -1,6 +1,9 @@
 # Responsive GUI implementation guidance
 
-This guide describes the current Godot GUI. The
+This guide describes the current Godot GUI. The planned replacement follows
+[`RestructureGuiTasks.md`](RestructureGuiTasks.md); its scene/container design
+may replace the entire GUI rather than preserve these implementation details.
+The
 [product specification](ProjectDescription.md) owns player-facing requirements,
 [architecture](ARCHITECTURE.md#gui-adapter) owns component boundaries, and
 [visual testing contract](GUI_VISUAL_TESTING.md#current-support-and-acceptance)

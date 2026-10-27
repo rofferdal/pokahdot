@@ -1,16 +1,25 @@
 # Restructure GUI Tasks
 
-Status: Proposed — no task started.
-Reviewed: 2026-10-27 against the current `main` working tree.
+Status: Proposed — reconciled with current code; no redesign task started.
+Reviewed: 2026-10-27 against source commit
+`0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
+This documentation review is not RG-00 baseline execution or device acceptance.
 Owner mode: Tech Lead / Architect for Phase 0–1 decisions, Senior Software
 Engineer for implementation, QA for Phase 6.
 
 This backlog contains an analysis of the current Godot GUI against common
 practice for responsive GUIs on desktop browsers, iPad and phones, an
 assessment of the GUI tests, a target structure, and ordered tasks for a
-structured refactoring. It does not change product rules. The
-[product specification](ProjectDescription.md) and the
-[architecture](ARCHITECTURE.md#gui-adapter) remain authoritative.
+structured refactoring. The target principles in this document lead the
+redesign; the current implementation is a migration baseline, not a reason to
+retain competing geometry owners or runtime-built presentation. The
+[product specification](ProjectDescription.md) owns product rules and the
+[architecture](ARCHITECTURE.md#gui-adapter) describes implemented behavior.
+Proposed changes below must be recorded as future decisions before those
+implementation descriptions are replaced. If implementation would contradict
+product requirements or an approved architectural decision, stop and ask the
+user to resolve that specific conflict. Do not silently weaken the redesign
+or change requirements to make an implementation task pass.
 
 This backlog is self-contained. Other `docs/*Tasks.md` files, active or
 archived, are not inputs and may be outdated. Do not read their checkboxes
@@ -21,259 +30,222 @@ restructured GUI is tracked in Phase 8 below.
 
 ## 1. Summary
 
-The core/GUI separation is sound. `GameView`, recipient safety, the modal
-guard semantics, the transactional keypad, touch/pointer modality and Web DPR
-normalization are good foundations that should be kept.
+The core/GUI separation, recipient-safe `GameView`, modal guard, transactional
+keypad, input modality and Web DPR normalization remain sound foundations.
+The proposed destination remains one viewport adapter, one classification
+policy, pure presentation models, reusable component scenes, theme-owned
+styling and container-owned layout, including a custom seat-ring container.
 
-The table presentation is the problem. `PokerTableController` holds 3,324
-lines and 138 functions. It builds every widget in code, sets about 91 theme
-overrides at runtime, and positions most nodes manually in a 630-line
-`_layout_table()` plus a separate phone branch. At least five independent
-size classifiers use thresholds that disagree. Correctness depends on post-hoc
-collision passes (`_resolve_status_band_clearance()`,
-`_resolve_seat_panel_intersections()`), deferred re-application of the center
-bounds, and a layout-generation counter. Each device fix has added another
-branch keyed to a specific size or player count (for example 7 seats below
-1200 px, 9 seats, `x < 1200`, `x < 1600`, `y < 900`), so changes are risky and
-fixes for one device can break another.
+Some groundwork now exists. `PokerTableController` is 2,545 lines with 115
+functions; `_layout_table()` is a 66-line coordinator. Typed seat, action,
+overlay and layout helpers have replaced the earlier monolithic implementation.
+All four diagnostic matrices already share one runner. These extractions are
+useful migration boundaries, but most widgets are still built in code and the
+layout helpers still apply manual geometry, competing classification predicates
+and deferred collision/center corrections. They do not implement the target
+scene/container architecture. Architectural quality and responsive behavior are
+the acceptance criteria; reducing the diff or retaining existing GUI code is
+not a requirement. A replacement GUI built from scratch is an acceptable
+implementation strategy.
 
-The tests protect valuable invariants but are tightly bound to node paths,
-child names and exact pixel values of the current implementation. They sample
-about 15 discrete viewports and do not show that every size between them gets
-a valid layout. Several concrete gaps exist (Section 3.2).
+The migration must also preserve newer behavior: complete seat/status
+footprints, clockwise core-seat order, measured card/name/stack copy, finite
+phone content rows, default completed-hand winner presentation, and existing
+modal/focus/keypad rules. The native/Web refresh profiler and exported-browser
+layout runner are existing verification tools to extend, not new tools to
+recreate. Keep the legacy GUI available as a reference while building the replacement,
+using separate scenes or a temporary selector where useful. Reuse helpers only
+when they fit the target design. Preserve product behavior and verification
+coverage, not legacy node trees, pixel coordinates, visual defects or internal
+APIs. Cut over only after the replacement and its tests satisfy the contracts.
 
-The recommended direction is a set of incremental changes, each released
-separately, that keeps the old code running until the new parts replace it:
-one viewport adapter, one size classifier, a pure view model, component scenes
-styled by a `Theme`, and layout done by Godot containers, including one custom
-`Container` for the seat ring. A stable, role-based layout snapshot API should
-let the existing invariant tests survive the rewrite.
+## 2. Current structure and reusable foundations
 
-## 2. Current structure
+Counts describe the reviewed source, not acceptance evidence or size limits.
 
-| Area | Files | Lines | Observation |
-| --- | --- | --- | --- |
-| Table controller | `scripts/gui/poker_table_controller.gd` | 3,324 | Binding, formatting, widget factories, styling, four layout variants, overlays, pacing, input, and test hooks in one class. |
-| Table scene | `scenes/poker_table.tscn` | 425 | One scene contains both desktop and phone nodes (`PhoneMoreButton`, `PhoneOverflowMenu`, `QuitButton`, `EventLog`) toggled by visibility; overlays are siblings with `z_index`. |
-| Layout helpers | `gui_mobile_table_layout.gd`, `table_seat_layout.gd`, `gui_phone_layout_plan.gd`, `gui_phone_seat_layout.gd` | 1,040 | Static helpers that mutate nodes by `find_child()` name, reparent markers, store state in `meta`, and hold six hard-coded seat-position tables. |
-| Classification | `gui_layout_profile.gd`, `gui_mobile_table_layout.gd`, controller inline checks | — | Several predicates with different thresholds (Section 3.2). |
-| Styling | `resources/gui_theme.tres`, `gui_table_style.gd`, controller | — | The theme contains only `default_font_size = 29`; colors, fonts, margins and boxes are set in code. |
-| Startup | `startup_config_controller.gd`, `scenes/main.tscn` | 414 / 197 | Container-based form; also owns Web viewport normalization for the whole app. |
-| Keypad / modal | `wager_keypad.gd`, `gui_modal_guard.gd` | 350 / 138 | Behavior is good; the keypad builds its UI in code. |
-| GUI tests | 28 `tests/unit/test_gui_*.gd`, 5 support files, 4 manual matrix runners | ≈ 9,500 | 239 tests; strong invariant helpers; strong coupling to the implementation. |
+| Area | Current files / size | Migration implication |
+| --- | --- | --- |
+| Controller | `scripts/gui/poker_table_controller.gd`: 2,545 lines, 115 functions | Still owns binding, copy, pacing, input and significant phone/desktop layout work; its main coordinator is already extracted. |
+| Typed components | `gui_table_seat_factory.gd` / `gui_table_seat_view.gd` (491 / 55 lines), `gui_table_action_controls.gd` (196), `gui_table_overlay_views.gd` (129) | Reuse ownership boundaries and handles while replacing factories/runtime mutation with authored scenes. Handles are still discovered once by child name. |
+| Layout policy/application | `gui_table_layout_pass.gd` / `gui_table_seat_layout.gd` (159 / 233), `gui_mobile_table_layout.gd` (515), `table_seat_layout.gd` (245) | Branching has moved into these helpers; changing only controller predicates would leave competing policy behind. |
+| Finite plans | `gui_phone_layout_plan.gd`, `gui_phone_seat_layout.gd`, `gui_phone_token_content_plan.gd`, `gui_six_seat_desktop_plan.gd` | Preserve complete-footprint, content-fit and stable-seat-order contracts when moving their math behind containers. |
+| Scenes / startup | `scenes/poker_table.tscn` (425), `scenes/main.tscn` (197), `startup_config_controller.gd` (414) | Table still mixes phone/wide nodes; startup is container-based but owns app-wide Web geometry normalization. |
+| Theme / input | `resources/gui_theme.tres` contains only `default_font_size = 29`; `wager_keypad.gd` (350), `gui_modal_guard.gd` (138) | Move style and keypad construction into resources/scenes while preserving input transactions and modal lifetime. |
+| Tests | 36 `tests/unit/test_gui_*.gd` files, 262 test functions, 9,005 lines; nine GUI support scripts | Current coverage is broader than the original inventory, but still coupled to internal structure. Non-`test_gui_*` startup/keypad tests also remain relevant. |
+| Matrix runner | `tests/support/gui_invariant_matrix_runner.gd`, `gui_invariant_matrix_suites.gd`, `gui_phone_matrix_contract.gd` | Already consolidated. Preserve ordered case identities: 348 M3, 406 phone, 288 iPad, 232 desktop; four manual files are thin entry points. |
+| Browser / performance | `tools/run_web_input_tests.py`, `tools/run_web_layout_tests.py`, `tools/web_layout_assertions.py`, `tools/profile_gui_refresh.py`, `tests/web/`, `tests/performance/` | Reuse observers, real `Window` geometry, order/content checks and profiling fixtures throughout migration. |
 
 ## 3. Analysis against responsive-GUI practice in Godot
 
-### 3.1 Viewport, scaling and device geometry
+### 3.1 Viewport, scaling and safe areas
 
-Common practice is to keep one logical-pixel coordinate system. You use the
-`canvas_items` stretch mode with `expand` aspect, derive the scale from
-DPR/DPI in a single place, subtract safe-area insets, and lay out from the
-result.
+The target needs a defined mapping between physical/backing pixels, browser CSS
+pixels, Godot logical units and usable table-local coordinates. These are not
+interchangeable, and DPR must not be applied twice.
 
-- Good: `GuiWebViewportGeometry` normalizes the Web backing canvas to CSS
-  pixels, which fixed the Android misclassification.
-- The normalization lives in `StartupConfigController`, a screen controller,
-  rather than in an app-level adapter. The table relies on it indirectly.
-- Safe areas are not handled: there is no `DisplayServer.get_display_safe_area()`,
-  no CSS `env(safe-area-inset-*)` and no `viewport-fit=cover`. iPhone notches,
-  home indicators and Android gesture bars can therefore cover the bottom
-  action rail, which is the most important touch area.
-- Native desktop uses a 1920 × 1080 base with `expand`. A 1280 × 720 native
-  window is scaled to 0.67, so the "20 px minimum" becomes about 13 physical
-  pixels, and such a window can never classify as small desktop. Web is
-  unaffected because it overrides `content_scale_size`. The decision should
-  be explicit and the same on every platform.
-- The tests set `table.size` directly and never go through `Window` stretch,
-  so the full DPR → content scale → classification path is only covered by
-  the separate Chromium input job.
+- `GuiWebViewportGeometry` already converts backing size using screen scale;
+  `StartupConfigController` applies it to `Window.content_scale_size` on Web.
+  Move this ownership to the app adapter, preserving the existing startup/table
+  behavior and leaving CLI/simulation processes unaffected.
+- There is no implemented safe-area adapter or export `viewport-fit=cover`
+  contract. Measure Web insets through a CSS probe and convert native mobile
+  display-safe rectangles into window/logical coordinates. Preserve the usable
+  rectangle's origin, not only its size, and subtract browser/inset reductions
+  once. Headless tests must inject geometry instead of trusting display APIs.
+- Native uses a 1920 × 1080 design viewport with `canvas_items` / `expand`.
+  A smaller window can retain design-space coordinates while rendering them
+  at a reduced scale. The effect on classification, output text and touch size
+  needs an actual `Window` measurement in RG-10; a nominal 20-unit font is not
+  proof of a 20-CSS-pixel or physical-pixel output. Do not infer physical text
+  size from the base viewport alone.
+- Headless scene fixtures mostly set `SubViewport`/Control geometry directly.
+  The exported input and layout fixtures already mount production main and
+  exercise Web normalization through the real `Window`; reuse that path.
 
-### 3.2 Size classification: several sources of truth
+### 3.2 Classification and fit policy still disagree
 
-Common practice is to have one total function from usable logical size to a
-small set of size classes (compact/medium/expanded width and height). Every
-layout decision reads only that result.
+`GuiLayoutProfile.classify()` already has a fallback for every size. The issue
+is inconsistent policy across owners, not the absence of a total function.
 
-Current predicates:
+| Owner | Current input / policy |
+| --- | --- |
+| `GuiLayoutProfile` | Root size; phone short edge ≤ 600, long edge ≤ 920 and aspect ≥ 1.35; tablet and small-desktop ranges. |
+| `GuiTableLayoutPass` | Root classification plus inset surface predicates, compact-tablet/full-ring conditions and helper-selected scales. |
+| `GuiMobileTableLayout` | Surface-size portrait/tablet/small-desktop tests; small desktop `< 1300 × < 760`, unlike profile `< 1100 × < 760`. |
+| `GuiSixSeatDesktopPlan.can_use()` | Six-seat desktop only, width below 1600 plus complete-footprint feasibility; it already bypasses legacy clearance passes when selected. |
+| Remaining controller / seat helpers | Additional measured-center, numeric-copy, seat-count and height decisions, including short seven-/nine-seat compositions. |
 
-| Predicate | Input | Thresholds |
-| --- | --- | --- |
-| `GuiLayoutProfile.classify()` | root `size` | phone short ≤ 600, long ≤ 920, aspect ≥ 1.35; tablet short 680–900/1200; small desktop `< 1100 × < 760` |
-| `GuiMobileTableLayout.is_mobile_portrait()` | table surface (≈ 64 × 56 px smaller) | aspect ≥ 1.2 |
-| `GuiMobileTableLayout.is_small_desktop()` | surface | `< 1300 × < 760` |
-| `GuiMobileTableLayout.is_landscape_tablet()` / `is_portrait_tablet()` | surface | 1600 × 1200, 680–900 |
-| Inline in `_layout_table()` | surface | `x < 1200`, `x < 1600`, `y < 900`, `y < 1200` with 7 seats, 9 seats |
+A focused headless policy probe confirms `DESKTOP` plus mobile-portrait flags for
+650 × 900, and `DESKTOP` plus legacy small-desktop sizing at 1250 × 700
+(with the authored surface inset); 1377 × 777 instead selects the deterministic
+six-seat plan. These are characterization cases, not
+verified overlap defects. iPad portrait deliberately combines a tablet profile
+with portrait geometry. Record observed results before declaring failures.
 
-Consequences that can be reproduced by reading the code:
-
-- **Gap between phone and tablet.** A 650 × 900 portrait canvas (large
-  phone, foldable, iPad split view) is not a phone (short edge > 600) and not
-  a tablet (short edge < 680). It is classified as `DESKTOP`, while
-  `is_mobile_portrait()` is true. The layout runs a hybrid
-  desktop/mobile-portrait branch that no fixture covers.
-- **Disagreeing small-desktop boundaries.** At 1250 × 700 the profile is
-  `DESKTOP`, but the surface (≈ 1186 × 644) satisfies `is_small_desktop()`,
-  so small-desktop geometry runs under a desktop profile.
-- iPad portrait (768 × 1024) is both `TABLET` and `is_mobile_portrait()`, so
-  mobile scaling rules and tablet tables mix.
-- The profile is computed from the root size, while geometry uses the inset
-  surface. Thresholds therefore mean different things in different files.
+The replacement must classify one adapter-owned usable rectangle, then pass a
+typed policy to components. Local measured-fit decisions (for example a third
+content row or a container minimum size) remain necessary; they must not become
+another set of global device breakpoints. Width/height class monotonicity is
+specified per axis and orientation, not by ordering arbitrary profile enum IDs.
 
 ### 3.3 Layout ownership
 
-Common practice in Godot is to place nodes with containers (`VBoxContainer`,
-`HBoxContainer`, `GridContainer`, `FlowContainer`, `AspectRatioContainer`,
-`MarginContainer`) and size flags. When a layout cannot be expressed with
-stock containers, you write a custom `Container` that places its children in
-`NOTIFICATION_SORT_CHILDREN` with `fit_child_in_rect()`. Godot then handles
-ordering, deferred sorting and minimum-size propagation.
+Godot containers own the geometry of their direct Control children. The custom
+seat container must implement `NOTIFICATION_SORT_CHILDREN`, use
+`fit_child_in_rect()` and report content-derived minimum sizes. Its pure plan
+must account for child minima; normalized anchors alone cannot guarantee fit.
+See [Godot container guidance](https://docs.godotengine.org/en/stable/tutorials/ui/gui_containers.html)
+and the [Container API](https://docs.godotengine.org/en/stable/classes/class_container.html).
 
-Current state:
+Current manual/deferred geometry remains in the controller and extracted
+helpers. The ordinary paths still call clearance/intersection resolvers;
+the constrained six-seat desktop plan instead reserves complete footprints
+before placement. Preserve that deterministic behavior while replacing all
+paths with one container owner, not merely moving the old collision loops.
+Phone token content has a finite measured-row plan now; preserve its exact
+content and visibility rules rather than rebuilding them from old offsets.
 
-- Most table nodes use `layout_mode = 0` or are free `Control`s positioned by
-  `position`/`size` assignments. The center stack is placed manually and then
-  re-applied deferred, guarded by `_layout_generation`, because container
-  minimum sizes later overwrite it. This code fights the layout system.
-- Seat placement uses nested ternaries over six normalized position tables,
-  then special-case overrides (full-ring desktop footprints, small-desktop
-  cell order `[1, 2, 0, 3, 5, 6, 4, 7]`, seven-seat slot remaps). After that,
-  iterative collision passes move panels until they stop overlapping. A layout
-  that only works after collisions are pushed apart is not deterministic by
-  construction and is hard to reason about.
-- Magic numbers are spread through layout code (198, 220, 170, 172, 184, 306,
-  360, 416, 0.91, 0.23, 0.27 …) with no names or data source.
-- Phone tokens place their labels with hand-written offsets (`offset_top =
-  23.0`, `offset_right = -44.0`) and measured string widths instead of an
-  `HBoxContainer`/`GridContainer` with `clip_text` and size flags.
+A layout outside its declared minimum cannot fit arbitrarily many seats while
+retaining 20 px text and 48 px controls. Define feasible envelopes and an
+explicit unsupported-size/guidance state. Existing supported canonical fixtures
+remain mandatory; reducing their support requires an explicit user decision. Never silently clip required copy,
+shrink type, drop players or change an active tournament to make a sweep pass.
 
-### 3.4 Scene composition
+### 3.4 Scenes, models and styling
 
-Common practice is small reusable component scenes (`SeatPanel.tscn`,
-`ActionBar.tscn` …), each with a typed script and a `set_model()` /
-`render()` API. A layout scene composes them. Variants are separate scenes or
-theme type variations, not runtime mutation.
+The typed helpers are already useful boundaries but remain runtime builders.
+`GuiTableSeatView` captures handles once; helpers still style/reparent controls,
+restore metadata-backed state, and mix phone/wide nodes in one table scene.
+Replace those implementations with authored component scenes and explicit
+models while keeping the ownership improvements.
 
-Current state:
+Presentation copy remains distributed across controller, seat/action helpers,
+`ShowdownHandFormatter`, `GuiEventFormatter` and `TournamentStatusFormatter`.
+Reuse the pure formatters. View models select recipient-safe content and action
+availability; they call existing core helpers such as `PotWagerTarget` rather
+than implementing poker validation or minimum-raise rules in the GUI.
 
-- Seats, tokens, cards and overlays are built in GDScript. You cannot inspect
-  or adjust them in the editor.
-- Profile changes mutate existing widgets. They reparent `Marker` and
-  `MainPotWinnerStar`, cache `standard_text` and `standard_style` in node
-  `meta`, and later "restore standard overlays". Rebuilding seats on profile
-  exit exists to undo these mutations.
-- Helpers find children by name (`find_child("Stack", true, false)`), so a
-  rename fails silently.
-- One scene contains phone-only and desktop-only nodes at the same time.
+Styling remains runtime-heavy: 54 `add_theme_*` call sites in the controller,
+with further calls in extracted helpers, mobile layout, startup and keypad.
+The theme still contains only a default font size. Move static palette,
+StyleBoxes, variations and sizes into resources. Verify effective inherited
+fonts and actual component/touch rectangles; theme values alone cannot certify
+fit or button minimum size. Retain complete names, exact numeric values and
+rank `10` measurement with the built-in default font.
 
-### 3.5 Styling and typography
+### 3.5 Contracts to preserve
 
-Common practice is a project `Theme` with a palette, font sizes and
-`StyleBox`es, plus theme type variations (`SeatPanel`, `SeatPanelActing`,
-`HeroPanel`, `ActionButton`, `PhoneToken` …). Different sizes use an
-alternative theme or font-size variations switched at size-class changes.
-Runtime `add_theme_*_override` calls are kept to a minimum.
+- Core/GUI separation, recipient safety and presentation-only assignments/RNG.
+- Human at the bottom and opponents in clockwise core-seat order, including
+  reordered view arrays and nonzero recipient seats.
+- Whole seat/status footprints, `Winner` after fold wins, default phone winner
+  copy/Pots access, exact awards and legitimately revealed cards.
+- Phone 2–7 and larger profiles 2–9; an 8-/9-player match resized to phone
+  keeps its state and shows guidance. Phone landscape remains deferred.
+- At least 20 px player-facing text, 48 × 48 touch targets, full names/stacks,
+  and no phone event-history surface. Keep all existing numeric-bound cases.
+- Modal exclusivity, held advancement, focus restore, Escape/engine-back,
+  touch/pointer modality, and keypad commit/cancel behavior.
+- Current profile-exit behavior cancels a phone wager draft without committing
+  it; phone rotation preserves the draft. The target may preserve more state,
+  but RG-45/RG-53 must explicitly resolve that change before replacing tests.
+- `GuiActionPacer` and the two-second action / five-second completed-hand
+  cadence. Component decomposition does not authorize changed game pacing.
 
-Current state:
+## 4. Verification strategy
 
-- `gui_theme.tres` sets only `default_font_size = 29`. There are about 91
-  overrides in the controller, 26 in `gui_mobile_table_layout.gd`, 26 in the
-  keypad and 19 in startup.
-- The same constants are duplicated (`OPPONENT_AVATAR_SIZE`,
-  `HERO_AVATAR_SIZE`, `OPPONENT_CARD_SIZE`, font sizes) in the controller and
-  `GuiMobileTableLayout`.
-- Mobile font sizes come from `content_scale × base`, while desktop uses
-  source sizes, so two typography systems coexist.
-- `_enforce_minimum_gui_text_size_for_node()` patches the 20 px floor
-  afterwards instead of making it a property of the theme.
+### 4.1 Reuse existing coverage
 
-### 3.6 Presentation logic mixed with views
+The existing invariant helper checks containment, overlap, clipping, font floors
+and targets. Current tests also protect clockwise order, finite phone rows,
+long names, large exact numbers, modal/keypad behavior and repeated resizes.
+There are 15 canonical viewport fixtures with varied count sets; phone includes
+7 players and iPad includes 7 and 9. Counts 3, 5 and 8 and broader automatic
+classification paths still need systematic coverage.
 
-Compact action text (`C10`, `A2k`), badge text, winner detection for
-display, hand-summary text, pot-target selection and action availability all
-live in the controller next to node code. They are pure functions of
-`GameView` plus assignments and could be a `TableViewModel` tested without a
-scene tree. Several GUI tests currently drive a live `TournamentMatch`
-through the scene only to check such derived values.
+`run_web_layout_tests.py` already drives production-main Window normalization,
+resizes, geometry/content/order checks and DPR 1/2. Its default report mode can
+retain failures while returning success; use `--strict` for a correctness gate.
+The CI `Exported Web input` job already tests pointer/touch/keypad/focus and
+showdown behavior, but is not yet the full layout/DPR matrix proposed here.
 
-### 3.7 Parts to keep
+Native/Web refresh profiling and lifetime evidence already exist. The current
+architecture retains disposable seat/card widgets in the existing runtime
+builder because measured results did not justify retrofitting retention there.
+That finding does not require a new scene-based GUI to reproduce the old
+lifetime policy. Define explicit ownership for persistent component scenes or
+disposable subcontent, render fresh safe models, and test privacy, focus, modal
+and stale-content behavior. Profile the replacement against the baseline;
+geometry-only resizes should avoid unnecessary reconstruction. A whole-view
+cache is not a substitute for correct component lifetime.
 
-- Core/GUI boundary, `GameView` recipient safety, seat-ID-based remapping.
-- `GuiModalGuard` semantics (exclusive surfaces, held advancement, focus
-  trap, back/escape).
-- `WagerKeypad` transaction semantics and modality-based input dispatch.
-- `GuiActionPacer`, name/avatar assignment services, formatters.
-- Product invariants: 20 px text floor, 48 × 48 touch targets, phone limit of
-  2–7 players, no phone event log, exact chip values, human at the bottom.
+### 4.2 Migrate contracts, not incidental structure
 
-## 4. Are the GUI tests addressing the right issues?
+Many tests and both Web observers access internal nodes, private controller
+fields and exact rectangles. A stable snapshot must cover every existing
+invariant before deleting those dependencies: seats/status/cards, labels and
+text-fit data, controls/targets, overlays, effective fonts, coordinate origins,
+visibility, layout readiness and core-seat ownership. Preserve rejection tests
+that deliberately expose a private card or introduce overlap; a snapshot that
+omits the offending child must not produce a false pass.
 
-### 4.1 What they get right
+Move pure copy/availability assertions to model tests, while retaining scene
+integration tests that exercise real control activation, input modality,
+`PlayerAction` submission and core rejection without state mutation. Reuse core
+rule tests; do not reduce adapter tests to emitting a mocked signal.
 
-- `GuiInvariantAssertions` checks generic, product-level properties:
-  containment, non-intersection, text clipping (including ellipsis and
-  wrapping), font floor and touch-target size. These are the right kind of
-  layout assertions.
-- Canonical named viewport and state fixtures are shared by headless tests
-  and screenshot capture.
-- Modal, keypad, focus and resize-preservation behavior is tested.
-- Recipient safety (no private card leakage) is tested through the GUI.
-- A real exported Web build is driven by Chromium pointer, touch and keyboard
-  events.
-- Rendered captures are explicitly separated from headless geometry checks.
+Characterization sweeps are finite samples, not continuous proofs. Separate
+cheap pure geometry/policy sweeps from a bounded rendered scene matrix, and
+budget CI runtime before choosing grid steps. Include measured fit transitions,
+±1 breakpoint cases, fractional DPR, safe-area origins and real resize streams.
+Known failures need exact signatures and review; fail on regressions and on
+unexpected passes until the record is updated. Unsupported sizes require an
+explicit supported-minimum contract rather than blanket exceptions.
 
-### 4.2 Where they miss or cost too much
-
-1. **Coupled to the implementation, not the contract.** Tests reach
-   `TableMargin/Felt/TableSurface/Seats/Seat0`, `find_child("Name")`,
-   `%PotLabel`, and assert exact values such as `MIN_WIDENED_SEAT_WIDTH =
-   416`, `"Big blind 10"` in `Seat5Status`, or a specific two-row button
-   split. Any structural refactoring breaks hundreds of assertions even when
-   user-visible behavior is unchanged. This is the main obstacle to the
-   restructuring.
-2. **Tests named after incidents.** Names such as
-   `test_observed_desktop_raster_keeps_quit_clear_of_human_identity` or
-   `test_seven_player_ipad_*` freeze one past failure at one size. They do
-   not express the underlying rule ("Quit never intersects any seat footprint
-   at any supported size"), which the invariant sweep should cover generally.
-3. **Sparse sampling.** About 15 viewports × {2, 4, 6, 9} players. Gaps such
-   as 650 × 900 and the 1250 × 700 classifier disagreement (Section 3.2) are
-   not exercised. Player counts 3, 5, 7 and 8 are only partly covered by the
-   matrix. Nothing checks breakpoint boundaries (±1 px).
-4. **The classifier test checks the wrong source of truth.**
-   `test_gui_layout_profile.gd` verifies `GuiLayoutProfile`, but the layout
-   also branches on other predicates. A passing profile test does not show
-   which geometry actually ran.
-5. **Poker behavior through the scene.** `test_gui_table_actions.gd` (1,251
-   lines) checks pot-raise targets, repeated raises and short-stack rules
-   through a live match and a mounted scene. Those belong to a pure presenter
-   or view-model test; scene tests should only check that the button emits the
-   intended action.
-6. **Missing dimensions.** No safe-area tests. No test through `Window`
-   stretch with fractional DPR. No test of continuous resizing (only burst
-   coalescing). No desktop keyboard focus order test. No guard against seat
-   rebuilds per resize (a performance regression risk on low-end phones).
-   Only one test checks that the text still fits when the exported Web
-   build renders it with Godot's built-in default font.
-7. **Duplicated runners.** Four manual matrix runners (M3, phone, iPad,
-   desktop) differ mainly in their fixture filter.
-8. **Tests depend on deferred timing.** `_settle_layout()` waits on frames
-   because geometry is applied deferred. A container-based layout makes
-   geometry available after a single `queue_sort`/frame and simplifies tests.
-
-### 4.3 What the tests should target
-
-1. Pure units: size classification (total, monotonic, boundary values), view
-   model text and privacy, seat-ring geometry (non-overlap property over all
-   counts and a size sweep), viewport adapter (DPR, safe area).
-2. Component scenes at their declared minimum size: no clipping, font floor,
-   touch targets, all states (acting, folded, all-in, busted, revealed).
-3. Composition invariants over a **continuous sweep** of sizes and all
-   player counts 2–9 (2–7 for phone), using the existing invariant
-   assertions through a stable layout snapshot API.
-4. Behavior: modal, keypad, resize preserving state, profile switching.
-5. Exported Web with Chromium device emulation (DPR 1/2/3, touch, sizes).
-6. Rendered captures for human review; physical-device acceptance is
-   recorded in Phase 8.
+Nested containers can need multiple deferred passes after minimum-size changes.
+Retain a bounded settle/readiness contract and detect non-convergence; do not
+promise that one frame always settles a composition. Physical-device acceptance
+remains separate from headless and exported-browser checks in Phase 8.
 
 ## 5. Target structure
 
@@ -298,17 +270,28 @@ flowchart TD
 
 Principles:
 
+- **Design before reuse.** A full GUI replacement is allowed. Existing
+  helpers are references and potential inputs, not mandatory target modules.
+  Implement clean scene/container boundaries directly when adapting a helper
+  would preserve competing ownership, hidden mutation or incidental structure.
 - **One geometry source.** `ViewportAdapter` (autoload under
   `scripts/gui/platform/`) owns Web DPR normalization and safe-area insets and
-  emits `usable_rect_changed(rect)`. On Web it reads CSS
-  `env(safe-area-inset-*)` through `JavaScriptBridge` (export shell uses
-  `viewport-fit=cover`); on native mobile it uses
-  `DisplayServer.get_display_safe_area()`.
+  emits an immutable geometry snapshot plus `usable_rect_changed(rect)`.
+  Define units, usable origin, window-to-logical transforms and inset ownership.
+  On Web a CSS probe exposes computed `env(safe-area-inset-*)` values through
+  `JavaScriptBridge`; audit the export viewport meta tag before enabling
+  `viewport-fit=cover`. On native mobile convert/intersect
+  `DisplayServer.get_display_safe_area()` with the app window before mapping to
+  logical coordinates. Headless/non-GUI roots use a safe injected/no-op path.
+  See the [DisplayServer API](https://docs.godotengine.org/en/stable/classes/class_displayserver.html#class-displayserver-method-get-display-safe-area).
 - **One classifier.** `SizeClass.classify(usable_size, override)` returns a
   width class and a height class, plus one derived `LayoutMode` (`PHONE`,
   `PHONE_LANDSCAPE` kept deferred, `WIDE_COMPACT`, `WIDE`). It is total:
-  every positive size maps to exactly one mode. No other code compares raw
-  sizes against thresholds.
+  every positive size maps to exactly one mode; invalid or uninitialized sizes
+  have an explicit not-ready result. Define feasible minimums and an
+  unsupported-size presentation separately from classification. Components may
+  compare measured content minima with their allocation, but only this policy
+  owns global layout breakpoints.
 - **Pure presentation model.** `TableViewModel`, `SeatViewModel`,
   `CenterViewModel`, `ActionBarViewModel` and `HandSummaryViewModel` are built
   from `GameView`, the assignments and the public action history, with a
@@ -316,44 +299,66 @@ Principles:
   string and enabled flag. They do not reference `Node`.
 - **Component scenes.** Each component exposes `render(model)` and signals
   such as `action_requested(PlayerAction)` and `details_requested(seat)`. It
-  never reads `GameView` or another component.
+  does not read `GameView` or peer internals. Parent composition uses public
+  child APIs and normal Control minimum-size measurement.
 - **Container layout.** The wide layout is containers plus one
   `SeatRingContainer` (extends `Container`) that reserves a center rect and
-  places seat footprints from a `SeatSlotTemplate` resource (normalized slot
-  anchors per player count, mirrored by construction). The phone layout uses
-  a `VBoxContainer` (opponent grid/arc, center, hero and action rail) and the
-  existing `GuiPhoneSeatLayout` math wrapped as a container. Collision passes
-  are removed: a template that overlaps fails a unit test.
+  places complete seat/status footprints from `SeatSlotTemplate` resources
+  and measured child minima. Implement `_get_minimum_size()` and normal
+  minimum-size invalidation as well as sorting. Mirrored templates must retain
+  clockwise core-seat order with the recipient at the bottom. The phone layout
+  uses containers for opponent tokens, center, hero and action rail; reuse or
+  replace `GuiPhoneSeatLayout` math as appropriate. Collision passes are
+  removed: an infeasible plan reports unsupported size instead of publishing
+  overlapping rectangles.
 - **Theme-first styling.** The palette, `StyleBox`es and font sizes live in
   `resources/gui_theme.tres` with type variations. State changes (acting,
   folded, winner) switch `theme_type_variation` instead of creating
   `StyleBox`es at runtime. Compact/regular sizes come from two theme
   resources or font-size variations applied at the layout root when the size
-  class changes. The 20 px floor follows from the theme values and is checked
-  by a theme lint test. The theme uses Godot's built-in default font
+  class changes. Theme lint checks defined sizes/inheritance; rendered component
+  tests establish the effective 20 px floor, text fit and 48 px touch targets.
+  The theme uses Godot's built-in default font
   (`ThemeDB.fallback_font`) only; no font files are added or downloaded.
 - **Mode switch, not mutation.** When the layout mode changes, the
   controller frees the old layout scene and instantiates the other one, then
-  renders the current view model. Tournament state, modal ownership and
-  keypad drafts follow the existing contract.
+  renders the current view model. Tournament state and presentation assignments
+  remain outside the replaced
+  subtree; `OverlayHost` owns modal state, input drafts and focus restoration.
+  RG-45/RG-53 explicitly resolve profile-exit cancel versus draft preservation
+  before changing that behavior.
 - **Stable test API.** `get_layout_snapshot() -> GuiLayoutSnapshot` returns
   role-named rectangles (`center`, `action`, `event`, `quit`, `more`,
-  `seat/<id>`, `status/<id>`, `overlay`) and text/target metadata. Tests and
-  invariant runners use only this API and public signals.
+  `seat/<id>`, `status/<id>`, `overlay`) and text/target/card-visibility metadata
+  in a documented coordinate space,
+  including usable origin, effective fonts and readiness. Include typed startup
+  and overlay snapshots. Headless tests and exported read-only observers consume
+  the same semantic roles and public signals; observers retain no private cards.
+  Scene-loading paths remain valid bootstrap configuration, not layout selectors.
 
-Target size: controller under 500 lines; no GUI script over 400 lines; zero
+Review size targets: controller under 500 lines; other GUI scripts under 400
+lines; zero
 `find_child()` by name in production code; runtime `add_theme_*_override`
-only where a value is truly data-dependent.
+only where a value is truly data-dependent. Line counts do not substitute for
+clear ownership, correct minimum-size propagation and responsive behavior.
 
 ## 6. Guardrails for every task
 
-- Follow the AGENTS.md loop: one atomic change, then `make check` and
-  `make gui-current-invariant-gate`; both pass before and after the change.
+- Follow the AGENTS.md loop for implementation: establish passing
+  `make check` and `make gui-current-invariant-gate` before restructuring and
+  rerun both after each atomic implementation change. Documentation-only work
+  runs `make docs-check`; it does not certify GUI behavior.
+- Update architectural decisions and implemented component guidance as each
+  change lands. RG-70 consolidates consistency; it does not postpone those
+  updates until the end of the rewrite.
 - Do not change `scripts/core/`, poker rules, `GameView` or simulation code.
-- Preserve the product invariants listed in Section 3.7 and the modal/keypad
+- Preserve the product invariants listed in Section 3.5 and the modal/keypad
   contracts in [ARCHITECTURE.md](ARCHITECTURE.md#gui-adapter).
-- Keep the old and new paths switchable until the parity task of a phase is
-  complete; delete legacy code only in its dedicated task.
+- A clean replacement implementation is permitted. Keep the legacy GUI
+  available as a reference, not a mandatory architecture or visual template.
+  Compare product contracts through a temporary selector/separate scenes; do not
+  require new components to fit old node trees. Delete legacy code at cutover
+  after the replacement tests and observers work independently.
 - Write screenshots and logs to ignored `localtmp/`.
 - A synthetic pass is not device acceptance; record device evidence only in
   the Phase 8 tasks of this document.
@@ -364,89 +369,121 @@ only where a value is truly data-dependent.
 ## 7. Tasks
 
 Each task lists status, mode, scope and completion condition. Complete them
-in order unless the user selects another task.
+in phase order unless the user selects another task. RG-54 is intentionally
+placed after Phase 6 verification; deletion must follow test/observer migration.
+A task may replace its whole GUI subsystem rather than adapt the old one,
+provided the target contracts and acceptance evidence are retained.
 
 ### Phase 0 — Safety net before restructuring
 
-- [ ] **RG-00 — Record the baseline.** Status: Not started. Mode: QA.
-  Run `make check`, `make gui-current-invariant-gate` and
-  `make gui-visual-capture-development`; record test/assertion counts and the
-  commit SHA here, with captures under `localtmp/restructure_baseline/`.
-  Done: baseline recorded; all gates pass.
+- [ ] **RG-00 — Record the executable baseline.** Status: Not started. Mode: QA.
+  Run `make check` and `make gui-current-invariant-gate`; record the source
+  SHA, relevant dirty-source fingerprint, commands, case counts and limitations.
+  Capture both M3 and phone reference suites using the existing visual runner
+  with `--development --output` under `localtmp/restructure_baseline/`.
+  Check current documentation links first: this review found preexisting
+  relocation errors after the Astra record moved to `docs/arkiv/`; do not
+  misreport those as GUI regressions or a green baseline.
+  Done: all required gates pass and a reproducible reference is recorded here;
+  existing defects are explicitly distinguished from accepted product behavior.
 
-- [ ] **RG-01 — Add a stable layout snapshot API.** Status: Not started.
-  Mode: Senior. Add `GuiLayoutSnapshot` (`scripts/gui/gui_layout_snapshot.gd`)
-  and `PokerTableController.get_layout_snapshot()` with role-named
-  rectangles, visibility, text-fit metadata and touch targets, built from the
-  existing `get_resolved_region_rects()`/`get_seat_rects()`.
-  Done: unit test covers every role for phone and wide profiles; no behavior
-  change.
+- [ ] **RG-01 — Define and adapt the stable layout snapshot API.** Status:
+  Not started. Mode: Senior. Add typed `GuiLayoutSnapshot` and
+  `PokerTableController.get_layout_snapshot()` over the current rectangle APIs
+  and typed handles. Cover every existing invariant, startup/overlays, complete
+  seat/status footprints, actual child/card visibility, text fit, effective
+  typography, interaction targets and readiness. Normalize current mixed
+  surface-local/global coordinates; specify the usable origin and conversion.
+  Done: unit tests cover phone/wide/startup/overlay roles and invariants can
+  still detect deliberate private-card exposure and content/geometry failures.
 
-- [ ] **RG-02 — Move invariant assertions onto the snapshot.** Status: Not
-  started. Mode: QA. Port `tests/support/gui_invariant_assertions.gd` and
-  `gui_scene_harness.gd` from node paths to the snapshot.
-  Done: no node path or `find_child()` in invariant support code; gates pass.
+- [ ] **RG-02 — Migrate shared assertions and observers to snapshots.** Status:
+  Not started. Mode: QA. Adapt `gui_invariant_assertions.gd`,
+  `gui_phone_matrix_contract.gd`, `gui_scene_harness.gd` and `tests/web/`
+  observers to the semantic contract, retaining bounded layout settling.
+  Support the reference and replacement implementations without requiring the
+  same node tree. Keep exported observers read-only and excluded from releases.
+  Done: shared invariants do not traverse internal node paths/names or private
+  controller fields; headless and exported gates retain rejection coverage.
 
-- [ ] **RG-03 — Add a characterization sweep.** Status: Not started. Mode: QA.
-  Add `tests/unit/test_gui_layout_sweep.gd`: widths 320–2560 and heights
-  320–1600 on a coarse grid (step 80 in `check`, step 20 in a new
-  `gui-layout-sweep` Make target), plus ±1 px around each current
-  threshold, for player counts 2–9 (2–7 when phone). Run the snapshot
-  invariants. Record current failures (expected: 650 × 900 hybrid branch,
-  1250 × 700 disagreement) in `tests/fixtures/gui_layout_sweep_known_failures.json`
-  so they fail only if they change.
-  Done: sweep runs; the known-failure list is reviewed and linked here.
+- [ ] **RG-03 — Characterize policy boundaries and fit envelopes.** Status:
+  Not started. Mode: QA. Add cheap pure policy/geometry sweeps over widths
+  320–2560 and heights 320–1600, all counts 2–9, and ±1 at existing boundaries.
+  Start with step 80, with a step-20 diagnostic `gui-layout-sweep` target;
+  measure runtime before adding work to `check`. Use a bounded representative
+  scene matrix for text, modal and real minimum-size propagation. Include
+  650 × 900, 1250 × 700 and same-widget resize streams without presuming a
+  failure. Identify phone 2–7 support, deferred landscape and insufficient-space
+  cases separately; never claim that every size can contain every count.
+  Done: observed failure signatures/inputs are reviewed in
+  `tests/fixtures/gui_layout_sweep_known_failures.json`; new failures and
+  unexpected passes fail the characterization check. RG-10/RG-12 define the
+  final support envelope; no blanket clipping or overlap exemptions.
 
-- [ ] **RG-04 — Collapse the matrix runners.** Status: Not started. Mode: QA.
-  Replace the four `tests/manual/gui_*_invariant_matrix_runner.gd` files with
-  one parameterized runner selected by a fixture tag; keep the existing Make
-  target names as aliases.
-  Done: identical case count before and after; `release-candidate-gate`
-  passes.
+- [ ] **RG-04 — Preserve the existing consolidated matrix infrastructure.**
+  Status: Not started. Mode: QA. The shared `GuiInvariantMatrixRunner`,
+  declarative `GuiInvariantMatrixSuites` and phone contract already exist.
+  Verify their snapshot migration rather than creating another runner. Keep
+  four thin manual entry points and existing Make aliases, ordered case IDs
+  and capture-source provenance. Extend the shared definitions for new cases.
+  Done: the 348 M3 / 406 phone / 288 iPad / 232 desktop historical selections
+  remain identifiable; additional coverage is versioned explicitly and all
+  four diagnostic gates pass.
 
 ### Phase 1 — One source of geometry truth
 
-- [ ] **RG-10 — Decide stretch and native desktop scaling. [Decision]**
-  Status: Not started. Mode: Tech Lead. Choose either (a) a base viewport
-  around 1280 × 720 with `canvas_items`/`expand` and
-  `content_scale_factor` from screen scale on every platform, or (b) keep
-  1920 × 1080 and apply the logical-size normalization on native too.
-  Document the choice in [ARCHITECTURE.md](ARCHITECTURE.md#gui-adapter).
-  Done: decision recorded with the effect on native 1280 × 720 windows.
+- [ ] **RG-10 — Decide logical geometry, minimums and native scaling. [Decision]**
+  Status: Not started. Mode: Tech Lead. Define physical/backing, CSS, Window
+  and Control units with evidence from actual 1280 × 720 and 1920 × 1080
+  native windows and exported Web. Choose a coherent stretch/base/scale
+  policy; multiplying by screen scale is not automatically correct. State the
+  user-visible text/target interpretation and minimum feasible sizes per mode,
+  density and count, including unsupported-size guidance.
+  Done: record the decision and conversion examples in
+  [ARCHITECTURE.md](ARCHITECTURE.md#gui-adapter), using
+  [Godot scaling guidance](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html).
 
 - [ ] **RG-11 — Introduce `ViewportAdapter`.** Status: Not started. Mode:
-  Senior. Create the autoload with `usable_rect` and `usable_rect_changed`.
-  Move DPR normalization out of `StartupConfigController`. Add safe-area
-  insets (Web: export head include with `viewport-fit=cover` and a
-  `JavaScriptBridge` read of `env(safe-area-inset-*)`; native:
-  `DisplayServer.get_display_safe_area()`). Inject a fake for tests.
-  Done: unit tests for DPR 1/2/2.625/3 and inset combinations; startup and
-  table both consume the adapter; Web input job passes.
+  Senior. Implement the app-level GUI adapter and injectable immutable geometry
+  snapshot. Transfer existing Web normalization out of startup; define CSS
+  inset probing/export viewport metadata and native mobile safe-area conversion.
+  Apply reductions once, retain nonzero origins, and handle resize, browser
+  chrome, rotation and invalid/zero/headless geometry without affecting CLI
+  or simulation roots.
+  Done: startup and table consume one geometry source; tests cover DPR
+  1/2/2.625/3, nonzero/asymmetric insets, fallback platforms and real Window
+  normalization; existing exported input and strict layout checks pass.
 
-- [ ] **RG-12 — Define the unified `SizeClass`. [Decision + implementation]**
+- [ ] **RG-12 — Define unified `SizeClass` and supported fit policy. [Decision + implementation]**
   Status: Not started. Mode: Tech Lead then Senior. Specify width/height
-  classes and the derived `LayoutMode` as a total function over usable size,
-  including the 600–680 short-edge gap and portrait medium widths. Keep the
-  explicit override for device-backed fixtures. Port `GuiLayoutProfile`
-  tests and add boundary and monotonicity tests.
-  Done: one classifier, documented thresholds, tests at every boundary ±1.
+  classes and derived modes over adapter geometry, including medium portrait
+  widths. Define invalid-size handling, explicit fixture overrides, feasible
+  envelopes and the 8-/9-player phone guidance state. Preserve seat IDs and
+  entered startup values. Keep measured component-fit decisions distinct from
+  global breakpoints; define monotonicity per dimension/orientation.
+  Done: one documented policy, tests at boundaries ±1 and minimum-fit edges,
+  without silently promoting deferred phone landscape to supported status.
 
-- [ ] **RG-13 — Route all branching through `SizeClass`.** Status: Not
-  started. Mode: Senior. Replace `GuiMobileTableLayout.is_*` and the inline
-  `x < 1200`/`x < 1600`/`y < 900`/`y < 1200` checks in the existing
-  controller with derived flags from one `SizeClass` result per pass.
-  Done: no raw-size threshold comparisons outside `SizeClass` (grep check in
-  a documentation/lint test); sweep known-failure list shrinks or is updated
-  with an explanation.
+- [ ] **RG-13 — Route composition decisions through unified policy.** Status:
+  Not started. Mode: Senior. Replace classification and density branches in
+  `GuiTableLayoutPass`, `GuiMobileTableLayout`, `GuiSixSeatDesktopPlan` and
+  controller/seat/action helpers. A clean replacement may bypass these legacy
+  modules entirely. Pass one typed policy snapshot per operation, preserving
+  the current deterministic six-seat footprint/order behavior as a contract.
+  Done: global breakpoints have one owner; a scoped policy check permits local
+  measured-fit constraints and ordinary containment checks, but rejects new
+  device-specific thresholds in components. Characterization changes are
+  explained and supported-size defects are closed rather than masked.
 
 ### Phase 2 — Presentation model
 
 - [ ] **RG-20 — Create `TableViewModel` and child models.** Status: Not
   started. Mode: Senior. Move display-name, marker, badge, compact action
   text, status band text, winner display, pot/wager copy, hand summary and
-  action availability from the controller into
+  action availability from the controller and extracted seat/action helpers into
   `scripts/gui/view_models/`. Pure `RefCounted` with typed fields and a
-  density parameter.
+  density parameter. Reuse pure formatters and core wager helpers; never copy
+  poker rules into the model.
   Done: the controller consumes the models; unit tests cover every
   `PlayerAction.Kind`, fold/all-in/busted/acting states, exact large values,
   and privacy (no unrevealed opponent card in any model).
@@ -454,22 +491,26 @@ in order unless the user selects another task.
 - [ ] **RG-21 — Move poker-derived GUI tests to model tests.** Status: Not
   started. Mode: QA. Re-home pot-target, repeated-raise, short-stack and
   winner-text assertions from `test_gui_table_actions.gd` and the
-  phone files into view-model tests; scene tests keep only "control emits the
-  intended `PlayerAction`".
-  Done: no loss of covered cases (map old → new test names in the commit
-  message); GUI scene test runtime drops.
+  phone files into view-model tests where they test pure presentation. Keep
+  real adapter integration tests for button activation, submitted targets, core
+  rejection/no mutation, modality and privacy; retain core rule coverage.
+  Done: a repository-owned old → new coverage map records every migrated case;
+  scene tests retain meaningful integration behavior and runtime is measured.
 
 ### Phase 3 — Theme
 
 - [ ] **RG-30 — Build the theme palette and type variations.** Status: Not
   started. Mode: Senior. Move colors and `StyleBox`es from
-  `GuiTableStyle`, `FoldedSeatStyle`, the controller and the keypad into
+  `GuiTableStyle`, `FoldedSeatStyle`, extracted factories/controls/overlays,
+  the controller and the keypad into
   `resources/gui_theme.tres` with variations (`Felt`, `Zone`, `SeatPanel`,
   `SeatPanelActing`, `SeatPanelFolded`, `HeroPanel`, `PhoneToken`,
   `StatusBand`, `ActionButton`, `PrimaryActionButton`, `OverlayPanel`,
   `KeypadKey`, `CardFace`, `CardBack`).
-  Done: visual captures unchanged within review tolerance; theme lint test
-  asserts every font size ≥ 20 and every button minimum ≥ 48 × 48.
+  Done: the palette and required state distinctions are reviewed; a new visual
+  design is allowed and old pixel output is not the acceptance target. Theme
+  lint validates defined/inherited fonts; rendered components verify effective
+  player-facing sizes ≥ 20 and actual interactive targets ≥ 48 × 48.
 
 - [ ] **RG-31 — Add compact and regular size variants.** Status: Not
   started. Mode: Senior. Provide font-size/spacing variants per size class,
@@ -483,14 +524,19 @@ Build each component as `scenes/gui/components/<Name>.tscn` with a typed
 script, `render(model)`, signals, theme variations only, and a component test
 that renders all states at its minimum size and runs the snapshot invariants.
 
-- [ ] **RG-40 — `CenterBoard`** (community cards in an `HBoxContainer` of
-  `AspectRatioContainer` cards, pot and wager rows; equal fixed card slots).
+- [ ] **RG-40 — `CenterBoard`, `CardFace` and `CardBack`** (community cards
+  in containers, pot/wager rows and equal minimum-safe card slots). Reuse the
+  measured rank/suit constraints from `CardFaceFactory`, including rank `10`;
+  an aspect-ratio container must respect those content minima.
   Status: Not started. Mode: Senior.
 - [ ] **RG-41 — `SeatPanel` and `HeroPanel`** with the status band as part of
   the component footprint (no separate sibling label), avatar, marker,
-  winner star and cards in containers. Status: Not started. Mode: Senior.
+  winner star and cards in containers. Migrate or replace
+  `GuiTableSeatFactory`/`GuiTableSeatView` with authored typed handles.
+  Status: Not started. Mode: Senior.
 - [ ] **RG-42 — `SeatToken`** (phone) using a `GridContainer`/box layout with
-  measured-text fallback to the expanded third row, replacing hand offsets.
+  finite measured-content rows preserving `GuiPhoneTokenContentPlan` behavior,
+  replacing manual offsets without ellipsis, clipping or hidden required copy.
   Status: Not started. Mode: Senior.
 - [ ] **RG-43 — `ActionBar`** with one or two rows chosen by available width
   (`HFlowContainer` or explicit row model), keypad trigger and inline input by
@@ -499,12 +545,15 @@ that renders all states at its minimum size and runs the snapshot invariants.
 - [ ] **RG-44 — `EventLog`** (wide only). Status: Not started. Mode: Junior.
 - [ ] **RG-45 — `OverlayHost`** that owns menu, hand summary, seat detail,
   quit confirmation and keypad on one full-rect layer with a backdrop and
-  integrates `GuiModalGuard`. Use the in-canvas quit confirmation on all
-  profiles unless RG-10/RG-12 records a reason to keep the native dialog.
-  Status: Not started. Mode: Senior.
+  integrates `GuiModalGuard`. Keep this host outside replaceable layout scenes.
+  Prefer in-canvas confirmation across profiles; explicitly record any retained
+  native-dialog exception and the draft/focus policy on mode exit before changing
+  the current cancel-without-commit behavior. Reuse or replace
+  `GuiTableOverlayViews` ownership. Status: Not started. Mode: Senior.
 
 Done for Phase 4: every component has a test over all states; components are
-used by neither layout yet or by the legacy layout behind a flag.
+tested independently and ready for replacement layouts. Integration into the
+legacy tree is optional; do not distort the component API merely to fit it.
 
 ### Phase 5 — Layouts and switching
 
@@ -512,57 +561,67 @@ used by neither layout yet or by the legacy layout behind a flag.
   started. Mode: Senior. Custom `Container` that reserves the center and
   lower regions and places seat footprints with `fit_child_in_rect()` in
   `NOTIFICATION_SORT_CHILDREN`; slots come from `.tres` templates for 2–9
-  players with mirrored construction and hero-at-bottom mapping (reuse
-  `_visual_slot_for_seat`). Replace the six tables in
-  `table_seat_layout.gd`.
-  Done: property test over counts 2–9 and the sweep shows no overlap and
-  full containment without any collision-resolution pass.
+  players with mirrored construction and hero-at-bottom mapping (preserve the
+  behavior of
+  `GuiTableSeatLayout.visual_slot_for_seat()`). Cover all recipient seats,
+  reordered view arrays, clockwise order and complete footprints. Implement
+  content-driven minimum sizes and explicit infeasible plans. Replace or retire
+  the position tables in `table_seat_layout.gd`.
+  Done: pure/property tests and supported-envelope sweeps show no overlap and
+  full containment after actual child minima are applied; infeasible allocations
+  produce explicit guidance without any collision-resolution pass.
 
 - [ ] **RG-51 — `WideTableLayout.tscn`** for tablet, small desktop and
   desktop, composed of containers, `SeatRingContainer`, `CenterBoard`,
   `HeroPanel`, `ActionBar` and `EventLog`. Status: Not started. Mode: Senior.
-  Done: wide fixtures and the wide part of the sweep pass with the new
-  layout behind a flag.
+  Done: supported wide fixtures and fit/boundary sweeps pass in the replacement
+  scene; infeasible sizes show the defined guidance. A temporary selector may
+  expose reference/replacement scenes for comparison.
 
-- [ ] **RG-52 — `PhoneTableLayout.tscn`** wrapping `GuiPhoneSeatLayout`
-  geometry in a container, with `SeatToken`s, `CenterBoard`, `ActionBar`,
+- [ ] **RG-52 — `PhoneTableLayout.tscn`** using a container-owned phone plan
+  (reuse or replace `GuiPhoneSeatLayout`), with `SeatToken`s, `CenterBoard`,
+  `ActionBar`,
   More/Pots button and safe-area margins from `ViewportAdapter`. Phone
   landscape stays deferred. Status: Not started. Mode: Senior.
-  Done: phone fixtures and the phone part of the sweep pass behind a flag.
+  Done: supported portrait phone fixtures and fit/boundary sweeps pass in the
+  replacement scene; unsupported counts/sizes preserve state and show guidance.
 
 - [ ] **RG-53 — Controller orchestration.** Status: Not started. Mode:
   Senior. Reduce `PokerTableController` to binding, pacing, model building,
   layout-mode switching (free/instantiate on change, never mutate), overlay
-  routing and the snapshot API. Preserve keypad-draft, modal and focus rules
-  across switches.
-  Done: `test_gui_live_viewport_changes.gd` and modal tests pass on the new
-  path; resize does not rebuild seats unless the mode or seat set changes
-  (counted in a test).
-
-- [ ] **RG-54 — Switch default and remove legacy code.** Status: Not
-  started. Mode: Senior. Make the new path default, then delete
-  `gui_mobile_table_layout.gd`, `table_seat_layout.gd`, the legacy branches,
-  the layout-generation/deferred center logic, both collision passes, and
-  unused scene nodes.
-  Done: the sweep known-failure list is empty; all gates pass; size targets in
-  Section 5 are met.
+  routing and the snapshot API. Apply the explicit RG-45 draft/focus policy
+  across switches; update the documented current cancellation rule only after
+  that decision. Define ownership/lifetimes for the new component scenes and
+  their subcontent; persistent scenes rendering fresh models are permitted.
+  Geometry-only resize reuses the active composition where possible. Update the
+  old runtime-builder lifetime decision for the new design, with profiling and
+  privacy/focus/invalidation tests rather than a requirement to retain churn.
+  Done: live-viewport/modal regressions pass; resize reconstruction is counted
+  and explained, and the existing native/Web profiler verifies no material
+  regression. No blanket cache is introduced merely to meet a node-count test.
 
 ### Phase 6 — Tests and tooling
 
 - [ ] **RG-60 — Replace implementation-coupled tests.** Status: Not started.
-  Mode: QA. Rewrite or delete tests that use node paths, child names or
-  exact pixel values when the rule is covered by snapshot invariants, the
-  sweep or component tests. Rename incident tests to the rule they protect
-  and keep their viewport as a fixture.
-  Done: no `TableMargin/Felt/...` paths in `tests/`; every removed assertion
-  is mapped to its replacement in the commit message.
+  Mode: QA. Rewrite or delete internal node-path/name and incidental exact-pixel
+  assertions only when snapshot, sweep, component or integration checks replace
+  their contract. Rename incident tests to their underlying rule and retain the
+  fixtures. Include capture, browser-input and performance harnesses, not only
+  unit assertions.
+  Done: replacement checks and observers do not depend on internal legacy paths;
+  every removed assertion has a repository-owned coverage mapping and deliberate
+  defect injection still fails. Scene-loading paths remain legitimate.
 
 - [ ] **RG-61 — Exported Web layout checks.** Status: Not started. Mode: QA.
-  Extend `tools/run_web_input_tests.py` to run Chromium device emulation at
-  DPR 1/2/3 for canonical phone, iPad and desktop sizes. Read the snapshot
-  through the existing test-only observer and run the invariants in the real
-  `Window` stretch path.
-  Done: the `Exported Web input` job covers layout at three DPRs.
+  Extend the existing `tools/run_web_layout_tests.py` /
+  `tools/web_layout_assertions.py` and read-only `tests/web/layout_fixture.gd`
+  observer. Retain `run_web_input_tests.py` interaction coverage rather than
+  replacing it with geometry tests. Cover phone/iPad/desktop at DPR 1/2/3 and
+  fractional 2.625, automatic and explicit classification, usable origins/insets
+  and real `Window` stretch. Run strict checks for supported cases and preserve
+  report-only diagnostics separately.
+  Done: CI runs exported strict layout plus existing input checks with recorded
+  source/engine/browser/DPR identity; emulation is not device acceptance.
 
 - [ ] **RG-62 — Default-font metric parity.** Status: Not started. Mode: QA.
   Verify that headless tests and the exported Web build measure text with
@@ -570,7 +629,21 @@ used by neither layout yet or by the legacy layout behind a flag.
   the longest names, exact large chip values and compact action copy. Do
   not add or download any font.
   Done: parity verified or differences recorded; text-fit tests pass in
-  both paths using only the default font.
+  both paths using only the default font and the actual allocated rectangles.
+  Keep existing rank/name/action regressions; document justified raster/metric
+  tolerances rather than replacing the real font with a test substitute.
+
+- [ ] **RG-54 — Cut over and remove the legacy GUI.** Status: Not started.
+  Mode: Senior. Depends on RG-60–62 as well as RG-50–53. Make the verified
+  replacement default, then remove the legacy scene/factories, old classification
+  and geometry helpers, runtime mutation, deferred center reapplication,
+  collision passes and temporary selector. Retain pure services or math only
+  when they comply with the target design. A complete replacement is acceptable;
+  no old GUI implementation is required to survive.
+  Done: replacement tests, captures and observers work independently; supported
+  sweep failures are closed, unsupported-size behavior is explicit, all required
+  gates pass on the identified candidate and Section 5 size/ownership targets
+  are met. Record performance and visual review before physical acceptance.
 
 ### Phase 7 — Documentation
 
@@ -594,10 +667,11 @@ accepts it. Phone landscape remains deferred and is not part of acceptance.
 
 - [ ] **RG-80 — Phone portrait review.** Status: Not started. Mode: QA with
   user. Review a hosted build of the default switch (RG-54) on at least one
-  physical Android and one iOS phone for 2, 4, 6 and 7 players: phone
+  physical Android and one iOS phone for representative counts 2, 4, 6 and 7 (automated portrait coverage includes
+  every count 2–7): phone
   composition selected, no clipped names/stacks, 20 px text, 48 px targets,
   action rail clear of safe-area insets, More/Pots, keypad, hand summary and
-  quit flows.
+  quit flows, browser chrome/keyboard changes and actual device/browser Back.
   Done: evidence recorded here; user acceptance noted.
 
 - [ ] **RG-81 — iPad review.** Status: Not started. Mode: QA with user.
@@ -614,3 +688,20 @@ accepts it. Phone landscape remains deferred and is not part of acceptance.
   Documentation Updater. Summarize accepted scope and remaining limitations
   at the top of this file and move it to `docs/arkiv/` when the user agrees.
   Done: status line updated; index in [README.md](README.md) updated.
+
+## Review evidence and execution status
+
+The 2026-10-27 reconciliation inspected production GUI/scenes, model/geometry
+helpers, the product/architecture contracts, invariant support, browser
+observers, CI and profiling tools. A headless policy probe confirmed the
+650 × 900 / 1250 × 700 classifications and the 1377 × 777 six-seat plan, plus
+all four ordered suite counts. Thirteen existing focused profile/component/
+suite tests passed with 91 assertions. Logs are local-only under
+`localtmp/gui-plan-review/`; these checks are not RG-00 or device acceptance.
+
+All 32 redesign tasks retain their unchecked status. The current-doc links and
+index were reconciled with the existing Astra archival move without changing
+other task records. Repository-wide documentation checking still reports 51
+preexisting relative-link errors in archived task records (down from 57 after
+repairing current references). Resolve those relocation links before claiming
+a green full baseline. No application code was changed by this review.

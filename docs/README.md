@@ -13,10 +13,15 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
-- [`AstraSuggestionTasks.md`](AstraSuggestionTasks.md) — ordered correctness,
-  evidence, documentation, GUI, maintenance, and CLI improvements.
+- [`RestructureGuiTasks.md`](RestructureGuiTasks.md) — proposed GUI replacement:
+  unified geometry/classification, pure presentation models, component scenes,
+  themes and container-owned responsive layouts. First task: RG-00 baseline.
 
 ## Archived task records
+
+- [`arkiv/AstraSuggestionTasks.md`](arkiv/AstraSuggestionTasks.md) — historical
+  correctness, GUI, maintenance and CLI work; its evidence does not complete
+  the replacement GUI's implementation or device acceptance tasks.
 
 - [`arkiv/OptimizingPhoneGuiTasks.md`](arkiv/OptimizingPhoneGuiTasks.md) — historical
   phone review and acceptance evidence; open recorded device checks are not

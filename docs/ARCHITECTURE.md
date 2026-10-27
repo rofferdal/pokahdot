@@ -700,6 +700,16 @@ The completed implementation history proceeded through the interactive CLI first
 
 ### GUI adapter
 
+Planned GUI replacement (2026-10-27):
+[`RestructureGuiTasks.md`](RestructureGuiTasks.md) leads the future presentation
+structure: one geometry adapter/classification policy, pure view models,
+component scenes, themes and container-owned layout. A complete GUI rewrite
+is permitted; existing GUI code is reusable only where it fits that design.
+The descriptions below remain the implemented baseline. Product behavior,
+privacy, input transactions and useful verification coverage must survive;
+legacy node structure and exact geometry are not architectural constraints.
+No replacement implementation or device acceptance is claimed by this decision.
+
 1. Show a startup panel prefilled with 6 participants, 1000 chips, small blind 5, and big blind 10; starting immediately without editing is valid.
 2. Validate edits locally for immediate feedback, then create a fresh validated match configuration and construct `TournamentMatch`; do not create players, chips, or cards while the input is invalid.
 3. Call `start()` and render the returned human `GameView`: board, pots, stacks, current blinds, level progress, acting seat, hero cards, active/eliminated participants, and final winner when applicable. Opponent cards remain hidden unless the view explicitly reveals them.

@@ -382,7 +382,7 @@ the running build. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
 The completed server workflow is recorded in [LanTestTasks.md](docs/arkiv/LanTestTasks.md).
 GUI/device review and demonstrated browser defects are recorded in
-[AstraSuggestionTasks.md](docs/AstraSuggestionTasks.md#gui-05-browser-capture-review)
+[AstraSuggestionTasks.md](docs/arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
 and the archived [phone review](docs/arkiv/OptimizingPhoneGuiTasks.md).
 
 ## GUI action pace
