@@ -156,6 +156,13 @@ checkboxes or treat deferred landscape support as accepted.
   tests, 94,890 assertions, 85 Python tests and all four matrices pass locally.
   GitHub execution awaits a PR; requiring the check remains branch protection
   configuration. Push-to-main deployment is unchanged (2026-10-26).
+  CI follow-up 2026-10-27: the Pages release gate hit six missing-directory
+  errors because a clean checkout has no ignored `localtmp/`. The shared
+  `web-lan-test` target now creates it before discovery. An isolated full source
+  archive reproduced all six errors before the change and passed all 34 LAN
+  tests afterward. GitHub deployment verification awaits the next workflow run;
+  this fix does not change the deployment trigger or bypass release checks.
+
 
 - [x] **QA-03 — Test visible content and actual exported input paths. [Defect]**
   [GUI assertions](../tests/support/gui_invariant_assertions.gd) skip ellipsized
@@ -290,7 +297,8 @@ checkboxes or treat deferred landscape support as accepted.
   - [x] Implement and automatically verify default visible phone winner feedback.
   Physical acceptance is still owned by the unchecked named-winner task in
   [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); the parent GUI-01
-  checkbox remains open. Continue to GUI-05-A after that verification.
+  checkbox remains open. Continued engineering work follows GUI-05-A onward in
+  order while physical acceptance stays pending; no device pass is inferred.
 
 - [x] **GUI-02 — Keep supported numeric values readable. [Defect]**
   Phone action-width allocation in the same controller leaves a million-chip
@@ -397,7 +405,7 @@ owner and compare the same state on all four surfaces and the working iPad
 after each fix. Apply the stop-on-cycle rule below; do not trade the original
 failure for a regression in a previously clear layout.
 
-- [ ] **GUI-05-A — Bind and reproduce the browser evidence. [Evidence]**
+- [x] **GUI-05-A — Bind and reproduce the browser evidence. [Evidence]**
   Record the pinned LAN build ID, source SHA/fingerprint, device/OS/browser,
   browser zoom, CSS viewport, canvas CSS/backing sizes, DPR, selected layout
   profile and usable rectangle for each capture; record insets/browser chrome
@@ -406,8 +414,32 @@ failure for a regression in a previously clear layout.
   recorded filenames/checksums when available. Done: known values and remaining
   unknowns are explicit, and an exported same-state reproduction is documented;
   screenshot raster sizes are never substituted for logical viewport sizes.
+  Verified 2026-10-27: `gui_browser_capture_fixture.gd` reproduces the captured
+  public state, roles, names, actions and event history without private cards.
+  `tools/run_web_layout_tests.py` mounts production main, records real CSS/canvas/
+  DPR/engine geometry, all invariant failures and full clockwise order, and
+  captures settled transitions in both directions. The 39-case Chromium
+  140.0.7339.16 report is `localtmp/gui05-a-browser-20261027/results.json`.
+  These are new measured environments, not historical screenshot metadata.
+  Historical build/zoom/CSS/DPR/insets and the working iPad's identity remain
+  explicitly unknown. The last served LAN candidate is known separately:
+  `c163b935b90b456b8b3dd175aca6cc56`, source `7d8bc4ba664e44e082967e1069c2f938a154f52f`,
+  dirty fingerprint `aa9f8edec416adaa9e89164644a7ad9c646337544c7955866216da1260787bb7`;
+  this does not establish which build the user captured.
+  The reproduction export uses source `f1f4ef87bfb5740bd411a9f91952832b5ffb0f71`,
+  copied-project hash `a6dba31920ae3dac0b4742664778de6701bb4a128ad6ebbaf5181628b6017eef`
+  and pack hash `133e4bb89037fba508f79baface6f579c17dc4408449d582b2bde5cce203c89a`.
+  Measured 1369 × 724 reproduces clipping/containment failures; 1377 × 777 also
+  reproduces the reported pair reversal `[0, 2, 1, 3, 5, 4]` and both status/seat
+  collisions. Clear automated controls are 1855 × 918, 1920 × 1080 and
+  1024 × 768; they do not identify the user's physical iPad. Original capture 1's
+  board overlap has not been exactly attributed. Full check passes: 618 GUT
+  tests, 98,197 assertions, 89 evolution and 34 LAN tests, lint/format/docs;
+  the five existing exported input cases pass. Report mode deliberately retains
+  failures and is not an acceptance gate. GUI-05-B owns strict regressions.
 
-- [ ] **GUI-05-B — Add failing browser regressions before changing layout. [QA]**
+
+- [x] **GUI-05-B — Add failing browser regressions before changing layout. [QA]**
   Reproduce the six-player ordinary-value state with the same names, markers,
   folds and actions. Assert complete seat-plus-status footprints do not cross
   another seat or the board; required names/stack labels fit; visual clockwise
@@ -416,14 +448,37 @@ failure for a regression in a previously clear layout.
   3/4 and the working iPad as positive controls. Done: the observed defects fail
   before remediation without weakening existing assertions or inventing missing
   device measurements; boundary values remain covered too.
+  Verified 2026-10-27: strict `all`, `geometry`, `content` and `order` modes now
+  preserve full engine failures, check complete seat/status footprints and all
+  six seats' clockwise order, and require visible, correctly bound Name/Stack/
+  role labels. Existing compact S/B aliases retain their SB/BB semantics.
+  Thirteen pure checker tests pass; full check passes 618 GUT tests and 98,197
+  assertions, 89 evolution and 34 LAN tests. The strict 39-case baseline exits
+  1 as intended: 23 cases fail overall, 13 geometry, 12 content and 15 order
+  (families overlap). All clear desktop/tablet controls pass. Before evidence:
+  `localtmp/gui05-b-browser-final-red-20261027/results.json`; runner checksum
+  `02e9b2780092355098174973b12073851e46a8448d2dbb708a0c68045cc67706`, checker
+  `4653afca87ff27f12d3cfe4b931bb49264af48d9a22ded7acb6d0b4d771456f8`.
+  These are failing regressions ready for C/D/E remediation, not accepted UI.
 
-- [ ] **GUI-05-C — Remove seat/status/board collisions. [Defect]**
+
+- [x] **GUI-05-C — Remove seat/status/board collisions. [Defect]**
   Fix the demonstrated collisions in captures 1 and 2 using a single layout
   owner for each complete seat/status footprint and the center region. Done:
   `Big blind 10`, `Small blind 5`, `Raise to 20` and `Raise to 30` remain attached
   to their seats and clear of other seats, community cards and controls across
   the recorded failing surfaces and intervening resize widths. Preserve the
   clear layouts and iPad result; verify before adding geometry exceptions.
+  Implemented a single complete-footprint plan for constrained six-seat
+  desktops. Selection measures whether the complete plan fits; density
+  transitions rebuild seat content, and this composition bypasses the old
+  successive collision resolvers. Phone, tablet and clear desktop paths remain
+  covered by their existing matrices. Verification: all 39 strict exported
+  geometry cases pass (`localtmp/gui05-c-final/results.json`); full checks pass
+  with 623 GUT tests / 98,647 assertions and all four current GUI matrices
+  (`localtmp/gui05-c-check-final.log`). Four content cases and eight order cases
+  remain explicitly tracked by D/E. No fix cycle occurred; physical acceptance
+  remains F.
 
 - [ ] **GUI-05-D — Preserve complete seat identity and stack copy. [Defect]**
   Fix clipped `Human`, `Youssef` and stack-label text in captures 1/2 at normal

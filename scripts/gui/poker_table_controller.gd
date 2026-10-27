@@ -12,6 +12,7 @@ const GuiMatchProgressInspectorScript := preload(
 )
 const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_layout.gd")
+const GuiSixSeatDesktopPlanScript := preload("res://scripts/gui/gui_six_seat_desktop_plan.gd")
 const GuiPhoneLayoutPlanScript := preload("res://scripts/gui/gui_phone_layout_plan.gd")
 const GuiPhoneSeatLayoutScript := preload("res://scripts/gui/gui_phone_seat_layout.gd")
 const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
@@ -57,6 +58,7 @@ var _seat_status_widgets: Dictionary[int, Label] = {}
 var _layout_profile_override: int = GuiLayoutProfileScript.AUTOMATIC
 var _applied_layout_profile: int = GuiLayoutProfileScript.AUTOMATIC
 var _phone_seat_widgets: bool = false
+var _compact_six_seat_desktop: bool = false
 var _phone_numeric_feedback: HBoxContainer
 var _phone_more_spacer: Control
 var _seat_detail_seat: int = Table.NO_SEAT
@@ -531,7 +533,8 @@ func _uses_numeric_keypad() -> bool:
 	return (
 		_uses_large_chip_values()
 		and (
-			GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
+			_compact_six_seat_desktop
+			or GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
 			or (
 				get_layout_profile() == GuiLayoutProfileScript.Kind.TABLET
 				and _surface.size.x < 1600.0
@@ -1215,6 +1218,8 @@ func _create_seat_status_label(player_view: PlayerView) -> Label:
 
 
 func _tablet_status_scale() -> float:
+	if _compact_six_seat_desktop:
+		return 1.0
 	if _surface.size.y > _surface.size.x:
 		return GuiMobileTableLayoutScript.PORTRAIT_TABLET_STATUS_SCALE
 	return GuiMobileTableLayoutScript.COMPACT_TABLET_STATUS_SCALE
@@ -1231,7 +1236,8 @@ func _showdown_hand_text(seat: int) -> String:
 	):
 		return ShowdownHandFormatterScript.format_inline(showdown_result)
 	if (
-		GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
+		_compact_six_seat_desktop
+		or GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
 		or (get_layout_profile() == GuiLayoutProfileScript.Kind.TABLET and _surface.size.x < 1600.0)
 	):
 		return ShowdownHandFormatterScript.format_compact(showdown_result)
@@ -1797,7 +1803,8 @@ func _on_phone_quit_confirmed() -> void:
 
 func _uses_compact_table_copy() -> bool:
 	return (
-		GuiLayoutProfileScript.is_phone(get_layout_profile())
+		_compact_six_seat_desktop
+		or GuiLayoutProfileScript.is_phone(get_layout_profile())
 		or GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
 		or GuiMobileTableLayoutScript.is_portrait_tablet(_surface.size)
 	)
@@ -2091,10 +2098,15 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	# felt margins and must not make a small desktop look like a phone.
 	var layout_profile: int = GuiLayoutProfileScript.classify(size, _layout_profile_override)
 	var phone_layout: bool = GuiLayoutProfileScript.is_phone(layout_profile)
+	var compact_desktop: bool = GuiSixSeatDesktopPlanScript.can_use(
+		surface_size, layout_profile, _bound_view.seats.size(), _uses_large_chip_values()
+	)
+	var composition_changed: bool = compact_desktop != _compact_six_seat_desktop
+	_compact_six_seat_desktop = compact_desktop
 	var profile_changed: bool = layout_profile != _applied_layout_profile
 	var had_applied_profile: bool = _applied_layout_profile != GuiLayoutProfileScript.AUTOMATIC
 	_applied_layout_profile = layout_profile
-	if profile_changed:
+	if profile_changed or composition_changed:
 		_refresh_action_controls()
 	_configure_center_copy(phone_layout)
 	if phone_layout != _phone_seat_widgets and _bound_view != null:
@@ -2103,7 +2115,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			if _wager_keypad != null and _wager_keypad.is_bottom_sheet():
 				_wager_keypad.cancel()
 		_rebuild_seats()
-	elif profile_changed and had_applied_profile and not phone_layout:
+	elif (profile_changed or composition_changed) and had_applied_profile and not phone_layout:
 		# Compact/tablet styling changes child minimum sizes. Rebuilding the full
 		# panels on profile exit prevents those old Container minima from becoming
 		# a second geometry owner when desktop bounds are restored.
@@ -2116,12 +2128,17 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	var mobile_portrait_layout: bool = GuiMobileTableLayoutScript.is_mobile_portrait(surface_size)
 	var portrait_tablet_layout: bool = tablet_layout and surface_size.y > surface_size.x
 	var landscape_tablet_layout: bool = tablet_layout and surface_size.x >= surface_size.y
-	var compact_tablet_layout: bool = tablet_layout and surface_size.x < 1600.0
+	var compact_tablet_layout: bool = (tablet_layout and surface_size.x < 1600.0) or compact_desktop
 	var small_desktop_layout: bool = (
-		GuiMobileTableLayoutScript.is_small_desktop(surface_size) and not tablet_layout
+		GuiMobileTableLayoutScript.is_small_desktop(surface_size)
+		and not tablet_layout
+		and not compact_desktop
 	)
 	var short_desktop_center_layout: bool = (
-		not tablet_layout and not small_desktop_layout and surface_size.y < 900.0
+		not tablet_layout
+		and not small_desktop_layout
+		and not compact_desktop
+		and surface_size.y < 900.0
 	)
 	var is_human_turn: bool = _bound_view.acting_seat == _bound_view.hero_seat
 	var active_legal: Array = _bound_view.legal_actions if is_human_turn else []
@@ -2249,7 +2266,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for status_label: Label in _seat_status_widgets.values():
 			status_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
-			if compact_tablet_layout and not portrait_tablet_layout:
+			if compact_tablet_layout and not portrait_tablet_layout and not compact_desktop:
 				status_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 				status_label.max_lines_visible = 1
 		for card: Control in _card_slots.get_children():
@@ -2369,12 +2386,13 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	# bounds value past a newer layout pass. Child minimum sizes are deliberately
 	# cleared in the same operation so status text cannot widen the stack.
 	_apply_center_zone_bounds(center_size, center_position)
-	call_deferred(
-		"_apply_center_zone_bounds_if_current",
-		center_size,
-		center_position,
-		_layout_generation,
-	)
+	if not compact_desktop:
+		call_deferred(
+			"_apply_center_zone_bounds_if_current",
+			center_size,
+			center_position,
+			_layout_generation,
+		)
 	if _seat_widgets.is_empty():
 		return
 	var compact_layout: bool = (
@@ -2656,7 +2674,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 					),
 				)
 			)
-	if not mobile_portrait_layout:
+	if not mobile_portrait_layout and not compact_desktop:
 		_resolve_status_band_clearance(
 			surface_size,
 			compact_layout,
@@ -2666,7 +2684,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 				else (1.0 if small_desktop_layout else seat_visual_scale)
 			),
 		)
-	if not mobile_portrait_layout and not small_desktop_layout:
+	if not mobile_portrait_layout and not small_desktop_layout and not compact_desktop:
 		_resolve_seat_panel_intersections(
 			compact_layout,
 			(
@@ -2693,18 +2711,27 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		_event_log.size.y = desktop_side_height
 		_action_panel.position.y = desktop_side_y
 		_event_log.position.y = desktop_side_y
+	if compact_desktop:
+		var desktop_plan: RefCounted = _compact_desktop_plan(surface_size, center_size)
+		if desktop_plan == null:
+			push_error("Compact six-seat desktop content exceeds its reserved composition.")
+			return
+		_apply_compact_desktop_plan(desktop_plan)
+		center_position = desktop_plan.center_rect.position
+		_resolved_center_position = center_position
 	center_position = _reserve_desktop_quit_clearance(
 		center_position,
 		center_size,
 		portrait_tablet_layout,
 		compact_tablet_layout,
 	)
-	_layout_quit_button(
-		center_position,
-		center_size,
-		portrait_tablet_layout,
-		compact_tablet_layout,
-	)
+	if not compact_desktop:
+		_layout_quit_button(
+			center_position,
+			center_size,
+			portrait_tablet_layout,
+			compact_tablet_layout,
+		)
 	if _wager_keypad != null and _wager_keypad.visible:
 		_wager_keypad.refresh_layout(mobile_content_scale)
 	if _quit_confirmation.visible:
@@ -2988,6 +3015,51 @@ func _layout_phone_quit_confirmation(plan: RefCounted = _applied_phone_layout_pl
 		return
 	_phone_quit_confirmation.position = plan.phone_quit_rect.position
 	_phone_quit_confirmation.size = plan.phone_quit_rect.size
+
+
+func _compact_desktop_plan(surface_size: Vector2, center_size: Vector2) -> RefCounted:
+	var hero: PanelContainer = _seat_widgets[_bound_view.hero_seat]
+	var opponent_minimum := Vector2(160.0, 102.0)
+	for seat: int in _seat_widgets:
+		if seat != _bound_view.hero_seat:
+			opponent_minimum = opponent_minimum.max(_seat_widgets[seat].get_combined_minimum_size())
+	var plan := GuiSixSeatDesktopPlanScript.new()
+	var side_minimum: Vector2 = _action_panel.get_combined_minimum_size().max(
+		_event_log.get_combined_minimum_size()
+	)
+	if not (
+		plan
+		. configure(
+			surface_size,
+			center_size,
+			hero.get_combined_minimum_size(),
+			side_minimum,
+			_quit_button.get_combined_minimum_size().max(Vector2(48.0, 48.0)),
+			opponent_minimum,
+		)
+	):
+		return null
+	return plan
+
+
+func _apply_compact_desktop_plan(plan: RefCounted) -> void:
+	for seat: int in _seat_widgets:
+		var relative_seat: int = posmod(seat - _bound_view.hero_seat, 6)
+		var panel: PanelContainer = _seat_widgets[seat]
+		var panel_rect: Rect2 = plan.seat_rects[relative_seat]
+		panel.position = panel_rect.position
+		panel.size = panel_rect.size
+		var status: Label = _seat_status_widgets[seat]
+		var status_rect: Rect2 = plan.status_rects[relative_seat]
+		status.position = status_rect.position
+		status.size = status_rect.size
+	_action_panel.position = plan.action_rect.position
+	_action_panel.size = plan.action_rect.size
+	_event_log.position = plan.event_rect.position
+	_event_log.size = plan.event_rect.size
+	_quit_button.position = plan.quit_rect.position
+	_quit_button.size = plan.quit_rect.size
+	_apply_center_zone_bounds(plan.center_rect.size, plan.center_rect.position)
 
 
 func _layout_compact_tablet_lower_regions(surface_size: Vector2, center_width: float) -> void:

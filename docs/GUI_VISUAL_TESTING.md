@@ -111,6 +111,48 @@ by winner-specific coverage. Supplemental seven-recipient boundary coverage
 checks the largest result footer. Exported input tests include a real six-seat
 showdown and touch on Pots/Close, in addition to keypad/modal cases.
 
+## Exported browser capture reproduction
+
+`tests/support/gui_browser_capture_fixture.gd` supplies the six-player public
+preflop state from the GUI-05 capture review: pot 65, blinds 5/10, Human holding
+4-spades/8-diamonds and the named blind/raise/fold records. It is a synthetic
+presentation fixture, not a core replay. It preserves recipient privacy and
+uses representative deterministic avatars; historical avatar assignments and
+browser/build metadata remain unknown.
+
+The isolated `tests/web/layout_fixture.tscn` mounts production main so the actual
+Web normalization and fonts run. It exposes read-only geometry and existing
+invariant failures. `tools/run_web_layout_tests.py` records CSS and canvas
+backing sizes, DPR, visual viewport, selected profile, settled layout and all
+six seats' clockwise order, plus screenshots/source/export checksums. Its
+exploratory sizes are new test inputs, never inferred historical measurements.
+The observer is excluded from the normal production export. The default input
+export remains separate and continues to run its five input cases.
+
+After installing the [optional browser tooling](../devdocs/how-to/running-and-testing.md#exercise-exported-web-input),
+run this from the repository root with an unused output directory:
+
+```bash
+.venv/bin/python tools/run_web_layout_tests.py --godot /Applications/Godot.app/Contents/MacOS/Godot --output localtmp/gui05-layout-review
+```
+
+Add `--strict --check all` to require the complete browser regression contract;
+`geometry`, `content` and `order` select explicit staged checks while all raw
+failures remain in every report. The full contract checks merged seat/status
+footprints, the complete six-seat clockwise order and human placement, and
+visible exact Name/Stack/public-role labels in addition to existing shaped text
+and containment invariants. Compact S/B markers retain their existing SB/BB
+meaning. `make web-layout-test` runs the pure checker edge-case tests without
+requiring a browser; it is included in `make check`. The browser gate itself
+requires the optional browser environment and returns nonzero for defects.
+
+Report mode exits successfully when measurement completes, even with recorded
+layout defects. Engine/browser errors fail. Never treat report completion as
+layout acceptance. See the [GUI-05-A evidence record](AstraSuggestionTasks.md#gui-05-browser-capture-review)
+for the initial 39 measured environments/transitions, reproduced defects,
+explicit unknowns and clear automated controls. Physical safe areas, browser
+chrome and browser zoom are not measured by this headless report.
+
 ## Canonical visual states
 
 Use these stable state IDs in tests, manifests, filenames, and defect records:

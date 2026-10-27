@@ -23,16 +23,24 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def export_fixture(godot: str, work: Path) -> Path:
+def export_fixture(godot: str, work: Path,
+                   main_scene: str = "res://tests/web/input_fixture.tscn",
+                   support_files: tuple[str, ...] = ()) -> Path:
     project = work / "project"
     project.mkdir()
     for directory in ("scripts", "scenes", "resources", "assets"):
         shutil.copytree(ROOT / directory, project / directory)
-    shutil.copytree(ROOT / "tests" / "web", project / "tests" / "web")
+    shutil.copytree(ROOT / "tests" / "web", project / "tests" / "web",
+                    ignore=shutil.ignore_patterns("layout_fixture.*")
+                    if main_scene != "res://tests/web/layout_fixture.tscn" else None)
+    for relative_path in support_files:
+        destination = project / relative_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / relative_path, destination)
     shutil.copy2(ROOT / "icon.svg", project)
     config = (ROOT / "project.godot").read_text()
     config = config.replace('run/main_scene="res://scenes/main.tscn"',
-                            'run/main_scene="res://tests/web/input_fixture.tscn"')
+                            f'run/main_scene="{main_scene}"')
     config = "\n".join(line for line in config.splitlines() if "boot_splash/image=" not in line)
     (project / "project.godot").write_text(config)
     preset = (ROOT / "export_presets.cfg").read_text()

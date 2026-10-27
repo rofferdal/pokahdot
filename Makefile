@@ -19,6 +19,7 @@ check:
 	$(MAKE) --no-print-directory docs-check
 	$(MAKE) --no-print-directory profile-evolution-test
 	$(MAKE) --no-print-directory web-lan-test
+	$(MAKE) --no-print-directory web-layout-test
 	$(GODOT) --headless --path . --import
 	$(GDLINT) scripts tests my_test_node.gd
 	$(GDFORMAT) --check scripts tests my_test_node.gd
@@ -53,6 +54,7 @@ web-lan-ca-serve:
 	$(WEB_LAN_PYTHON) -m http.server "$(WEB_LAN_CA_PORT)" --bind "$(WEB_LAN_BIND)" --directory "$(WEB_LAN_OUTPUT)/tls/public"
 
 web-lan-test:
+	mkdir -p localtmp
 	$(WEB_LAN_PYTHON) -B -m unittest discover -s tests/web_lan -t . -v
 
 .PHONY: web-input-test
@@ -132,3 +134,7 @@ verify-web-release-output:
 docs-check:
 	python3 -B -m unittest discover -s tests/documentation -v
 	python3 -B tools/check_docs.py
+
+.PHONY: web-layout-test
+web-layout-test:
+	python3 -B -m unittest discover -s tests/web_layout -t . -v

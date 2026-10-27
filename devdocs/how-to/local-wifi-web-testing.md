@@ -293,6 +293,11 @@ completed server-workflow archive unchanged.
   the last action and browser state needed to reproduce it. Untested states
   and a second independent browser/device remain pending until observed.
 
+For a reproducible same-state browser layout report, use the
+[exported capture reproduction workflow](../../docs/GUI_VISUAL_TESTING.md#exported-browser-capture-reproduction).
+It records real automated CSS/DPR/canvas geometry and defects, without filling
+in missing historical device measurements or claiming physical acceptance.
+
 ## Automated checks and accepted session
 
 Run the focused build/server regressions independently, or run the full checks
@@ -302,6 +307,9 @@ that every LAN build requires:
 make web-lan-test
 make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check
 ```
+
+The `web-lan-test` target creates the ignored `localtmp/` parent when needed,
+including on a fresh CI checkout; it does not require a prior LAN build.
 
 The regression tests create temporary exports and loopback listeners, verify
 failure exit status and stale-build prevention, and shut down their test

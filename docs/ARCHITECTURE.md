@@ -861,6 +861,14 @@ state and owns the display text and timer; neither concern enters the core.
 
 ### GUI visual-verification workflow
 
+The supplemental browser-capture fixture is presentation-only public data.
+Its isolated Web observer mounts production main to retain the real CSS/DPR
+normalization path, reads full seat/status geometry and existing invariants,
+and exposes no input/mutation API. Reports preserve failing cases and distinguish
+new measured environments from unknown historical capture metadata; observers
+are excluded from production exports and do not establish device acceptance.
+
+
 The reusable GUI verification harness owns named logical-viewports and
 deterministic presentation-state fixtures. Milestone 3 defines the complete
 fixture catalog, including phone portrait, phone landscape, and browser-chrome
@@ -911,6 +919,16 @@ receives actual pointer, touch and keyboard events; startup and seeded live
 tournament fixtures verify keypad drafts, Cancel/Done, focus transitions and
 core wager submission. The observer is excluded from production exports.
 This regression does not establish physical-device acceptance.
+
+`GuiSixSeatDesktopPlan` owns the complete seat/status footprints, center,
+Quit and lower control rail for constrained six-seat desktop surfaces when
+their measured minima fit. Its selection is separate from device profile;
+changing this density composition rebuilds seat content. The controller
+applies the resulting rectangles without running the legacy successive
+collision resolvers. Other device profiles and surfaces that cannot fit the
+complete plan retain their existing layout paths. Exported browser regressions
+check footprint clearance and full clockwise core-seat order independently
+from content fit and physical-device acceptance.
 
 Every push to `main`
 automatically checks out the pushed SHA and runs `release-candidate-gate`,
