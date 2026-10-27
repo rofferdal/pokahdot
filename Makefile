@@ -21,8 +21,8 @@ check:
 	$(MAKE) --no-print-directory web-lan-test
 	$(MAKE) --no-print-directory web-layout-test
 	$(GODOT) --headless --path . --import
-	$(GDLINT) scripts tests my_test_node.gd
-	$(GDFORMAT) --check scripts tests my_test_node.gd
+	$(GDLINT) scripts tests
+	$(GDFORMAT) --check scripts tests
 	$(GUT_COMMAND)
 
 profile-evolution-test:

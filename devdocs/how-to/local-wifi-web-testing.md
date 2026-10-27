@@ -2,8 +2,9 @@
 
 Use this workflow to test the current working tree on the development Mac,
 an iPad or an Android phone without pushing or merging. The completed server workflow is recorded in
-[`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). Current GUI device
-acceptance belongs to [`OptimizingPhoneGuiTasks.md`](../../docs/OptimizingPhoneGuiTasks.md)
+[`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). GUI device-review evidence and
+remaining acceptance limitations are recorded in the archived
+[`OptimizingPhoneGuiTasks.md`](../../docs/arkiv/OptimizingPhoneGuiTasks.md)
 and section 5 of [`AstraSuggestionTasks.md`](../../docs/AstraSuggestionTasks.md).
 
 Install the [normal development dependencies](../../README.md#development-checks)
@@ -272,9 +273,10 @@ Use one pinned LAN build on desktop browsers at multiple sizes, iPad, and
 phone, as selected for the current
 [GUI backlog](../../docs/AstraSuggestionTasks.md#5-gui-clarity-and-interaction).
 Reopen the root URL after rebuilding and compare the build ID on every device.
-Record results in the active
-[phone acceptance record](../../docs/OptimizingPhoneGuiTasks.md), keeping the
-completed server-workflow archive unchanged.
+Consult the archived
+[phone acceptance record](../../docs/arkiv/OptimizingPhoneGuiTasks.md) for earlier
+evidence and remaining recorded limitations, keeping the completed
+server-workflow archive unchanged.
 
 - Record device/OS/browser versions, CSS viewport, DPR and browser-bar state.
   The `/__lan/` page records its own viewport; it does not measure the game's
@@ -328,6 +330,7 @@ including best-effort game/rebuild verification despite issues at some
 resolutions. Exact device/OS/browser versions and affected resolutions were
 not supplied. This acceptance closes the LAN workflow; it does not establish
 that every layout passed. Remaining phone layout checks and deferred landscape
-support stay in [OptimizingPhoneGuiTasks.md](../../docs/OptimizingPhoneGuiTasks.md).
+support remain recorded in the archived
+[phone review](../../docs/arkiv/OptimizingPhoneGuiTasks.md).
 Build identities, host/browser evidence and the acceptance decision are
 recorded in [LanTestTasks.md](../../docs/arkiv/LanTestTasks.md).

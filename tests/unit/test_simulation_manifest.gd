@@ -355,6 +355,86 @@ func test_shard_contract_filters_without_replanning() -> void:
 	assert_eq(shard.to_dictionary(), {"index": 1, "count": 3})
 
 
+func test_cursor_constructs_only_assigned_billion_scale_indexes() -> void:
+	var manifest := _cursor_manifest()
+	manifest.evaluation_plans[0].tournament_count = 1000000001
+	var cursor := manifest.create_cursor(SimulationShard.new(999999999, 1000000000))
+	assert_true(cursor.errors.is_empty())
+	assert_eq(cursor.assigned_count, 1)
+	assert_true(cursor.has_next())
+	var input := cursor.next_input()
+	assert_eq(input.tournament_index, 999999999)
+	assert_eq(input.effective_seed, 1000000999)
+	assert_eq(input.matchup_occurrence, 499999999)
+	assert_eq(input.rotation, 1)
+	assert_eq(input.get_seat_profile_ids(), {0: &"alpha", 1: &"beta"})
+	assert_false(cursor.has_next())
+	assert_null(cursor.next_input())
+	var collected := manifest.build_plan(SimulationShard.new(999999999, 1000000000))
+	assert_eq(collected.inputs.size(), 1)
+	assert_eq(collected.inputs[0].tournament_index, 999999999)
+
+
+func test_cursor_preserves_global_and_plan_local_identity_across_boundaries() -> void:
+	var manifest := _cursor_manifest()
+	manifest.evaluation_plans.append(
+		SimulationEvaluationPlan.new(&"second", &"heads_up", [&"beta_alpha"], 4, 2, &"normal_95")
+	)
+	var cursor := manifest.create_cursor(SimulationShard.new(1, 3))
+	assert_eq(cursor.assigned_count, 3)
+	for expected_index: int in [1, 4, 7]:
+		var input := cursor.next_input()
+		var direct := manifest.input_at(expected_index)
+		assert_eq(input.tournament_index, expected_index)
+		assert_eq(input.plan_id, direct.plan_id)
+		assert_eq(input.plan_tournament_index, direct.plan_tournament_index)
+		assert_eq(input.matchup_occurrence, direct.matchup_occurrence)
+		assert_eq(input.rotation, direct.rotation)
+		assert_eq(input.get_seat_profile_ids(), direct.get_seat_profile_ids())
+	assert_false(cursor.has_next())
+	assert_eq(manifest.input_at(5).plan_tournament_index, 0)
+	assert_eq(manifest.input_at(5).rotation, 0)
+	assert_null(manifest.input_at(-1))
+	assert_null(manifest.input_at(9))
+
+
+func test_cursor_snapshots_manifest_and_rejects_invalid_shards() -> void:
+	var manifest := _cursor_manifest()
+	var cursor := manifest.create_cursor()
+	manifest.seed_start = 9000
+	manifest.matchups[0].matchup_id = &"mutated"
+	var exposed := cursor.next_input()
+	assert_eq(exposed.effective_seed, 1000)
+	exposed.matchup.matchup_id = &"exposed mutation"
+	exposed.regime.starting_stack = 99999
+	assert_eq(cursor.next_input().matchup.matchup_id, &"beta_alpha")
+	var later := cursor.next_input()
+	assert_eq(later.matchup.matchup_id, &"alpha_beta")
+	assert_eq(later.regime.starting_stack, 100)
+	var invalid := manifest.create_cursor(SimulationShard.new(0, 0))
+	assert_false(invalid.errors.is_empty())
+	assert_false(invalid.has_next())
+	assert_null(invalid.next_input())
+
+
+func _cursor_manifest() -> SimulationManifest:
+	var manifest := SimulationManifest.new()
+	manifest.batch_id = &"cursor"
+	manifest.seed_start = 1000
+	manifest.profiles = [_profile(&"alpha", 20), _profile(&"beta", 40)]
+	manifest.regimes = [SimulationRegime.new(&"heads_up", 2, 100, 5, 10)]
+	manifest.matchups = [
+		SimulationMatchup.new(&"alpha_beta", manifest.profiles),
+		SimulationMatchup.new(&"beta_alpha", [manifest.profiles[1], manifest.profiles[0]]),
+	]
+	manifest.evaluation_plans = [
+		SimulationEvaluationPlan.new(
+			&"first", &"heads_up", [&"alpha_beta", &"beta_alpha"], 5, 2, &"normal_95"
+		)
+	]
+	return manifest
+
+
 func _profile(profile_id: StringName, tightness: int) -> BotProfile:
 	var profile := BotProfile.new()
 	profile.profile_id = profile_id

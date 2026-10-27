@@ -49,6 +49,15 @@ func get_seat_profiles() -> Dictionary[int, BotProfile]:
 	return copied
 
 
+## Identity consumers do not need expensive Resource snapshots.
+func get_seat_profile_ids() -> Dictionary[int, StringName]:
+	var ids: Dictionary[int, StringName] = {}
+	for seat: int in _seat_profiles:
+		var profile: BotProfile = _seat_profiles[seat]
+		ids[seat] = profile.profile_id if profile != null else &""
+	return ids
+
+
 func validate(player_count: int) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var configured_player_count := player_count if regime == null else regime.player_count

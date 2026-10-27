@@ -7,6 +7,7 @@ var profile_id: StringName
 var model_id: StringName
 var _model: DecisionModel
 var _decision_history: Array[Dictionary] = []
+var _simulation_diagnostics_enabled: bool = false
 
 
 func _init(model: DecisionModel, profile: BotProfile) -> void:
@@ -19,16 +20,21 @@ func _init(model: DecisionModel, profile: BotProfile) -> void:
 
 func choose_action(view: GameView) -> PlayerAction:
 	var action := _model.choose_action(view)
+	if not _simulation_diagnostics_enabled:
+		return action
 	var trace := _model.get_last_decision_trace_for_testing()
+	var legal_actions: Array[PlayerAction.Kind] = []
+	if view != null:
+		legal_actions = view.legal_actions
 	(
 		_decision_history
 		. append(
 			{
 				"trace": trace.copy() if trace != null else null,
 				"street": view.street if view != null else &"unknown",
-				"legal_actions": view.legal_actions if view != null else [],
-				"all_in_aggression_kind": _all_in_aggression_kind(view),
-				"action": action,
+				"legal_actions": legal_actions,
+				"all_in_aggression_kind": _all_in_aggression_kind(view, legal_actions),
+				"action": PlayerAction.new(action.kind, action.amount) if action != null else null,
 			}
 		)
 	)
@@ -41,19 +47,29 @@ func get_last_decision_trace_for_testing() -> RefCounted:
 	return _model.get_last_decision_trace_for_testing()
 
 
-## Simulation-only history used to correlate rejected and applied decisions.
-func get_decision_history_for_simulation() -> Array[Dictionary]:
-	return _decision_history.duplicate()
+## Product games leave diagnostics disabled. Disabling releases pending records.
+func set_simulation_diagnostics_enabled(enabled: bool) -> void:
+	_simulation_diagnostics_enabled = enabled
+	if not enabled:
+		_decision_history.clear()
+
+
+## Transfers ownership of captured snapshots; the agent retains no returned data.
+## Simulation drivers drain after every bounded advancement, not after a tournament.
+func drain_decisions_for_simulation() -> Array[Dictionary]:
+	var pending := _decision_history
+	_decision_history = []
+	return pending
 
 
 func observe(record: PublicActionRecord) -> void:
 	_model.observe(record)
 
 
-func _all_in_aggression_kind(view: GameView) -> int:
-	if view == null or PlayerAction.Kind.ALL_IN not in view.legal_actions:
+func _all_in_aggression_kind(view: GameView, legal_actions: Array[PlayerAction.Kind]) -> int:
+	if view == null or PlayerAction.Kind.ALL_IN not in legal_actions:
 		return -1
-	if PlayerAction.Kind.BET in view.legal_actions or PlayerAction.Kind.RAISE in view.legal_actions:
+	if PlayerAction.Kind.BET in legal_actions or PlayerAction.Kind.RAISE in legal_actions:
 		return -1
 	var wager_before_call: int = 0
 	for player: PlayerView in view.seats:

@@ -36,9 +36,8 @@ func generate(
 			var manifest := _build_manifest(
 				roster, roster_profiles, selected_settings, schedule_blocks
 			)
-			errors.append_array(manifest.validate())
-			var plan: SimulationBatchPlan = manifest.build_plan() as SimulationBatchPlan
-			errors.append_array(plan.errors)
+			var cursor := manifest.create_cursor()
+			errors.append_array(cursor.errors)
 			if errors.is_empty():
 				return RESULT_SCRIPT.new(manifest)
 	return RESULT_SCRIPT.new(null, errors)

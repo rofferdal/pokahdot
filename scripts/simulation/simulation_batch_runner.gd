@@ -34,6 +34,17 @@ func run(
 	return BATCH_RESULT_SCRIPT.new(outcomes, minimum_samples_by_plan)
 
 
+## Executes one input without allocating a batch aggregate or retaining earlier outcomes.
+func run_one(
+	base_config: ResolvedTournamentConfig,
+	input: SimulationTournamentInput,
+	max_transitions: int = 256,
+	trace_config: SimulationTraceConfig = null,
+) -> SimulationTournamentOutcome:
+	var resolved_trace_config := TRACE_CONFIG_SCRIPT.new() if trace_config == null else trace_config
+	return _run_one(base_config, input, max_transitions, resolved_trace_config)
+
+
 # gdlint: disable=max-returns
 func _run_one(
 	base_config: ResolvedTournamentConfig,
@@ -54,9 +65,8 @@ func _run_one(
 	if max_transitions <= 0:
 		return _invalid_outcome(input, "Simulation transitions must be positive.")
 
-	var creation := _factory.create(
-		_config_for_input(base_config, input), input.get_seat_profiles()
-	)
+	var execution_config := _config_for_input(base_config, input)
+	var creation := _factory.create(execution_config, input.get_seat_profiles())
 	if not creation.is_ok():
 		return _failure_outcome(
 			input,
@@ -67,7 +77,6 @@ func _run_one(
 				else "Simulation match construction failed."
 			),
 		)
-	var execution_config := _config_for_input(base_config, input)
 	var execution := _run_with_metrics(
 		creation.match_instance,
 		input,
@@ -134,9 +143,15 @@ func _run_with_metrics(
 	)
 	var trace_sampling_state := {&"observed": 0}
 	var event_cursor: int = 0
-	var decision_cursors: Dictionary[int, int] = {}
+	var bots: Dictionary[int, BotAgent] = {}
+	for seat: int in profiles:
+		var bot := match_instance.get_agent_for_simulation(seat) as BotAgent
+		if bot != null:
+			bot.set_simulation_diagnostics_enabled(true)
+			bots[seat] = bot
 	var result: StepResult = match_instance.start(max_transitions)
 	while true:
+		var events := match_instance.get_events()
 		_capture_decisions(
 			metrics,
 			traces,
@@ -145,15 +160,16 @@ func _run_with_metrics(
 			trace_sampling_state,
 			match_instance,
 			input,
+			events,
 			event_cursor,
-			decision_cursors,
+			bots,
 		)
-		event_cursor = match_instance.get_events().size()
+		event_cursor = events.size()
 		if (
 			result.status
 			in [StepResult.Status.HAND_COMPLETED, StepResult.Status.TOURNAMENT_FINISHED]
 		):
-			_capture_completed_hand(metrics, match_instance)
+			_capture_completed_hand(metrics, match_instance, events)
 			_capture_hand_trace(
 				traces,
 				trace_config,
@@ -201,25 +217,43 @@ func _capture_decisions(
 	trace_sampling_state: Dictionary,
 	match_instance: TournamentMatch,
 	input: SimulationTournamentInput,
+	events: Array[DomainEvent],
 	event_cursor: int,
-	decision_cursors: Dictionary[int, int],
+	bots: Dictionary[int, BotAgent],
 ) -> void:
-	var events := match_instance.get_events()
+	var histories: Dictionary[int, Array] = {}
+	var cursors: Dictionary[int, int] = {}
+	var fallback_events: Dictionary[int, bool] = {}
+	for seat: int in bots:
+		histories[seat] = bots[seat].drain_decisions_for_simulation()
 	for event_index: int in range(event_cursor, events.size()):
 		var event: DomainEvent = events[event_index]
 		if event.kind not in [DomainEvent.Kind.ACTION_APPLIED, DomainEvent.Kind.ACTION_REJECTED]:
 			continue
-		var agent := match_instance.get_agent_for_simulation(event.seat)
-		if not agent is BotAgent:
+		if not bots.has(event.seat):
 			continue
-		var history := (agent as BotAgent).get_decision_history_for_simulation()
-		var cursor: int = decision_cursors.get(event.seat, 0)
+		# Rejection and its applied fallback are one synchronous core operation.
+		if event.kind == DomainEvent.Kind.ACTION_APPLIED and fallback_events.erase(event.seat):
+			continue
+		var cursor: int = cursors.get(event.seat, 0)
+		var history: Array = histories[event.seat]
 		if cursor >= history.size():
 			continue
 		var decision: Dictionary = history[cursor]
-		decision_cursors[event.seat] = cursor + 1
+		cursors[event.seat] = cursor + 1
 		if event.kind == DomainEvent.Kind.ACTION_REJECTED:
-			continue
+			if not event.fallback_applied:
+				continue
+			fallback_events[event.seat] = true
+			decision.action = PlayerAction.new(event.applied_action_kind)
+			if decision.trace != null:
+				decision.trace = StrategyDecisionTrace.new(
+					bots[event.seat].profile_id,
+					decision.trace.hand_potential_band,
+					&"fallback",
+					decision.legal_actions,
+					decision.action
+				)
 		var trace: RefCounted = decision.trace
 		(
 			metrics
@@ -242,7 +276,7 @@ func _capture_decisions(
 				input.tournament_index,
 				match_instance.hand_number,
 				event.seat,
-				(agent as BotAgent).profile_id,
+				bots[event.seat].profile_id,
 				decision.street,
 				trace,
 				decision.action
@@ -291,7 +325,9 @@ func _append_sample(
 		traces[replacement] = entry
 
 
-func _capture_completed_hand(metrics: RefCounted, match_instance: TournamentMatch) -> void:
+func _capture_completed_hand(
+	metrics: RefCounted, match_instance: TournamentMatch, events: Array[DomainEvent]
+) -> void:
 	var view: GameView = match_instance.get_view_for(0)
 	if view == null or not view.hand_complete:
 		return
@@ -303,7 +339,7 @@ func _capture_completed_hand(metrics: RefCounted, match_instance: TournamentMatc
 			_stacks(view),
 			view.big_blind,
 			view.action_history,
-			match_instance.get_events(),
+			events,
 		)
 	)
 
@@ -338,10 +374,7 @@ func _config_for_input(
 
 
 func _seat_mapping(input: SimulationTournamentInput) -> Dictionary[int, StringName]:
-	var mapping: Dictionary[int, StringName] = {}
-	for seat: int in input.get_seat_profiles():
-		mapping[seat] = input.get_seat_profiles()[seat].profile_id
-	return mapping
+	return input.get_seat_profile_ids()
 
 
 func _invalid_outcome(

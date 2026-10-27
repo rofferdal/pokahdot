@@ -3,6 +3,8 @@ extends RefCounted
 
 ## Creates presentation-only styles shared by the poker table controls.
 
+const MINIMUM_FONT_SIZE: int = 20
+
 
 static func box(
 	background_color: Color,

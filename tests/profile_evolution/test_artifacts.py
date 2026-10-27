@@ -75,7 +75,7 @@ class ArtifactTests(unittest.TestCase):
                 Path(destination).write_bytes(raced_content)
                 original_link(source, destination)
 
-            with mock.patch("tools.profile_evolution.artifacts.os.link", side_effect=race_link):
+            with mock.patch("tools.profile_evolution.atomic_write.os.link", side_effect=race_link):
                 with self.assertRaises(ToolError) as context:
                     write_artifact_atomic(output, create_artifact("candidate_bundle", {}))
             self.assertEqual(context.exception.code, "output_exists")

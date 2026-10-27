@@ -77,11 +77,11 @@ func test_keypad_detail_quit_are_exclusive_and_back_cancels_without_mutation() -
 	var original_back_policy: bool = get_tree().quit_on_go_back
 	table._open_phone_seat_detail(1)
 	await _settle()
-	assert_true(table._seat_detail_overlay.visible)
+	assert_true(table._overlay_views.detail_overlay.visible)
 	assert_false(get_tree().quit_on_go_back)
 	table.show_wager_keypad()
 	await _settle()
-	assert_false(table._seat_detail_overlay.visible)
+	assert_false(table._overlay_views.detail_overlay.visible)
 	assert_true(table._wager_keypad.visible)
 	assert_true(table._wager_keypad.get_node("Content/Keys/Quit").visible)
 	table._wager_keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
@@ -103,13 +103,15 @@ func test_seat_refresh_and_profile_exit_release_modal_and_restore_valid_focus() 
 	table.refresh_from_match()
 	await _settle()
 	assert_true(
-		table._seat_detail_overlay.is_ancestor_of(table.get_viewport().gui_get_focus_owner())
+		table._overlay_views.detail_overlay.is_ancestor_of(
+			table.get_viewport().gui_get_focus_owner()
+		)
 	)
 	table.size = Vector2(1280, 720)
 	await _settle()
 	assert_false(table._modal_guard.is_active())
-	assert_false(table._seat_detail_overlay.visible)
-	assert_eq(table._seat_detail_seat, Table.NO_SEAT)
+	assert_false(table._overlay_views.detail_overlay.visible)
+	assert_eq(table._overlay_views.detail_seat, Table.NO_SEAT)
 
 
 func test_nonphone_keypad_quit_remains_modal_until_native_cancel() -> void:

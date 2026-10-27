@@ -88,15 +88,21 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 		_print_errors(manifest_result.errors)
 		return EXIT_INVALID
 	var manifest: SimulationManifest = manifest_result.manifest
-	var plan: SimulationBatchPlan = manifest.build_plan(options.shard)
-	if not plan.is_valid():
-		_print_errors(plan.errors)
+	var cursor := manifest.create_cursor(options.shard)
+	if not cursor.errors.is_empty():
+		_print_errors(cursor.errors)
 		return EXIT_INVALID
 	if options.command == &"validate":
-		_print_document(_plan_document(manifest, options.shard, plan.inputs), options.format)
+		_print_document(
+			_plan_document(manifest, options.shard, manifest.build_plan(options.shard).inputs),
+			options.format
+		)
 		return EXIT_OK
 	if options.dry_run:
-		_print_document(_plan_document(manifest, options.shard, plan.inputs), options.format)
+		_print_document(
+			_plan_document(manifest, options.shard, manifest.build_plan(options.shard).inputs),
+			options.format
+		)
 		return EXIT_OK
 	if FileAccess.file_exists(options.output_path) and not options.overwrite:
 		printerr("Output already exists; pass --overwrite to replace it.")
@@ -105,7 +111,6 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 	if base_config == null:
 		printerr("The manifest has no resolvable simulation regime.")
 		return EXIT_INVALID
-	var started := Time.get_datetime_string_from_system(true)
 	var execution_provenance: Dictionary = PROVENANCE_SCRIPT.capture()
 	if not PROVENANCE_SCRIPT.is_available(execution_provenance):
 		printerr(
@@ -115,56 +120,72 @@ func _run_manifest_command(options: SimulationCommandOptions) -> int:
 			)
 		)
 		return EXIT_IO
-	var outcomes: Array[SimulationTournamentOutcome] = []
+	var store := SimulationCheckpointStore.new()
+	var checkpoint_path := options.checkpoint_path
+	if checkpoint_path.is_empty():
+		checkpoint_path = options.output_path + ".checkpoint"
+	if not store.initialize(
+		checkpoint_path,
+		manifest,
+		options.shard,
+		execution_provenance,
+		options.trace_config(),
+		options.resume
+	):
+		printerr(store.error_message)
+		return EXIT_IO
+	var accumulator := SimulationAggregateAccumulator.new()
+	var minimums := _minimum_samples_by_plan(manifest)
 	var runner := SimulationBatchRunner.new()
 	var trace_config := options.trace_config()
 	var current_plan_id := &""
 	var show_progress := options.format == SimulationCommandOptions.OutputFormat.TEXT
-	for input: SimulationTournamentInput in plan.inputs:
+	var had_failure: bool = false
+	while cursor.has_next():
+		var input := cursor.next_input()
 		if show_progress and input.plan_id != current_plan_id:
 			if not current_plan_id.is_empty():
 				printraw("\n")
 			current_plan_id = input.plan_id
 			print("Evaluation plan: %s" % current_plan_id)
-		var tournament_batch: SimulationBatchResult = runner.run(
-			base_config, [input], 256, trace_config
-		)
-		outcomes.append_array(tournament_batch.outcomes)
+		var tournament: Dictionary
+		if store.has_record(input.tournament_index):
+			var record := store.load_record(input.tournament_index)
+			if record.is_empty():
+				printerr(store.error_message)
+				return EXIT_IO
+			tournament = record.tournament
+		else:
+			var outcome := runner.run_one(base_config, input, 256, trace_config)
+			if not store.save_outcome(outcome):
+				printerr(store.error_message)
+				return EXIT_IO
+			tournament = REPORT_SCRIPT._tournament_dictionary(outcome)
+		if tournament.termination_reason != "winner":
+			had_failure = true
+			for diagnostic: Dictionary in tournament.diagnostics:
+				printerr("Tournament %d: %s" % [input.tournament_index, diagnostic.message])
+		accumulator.add_tournament(tournament, int(minimums.get(input.plan_id, 1)))
 		if show_progress:
 			printraw(".")
-	if show_progress and not plan.inputs.is_empty():
+	if show_progress and cursor.assigned_count > 0:
 		printraw("\n")
-	var batch := SimulationBatchResult.new(outcomes, _minimum_samples_by_plan(manifest))
-	if not batch.is_success():
-		var failed_report: RefCounted = (
-			REPORT_SCRIPT
-			. from_batch(
-				manifest,
-				options.shard,
-				batch,
-				started,
-				Time.get_datetime_string_from_system(true),
-				execution_provenance,
-			)
-		)
-		if not _write_report(options.output_path, failed_report, options.overwrite):
-			return EXIT_IO
-		_print_errors(_batch_errors(batch))
-		return EXIT_SIMULATION
-	var report: RefCounted = (
-		REPORT_SCRIPT
-		. from_batch(
-			manifest,
-			options.shard,
-			batch,
-			started,
-			Time.get_datetime_string_from_system(true),
-			execution_provenance,
-		)
+	var writer := SimulationStreamReportWriter.new()
+	var summary := writer.write(
+		options.output_path,
+		store,
+		manifest,
+		options.shard,
+		accumulator.summarize(),
+		options.overwrite
 	)
-	if not _write_report(options.output_path, report, options.overwrite):
+	if not summary.success:
+		printerr(writer.error_message)
 		return EXIT_IO
-	_print_completion(report, options)
+	summary.erase("success")
+	if had_failure:
+		return EXIT_SIMULATION
+	_print_document(summary, options.format)
 	return EXIT_OK
 
 
@@ -195,12 +216,9 @@ func _replay_report(options: SimulationCommandOptions) -> int:
 	if not manifest_result.is_ok():
 		_print_errors(manifest_result.errors)
 		return EXIT_INVALID
-	var plan: SimulationBatchPlan = manifest_result.manifest.build_plan()
-	var selected_input: SimulationTournamentInput
-	for input: SimulationTournamentInput in plan.inputs:
-		if input.tournament_index == options.tournament_index:
-			selected_input = input
-			break
+	var selected_input: SimulationTournamentInput = manifest_result.manifest.input_at(
+		options.tournament_index
+	)
 	if selected_input == null:
 		printerr("The report manifest does not contain that tournament index.")
 		return EXIT_INVALID
@@ -313,10 +331,6 @@ func _base_config(manifest: SimulationManifest) -> ResolvedTournamentConfig:
 	return resolution.get_config() if resolution.is_ok() else null
 
 
-func _write_report(path: String, report: RefCounted, overwrite: bool) -> bool:
-	return _write_dictionary(path, report.to_dictionary(), overwrite)
-
-
 func _write_dictionary(path: String, document: Dictionary, overwrite: bool) -> bool:
 	if FileAccess.file_exists(path) and not overwrite:
 		printerr("Output already exists; pass --overwrite to replace it.")
@@ -342,10 +356,9 @@ func _plan_document(
 	var planned: Array[Dictionary] = []
 	for input: SimulationTournamentInput in inputs:
 		var seat_map: Array[Dictionary] = []
-		for seat: int in input.get_seat_profiles():
-			seat_map.append(
-				{"seat": seat, "profile_id": String(input.get_seat_profiles()[seat].profile_id)}
-			)
+		var profiles := input.get_seat_profile_ids()
+		for seat: int in profiles:
+			seat_map.append({"seat": seat, "profile_id": String(profiles[seat])})
 		(
 			planned
 			. append(
@@ -390,17 +403,6 @@ func _indexes(tournaments: Array[Dictionary]) -> Array[int]:
 	return result
 
 
-func _print_completion(report: RefCounted, options: SimulationCommandOptions) -> void:
-	var summary := {
-		"report_path": options.output_path,
-		"report_checksum": report.checksum(),
-		"manifest_checksum": report.manifest_checksum,
-		"shard": report.shard.to_dictionary(),
-		"tournament_count": report.tournaments.size(),
-	}
-	_print_document(summary, options.format)
-
-
 func _batch_errors(batch: SimulationBatchResult) -> PackedStringArray:
 	var errors := PackedStringArray()
 	for outcome: SimulationTournamentOutcome in batch.outcomes:
@@ -429,7 +431,7 @@ func _usage() -> String:
 		+ "Commands: help, validate, run, inspect, replay, export-roster-manifest\n"
 		+ "Options: --config PATH --output PATH --report PATH --format json|text "
 		+ "--shard INDEX/COUNT --trace none|errors|sampled --trace-sample COUNT "
-		+ "--dry-run --overwrite --tournament-index INDEX\n"
+		+ "--dry-run --overwrite --tournament-index INDEX --checkpoint DIR --resume\n"
 		+ "export-roster-manifest: --output PATH [--overwrite] [--batch-id ID] "
 		+ "[--seed INTEGER] [--tournament-count COUNT] [--regime-preset standard] "
 		+ "[--format json|text]"

@@ -2,8 +2,9 @@
 
 Status: Core, CLI, simulation, evolution, and responsive GUI implementations
 are present. Automated layout coverage and historical manual acceptance have
-separate scopes. Active physical-phone acceptance remains in
-[OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); phone landscape is
+separate scopes. Physical-phone acceptance limitations remain recorded in the
+archived
+[OptimizingPhoneGuiTasks.md](arkiv/OptimizingPhoneGuiTasks.md); phone landscape is
 deferred. The [visual evidence contract](GUI_VISUAL_TESTING.md) owns acceptance
 terminology and current profile coverage.
 Last updated: 2026-10-26
@@ -102,8 +103,15 @@ the existing single-table and hand-based blind-progression rules.
 `SimulationTournamentMetrics` observes only recipient-safe completed-hand
 snapshots, public action records, domain events, and copied bot-decision
 metadata. `HandController` records the starting active seats and stacks for
-that hand in its safe `GameView`; `BotAgent` separately retains legal-action
-alternatives and strategy traces only for simulation measurement. The adapter
+that hand in its safe `GameView`; `BotAgent` captures legal-action alternatives
+and strategy traces only when simulation diagnostics are enabled. Product
+agents retain no decision history or trace snapshots. The runner drains each
+bot after every bounded advancement, so pending memory depends on that budget
+rather than tournament length. Capture copies actions, legal alternatives and
+traces; draining transfers ownership. A rejected request and its synchronous
+fallback consume one snapshot, measuring the applied action without counting
+a rejected bluff as executed. Each operation uses one event/profile snapshot.
+The adapter
 can therefore calculate survival, blind-normalized chip change, per-hand
 VPIP/PFR, all-street bet/raise and call counts, action-opportunity rates,
 call-versus-raise splits, eligible bluff frequency, and invalid-action
@@ -122,10 +130,12 @@ hole cards or deck data. Sampled mode uses deterministic reservoir sampling
 over the total number of eligible entries, so early and late events have the
 same retention probability. Execution failures retain already-collected safe
 traces and the input's plan, regime, matchup-occurrence, and rotation identity
-alongside their structured diagnostic. `SimulationAggregateCalculator` groups
-completed outcomes by profile, matchup, seat, regime, and evaluation plan
-using a completed tournament and its effective seed as the independent
-statistical unit. Repeated profile seats and table-level groups are averaged
+alongside their structured diagnostic. `SimulationAggregateCalculator` is the
+collection adapter for `SimulationAggregateAccumulator`, which consumes one
+tournament at a time. Per-group running totals and Welford moments retain no
+outcomes or observation arrays. Both paths group completed outcomes by
+profile, matchup, seat, regime, and evaluation plan using a completed
+tournament and its effective seed as the independent statistical unit. Repeated profile seats and table-level groups are averaged
 within a tournament before uncertainty is estimated, preventing correlated
 seats from inflating sample counts. Behavioral rates divide summed raw
 numerators by summed opportunity denominators for point estimates, while
@@ -165,11 +175,14 @@ core state, rendering data, command-line arguments, or serialization details.
 immutable profile snapshots, explicit structural regimes, matchups, and named
 evaluation plans. Every model parameter is required in a snapshot; schema 1
 and mixed legacy/current parameter fields are rejected instead of receiving
-silent defaults. `SimulationManifest.build_plan()` concatenates plans in
-manifest order, assigns global zero-based indexes and `seed_start + index`,
-derives matchup occurrence and cyclic seat rotation from each plan-local
-occurrence, and applies `SimulationShard` only after global planning.
-`SimulationCommandOptions` is the typed boundary for strict CLI arguments.
+silent defaults. `SimulationPlanCursor` owns a private manifest snapshot and
+iterates only assigned global indexes, stepping by shard count. Direct
+`SimulationManifest.input_at()` lookup resolves a plan-local index, matchup
+occurrence, cyclic rotation and `seed_start + index` arithmetically; it never
+constructs preceding inputs. `build_plan()` remains a compatibility collection
+API that materializes only the assigned shard. CLI execution uses the cursor;
+replay uses direct lookup. `SimulationCommandOptions` is the typed boundary
+for strict CLI arguments.
 
 `SimulationManifestGenerator` is a simulation-layer export service that bridges
 the curated product catalog to an evaluation baseline without reversing those
@@ -204,12 +217,30 @@ product-curated roster. Normal GUI/interactive-CLI composition uses the
 source-controlled `PlayableBotRoster.ROSTER_VERSION`; interactive diagnostics
 record that version and the selected bot profile IDs.
 
+Decision (2026-10-27): CLI runs checkpoint every completed tournament through
+`SimulationCheckpointStore`, using an explicit directory or the default
+`<output>.checkpoint`. The header binds the manifest checksum, complete
+executable provenance, shard and trace settings. Explicit resume validates
+these values and each immutable per-index record before reuse. Canonical
+serialized tournament and trace strings preserve numeric spellings; temporary
+siblings do not count as completed evidence. The streaming aggregate collector
+rebuilds its bounded state in global-index order, giving resumed runs the same
+metric accumulation order and tournament digests as uninterrupted runs.
+`SimulationStreamReportWriter` streams the existing schema-4 report from those
+records through a temporary sibling and atomic rename, then hashes the file in
+fixed-size chunks. Checkpoint storage grows with evidence; execution memory
+depends on the manifest, declared aggregate groups and one tournament, rather
+than the planned count. The explicit collection APIs and report consumers may
+still load complete collections when requested.
+
 `SimulationReport.validate` is the common Godot boundary for direct consumers,
 inspection and replay. Focused manifest, tournament and metric contracts check
 untrusted field shapes before conversion, map reported indexes without
 materializing the entire plan, and verify completed outcomes from their
-primitive counters and terminal stacks. Partial failure diagnostics remain
-inspectable. Shared JSON conformance cases exercise the Godot boundary and
+primitive counters and terminal stacks. Default validation requires full
+completed-shard coverage; checkpoint validation explicitly allows one partial
+record while retaining its structural, plan and metric checks. Partial failure
+diagnostics remain inspectable. Shared JSON conformance cases exercise the Godot boundary and
 Python fitness, selection and confirmation consumers.
 
 Decision (2026-10-26): simulation JSON uses the lossless seed range specified
@@ -649,6 +680,14 @@ func get_view_for(seat: int) -> GameView
 
 The method may execute several bot turns synchronously, but it returns `YIELDED` when its positive transition budget is exhausted. This guard prevents a defect from freezing the application in an infinite transition loop.
 
+`HandController` shares one small-step operation between bulk advancement and
+`advance_one_action()`: a step applies one action, advances one completed
+betting street, settles a hand, or returns a blocking/error status. Bulk calls
+consume pending human mailbox actions; GUI single-step calls always wait at a
+human turn, leaving submission explicit. Nonpositive budgets retain the
+existing normalization to one step. Starting the next hand preserves the
+caller's budget after setup rather than substituting the default 32 steps.
+
 The core checks a latched quit request before every state transition. GUI driving must use a bounded transition budget and yield back to Godot's event loop between budgets so the always-available quit control remains responsive. The CLI loops through bot progress without requesting stdin and accepts `quit`/`exit` whenever it is reading a human command.
 
 The completed implementation history proceeded through the interactive CLI first, then the GUI, simulation, profile-evolution, and release-readiness phases. [`ReleaseReadinessTasks.md`](arkiv/ReleaseReadinessTasks.md) records the completed ordered release-readiness work, while the archived layer backlogs retain their task evidence. Completed historical sequencing is preserved under [`arkiv/`](arkiv/).
@@ -664,7 +703,33 @@ The completed implementation history proceeded through the interactive CLI first
 
 The startup panel and table are views in one scalable `Control`-based main scene with `canvas_items` stretch mode and `expand` aspect. Layouts use containers, anchors, and responsive margins rather than fixed pixel positioning. Stretch mode scales the 2D layout but does not by itself guarantee crisp text or textures; those depend on viewport configuration and source assets. Starting a new tournament returns to the startup panel so new values can be chosen.
 
-The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer and blind markers. The acting player is identified by a white seat frame three times thicker than an ordinary frame, without a redundant textual `ACT` marker. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to `PokerTableController` and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
+The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer and blind markers. The acting player is identified by a white seat frame three times thicker than an ordinary frame, without a redundant textual `ACT` marker. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to the GUI presentation layer and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
+
+Decision (2026-10-27, CODE-01): `PokerTableController` coordinates recipient-safe
+binding, public-action lifetime, input submission and pacing. Presentation work
+has typed component boundaries:
+
+- `GuiTableSeatFactory` builds disposable `GuiTableSeatView` panels from the
+  bound safe view and tournament-local name/avatar assignment snapshots.
+  Each panel captures its name, stack, badge and card handles once; those handles
+  die with the rebuilt widget. No widget retains an agent or mutable core state.
+- `GuiTableActionControls` resolves authored action rows once and owns their
+  copy, visibility, styling and reparenting. It does not submit actions.
+- `GuiTableOverlayViews` owns detail selection by core seat ID, detail-widget
+  construction, modal switching/visibility and overlay geometry. Controller
+  callbacks and `GuiModalGuard` retain focus, pause/resume and quit coordination.
+- `GuiTableLayoutPass` resolves profile classification, density/scales and
+  measured center bounds for one layout operation. Root geometry selects the
+  profile; inset surface geometry sizes its contents. `GuiTableSeatLayout`
+  applies that pass to complete seat/status footprints. The controller applies
+  center and lower-region bounds in ordered phases; phone and compact-desktop
+  plans cross those boundaries as `GuiPhoneLayoutPlan` and
+  `GuiSixSeatDesktopPlan`, rather than generic `RefCounted` objects.
+
+`GuiTableStyle.MINIMUM_FONT_SIZE` is the shared table text floor. Existing
+profile geometry and fallback clearance policies remain behaviorally unchanged;
+this extraction does not certify additional physical-device acceptance or
+introduce persistent caching of recipient views.
 
 `GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls nonblocking GUI pacing. Its default action pause is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. The same pause is used after each community-card reveal. Milestone 3 requires the completed-hand presentation pause to use `showdown_pause_seconds`, which defaults to five seconds, both after showdown and when one player wins before showdown because every opponent folded. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
 
@@ -810,7 +875,7 @@ The shared theme may adapt font sizes to the viewport, but all player-facing tex
 
 The sixteen `assets/avatars/*.png` sources are 64 × 64 pixels. Full seat
 panels use base avatar regions of 112 × 112 logical pixels for opponents and
-128 × 128 for the human (`PokerTableController` constants); responsive layout
+128 × 128 for the human (`GuiTableSeatFactory` constants); responsive layout
 may scale or reflow them. Phone tokens omit avatars. Source pixels, logical
 display size, and physical pixels at browser DPR are distinct quantities. At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
 
@@ -868,6 +933,27 @@ compositions use compact seat content and concise control copy such as
 and 48 px interactive-control height. The strict Milestone 3 matrix validates
 these layouts alongside landscape tablet and desktop layouts for 2, 4, 6, and
 9 players.
+
+GUI gates and capture manifests share `GuiInvariantMatrixSuites` coverage.
+One `GuiInvariantMatrixRunner` drives all four diagnostic suites, retaining the
+additional `GuiPhoneMatrixContract` checks and historical entry points. The
+[visual evidence contract](GUI_VISUAL_TESTING.md) owns case/version policy.
+
+Refresh lifetime decision (2026-10-27): retain disposable seat/card widgets
+and recipient-safe view binding. A test-only subclass and shared native/Web
+fixture measure seeded turns, all-in runouts and cross-profile resizes with
+real avatars, long names and maximum chip values. Across 120 samples in each
+of nine workloads per runtime, refresh p95 reaches 5.9 ms on native Apple M4
+Compatibility and 12.9 ms in exported Chromium; transition-layout p95 reaches
+7.5/13.3 ms. These synchronous operations remain below the 16.7 ms investigation
+threshold, and normal product updates retain their 2 s / 5 s pacing. The data
+does not demonstrate a widget-retention benefit that warrants added lifetime
+and invalidation policy. No whole-view cache or production reuse is added.
+Whole-frame wall p95 sometimes exceeds that threshold and includes waiting and
+deferred work; this is not a 60-fps guarantee. The Web software-backend sample
+does not establish physical-device performance, and profiler-owned buffers
+prevent a leak-freedom claim. Reopen targeted reuse with attributable slow-frame
+evidence. See the [profiling runbook](../devdocs/how-to/running-and-testing.md#profile-gui-refresh-cost).
 
 When a hand completes before showdown because every opponent has folded, the
 GUI must render exactly `Winner` in the winning seat's shared status band, the
@@ -983,8 +1069,9 @@ hostname; normal asset responses verify their recorded payload hashes.
 
 Rendered review is required for visual acceptance of an affected scope.
 Deployment itself does not require manual hosted review, but a device support
-claim needs recorded device evidence. Active phone acceptance is tracked in
-[OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); historical iPad,
+claim needs recorded device evidence. Phone acceptance limitations are recorded
+in the archived
+[OptimizingPhoneGuiTasks.md](arkiv/OptimizingPhoneGuiTasks.md); historical iPad,
 desktop, and LAN records have the distinct statuses listed in the
 [visual contract](GUI_VISUAL_TESTING.md#current-support-and-acceptance). When that evidence is collected, the manifest,
 review, deployment run, and hosted evidence should identify the same full
@@ -1172,6 +1259,7 @@ distances. The reviewer changes each candidate's single `decision` field from
 candidate, recomputes the complete pairwise review from the supplied
 confirmations, and emits one immutable, reviewer-labeled
 `promotion_review_batch`.
+
 Approval cannot be finalized for ineligible evidence. These external records
 deliberately have no dependency on, access to, or mutation path for
 `PlayableBotRoster`.
@@ -1195,6 +1283,15 @@ separate reviewed source change. Product policy retains the hand-authored Random
 Aggressive profiles. The implementation checks for a non-empty legacy family
 when legacy selection is enabled, not those three individual IDs. Checksums
 bind artifact content and do not authenticate a reviewer's supplied label.
+
+Python artifact, editable-review-plan and Resource publication share
+`atomic_write.publish_bytes_no_replace`, which receives already serialized
+bytes, flushes/syncs a temporary sibling and publishes with a no-replace hard
+link. Serializers, parent-directory policy and structured error mapping remain
+with their callers. Artifact/review writes sync the parent directory; Resource
+publication preserves its existing file-sync policy and sidecar rollback.
+Racing destinations remain untouched, and temporary files are cleaned on
+failure; a directory-sync failure after publication retains the published file.
 
 The executable Milestone 5 smoke history is preserved under
 `examples/profile_evolution/milestone5`. It includes deterministic generation,
@@ -1350,6 +1447,12 @@ scripts/core/
 scripts/gui/
   startup_config_controller.gd
   poker_table_controller.gd
+  gui_table_seat_factory.gd
+  gui_table_seat_view.gd
+  gui_table_action_controls.gd
+  gui_table_overlay_views.gd
+  gui_table_layout_pass.gd
+  gui_table_seat_layout.gd
 scripts/cli/
   cli_app.gd
 scripts/simulation/

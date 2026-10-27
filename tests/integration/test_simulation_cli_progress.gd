@@ -4,6 +4,7 @@ const MANIFEST_PATH := "res://tests/fixtures/simulation_manifest_v2.json"
 
 
 func before_each() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://localtmp"))
 	_remove_output()
 	_write_manifest()
 
@@ -103,6 +104,11 @@ func _write_manifest() -> void:
 
 
 func _remove_output() -> void:
+	var checkpoint := _output_path() + ".checkpoint"
+	if DirAccess.dir_exists_absolute(checkpoint):
+		for filename: String in DirAccess.get_files_at(checkpoint):
+			DirAccess.remove_absolute(checkpoint.path_join(filename))
+		DirAccess.remove_absolute(checkpoint)
 	if FileAccess.file_exists(_output_path()):
 		var result := DirAccess.remove_absolute(_output_path())
 		assert_eq(result, OK)
@@ -115,8 +121,8 @@ func _remove_manifest() -> void:
 
 
 func _output_path() -> String:
-	return ProjectSettings.globalize_path("res://tests/.simulation_cli_progress_report.json")
+	return ProjectSettings.globalize_path("res://localtmp/simulation_cli_progress_report.json")
 
 
 func _manifest_path() -> String:
-	return ProjectSettings.globalize_path("res://tests/.simulation_cli_progress_manifest.json")
+	return ProjectSettings.globalize_path("res://localtmp/simulation_cli_progress_manifest.json")

@@ -168,7 +168,7 @@ static func from_batch(
 	return report
 
 
-func validate() -> PackedStringArray:
+func validate(require_complete_shard: bool = true) -> PackedStringArray:
 	var errors := _structural_errors.duplicate()
 	if report_schema_version != REPORT_SCHEMA_VERSION:
 		errors.append("Unsupported simulation report schema version.")
@@ -235,7 +235,11 @@ func validate() -> PackedStringArray:
 					profile_result, field, TYPE_BOOL, "Simulation profile result", errors
 				)
 	if errors.is_empty():
-		errors.append_array(SEMANTIC_CONTRACT.validate(to_dictionary(), manifest_result.manifest))
+		errors.append_array(
+			SEMANTIC_CONTRACT.validate(
+				to_dictionary(), manifest_result.manifest, require_complete_shard
+			)
+		)
 	return errors
 
 

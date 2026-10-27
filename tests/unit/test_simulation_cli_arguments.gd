@@ -138,3 +138,84 @@ func test_parser_rejects_invalid_or_incomplete_roster_manifest_export_options() 
 	)
 	assert_false(result.is_ok())
 	assert_has(result.errors, "Roster manifest seed must be an integer.")
+
+
+func test_parser_accepts_explicit_checkpoint_resume_and_rejects_wrong_commands() -> void:
+	var parsed := (
+		PARSER_SCRIPT
+		. new()
+		. parse(
+			PackedStringArray(
+				[
+					"run",
+					"--config",
+					"manifest.json",
+					"--output",
+					"report.json",
+					"--checkpoint",
+					"localtmp/experiment",
+					"--resume",
+				]
+			)
+		)
+	)
+	assert_true(parsed.is_ok())
+	assert_true(parsed.options.resume)
+	assert_eq(parsed.options.checkpoint_path, "localtmp/experiment")
+	for command: String in ["help", "validate", "inspect", "replay", "export-roster-manifest"]:
+		parsed = (
+			PARSER_SCRIPT
+			. new()
+			. parse(
+				PackedStringArray(
+					[
+						command,
+						"--config",
+						"manifest.json",
+						"--checkpoint",
+						"somewhere",
+						"--resume",
+					]
+				)
+			)
+		)
+		assert_false(parsed.is_ok(), command)
+		assert_has(parsed.errors, "Checkpoint and resume options are supported only by run.")
+
+
+func test_parser_rejects_resume_dry_run_and_missing_checkpoint_value() -> void:
+	var parsed := (
+		PARSER_SCRIPT
+		. new()
+		. parse(
+			PackedStringArray(
+				[
+					"run",
+					"--config",
+					"manifest.json",
+					"--dry-run",
+					"--resume",
+				]
+			)
+		)
+	)
+	assert_false(parsed.is_ok())
+	assert_has(parsed.errors, "Resume cannot be combined with dry-run.")
+	parsed = (
+		PARSER_SCRIPT
+		. new()
+		. parse(
+			PackedStringArray(
+				[
+					"run",
+					"--config",
+					"manifest.json",
+					"--output",
+					"report.json",
+					"--checkpoint",
+				]
+			)
+		)
+	)
+	assert_false(parsed.is_ok())
+	assert_has(parsed.errors, "Option --checkpoint requires a value.")

@@ -312,6 +312,55 @@ size and large enough for every profile's configured minimum. Exported files
 are baseline inputs, not promotion evidence: evaluate and confirm candidates
 with the ordinary independent report workflow.
 
+### 4.2.2 Checkpointed execution and resume
+
+`run` walks only the shard's assigned global indexes and retains one tournament
+at a time. Aggregate state contains per-group counts, sums and variance moments;
+repeated seats still collapse within each tournament before uncertainty is
+updated. Missing intervals, Wilson floors and minimum-sample rules are unchanged.
+Floating-point aggregate roundoff may differ from older array-based calculations;
+tournament digests and deterministic trace sampling remain unchanged.
+
+Every run writes a checkpoint directory, defaulting to `OUTPUT.checkpoint`.
+`--checkpoint DIR` selects a different directory; each worker needs its own,
+with one active writer per directory. Concurrent writers to one checkpoint
+directory are unsupported.
+The schema-1 `header.json` binds the manifest checksum, complete executable
+provenance, shard and trace settings, retaining the original start time. Each
+`GLOBAL_INDEX.json` atomically publishes checksummed canonical tournament and
+safe-trace strings. Temporary siblings are ignored as unfinished work.
+
+Repeat the same command with `--resume` to validate and reuse completed records.
+The interrupted tournament is rerun from its seed. Changed manifests, execution
+sources, Godot/algorithm versions, shards or trace settings are rejected;
+malformed or corrupted records fail instead of silently rerunning. Checkpoint
+records remain after success and are never deliberately replaced. A fresh run
+requires a new checkpoint directory. `--overwrite` permits replacing the final
+report only; it does not reset checkpoints.
+
+Completed failed attempts are retained too, with safe partial traces and
+diagnostics. Resume reuses that failure evidence and returns simulation failure;
+retrying requires a new checkpoint directory rather than replacing the record.
+
+```bash
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  run --config manifest.json --output artifacts/report.json \
+  --checkpoint artifacts/report.checkpoint --trace sampled --trace-sample 5
+
+# After interruption, use the same checkout, engine, manifest and options.
+godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
+  run --config manifest.json --output artifacts/report.json \
+  --checkpoint artifacts/report.checkpoint --trace sampled --trace-sample 5 --resume
+```
+
+Final publication streams the existing schema-4 report through a temporary
+sibling and hashes the canonical bytes in chunks. No full outcome or trace
+array is retained by `run`; memory scales with manifest/group size and one
+tournament, while disk usage scales with completed records and the final report.
+`validate`, `--dry-run`, and `inspect` still materialize their displayed plan or
+report; the bounded-execution guarantee applies to `run`. Replay selects its
+input directly by global index rather than building the full manifest plan.
+
 ### 4.3 Report schema and privacy
 
 The report schema mirrors the manifest's identity structure exactly: the

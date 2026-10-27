@@ -15,11 +15,12 @@ section. Keep completion evidence and checkboxes in the owning backlog.
 
 - [`AstraSuggestionTasks.md`](AstraSuggestionTasks.md) — ordered correctness,
   evidence, documentation, GUI, maintenance, and CLI improvements.
-- [`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md) — active physical
-  phone review and acceptance; automated gates do not complete device tasks.
 
 ## Archived task records
 
+- [`arkiv/OptimizingPhoneGuiTasks.md`](arkiv/OptimizingPhoneGuiTasks.md) — historical
+  phone review and acceptance evidence; open recorded device checks are not
+  completed by archive placement or automated gates.
 - [`arkiv/LanTestTasks.md`](arkiv/LanTestTasks.md) — completed LAN workflow;
   user accepted resolution limitations. Current commands live in the
   [LAN how-to](../devdocs/how-to/local-wifi-web-testing.md).

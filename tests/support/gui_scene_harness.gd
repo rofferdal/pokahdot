@@ -143,7 +143,7 @@ func _open_quit_fixture_overlay(table: PokerTableController) -> Node:
 	if GuiLayoutProfileScript.is_phone(table.get_layout_profile()):
 		var phone_confirmation := table.get_node("%PhoneQuitConfirmation") as Control
 		phone_confirmation.show()
-		table.call("_layout_phone_quit_confirmation")
+		table.call("_layout_phone_overlays")
 		return phone_confirmation
 	var confirmation := table.get_node("%QuitConfirmation") as ConfirmationDialog
 	confirmation.popup_centered()

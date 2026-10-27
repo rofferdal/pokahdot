@@ -5,10 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import tempfile
 from pathlib import Path
 from typing import Any, Iterable
 
+from .atomic_write import publish_bytes_no_replace
 from .errors import ExitCode, ToolError
 
 ARTIFACT_SCHEMA_VERSION = 1
@@ -185,27 +185,8 @@ def write_artifact_atomic(
             ExitCode.IO_FAILURE,
             {"path": str(parent)},
         )
-    temporary_path: Path | None = None
     try:
-        descriptor, name = tempfile.mkstemp(
-            prefix=f".{destination.name}.", suffix=".tmp", dir=parent
-        )
-        temporary_path = Path(name)
-        with os.fdopen(descriptor, "wb") as temporary:
-            temporary.write(canonical_json_bytes(artifact))
-            temporary.flush()
-            os.fsync(temporary.fileno())
-        # A hard-link publish is atomic and refuses to replace a destination
-        # created by another process after our initial validation.
-        os.link(temporary_path, destination)
-        temporary_path.unlink()
-        temporary_path = None
-        directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
-        directory_descriptor = os.open(parent, directory_flags)
-        try:
-            os.fsync(directory_descriptor)
-        finally:
-            os.close(directory_descriptor)
+        publish_bytes_no_replace(destination, canonical_json_bytes(artifact))
     except FileExistsError as error:
         raise ToolError(
             "output_exists",
@@ -220,9 +201,3 @@ def write_artifact_atomic(
             ExitCode.IO_FAILURE,
             {"path": str(destination)},
         ) from error
-    finally:
-        if temporary_path is not None:
-            try:
-                temporary_path.unlink()
-            except FileNotFoundError:
-                pass

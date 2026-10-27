@@ -74,6 +74,10 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   --output artifacts/curated_roster_baseline_report.json
 ```
 
+If interrupted, repeat the same run command with `--resume`; keep the matching
+checkpoint directory and source checkout. See the
+[checkpoint contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#422-checkpointed-execution-and-resume).
+
 This baseline is not, by itself, promotion evidence: it has no candidate.
 Keep it unchanged. For the candidate experiment, create a new manifest that
 includes the candidate and only the incumbents relevant to the hypothesis (as

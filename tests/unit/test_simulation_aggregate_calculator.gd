@@ -107,6 +107,105 @@ func test_boundary_rates_have_nonzero_uncertainty_with_two_tournaments() -> void
 	assert_lt(row.uncertainty_penalty, 0.10)
 
 
+func test_streamed_moments_match_independent_three_sample_variance() -> void:
+	var accumulator := SimulationAggregateAccumulator.new()
+	for index: int in range(3):
+		var metric := SimulationSeatMetrics.new(&"profile", 0, 100)
+		metric.hands_observed = 1
+		metric.finish(100 + index * 20, 1, true, 2, 1)
+		accumulator.add_outcome(_outcome(index, metric), 3)
+	var row: Dictionary = accumulator.summarize().by_profile[0]
+	assert_eq(row.sample_count, 3)
+	assert_true(row.reportable)
+	assert_almost_eq(row.means.chip_differential, 20.0, 1e-12)
+	# Values 0, 20, 40 have unbiased sample variance 400.
+	assert_almost_eq(
+		row.uncertainty_95_half_width.chip_differential, 1.96 * sqrt(400.0 / 3.0), 1e-12
+	)
+	assert_gt(row.uncertainty_95_half_width.win_score, 0.0)
+	assert_null(row.uncertainty_95_half_width.eligible_bluff_frequency)
+
+
+func test_checkpoint_records_preserve_correlated_seats_rates_and_plan_minimums() -> void:
+	var live := SimulationAggregateAccumulator.new()
+	var checkpoint := SimulationAggregateAccumulator.new()
+	for index: int in range(3):
+		var winner := SimulationSeatMetrics.new(&"mirror", 0, 100)
+		winner.hands_observed = 1
+		winner.bet_raise_opportunities = index * 2
+		winner.aggressive_actions = index
+		winner.finish(200, 1, true, 2, 1)
+		var runner_up := SimulationSeatMetrics.new(&"mirror", 1, 100)
+		runner_up.hands_observed = 1
+		runner_up.bet_raise_opportunities = index
+		runner_up.finish(0, 2, false, 2, 1)
+		var outcome := _outcome_with_metrics(index, {1: runner_up, 0: winner})
+		outcome.plan_id = &"strict" if index == 0 else &"lenient"
+		var minimum: int = 4 if index == 0 else 1
+		live.add_outcome(outcome, minimum)
+		var record: Dictionary = JSON.parse_string(
+			JSON.stringify(SimulationReport._tournament_dictionary(outcome), "", true, true)
+		)
+		checkpoint.add_tournament(record, minimum)
+	assert_eq(checkpoint.summarize(), live.summarize())
+	var row: Dictionary = checkpoint.summarize().by_profile[0]
+	assert_eq(row.sample_count, 3)
+	assert_false(row.reportable)
+	assert_almost_eq(row.means.win_score, 0.5, 1e-12)
+	assert_almost_eq(row.means.bet_raise_frequency, 1.0 / 3.0, 1e-12)
+	assert_gt(row.uncertainty_95_half_width.bet_raise_frequency, 0.0)
+	assert_null(row.uncertainty_95_half_width.eligible_bluff_frequency)
+
+
+func test_summaries_and_supplied_metrics_do_not_share_accumulator_ownership() -> void:
+	var accumulator := SimulationAggregateAccumulator.new()
+	var metric := SimulationSeatMetrics.new(&"profile", 0, 100)
+	metric.bet_raise_opportunities = 4
+	metric.finish(200, 1, true, 2, 1)
+	accumulator.add_outcome(_outcome(0, metric))
+	var first: Dictionary = accumulator.summarize()
+	metric.bet_raise_opportunities = 999
+	first.by_profile[0].means.win_score = -1.0
+	first.by_profile[0].behavior_counts.bet_raise_opportunities = 999
+	first.by_profile.clear()
+	var second: Dictionary = accumulator.summarize()
+	assert_eq(second.by_profile.size(), 1)
+	assert_eq(second.by_profile[0].behavior_counts.bet_raise_opportunities, 4)
+	assert_eq(second.by_profile[0].means.win_score, 1.0)
+
+
+func test_ten_thousand_streamed_tournaments_release_outcomes_and_seat_metrics() -> void:
+	var accumulator := SimulationAggregateAccumulator.new()
+	var first_outcome: WeakRef
+	var first_metric: WeakRef
+	for index: int in range(10000):
+		var metric := SimulationSeatMetrics.new(&"profile", 0, 100)
+		metric.finish(
+			200 if index % 2 == 0 else 0, 1 if index % 2 == 0 else 2, index % 2 == 0, 2, 1
+		)
+		var outcome := _outcome(index, metric)
+		if index == 0:
+			first_outcome = weakref(outcome)
+			first_metric = weakref(metric)
+		accumulator.add_outcome(outcome)
+	assert_null(first_outcome.get_ref())
+	assert_null(first_metric.get_ref())
+	var summary: Dictionary = accumulator.summarize()
+	for group_name: String in summary:
+		assert_eq(summary[group_name].size(), 1)
+		assert_eq(summary[group_name][0].sample_count, 10000)
+	assert_almost_eq(summary.by_profile[0].means.win_score, 0.5, 1e-12)
+	assert_almost_eq(summary.by_profile[0].means.chip_differential, 0.0, 1e-12)
+
+
+func test_failed_checkpoint_outcomes_are_ignored_by_aggregates() -> void:
+	var accumulator := SimulationAggregateAccumulator.new()
+	accumulator.add_tournament({"termination_reason": "", "diagnostics": ["failed"]})
+	accumulator.add_outcome(null)
+	for rows: Array in accumulator.summarize().values():
+		assert_true(rows.is_empty())
+
+
 func _outcome(index: int, metric: SimulationSeatMetrics) -> SimulationTournamentOutcome:
 	return _outcome_with_metrics(index, {0: metric})
 

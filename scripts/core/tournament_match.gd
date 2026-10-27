@@ -80,7 +80,7 @@ func advance_until_blocked(max_transitions: int = 32) -> StepResult:
 	if state != State.RUNNING:
 		return StepResult.new(StepResult.Status.ERROR, "The tournament is not running.")
 	if _awaiting_next_hand:
-		return _start_next_hand()
+		return _start_next_hand(max_transitions)
 	return _handle_hand_result(_hand.advance_until_blocked(max_transitions))
 
 

@@ -197,3 +197,63 @@ func _trace_summary(traces: Array[SimulationTraceEntry]) -> Array[String]:
 			)
 		)
 	return summary
+
+
+class RejectingModel:
+	extends DecisionModel
+	var decisions: int = 0
+	var full_wager_opportunities: int = 0
+
+	func choose_action(view: GameView) -> PlayerAction:
+		decisions += 1
+		if (
+			PlayerAction.Kind.BET in view.legal_actions
+			or PlayerAction.Kind.RAISE in view.legal_actions
+		):
+			full_wager_opportunities += 1
+		return PlayerAction.raise_to(0)
+
+	func get_last_decision_trace_for_testing() -> RefCounted:
+		return StrategyDecisionTrace.new(
+			&"test", StrategyDecisionTrace.WEAK_BAND, &"bluff_raise", [], null
+		)
+
+
+func test_rejected_decisions_measure_applied_fallback_once_without_false_bluffs() -> void:
+	var first := _profile(&"first")
+	var second := _profile(&"second")
+	var matchup := SimulationMatchup.new(&"rejected_match", [first, second])
+	var input := SimulationTournamentInput.new(0, 1700, matchup, {0: first, 1: second})
+	var models: Array[RejectingModel] = [RejectingModel.new(), RejectingModel.new()]
+	var agents: Dictionary[int, Agent] = {
+		0: BotAgent.new(models[0], first), 1: BotAgent.new(models[1], second)
+	}
+	var match_instance := TournamentMatch.new(
+		_config(), agents, TournamentConstructionContract.simulation()
+	)
+	var result: Dictionary = BATCH_RUNNER_SCRIPT.new()._run_with_metrics(
+		match_instance,
+		input,
+		20,
+		256,
+		SimulationTraceConfig.new(SimulationTraceConfig.Mode.SAMPLED, 1000),
+		1700,
+		RngStreamFactory.ALGORITHM_VERSION
+	)
+	assert_eq(result.result.status, StepResult.Status.TOURNAMENT_FINISHED)
+	var metrics: Dictionary = result.metrics.get_seat_metrics()
+	var total_decisions: int = 0
+	for seat: int in agents:
+		assert_eq(metrics[seat].invalid_action_fallbacks, models[seat].decisions)
+		assert_eq(metrics[seat].eligible_bluff_opportunities, models[seat].full_wager_opportunities)
+		assert_eq(metrics[seat].bluff_actions, 0)
+		assert_true((agents[seat] as BotAgent).drain_decisions_for_simulation().is_empty())
+		total_decisions += models[seat].decisions
+	var traced_decisions: int = 0
+	for trace: SimulationTraceEntry in result.traces:
+		if trace.kind == SimulationTraceEntry.Kind.DECISION:
+			traced_decisions += 1
+			assert_eq(trace.action_kind, PlayerAction.Kind.FOLD)
+			assert_eq(trace.selected_branch, &"fallback")
+	assert_gt(total_decisions, 2)
+	assert_eq(traced_decisions, total_decisions)

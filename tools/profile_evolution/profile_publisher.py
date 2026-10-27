@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import json
 import hashlib
-import os
 import re
-import tempfile
 from pathlib import Path
 from typing import Any
 
 from .artifacts import canonical_json_bytes
+from .atomic_write import publish_bytes_no_replace
 from .confirmation import validate_confirmation
 from .errors import ExitCode, ToolError
 from .promotion_review import promotion_decision_for_candidate
@@ -71,24 +70,13 @@ def _write_new_file(path: Path, contents: str) -> None:
             ExitCode.INVARIANT_FAILURE,
         )
     try:
-        descriptor, temporary_name = tempfile.mkstemp(
-            prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+        publish_bytes_no_replace(path, contents.encode("utf-8"), sync_parent=False)
+    except FileExistsError:
+        _fail(
+            "published_profile_exists",
+            f"Published profile '{path}' already exists and cannot be overwritten.",
+            ExitCode.INVARIANT_FAILURE,
         )
-        temporary = Path(temporary_name)
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(contents)
-            stream.flush()
-            os.fsync(stream.fileno())
-        try:
-            os.link(temporary, path)
-        except FileExistsError as error:
-            _fail(
-                "published_profile_exists",
-                f"Published profile '{path}' already exists and cannot be overwritten.",
-                ExitCode.INVARIANT_FAILURE,
-            )
-        finally:
-            temporary.unlink(missing_ok=True)
     except OSError as error:
         _fail("published_profile_write_failed", f"Cannot publish profile '{path}': {error}", ExitCode.IO_FAILURE)
 

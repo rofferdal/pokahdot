@@ -22,9 +22,11 @@ func parse(arguments: PackedStringArray) -> RefCounted:
 			index += 1
 			continue
 		seen[flag] = true
-		if flag in ["--dry-run", "--overwrite"]:
+		if flag in ["--dry-run", "--overwrite", "--resume"]:
 			if flag == "--dry-run":
 				options.dry_run = true
+			elif flag == "--resume":
+				options.resume = true
 			else:
 				options.overwrite = true
 			index += 1
@@ -32,6 +34,7 @@ func parse(arguments: PackedStringArray) -> RefCounted:
 		if (
 			flag
 			not in [
+				"--checkpoint",
 				"--config",
 				"--output",
 				"--report",
@@ -55,6 +58,8 @@ func parse(arguments: PackedStringArray) -> RefCounted:
 			continue
 		var value := String(arguments[index + 1])
 		match flag:
+			"--checkpoint":
+				options.checkpoint_path = value
 			"--config":
 				options.config_path = value
 			"--output":

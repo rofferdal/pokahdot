@@ -7,7 +7,9 @@ extends RefCounted
 const METRICS := preload("res://scripts/simulation/simulation_report_metric_contract.gd")
 
 
-static func validate(data: Dictionary, manifest: SimulationManifest) -> PackedStringArray:
+static func validate(
+	data: Dictionary, manifest: SimulationManifest, require_complete_shard: bool = true
+) -> PackedStringArray:
 	var errors := PackedStringArray()
 	if data.manifest_checksum != manifest.checksum():
 		errors.append("Report manifest checksum does not match its manifest.")
@@ -51,7 +53,7 @@ static func validate(data: Dictionary, manifest: SimulationManifest) -> PackedSt
 				)
 	# Failed diagnostic reports may retain a partial collection. Fully completed
 	# evidence must include every tournament assigned to this shard exactly once.
-	if all_completed:
+	if all_completed and require_complete_shard:
 		var total: int = 0
 		for plan: SimulationEvaluationPlan in manifest.evaluation_plans:
 			total += plan.tournament_count

@@ -108,6 +108,13 @@ the dedicated phone, iPad, and desktop gates, without producing screenshots:
 make gui-current-invariant-gate
 ```
 
+The four gate entry points share one runner. Coverage lives in
+[`gui_invariant_matrix_suites.gd`](../../tests/support/gui_invariant_matrix_suites.gd);
+phone-specific checks remain in
+[`gui_phone_matrix_contract.gd`](../../tests/support/gui_phone_matrix_contract.gd).
+Preserve historical case IDs and version intentional coverage changes through
+the [visual evidence contract](../../docs/GUI_VISUAL_TESTING.md).
+
 Capture the complete matrix while developing, including from a dirty tree:
 
 ```bash
@@ -171,6 +178,38 @@ touch. The observer only reports state and is excluded from production
 exports. Export logs, browser snapshots and screenshots remain under
 `localtmp/`. This local Chromium regression does not establish physical-device
 or hosted-browser acceptance.
+
+### Profile GUI refresh cost
+
+Import the project with the matching engine before profiling, then use a new
+output directory for each run:
+
+```bash
+godot --headless --path . --import
+python3 tools/profile_gui_refresh.py --mode native --godot /full/path/to/godot \
+  --output localtmp/gui-profile-native
+python tools/profile_gui_refresh.py --mode web --godot /full/path/to/godot \
+  --output localtmp/gui-profile-web
+```
+
+Native mode requires a real display and the Compatibility renderer. Web mode
+uses the Playwright environment and export templates described above. Run the
+two modes sequentially without other heavy checks. Defaults collect 120 active
+samples for turns, all-in runouts and resize transitions at phone, tablet and
+desktop sizes, with seeded matches, real avatars, long names and maximum chip
+values. `--samples`, `--profiles` and `--scenarios` select smaller investigations.
+
+The test-only observer suppresses pacing delays and drives production action
+handlers. `results.json` retains raw measurements, nearest-rank percentiles,
+source fingerprints and renderer/browser identity. Refresh/layout elapsed
+times, render CPU monitors and frame waiting intervals have separate scopes;
+the 16.7 ms threshold flags investigation and is not a correctness gate.
+Node-ID census runs separately and counts newly observed Nodes, including
+layout rebuilds; it does not count every allocation. Godot allocator counters
+are unavailable in release Web builds, so browser renderer-pool RSS is sampled
+externally and labeled separately. Profiler arrays contribute to measured
+memory, and these finite runs cannot establish leak freedom. The observer is
+excluded from production exports.
 
 ---
 

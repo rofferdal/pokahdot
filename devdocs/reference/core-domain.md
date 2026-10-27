@@ -15,8 +15,8 @@ The top-level orchestrator of a single-table tournament.
   - `FINISHED`: Concluded (either via winner elimination or player quit).
 - **Key Methods**:
   - `start(max_transitions: int = 32) -> StepResult`: Initializes the table and begins Hand 1.
-  - `advance_until_blocked(max_transitions: int = 32) -> StepResult`: Advances until human input is required, a hand completes, or the tournament finishes.
-  - `advance_one_action() -> StepResult`: Advances by a single discrete poker action.
+  - `advance_until_blocked(max_transitions: int = 32) -> StepResult`: Advances until input, completion, an error, or the budget is reached. Next-hand setup preserves that budget; nonpositive budgets normalize to one step.
+  - `advance_one_action() -> StepResult`: Performs one bot action or automatic street/settlement step. Human turns wait for explicit submission, including when the mailbox contains an action.
   - `submit_human_action(action: PlayerAction) -> StepResult`: Submits the human move and advances until blocked.
   - `request_quit() -> StepResult`: Instantly aborts the active hand and finishes the tournament without a winner (`end_reason = &"player_quit"`).
   - `get_view_for(seat: int) -> GameView`: Returns the recipient-safe snapshot for a seat.

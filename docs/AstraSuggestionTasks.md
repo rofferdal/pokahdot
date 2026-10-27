@@ -1,6 +1,6 @@
 # Astra Suggested Improvement Tasks
 
-Status: In progress; sections 1–4 and GUI-02–04 are complete. GUI-01 implementation is updated; physical phone acceptance remains pending.
+Status: In progress. Sections 1–4 and 6, plus GUI-02–04, are complete. GUI-01 implementation is updated; the archived phone review preserves its recorded acceptance limitations.
 Reviewed: 2026-10-26, baseline `c6166b5`.
 
 Themes and tasks are ordered by importance. **Defect** means an observed code
@@ -28,8 +28,8 @@ also demonstrated promotion eligibility with seven tournaments. These are
 coverage gaps, not failures in the existing suite.
 
 No application behavior was changed. Browser/device acceptance was not run.
-Existing phone acceptance remains owned by
-[OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); do not duplicate its
+Existing phone acceptance evidence remains in the archived
+[OptimizingPhoneGuiTasks.md](arkiv/OptimizingPhoneGuiTasks.md); do not duplicate its
 checkboxes or treat deferred landscape support as accepted.
 
 ## 1. Poker correctness and bot decisions — highest priority
@@ -256,7 +256,7 @@ checkboxes or treat deferred landscape support as accepted.
 
 ## 5. GUI clarity and interaction
 
-- [ ] **GUI-01 — Show who won on phones. [Defect; reopened]**
+- [x] **GUI-01 — Show who won on phones. [Defect; reopened]**
   [poker_table_controller.gd](../scripts/gui/poker_table_controller.gd) hides
   status bands in phone mode; compact tokens lack a winner state, the summary
   omits pot awards, and final results use `Player N` instead of assigned names.
@@ -296,7 +296,7 @@ checkboxes or treat deferred landscape support as accepted.
   observed; existing clear layouts remain regression controls.
   - [x] Implement and automatically verify default visible phone winner feedback.
   Physical acceptance is still owned by the unchecked named-winner task in
-  [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); the parent GUI-01
+  [OptimizingPhoneGuiTasks.md](arkiv/OptimizingPhoneGuiTasks.md); the parent GUI-01
   checkbox remains open. Continued engineering work follows GUI-05-A onward in
   order while physical acceptance stays pending; no device pass is inferred.
 
@@ -342,7 +342,7 @@ checkboxes or treat deferred landscape support as accepted.
   Native summary/short-keypad captures were reviewed; no input/layout cycle
   remains in these verified cases.
 
-- [ ] **GUI-05 — Resolve usable-area and device support with evidence. [Decision]**
+- [x] **GUI-05 — Resolve usable-area and device support with evidence. [Decision]**
   [Web geometry](../scripts/gui/gui_web_viewport_geometry.gd) divides backing
   dimensions by scale; safe-area, browser chrome and keyboard behavior need
   exported-device evidence. Done: complete the existing phone acceptance tasks
@@ -389,7 +389,7 @@ show who wins. This is a failed winner-clarity check and reopens GUI-01 above;
 it is separate from the four preflop captures. No showdown screenshot, exact
 build/device/browser or test of More → Hand summary was supplied with this
 report. The user's positive iPad screen review remains unchanged. GUI-05-F
-must include the [physical winner check](OptimizingPhoneGuiTasks.md) before
+must include the [physical winner check](arkiv/OptimizingPhoneGuiTasks.md) before
 acceptance; earlier synthetic summary tests do not close this defect.
 
 **GUI-05 remains incomplete.** These captures establish real browser layout
@@ -533,7 +533,7 @@ failure for a regression in a previously clear layout.
   Review corrected captures at the identified failing sizes plus the clear
   sizes/iPad, then run full checks, current layout gates and exported input
   tests against one identified candidate. Complete the still-open
-  [phone acceptance tasks](OptimizingPhoneGuiTasks.md) for supported portrait
+  [phone acceptance tasks](arkiv/OptimizingPhoneGuiTasks.md) for supported portrait
   counts, showdown cards, overlays and the independent browser/device check;
   include browser bars, insets, keypad/focus and real device/browser Back.
   Done: results and remaining limitations are recorded for the same pinned
@@ -553,47 +553,158 @@ failure for a regression in a previously clear layout.
 
 ## 6. Code readability, economy, and runtime cost
 
-- [ ] **CODE-01 — Split the table controller by responsibility. [Improvement]**
+- [x] **CODE-01 — Split the table controller by responsibility. [Improvement]**
   [poker_table_controller.gd](../scripts/gui/poker_table_controller.gd) has
   2,849 lines and an approximately 577-line layout method. Incrementally extract
   seat views, action controls, overlays, and profile layout plans; unify
   classification/style policy. Done: typed component boundaries replace
   repeated traversal and geometry exceptions, with before/after tests and
   unchanged privacy, pacing and viewport behavior.
+  Verified 2026-10-27: six typed components own seat construction/handles,
+  action-control rows, overlay views, layout policy and seat geometry. The
+  controller is 2,545 lines (previously 3,504), its layout coordinator 68
+  (previously 659), and repeated child traversal is replaced by widget-owned
+  handles. Baseline and final checks pass; final evidence is 635 GUT tests /
+  100,960 assertions, all Python/docs/lint/format checks and all four current
+  layout matrices (`localtmp/code01-check.log`,
+  `localtmp/code01-current-layouts.log`). All 39 strict exported layout cases
+  and five exported pointer/touch/keypad/focus/showdown input cases pass
+  (`localtmp/code01-web-layout/results.json`,
+  `localtmp/code01-web-input/results.json`). Independent code review found no
+  remaining behavior, privacy or ownership issues.
 
-- [ ] **CODE-02 — Bound diagnostic history and remove repeated copies. [Improvement]**
+- [x] **CODE-02 — Bound diagnostic history and remove repeated copies. [Improvement]**
   [bot_agent.gd](../scripts/core/agents/bot_agent.gd) accumulates decision history
   in product games; simulation repeatedly retrieves copied histories/profile
   maps. Done: opt-in/drainable simulation diagnostics and one snapshot per
   operation; long-run memory stays bounded without losing metrics or changing
   RNG consumption. Retain defensive copies at ownership boundaries.
+  Verified 2026-10-27: product agents skip diagnostic allocation and trace
+  reads; simulation opts in and drains once per bounded advancement. Events,
+  legal alternatives and identity maps are read once per operation; identity
+  consumers copy scalar IDs instead of complete profile Resources. Rejected
+  requests and their applied fallbacks consume one decision snapshot without
+  false executed-bluff counts. Tests cover 10,000 product decisions, bounded
+  drains, isolated ownership, RNG parity and fallback correlation. All 144
+  seeded runs retain exact baseline outcomes, metrics and sampled traces.
+  Full check passes 640 GUT tests / 102,247 assertions and all Python/docs/
+  lint/format checks (`localtmp/code02-check-final.log`); code review passes.
 
-- [ ] **CODE-03 — Unify hand stepping and honor budgets. [Improvement]**
+- [x] **CODE-03 — Unify hand stepping and honor budgets. [Improvement]**
   [hand_controller.gd](../scripts/core/hand_controller.gd) duplicates advancement
   paths, including a loop that always returns on its first iteration;
   [tournament_match.gd](../scripts/core/tournament_match.gd) drops the supplied
   transition budget when starting another hand. Done: one authoritative small
   step operation and consistent budgets, preserving seeded outcomes and GUI pacing.
+  Verified 2026-10-27: both hand drivers share one step operation; paced GUI
+  calls retain explicit human submission, while bulk calls consume a pending
+  mailbox. Next-hand setup forwards the requested budget, retaining the
+  existing one-step clamp for nonpositive values. The new next-hand regression
+  fails before the fix and passes afterward; mailbox preservation is covered.
+  All 144 seeded runs retain exact baseline outcomes, metrics and sampled
+  traces. Full check passes 642 GUT tests / 102,274 assertions, all Python/
+  docs/lint/format checks and all four current layout matrices
+  (`localtmp/code03-check.log`); independent code review passes.
 
-- [ ] **CODE-04 — Make large simulations resumable and memory-bounded. [Improvement]**
+- [x] **CODE-04 — Make large simulations resumable and memory-bounded. [Improvement]**
   [Manifest planning](../scripts/simulation/simulation_manifest.gd) materializes
   the full plan before shard filtering; the CLI retains outcomes until its final
   write. Done: iterate assigned global indexes and checkpoint by manifest,
   provenance and index; interrupted/resumed runs match uninterrupted digests.
   Measure peak memory and throughput on a representative large batch.
+  Verified 2026-10-27: assigned-index cursor/direct lookup, bounded online
+  aggregate moments, schema-1 per-index checkpoints and streamed schema-4
+  reports are implemented. Resume binds manifest/provenance/shard/trace identity,
+  validates records and preserves completed failures. A killed CLI resumes
+  without rewriting committed records; 120 tournament digests, metrics, traces
+  and file checksum match uninterrupted execution. Sparse billion-index plans,
+  descriptor ownership, malformed records and trace framing are covered.
+  Full check passes 659 GUT tests / 102,565 assertions and Python/docs/lint/
+  format checks (`localtmp/code04-check-final.log`); independent review passes.
+  All 144 seeded probes and 11,000 benchmark tournament rows/traces match the
+  pre-streaming implementation. The checkpoint contract and memory limits are
+  documented in the simulation specification and current guides.
 
-- [ ] **CODE-05 — Consolidate repeated infrastructure selectively. [Improvement]**
+  Fresh-process headless CLI measurements on Godot 4.7.2 / macOS 26.7.1 use
+  the two-player, 20-chip, 5/10 fixture, seed 9100, with report I/O included.
+  Final runs had no concurrent checks. Checkpoint I/O and record validation
+  trade throughput for bounded memory and resumability; these are local
+  measurements, not promotion evidence or forecasts for deeper-stack games.
+
+  | Tournaments | Old peak RSS | New peak RSS | Old tournaments/s | New tournaments/s |
+  | --- | --- | --- | --- | --- |
+  | 1,000 | 198.6 MiB | 144.5 MiB | 408.2 | 307.7 |
+  | 10,000 | 707.6 MiB | 144.5 MiB | 476.6 | 336.6 |
+
+  Evidence: `localtmp/code04-benchmark-results.json`,
+  `localtmp/code04-before-{1000,10000}.log` and
+  `localtmp/code04-final-{1000,10000}.log`.
+
+- [x] **CODE-05 — Consolidate repeated infrastructure selectively. [Improvement]**
   Three Python atomic writers and several GUI matrix runners duplicate control
   flow. Done: shared no-clobber publication with serializer-specific boundaries,
   and declarative matrix suites with one runner; preserve race/cleanup/error
   semantics and historical fixture identities. Remove unused
-  [prototype files](../my_test_node.gd) only after checking references.
+  prototype files (`my_test_node.gd` and its scene/UID) only after checking references.
+  Verified 2026-10-27: one byte-publication primitive retains serializer and
+  caller error boundaries, hard-link race protection, temporary cleanup,
+  existing fsync policies and profile-sidecar rollback. Python tests pass
+  before/after (89 → 97), including concurrent publication and injected failures.
+  Declarative suite definitions and one runner preserve the original ordered
+  348 M3 / 406 phone / 288 iPad / 232 desktop cases, manual entry points and
+  phone-specific privacy/content/resize checks. A deliberate private-card
+  exposure still fails the phone contract. Capture provenance includes the
+  shared authorities. Filename/class/UID reference checks confirmed the three
+  prototype files unused; they and stale command/export references are removed.
+  Full check passes 664 GUT tests / 102,598 assertions, all Python/docs/lint/
+  format checks and all four current matrices (`localtmp/code05-check.log`,
+  `localtmp/code05-current-layouts.log`). Current guidance is reconciled.
 
-- [ ] **CODE-06 — Profile GUI refresh before retaining widgets. [Decision]**
+- [x] **CODE-06 — Profile GUI refresh before retaining widgets. [Decision]**
   Each table refresh rebuilds seats/cards and reapplies layout/styles. Done:
   measure Web/native frame time and allocations during turns, runouts and
   resize; reuse nodes only where measured benefit justifies complexity, with
   privacy, focus and long-text regressions. Avoid blanket caching of views.
+  Measured 2026-10-27: test-only instrumentation drives actual product handlers
+  through seeded turns, all-in streets/settlement and profile transitions.
+  Native Apple M4 Compatibility and exported Chromium 140.0.7339.16 each have
+  nine workloads × 120 active samples, plus idle baselines and separate Node
+  census. Real textures, eight-character names and maximum chip values are
+  included. Source hash is
+  `cb6dcab772d526e22e14247f48d76262740383733fd9afdf69a96d19850cf5b7`.
+
+  | Profile | Native refresh p95 | Web refresh p95 | Native transition-layout p95 | Web transition-layout p95 |
+  | --- | --- | --- | --- | --- |
+  | Phone | 4.03 ms | 6.0 ms | 5.96 ms | 9.6 ms |
+  | Tablet | 5.58 ms | 10.9 ms | 7.45 ms | 11.9 ms |
+  | Desktop | 5.86 ms | 12.9 ms | 7.23 ms | 13.3 ms |
+
+  Refresh columns take the larger turns/runout p95, not a pooled percentile.
+  Decision: retain disposable widgets; synchronous costs and the product's
+  2 s / 5 s update cadence do not demonstrate enough benefit for retention
+  complexity. Whole-frame wall p95 reaches 27.3 ms native / 21.5 ms Web and
+  includes waiting/deferred work; these measurements do not guarantee 60 fps.
+  The identical-launch browser probe identifies SwiftShader software rendering,
+  not a physical-phone measurement. Native render-CPU p95 is 0.25–0.38 ms;
+  TIME_PROCESS is separately labeled as a coarse, potentially lagging monitor.
+  Census observes up to 113/159 new Nodes per refresh and 85–131 on transitions,
+  excluding transient IDs and other allocator events. Resize live object/node/
+  resource/orphan deltas are zero; native static bytes include about 198 KB of
+  retained profiler buffers. Release-Web allocator bytes are unavailable;
+  renderer-pool RSS is recorded separately. No leak-freedom claim is made.
+  Privacy, actual textures, every runout street and settlement, and real
+  transition validation pass. Five report-integrity tests guard empty samples,
+  missing workloads and privacy failures. Raw samples, percentiles, identity
+  and memory scopes: `localtmp/code06-native-final/results.json`,
+  `localtmp/code06-web-final/results.json` and the adjacent browser-backend probe.
+  Reproduction commands are in the current running/testing guide. Final check
+  passes 664 GUT tests / 102,604 assertions, 97 evolution / 34 LAN / 18 checker /
+  4 documentation tests, lint/format and all four current GUI matrices
+  (`localtmp/code06-check-final.log`). All 39 strict exported layout cases and
+  five pointer/touch/keypad/focus/showdown input cases pass
+  (`localtmp/code06-web-layout/results.json`, `localtmp/code06-web-input/results.json`).
+  Concurrent phone-record archival is preserved; relocated links are repaired
+  and all 42 current/archived Markdown files pass documentation checks.
 
 ## 7. CLI and experiment workflow usability
 

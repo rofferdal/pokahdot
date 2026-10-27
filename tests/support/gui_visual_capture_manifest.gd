@@ -3,106 +3,41 @@ extends RefCounted
 
 ## Deterministic naming and manifest metadata for rendered GUI evidence.
 
-const GuiViewportFixturesScript := preload("res://tests/support/gui_viewport_fixtures.gd")
-const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
+const Suites := preload("res://tests/support/gui_invariant_matrix_suites.gd")
 
 const SCHEMA_VERSION: int = 1
 const SUITE_VERSION: String = "milestone-3-v2"
 const PHONE_SUITE_VERSION: String = "milestone-4-phone-v2"
 const MILESTONE_3_CAPTURE_COUNT: int = 348
 const PHONE_CAPTURE_COUNT: int = 406
-const MILESTONE_3_PLAYER_COUNTS: Array[int] = [2, 4, 6, 9]
-const PHONE_PLAYER_COUNTS: Array[int] = [2, 4, 6, 7]
-const PHONE_EXCLUDED_STATE_IDS: Array[StringName] = [&"event-history-full"]
+const MILESTONE_3_PLAYER_COUNTS: Array[int] = Suites.MILESTONE_3_PLAYER_COUNTS
+const PHONE_PLAYER_COUNTS: Array[int] = Suites.PHONE_PLAYER_COUNTS
+const PHONE_EXCLUDED_STATE_IDS: Array[StringName] = Suites.PHONE_EXCLUDED_STATE_IDS
+const MILESTONE_3_VIEWPORT_IDS: Array[StringName] = Suites.MILESTONE_3_VIEWPORT_IDS
+const PHONE_VIEWPORT_IDS: Array[StringName] = Suites.PHONE_VIEWPORT_IDS
 const MATRIX_SOURCE_PATHS: PackedStringArray = [
 	"res://tests/support/gui_viewport_fixtures.gd",
 	"res://tests/support/gui_visual_state_fixtures.gd",
 	"res://tests/support/gui_scene_harness.gd",
 	"res://tests/support/gui_invariant_assertions.gd",
-]
-const MILESTONE_3_VIEWPORT_IDS: Array[StringName] = [
-	&"ipad_portrait_768x1024",
-	&"ipad_landscape_1024x768",
-	&"ipad_landscape_2388x1450_observed",
-	&"small_desktop_950x532",
-	&"desktop_1280x720",
-	&"desktop_1920x1080",
-]
-const PHONE_VIEWPORT_IDS: Array[StringName] = [
-	&"phone_portrait_360x640",
-	&"phone_portrait_390x844",
-	&"phone_portrait_412x915",
-	&"phone_portrait_390x744_chrome",
-	&"phone_landscape_640x360",
-	&"phone_landscape_844x390",
-	&"phone_landscape_844x330_chrome",
+	"res://tests/support/gui_invariant_matrix_suites.gd",
+	"res://tests/support/gui_invariant_matrix_runner.gd",
+	"res://tests/support/gui_phone_matrix_contract.gd",
 ]
 
 
 static func milestone_three_cases(
 	viewport_id: StringName = &"", state_id: StringName = &"", player_count: int = -1
 ) -> Array[Dictionary]:
-	var cases: Array[Dictionary] = []
-	for viewport: Dictionary in GuiViewportFixturesScript.all():
-		# Preserve the frozen full Milestone 3 matrix while allowing an explicit
-		# development capture of a newer registered regression viewport.
-		if viewport.key not in MILESTONE_3_VIEWPORT_IDS and viewport.key != viewport_id:
-			continue
-		if not viewport_id.is_empty() and viewport.key != viewport_id:
-			continue
-		for count: int in MILESTONE_3_PLAYER_COUNTS:
-			for descriptor: Dictionary in GuiVisualStateFixturesScript.all(count):
-				if descriptor.id in GuiVisualStateFixturesScript.PHONE_ONLY_STATE_IDS:
-					continue
-				if descriptor.player_count == 0 and count != 2:
-					continue
-				if player_count >= 0 and descriptor.player_count != player_count:
-					continue
-				if not state_id.is_empty() and descriptor.id != state_id:
-					continue
-				cases.append({"viewport": viewport, "descriptor": descriptor})
-	return cases
+	# Explicit development captures may select newer registered viewports without
+	# changing the frozen full Milestone 3 matrix.
+	return Suites.cases(Suites.Suite.MILESTONE_THREE, viewport_id, state_id, player_count, true)
 
 
 static func phone_cases(
 	viewport_id: StringName = &"", state_id: StringName = &"", player_count: int = -1
 ) -> Array[Dictionary]:
-	return _cases_for_viewports(
-		PHONE_VIEWPORT_IDS,
-		PHONE_PLAYER_COUNTS,
-		PHONE_EXCLUDED_STATE_IDS,
-		viewport_id,
-		state_id,
-		player_count,
-	)
-
-
-static func _cases_for_viewports(
-	viewport_ids: Array[StringName],
-	player_counts: Array[int],
-	excluded_state_ids: Array[StringName],
-	viewport_id: StringName,
-	state_id: StringName,
-	player_count: int,
-) -> Array[Dictionary]:
-	var cases: Array[Dictionary] = []
-	for viewport: Dictionary in GuiViewportFixturesScript.all():
-		if viewport.key not in viewport_ids:
-			continue
-		if not viewport_id.is_empty() and viewport.key != viewport_id:
-			continue
-		for count: int in player_counts:
-			for descriptor: Dictionary in GuiVisualStateFixturesScript.all(count):
-				if descriptor.id in excluded_state_ids:
-					continue
-				if descriptor.player_count == 0 and count != 2:
-					continue
-				if player_count >= 0 and descriptor.player_count != player_count:
-					continue
-				if not state_id.is_empty() and descriptor.id != state_id:
-					continue
-				cases.append({"viewport": viewport, "descriptor": descriptor})
-	return cases
+	return Suites.cases(Suites.Suite.PHONE, viewport_id, state_id, player_count)
 
 
 static func capture_filename(source_sha: String, case: Dictionary) -> String:

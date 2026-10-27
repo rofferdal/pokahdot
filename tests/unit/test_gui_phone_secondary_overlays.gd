@@ -88,7 +88,7 @@ func test_phone_summary_names_fold_winner_without_revealing_cards() -> void:
 	view.hand_winner_seat = 1
 	view._pot_awards = [PotAward.new(0, 101, [1], {1: 101})]
 	var table: PokerTableController = await _phone_view_table(view)
-	table._name_assignments = {1: "Linh"}
+	table.bind_view(table._bound_view, {}, {1: "Linh"})
 	table._refresh_phone_secondary_controls()
 	table._open_phone_showdown()
 	assert_true(table._phone_showdown_overlay.visible)
@@ -107,7 +107,7 @@ func test_phone_summary_reports_each_split_and_side_pot_share_and_assigned_winne
 	view.end_reason = &"winner"
 	view.tournament_winner_seat = 5
 	var table: PokerTableController = await _phone_view_table(view)
-	table._name_assignments = {4: "Bao", 5: "Linh"}
+	table.bind_view(table._bound_view, {}, {4: "Bao", 5: "Linh"})
 	table._refresh_action_controls()
 	var summary: String = table._phone_showdown_summary_text()
 	assert_string_contains(summary, "Main pot (101): Bao +51, Linh +50")

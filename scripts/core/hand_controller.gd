@@ -101,56 +101,43 @@ func start(max_transitions: int = 32) -> StepResult:
 	return advance_until_blocked(max_transitions)
 
 
+## GUI pacing never consumes a queued human mailbox implicitly.
 func advance_one_action() -> StepResult:
+	return _advance_step(false)
+
+
+## One transition or one requested action, shared by paced and bulk drivers.
+func _advance_step(consume_human_mailbox: bool) -> StepResult:
 	if state == State.COMPLETE:
 		return StepResult.new(StepResult.Status.HAND_COMPLETED)
 	if not _is_betting_state():
 		return StepResult.new(StepResult.Status.ERROR, "The hand is not active.")
-	for _transition: int in range(32):
-		if _betting.is_complete():
-			var transition_result: StepResult = _advance_after_betting_round()
-			if transition_result != null:
-				return transition_result
-			return StepResult.new(StepResult.Status.YIELDED)
-		return _advance_current_action()
-	return StepResult.new(
-		StepResult.Status.ERROR, "The hand exceeded its automatic transition limit."
-	)
+	if _betting.is_complete():
+		var transition_result: StepResult = _advance_after_betting_round()
+		return (
+			transition_result
+			if transition_result != null
+			else StepResult.new(StepResult.Status.YIELDED)
+		)
+	return _advance_current_action(consume_human_mailbox)
 
 
-func _advance_current_action() -> StepResult:
+func _advance_current_action(consume_human_mailbox: bool) -> StepResult:
 	var player: Player = _table.get_player(_betting.acting_seat)
 	var agent := player.agent as Agent
 	if agent == null:
 		return StepResult.new(StepResult.Status.ERROR, "The acting player has no agent.")
 	if agent is HumanAgent:
-		return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN)
+		if not consume_human_mailbox or not (agent as HumanAgent).has_pending_action():
+			return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN)
 	return _apply_with_fallback(player.seat, agent.choose_action(get_view_for(player.seat)))
 
 
-# gdlint: disable=max-returns
 func advance_until_blocked(max_transitions: int = 32) -> StepResult:
-	if state == State.COMPLETE:
-		return StepResult.new(StepResult.Status.HAND_COMPLETED)
-	if not _is_betting_state():
-		return StepResult.new(StepResult.Status.ERROR, "The hand is not active.")
 	for _transition: int in range(maxi(1, max_transitions)):
-		if _betting.is_complete():
-			var transition_result: StepResult = _advance_after_betting_round()
-			if transition_result != null:
-				return transition_result
-			continue
-		var player: Player = _table.get_player(_betting.acting_seat)
-		var agent := player.agent as Agent
-		if agent == null:
-			return StepResult.new(StepResult.Status.ERROR, "The acting player has no agent.")
-		var view: GameView = get_view_for(player.seat)
-		if agent is HumanAgent and not (agent as HumanAgent).has_pending_action():
-			return StepResult.new(StepResult.Status.WAITING_FOR_HUMAN)
-		var action: PlayerAction = agent.choose_action(view)
-		var application: StepResult = _apply_with_fallback(player.seat, action)
-		if application.status == StepResult.Status.ERROR:
-			return application
+		var result := _advance_step(true)
+		if result.status != StepResult.Status.YIELDED:
+			return result
 	return StepResult.new(StepResult.Status.YIELDED)
 
 

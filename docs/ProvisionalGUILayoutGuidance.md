@@ -79,8 +79,8 @@ reachable; see the [modal contract](ARCHITECTURE.md#gui-adapter) for focus,
 Escape, engine-back and browser-history distinctions.
 
 Run `make check gui-current-invariant-gate` after layout changes and review
-rendered captures under the visual testing contract. Keep physical acceptance
-in [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); leave deferred
+rendered captures under the visual testing contract. Historical physical acceptance
+evidence remains in the archived [phone review](arkiv/OptimizingPhoneGuiTasks.md); leave deferred
 landscape tasks unchecked. Historical iPad sign-off, incomplete desktop
 measurements, and accepted LAN resolution limitations remain separate records
 linked by the current documentation index.

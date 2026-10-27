@@ -17,8 +17,7 @@ func test_web_release_preset_excludes_development_content_and_is_single_threaded
 		export_presets.get_value(WEB_PRESET_SECTION, "exclude_filter"),
 		(
 			"addons/*,addons/**/*,tests/*,tests/**/*,localtmp/*,localtmp/**/*,"
-			+ "artifacts/*,artifacts/**/*,.gutconfig.json,"
-			+ "my_test_node.gd,my_test_node.tscn"
+			+ "artifacts/*,artifacts/**/*,.gutconfig.json"
 		)
 	)
 	assert_false(

@@ -15,6 +15,8 @@ var trace_mode: SimulationTraceConfig.Mode = SimulationTraceConfig.Mode.ERRORS
 var trace_sample_count: int = 0
 var dry_run: bool = false
 var overwrite: bool = false
+var checkpoint_path: String = ""
+var resume: bool = false
 var tournament_index: int = -1
 var batch_id: StringName = &""
 var seed_start: int = SimulationRosterManifestSettings.DEFAULT_SEED_START
@@ -55,6 +57,10 @@ func validate() -> PackedStringArray:
 			errors.append("The replay command requires a report path.")
 		if tournament_index < 0:
 			errors.append("Replay requires a non-negative tournament index.")
+	if command != &"run" and (resume or not checkpoint_path.is_empty()):
+		errors.append("Checkpoint and resume options are supported only by run.")
+	if dry_run and resume:
+		errors.append("Resume cannot be combined with dry-run.")
 	if command != &"run" and dry_run:
 		errors.append("Dry-run is supported only by the run command.")
 	if command == &"export-roster-manifest":

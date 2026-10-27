@@ -5,12 +5,11 @@ from __future__ import annotations
 import copy
 import json
 import math
-import os
-import tempfile
 from pathlib import Path
 from typing import Any
 
 from .artifacts import create_artifact, validate_artifact_envelope
+from .atomic_write import publish_bytes_no_replace
 from .confirmation import MEASURED_BEHAVIOR_FIELDS, validate_confirmation
 from .contracts import GENES, require_exact_fields, require_identifier, validate_candidate
 from .errors import ExitCode, ToolError
@@ -269,26 +268,9 @@ def write_promotion_review_plan_atomic(path: Path, plan: dict[str, Any]) -> None
             ExitCode.IO_FAILURE,
             {"path": str(parent)},
         )
-    temporary_path: Path | None = None
+    contents = json.dumps(plan, ensure_ascii=False, indent=2) + "\n"
     try:
-        descriptor, name = tempfile.mkstemp(
-            prefix=f".{path.name}.", suffix=".tmp", dir=parent
-        )
-        temporary_path = Path(name)
-        contents = json.dumps(plan, ensure_ascii=False, indent=2) + "\n"
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(contents)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.link(temporary_path, path)
-        temporary_path.unlink()
-        temporary_path = None
-        directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
-        directory_descriptor = os.open(parent, directory_flags)
-        try:
-            os.fsync(directory_descriptor)
-        finally:
-            os.close(directory_descriptor)
+        publish_bytes_no_replace(path, contents.encode("utf-8"))
     except FileExistsError as error:
         raise ToolError(
             "output_exists",
@@ -303,9 +285,6 @@ def write_promotion_review_plan_atomic(path: Path, plan: dict[str, Any]) -> None
             ExitCode.IO_FAILURE,
             {"path": str(path)},
         ) from error
-    finally:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
 
 
 def validate_promotion_review_plan(

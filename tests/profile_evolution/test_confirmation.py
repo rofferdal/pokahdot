@@ -8,6 +8,7 @@ import json
 import math
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from tools.profile_evolution.artifacts import (
@@ -30,6 +31,7 @@ from tools.profile_evolution.fitness import _roster_provenance, _simulation_mani
 from tools.profile_evolution.promotion_review import (
     create_promotion_review,
     create_promotion_review_plan,
+    write_promotion_review_plan_atomic,
     finalize_promotion_review,
     validate_promotion_review_batch,
     validate_promotion_review,
@@ -711,6 +713,52 @@ class ConfirmationTests(unittest.TestCase):
 
             self.assertFalse((published_directory / "candidate__v1.tres").exists())
             self.assertEqual(sidecar.read_text(encoding="utf-8"), "reserved")
+
+    def test_review_writer_preserves_pretty_json_and_no_clobber_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            registry, _, mirrored, mixed = _reports(directory)
+            confirmation = confirm_candidate(
+                registry, "candidate", ["legacy"], ["champion"], mirrored, mixed
+            )
+            plan = create_promotion_review_plan([confirmation], "reviewer")
+            plan["candidates"][0]["review_note"] = "Pågående review"
+            destination = directory / "review.json"
+            write_promotion_review_plan_atomic(destination, plan)
+            expected = (json.dumps(plan, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+            self.assertEqual(destination.read_bytes(), expected)
+            with self.assertRaises(Exception) as caught:
+                write_promotion_review_plan_atomic(destination, plan)
+            self.assertEqual(caught.exception.code, "output_exists")
+            self.assertEqual(destination.read_bytes(), expected)
+            self.assertEqual(list(directory.glob(".*.tmp")), [])
+
+    def test_profile_sidecar_publish_failure_rolls_back_only_its_resource(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            registry, _, mirrored, mixed = _reports(directory)
+            confirmation = confirm_candidate(
+                registry, "candidate", ["legacy"], ["champion"], mirrored, mixed
+            )
+            review = create_promotion_review(confirmation, "reviewer", True)
+            original_link = __import__("os").link
+
+            def race_sidecar(source: Path, destination: Path) -> None:
+                if destination.suffix == ".json":
+                    destination.write_bytes(b"other publisher's provenance")
+                original_link(source, destination)
+
+            with mock.patch("tools.profile_evolution.atomic_write.os.link", side_effect=race_sidecar):
+                with self.assertRaises(Exception) as caught:
+                    publish_approved_profile(confirmation, review, directory, "v1")
+            self.assertEqual(caught.exception.code, "published_profile_exists")
+            published = directory / "resources" / "bot_profiles" / "published"
+            self.assertFalse((published / "candidate__v1.tres").exists())
+            self.assertEqual(
+                (published / "candidate__v1.provenance.json").read_bytes(),
+                b"other publisher's provenance",
+            )
+            self.assertEqual(list(published.glob(".*.tmp")), [])
 
     def test_legacy_profile_does_not_require_evolution_lineage(self) -> None:
         with tempfile.TemporaryDirectory() as name:

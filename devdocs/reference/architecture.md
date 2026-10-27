@@ -119,7 +119,7 @@ To prevent accidental creation of all-bot games in the product (or human waits i
 - **Primary Methods**:
   - `start() -> StepResult`: Initializes table, sets button, and launches Hand #1.
   - `advance_until_blocked() -> StepResult`: Advances until user input is required or hand finishes.
-  - `advance_one_action() -> StepResult`: Steps one single poker action (useful for GUI pacing and animations).
+  - `advance_one_action() -> StepResult`: Performs one bot action or street/settlement step for GUI pacing; human turns wait for explicit submission.
   - `submit_human_action(action) -> StepResult`: Submits the human move and continues execution.
   - `request_quit() -> StepResult`: Terminates the tournament immediately without declaring a winner.
 
@@ -320,6 +320,7 @@ flowchart TD
 ### 1. The Headless Simulation Engine (`scripts/simulation/`)
 - **Manifests (`SimulationManifest`, Schema 2)**: Immutable, JSON-configured batches specifying bot profile snapshots, tournament regimes, cyclic seat rotation, and matchups.
 - **Runner (`SimulationBatchRunner`)**: High-throughput headless execution enforcing zero-human composition contracts.
+- **Checkpointed CLI execution**: `SimulationPlanCursor` selects assigned indexes directly, `SimulationAggregateAccumulator` keeps bounded statistical state, and `SimulationCheckpointStore` plus `SimulationStreamReportWriter` persist records and stream reports. See the [resume and memory contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#422-checkpointed-execution-and-resume).
 - **Reports (`SimulationReport`, Schema 4)**: Checksummed artifacts containing exact manifest snapshots, deterministic roster provenance, ordered `selected_profile_ids` per tournament, outcomes, and recipient-safe traces.
 - **Roster export (`SimulationManifestGenerator`)**: Builds a validated schema-2 baseline from `PlayableBotRoster` without CLI, filesystem, or terminal dependencies. Its standard preset uses 100bb play (1000 chips, 5/10 blinds) and cyclic seats. Catalogs through nine profiles use one `active_roster` matchup; larger catalogs use deterministic pair-covering nine-seat matchups with equal appearances and aggregate seat balance. The CLI adapter serializes the returned manifest atomically through `export-roster-manifest`.
 

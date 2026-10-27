@@ -126,3 +126,25 @@ func _card_ids(cards: Array[CardData]) -> Array[int]:
 	for card: CardData in cards:
 		ids.append(card.card_id)
 	return ids
+
+
+func test_next_hand_preserves_requested_transition_budget() -> void:
+	for budget: int in [-1, 0, 1, 2]:
+		var agents: Dictionary[int, Agent] = {}
+		for seat: int in range(3):
+			agents[seat] = ScriptedAgent.new(
+				[PlayerAction.fold_action(), PlayerAction.fold_action(), PlayerAction.fold_action()]
+			)
+		var match_instance := TournamentMatch.new(
+			_config(), agents, TournamentConstructionContract.simulation()
+		)
+		assert_eq(match_instance.start().status, StepResult.Status.HAND_COMPLETED)
+		var next := match_instance.advance_until_blocked(budget)
+		assert_eq(next.status, StepResult.Status.YIELDED, "budget %d" % budget)
+		assert_eq(match_instance.hand_number, 2)
+		assert_false(match_instance.get_view_for(0).hand_complete)
+		var applied: int = 0
+		for event: DomainEvent in match_instance.get_events():
+			if event.kind == DomainEvent.Kind.ACTION_APPLIED:
+				applied += 1
+		assert_eq(applied, maxi(1, budget), "No implicit default budget on next-hand setup.")

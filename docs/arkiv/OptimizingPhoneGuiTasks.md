@@ -1,5 +1,9 @@
 # Optimizing the Phone GUI
 
+> Archived record. The original status, task checkboxes and evidence below are
+> retained as history. Archive placement does not establish acceptance of open
+> physical-device checks.
+
 Status: Active — showdown-card acceptance remains open; latest phone review reports missing winner feedback
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
@@ -77,9 +81,9 @@ complete only when its acceptance evidence has been recorded.
 
 - [x] **Record and assess the first physical-device capture.** Compare the
   Android Chrome screenshot with
-  [`ProjectDescription.md`](ProjectDescription.md),
-  [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md), the
-  completed phone milestone in [`GuiTasks.md`](arkiv/GuiTasks.md), current phone
+  [`ProjectDescription.md`](../ProjectDescription.md),
+  [`ProvisionalGUILayoutGuidance.md`](../ProvisionalGUILayoutGuidance.md), the
+  completed phone milestone in [`GuiTasks.md`](GuiTasks.md), current phone
   code, and canonical phone captures. Record the verdict, visible defects,
   initial hypotheses, and screenshot limitations in this document.
 - [x] **Tie the capture to an exact hosted build.** Record the full tested URL,
@@ -281,7 +285,7 @@ complete only when its acceptance evidence has been recorded.
   browser state, and screenshots in the evidence log before checking this task.
 - [ ] **Verify named showdown winners on the physical phone.** The user reports
   that the phone does not show who wins at showdown (2026-10-27); the owning
-  implementation task GUI-01 in [AstraSuggestionTasks.md](AstraSuggestionTasks.md)
+  implementation task GUI-01 in [AstraSuggestionTasks.md](../AstraSuggestionTasks.md)
   is reopened. After its fix, test a named hero win, opponent win, split and
   side-pot awards at supported portrait counts. Acceptance: the completed-hand
   screen makes winner identity obvious without searching More; exact awards
@@ -294,6 +298,8 @@ complete only when its acceptance evidence has been recorded.
   semantics and recipient privacy, and restore the unchanged table. Acceptance:
   no overlay is clipped, trapped, or accidentally dismissed by an adjacent
   control.
+
+NB! This work is stopped. The GUI will be refactored to conform with Godot best practice in a separate tasks-document
 
 ### Phase 4 — Broaden physical-device confidence
 
@@ -334,7 +340,7 @@ at multiple sizes, iPad, and phone. For this review, references below to a clean
 deployed SHA mean one pinned LAN export identified by build ID, source SHA,
 and dirty-source fingerprint from `build-info.json`. A hosted workflow run is
 not required for this review. Use the
-[LAN how-to](../devdocs/how-to/local-wifi-web-testing.md#local-device-evidence-record)
+[LAN how-to](../../devdocs/how-to/local-wifi-web-testing.md#local-device-evidence-record)
 to record device/browser, CSS viewport, DPR, browser chrome, safe-area/inset
 observations, keypad/focus/overlay behavior, and screenshots against that same
 build. Complete the open physical tasks only after results exist; landscape
@@ -402,7 +408,7 @@ The user supplied four same-state landscape browser captures. Two show seat,
 status or board overlap and clipped identity text; the other two appear clear
 for that state. The user also reports that the iPad screen looks OK, without
 identifying it as a particular numbered attachment. The
-[owning GUI-05 review and follow-up tasks](AstraSuggestionTasks.md#gui-05-browser-capture-review)
+[owning GUI-05 review and follow-up tasks](../AstraSuggestionTasks.md#gui-05-browser-capture-review)
 record the findings and missing environment/build measurements. No dedicated
 phone portrait capture or phone interaction result was supplied in this set;
 existing physical phone checkboxes remain unchanged. Preserve the working iPad

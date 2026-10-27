@@ -143,55 +143,78 @@ func validate() -> PackedStringArray:
 	return errors
 
 
+## Compatibility collection API. Only assigned indexes are constructed.
 func build_plan(shard: SimulationShard = null) -> RefCounted:
-	var errors := validate()
-	if shard != null:
-		errors.append_array(shard.validate())
-	if not errors.is_empty():
-		return BATCH_PLAN_SCRIPT.new([], errors)
-	var selected_shard := SimulationShard.new() if shard == null else shard
-	var regime_by_id: Dictionary = {}
-	var matchup_by_id: Dictionary = {}
-	for regime: SimulationRegime in regimes:
-		regime_by_id[regime.regime_id] = regime
-	for matchup: SimulationMatchup in matchups:
-		matchup_by_id[matchup.matchup_id] = matchup
-	var all_inputs: Array[SimulationTournamentInput] = []
-	var global_index: int = 0
+	var cursor := create_cursor(shard)
+	var inputs: Array[SimulationTournamentInput] = []
+	while cursor.has_next():
+		inputs.append(cursor.next_input())
+	return BATCH_PLAN_SCRIPT.new(inputs, cursor.errors)
+
+
+func create_cursor(shard: SimulationShard = null) -> SimulationPlanCursor:
+	return SimulationPlanCursor.new(self, shard)
+
+
+func tournament_count() -> int:
+	var total: int = 0
 	for plan: SimulationEvaluationPlan in evaluation_plans:
-		var regime: SimulationRegime = regime_by_id[plan.regime_id]
-		for local_index: int in range(plan.tournament_count):
-			var effective_seed: int = seed_start + global_index
-			var matchup_offset: int = local_index % plan.matchup_ids.size()
-			var matchup_id: StringName = plan.matchup_ids[matchup_offset]
-			var matchup: SimulationMatchup = matchup_by_id[matchup_id]
-			var occurrence: int = local_index / plan.matchup_ids.size()
-			var rotation: int = occurrence % regime.player_count
-			(
-				all_inputs
-				. append(
-					(
-						SimulationTournamentInput
-						. new(
-							global_index,
-							effective_seed,
-							matchup,
-							_rotated_profiles(matchup.get_profiles(), rotation),
-							occurrence,
-							rotation,
-							regime.regime_id,
-							plan.plan_id,
-							local_index,
-							regime,
-						)
-					)
-				)
+		total += plan.tournament_count
+	return total
+
+
+## Direct lookup on a validated manifest; no preceding indexes are materialized.
+func input_at(global_index: int) -> SimulationTournamentInput:
+	if global_index < 0:
+		return null
+	var offset: int = 0
+	for plan: SimulationEvaluationPlan in evaluation_plans:
+		if global_index - offset >= plan.tournament_count:
+			offset += plan.tournament_count
+			continue
+		var local_index: int = global_index - offset
+		var regime: SimulationRegime
+		for candidate: SimulationRegime in regimes:
+			if candidate.regime_id == plan.regime_id:
+				regime = candidate
+		var matchup_id: StringName = plan.matchup_ids[local_index % plan.matchup_ids.size()]
+		var matchup: SimulationMatchup
+		for candidate: SimulationMatchup in matchups:
+			if candidate.matchup_id == matchup_id:
+				matchup = candidate
+		if regime == null or matchup == null:
+			return null
+		var occurrence: int = local_index / plan.matchup_ids.size()
+		var rotation: int = occurrence % regime.player_count
+		var source := matchup.get_profiles()
+		var matchup_snapshot := SimulationMatchup.new(matchup.matchup_id, source)
+		var regime_snapshot := (
+			SimulationRegime
+			. new(
+				regime.regime_id,
+				regime.player_count,
+				regime.starting_stack,
+				regime.starting_small_blind,
+				regime.starting_big_blind,
+				regime.blind_progression,
 			)
-			global_index += 1
-	var filtered := SimulationBatchPlanner.new().filter_for_shard(
-		all_inputs, selected_shard.index, selected_shard.count
-	)
-	return BATCH_PLAN_SCRIPT.new(filtered)
+		)
+		return (
+			SimulationTournamentInput
+			. new(
+				global_index,
+				seed_start + global_index,
+				matchup_snapshot,
+				_rotated_profiles(source, rotation),
+				occurrence,
+				rotation,
+				regime.regime_id,
+				plan.plan_id,
+				local_index,
+				regime_snapshot,
+			)
+		)
+	return null
 
 
 func canonical_dictionary() -> Dictionary:

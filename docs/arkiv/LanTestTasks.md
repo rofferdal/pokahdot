@@ -160,7 +160,7 @@ screenshots under ignored `localtmp/`; do not commit them.
   Evidence: `localtmp/lan/continuation/browser/`, `web-input/results.json`,
   `visible-rebuild.json` and `marked-build.log` under the same continuation
   directory. Physical portrait player-count coverage and deferred landscape
-  remain owned by [OptimizingPhoneGuiTasks.md](../OptimizingPhoneGuiTasks.md).
+  remain owned by [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md).
   User acceptance on 2026-10-26: the user completed their best-effort LAN-06
   verification and explicitly accepted and checked this task despite issues at
   some resolutions. This closes LAN-06 by user decision; it does not imply
@@ -220,7 +220,7 @@ It does not by itself establish that the GitHub Pages build or an untested
 browser/device passed. Use [`GUI_VISUAL_TESTING.md`](../GUI_VISUAL_TESTING.md) for
 visual evidence and [`templates/GUI_DEFECT.md`](../templates/GUI_DEFECT.md) for
 defects. Phone acceptance remains tracked in
-[`OptimizingPhoneGuiTasks.md`](../OptimizingPhoneGuiTasks.md); use LAN testing to
+[`OptimizingPhoneGuiTasks.md`](OptimizingPhoneGuiTasks.md); use LAN testing to
 supply evidence there without duplicating or prematurely completing its tasks.
 
 ## Command contract

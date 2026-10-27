@@ -13,7 +13,7 @@ player limits; active acceptance checkboxes stay in their owning backlog.
 
 | Profile | Product scope | Automated coverage | Physical/browser acceptance |
 | --- | --- | --- | --- |
-| Phone portrait | 2–7 players; default 6 | Dedicated phone v2 matrix, including reduced height and summary overlays | Active [phone acceptance backlog](OptimizingPhoneGuiTasks.md); reported Android defects and missing measurements remain open |
+| Phone portrait | 2–7 players; default 6 | Dedicated phone v2 matrix, including reduced height and summary overlays | Archived [phone acceptance record](arkiv/OptimizingPhoneGuiTasks.md); open recorded checks are not completed by archive placement |
 | Phone landscape | Emergency reflow and state preservation | Diagnostic phone fixtures | Deferred; diagnostic passes do not establish landscape support |
 | Tablet/iPad | 2–9 players; landscape primary, portrait regression | Dedicated iPad matrix, including explicit observed-device override | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
 | Small desktop/desktop | 2–9 players | Dedicated desktop matrix and historical M3 fixtures | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
@@ -23,7 +23,7 @@ desktop matrices. An automated pass proves the tested deterministic invariants.
 A rendered review proves only its captured scope; neither proves a physical
 device passed. Accepted old captures do not certify later code or matrix versions.
 The completed [LAN workflow](arkiv/LanTestTasks.md) records user acceptance with
-resolution limitations; it does not complete the active phone acceptance tasks.
+resolution limitations; it does not complete open recorded phone acceptance checks.
 The [current GUI-05 browser capture review](AstraSuggestionTasks.md#gui-05-browser-capture-review)
 records overlapping/clipped content in two of four same-state browser captures,
 provisionally clear content in the other two, and the user's positive iPad
@@ -240,7 +240,7 @@ Before clean release evidence is produced, every implemented scope must pass
 its canonical automated matrix and rendered review. Every known blocker,
 unreadable, or obstructive defect in that scope must be fixed or explicitly
 accepted by the product decision owner. Hosted browser and physical-device
-testing is optional for general deployment; explicit active phone acceptance
+testing is optional for general deployment; explicit physical-phone acceptance
 remains required for its device claims. A defect found there should be fixed
 and reverified; it does not retroactively turn local evidence into device
 evidence.
@@ -277,6 +277,13 @@ the editor binary is not on `PATH`, for example
 | `make gui-visual-capture-development` | Render the complete Milestone 3 capture matrix with `--development`. It accepts a dirty tree, records dirty paths and their fingerprint, and always produces non-acceptance evidence. It does not implicitly run `make check` or the standalone invariant gate. |
 | `make gui-phone-capture-development` | Render the complete Milestone 4 phone matrix as development-only evidence. Human review of this output is required by the separate local phone visual-acceptance task. |
 | `make gui-visual-capture` | Produce clean candidate evidence. It refuses a dirty tree, runs `make check` and `gui-current-invariant-gate`, checks cleanliness again, then renders the complete Milestone 3 matrix. Its manifest is acceptance-eligible only when all 348 expected captures settle and pass their recorded invariants. |
+
+`GuiInvariantMatrixSuites` declares the viewport/count/state coverage used by
+both captures and gates. `GuiInvariantMatrixRunner` owns rendering, settling,
+invariant checks and phone resize cycles; `GuiPhoneMatrixContract` retains the
+additional phone privacy/content/touch-target checks. The four historical
+manual entry points and fixture identities remain stable. Capture provenance
+hashes the shared definitions, runner and phone contract alongside fixtures.
 
 All rendered commands require a real display and the Compatibility renderer;
 the capture runner rejects a headless or dummy renderer. Capture targets refuse

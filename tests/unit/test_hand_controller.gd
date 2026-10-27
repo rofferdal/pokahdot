@@ -269,3 +269,20 @@ func _last_event(events: Array[DomainEvent], kind: DomainEvent.Kind) -> DomainEv
 		if events[index].kind == kind:
 			return events[index]
 	return null
+
+
+func test_single_step_preserves_human_mailbox_until_bulk_advance() -> void:
+	var players := _players_with_agents()
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var controller := _controller(table)
+	assert_eq(controller.start().status, StepResult.Status.WAITING_FOR_HUMAN)
+	var human := players[0].agent as HumanAgent
+	human.submit_action(PlayerAction.call_action())
+	var history_size: int = controller.get_view_for(0).action_history.size()
+	assert_eq(controller.advance_one_action().status, StepResult.Status.WAITING_FOR_HUMAN)
+	assert_true(human.has_pending_action())
+	assert_eq(controller.get_view_for(0).action_history.size(), history_size)
+	assert_eq(controller.advance_until_blocked(1).status, StepResult.Status.YIELDED)
+	assert_false(human.has_pending_action())
+	assert_eq(controller.get_view_for(0).action_history.size(), history_size + 1)

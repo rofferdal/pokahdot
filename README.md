@@ -170,6 +170,13 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
   run --config path/to/manifest.json --shard 2/4 --dry-run --format json
 ```
 
+Runs checkpoint each completed tournament under `OUTPUT.checkpoint` by default.
+After interruption, repeat the same command with `--resume`; use `--checkpoint
+DIR` to select a different directory. Resume requires the same manifest, source
+provenance, shard and trace settings. `--overwrite` replaces reports only and
+never resets checkpoints. Execution streams results with bounded memory; see
+the [checkpoint and resume contract](docs/Simulation_And_Evolutionary_Bot_Strategy.md#422-checkpointed-execution-and-resume).
+
 Reports use schema 4 and command v6. They retain the exact manifest/checksum,
 roster provenance, and executable provenance: Git revision, executable-source
 dirty fingerprint, Godot version, and algorithm versions. Fitness rejects
@@ -303,8 +310,8 @@ python3 -m venv .venv
 Run the GDScript linter and verify formatting without modifying files:
 
 ```bash
-.venv/bin/gdlint scripts tests my_test_node.gd
-.venv/bin/gdformat --check scripts tests my_test_node.gd
+.venv/bin/gdlint scripts tests
+.venv/bin/gdformat --check scripts tests
 ```
 
 Run the Godot tests headlessly:
@@ -353,9 +360,9 @@ Godot can reset the stamped tab title after startup, so use the URL to identify
 the running build. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
 The completed server workflow is recorded in [LanTestTasks.md](docs/arkiv/LanTestTasks.md).
-Current GUI/device review and demonstrated browser defects are tracked in
+GUI/device review and demonstrated browser defects are recorded in
 [AstraSuggestionTasks.md](docs/AstraSuggestionTasks.md#gui-05-browser-capture-review)
-and [OptimizingPhoneGuiTasks.md](docs/OptimizingPhoneGuiTasks.md).
+and the archived [phone review](docs/arkiv/OptimizingPhoneGuiTasks.md).
 
 ## GUI action pace
 
@@ -389,4 +396,5 @@ pokahdot/
 
 GUI automated coverage and manual device acceptance are listed separately in
 the [visual evidence contract](docs/GUI_VISUAL_TESTING.md#current-support-and-acceptance).
-Phone portrait acceptance remains active; phone landscape remains deferred.
+Physical-phone acceptance limitations remain recorded in the archived phone
+review; phone landscape remains deferred.

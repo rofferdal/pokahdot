@@ -52,6 +52,8 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 - `--overwrite`: Permitted only when intentionally replacing an existing output file. (By default, existing outputs are protected).
 - `--shard INDEX/COUNT`: Deterministic parallelization slice (e.g. `0/4`, `1/4`).
 - `--dry-run`: Validates plan and prints shard metadata without playing tournaments.
+- `--checkpoint DIR`: Run checkpoint directory (default `OUTPUT.checkpoint`); use a separate directory for each shard.
+- `--resume`: Reuse validated completed records from the same checkpoint, manifest, provenance, shard and trace settings. Supported only by `run`.
 - `--trace none|errors|sampled`: Decision trace recording mode (`errors` by default for `run`).
 - `--trace-sample COUNT`: Number of decisions to deterministically sample when `--trace sampled` is enabled.
 - `--tournament-index INDEX`: Specific tournament index to reproduce during `replay` (required; no default index).
@@ -115,6 +117,14 @@ godot --headless --path . --script res://scripts/simulation/simulation_cli_app.g
 For an immutable roster baseline, use a separate report path and retain both
 the manifest and report. A later roster export is a new benchmark; never
 overwrite the pre-change artifact merely because its catalog version changed.
+
+After interruption, repeat the exact run command with `--resume`. Completed
+records are reused; an unfinished tournament restarts from its seed. Fresh runs
+refuse existing checkpoints, including with `--overwrite`. Choose a new
+`--checkpoint DIR` for a new run; retain the old evidence. The final schema-4
+report streams from checkpoints without retaining the entire batch in memory.
+See the [checkpoint contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#422-checkpointed-execution-and-resume)
+for identity checks, storage and commands that still materialize full output.
 
 #### Parallel Sharding:
 To parallelize across multiple CPU cores or worker machines, specify `--shard INDEX/COUNT`:
