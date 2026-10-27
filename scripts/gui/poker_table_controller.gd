@@ -19,6 +19,7 @@ const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
 const ShowdownHandFormatterScript := preload("res://scripts/gui/showdown_hand_formatter.gd")
 const TableSeatLayoutScript := preload("res://scripts/gui/table_seat_layout.gd")
 const TournamentStatusFormatterScript := preload("res://scripts/gui/tournament_status_formatter.gd")
+const GuiModalGuardScript := preload("res://scripts/gui/gui_modal_guard.gd")
 const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
 const OPPONENT_AVATAR_SIZE := Vector2(112, 112)
 const HERO_AVATAR_SIZE := Vector2(128, 128)
@@ -56,6 +57,8 @@ var _seat_status_widgets: Dictionary[int, Label] = {}
 var _layout_profile_override: int = GuiLayoutProfileScript.AUTOMATIC
 var _applied_layout_profile: int = GuiLayoutProfileScript.AUTOMATIC
 var _phone_seat_widgets: bool = false
+var _phone_numeric_feedback: HBoxContainer
+var _phone_more_spacer: Control
 var _seat_detail_seat: int = Table.NO_SEAT
 var _seat_detail_overlay: PanelContainer
 var _layout_queued: bool = false
@@ -68,6 +71,8 @@ var _event_texts: Array[String] = []
 var _active_round_latest_actions: Dictionary[int, PublicActionRecord] = {}
 var _retained_fold_actions: Dictionary[int, PublicActionRecord] = {}
 var _action_pacer = GuiActionPacerScript.new()
+var _modal_guard: GuiModalGuard
+var _switching_modal: bool = false
 var _wager_keypad: WagerKeypad
 
 @onready var _felt: Panel = $TableMargin/Felt
@@ -125,9 +130,16 @@ func _ready() -> void:
 	_wager_input.virtual_keyboard_enabled = false
 	_wager_input.virtual_keyboard_show_on_focus = false
 	_wager_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
+	_modal_guard = GuiModalGuardScript.new()
+	add_child(_modal_guard)
+	_modal_guard.configure(self, _surface)
+	_add_phone_modal_quit(_phone_showdown_overlay.get_node("Content"))
 	_wager_keypad = WagerKeypadScript.new()
 	add_child(_wager_keypad)
 	_wager_keypad.confirmed.connect(_on_wager_keypad_confirmed)
+	_wager_keypad.popup_hide.connect(_on_wager_keypad_hidden)
+	_wager_keypad.quit_requested.connect(_on_modal_quit_pressed)
+	_wager_keypad.set_quit_available(true)
 	_wager_input.gui_input.connect(_on_wager_input_gui_input)
 	_wager_input.text_submitted.connect(_on_wager_input_submitted)
 	_fold_button.pressed.connect(_on_fold_pressed)
@@ -138,7 +150,8 @@ func _ready() -> void:
 	_all_in_button.pressed.connect(_on_all_in_pressed)
 	_quit_button.pressed.connect(_on_quit_pressed)
 	_quit_confirmation.confirmed.connect(_on_quit_confirmed)
-	_phone_more_button.pressed.connect(_open_phone_overflow_menu)
+	_quit_confirmation.visibility_changed.connect(_finish_phone_modal_if_closed)
+	_phone_more_button.pressed.connect(_on_phone_more_pressed)
 	_phone_quit_continue_button.pressed.connect(_close_phone_quit_confirmation)
 	_phone_quit_confirm_button.pressed.connect(_on_phone_quit_confirmed)
 	_phone_showdown_close_button.pressed.connect(_close_phone_showdown)
@@ -307,6 +320,7 @@ func submit_wager_total(total: int) -> void:
 func show_wager_keypad() -> void:
 	if _bound_view == null or not WagerKeypadScript.can_wager(_bound_view):
 		return
+	_switch_phone_modal(true)
 	var pot_target: PotWagerTargetResult = _resolved_pot_wager_target()
 	(
 		_wager_keypad
@@ -315,12 +329,27 @@ func show_wager_keypad() -> void:
 			_bound_view.minimum_wager_total,
 			_bound_view.maximum_wager_total,
 			GuiMobileTableLayoutScript.content_scale(_current_usable_size()),
-			GuiLayoutProfileScript.is_phone(get_layout_profile()),
+			GuiLayoutProfileScript.is_phone(get_layout_profile()) or _uses_numeric_keypad(),
 			pot_target.contribution,
 			pot_target.wager_total,
 			Vector2i(size),
 		)
 	)
+
+	(
+		_modal_guard
+		. begin(
+			_wager_keypad,
+			_wager_keypad.cancel,
+			_wager_keypad.get_node("Content/Cancel"),
+			_wager_button,
+		)
+	)
+
+
+func _on_wager_keypad_hidden() -> void:
+	if not _switching_modal:
+		_modal_guard.finish()
 
 
 func _on_wager_input_gui_input(event: InputEvent) -> void:
@@ -466,6 +495,16 @@ func _configure_center_copy(phone_layout: bool) -> void:
 				_bound_view.blind_level,
 			]
 		)
+	if not phone_layout and _uses_large_chip_values():
+		_pot_label.text = (
+			"Pot: %d | L%d\nSB %d BB %d"
+			% [
+				displayed_pot_amount,
+				_bound_view.blind_level,
+				_bound_view.small_blind,
+				_bound_view.big_blind
+			]
+		)
 	_phone_blind_level_detail.text = (
 		"Blinds %d / %d  ·  Level %d  ·  %d hands to next level"
 		% [
@@ -475,6 +514,43 @@ func _configure_center_copy(phone_layout: bool) -> void:
 			_bound_view.hands_until_next_level,
 		]
 	)
+
+
+func _uses_large_chip_values() -> bool:
+	if _bound_view == null:
+		return false
+	if _bound_view.pot_amount >= 1000000 or _bound_view.big_blind >= 100000:
+		return true
+	for player: PlayerView in _bound_view.seats:
+		if player.stack >= 100000 or player.bet_this_round >= 100000:
+			return true
+	return false
+
+
+func _uses_numeric_keypad() -> bool:
+	return (
+		_uses_large_chip_values()
+		and (
+			GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
+			or (
+				get_layout_profile() == GuiLayoutProfileScript.Kind.TABLET
+				and _surface.size.x < 1600.0
+			)
+		)
+	)
+
+
+func _configure_numeric_action_rows() -> void:
+	var action_rows := _action_panel.get_node("Margin/Content/ActionRows") as VBoxContainer
+	var primary := action_rows.get_node("PrimaryButtons") as HBoxContainer
+	var wagers := action_rows.get_node("WagerControls") as HBoxContainer
+	_all_in_button.reparent(primary)
+	for button: Button in [_min_wager_button, _pot_raise_button]:
+		button.reparent(wagers)
+	wagers.move_child(_min_wager_button, 0)
+	wagers.move_child(_pot_raise_button, 1)
+	_wager_input.hide()
+	_min_wager_button.text = "Min"
 
 
 func _rebuild_card_slots() -> void:
@@ -656,7 +732,7 @@ func _create_phone_action_badge(seat: int) -> Label:
 	return badge
 
 
-func _layout_phone_opponent_action_badges(landscape: bool) -> void:
+func _layout_phone_opponent_action_badges(landscape: bool, expanded_rows: bool = false) -> void:
 	for seat: int in _seat_widgets:
 		var seat_widget: Control = _seat_widgets[seat]
 		var action_badge := seat_widget.find_child("ActionBadge", true, false) as Label
@@ -722,6 +798,43 @@ func _layout_phone_opponent_action_badges(landscape: bool) -> void:
 		cards.offset_bottom = (
 			cards.offset_top + (PHONE_SHOWDOWN_CARD_SIZE.y if revealed_cards else PHONE_CARD_SIZE.y)
 		)
+		if expanded_rows:
+			# Exact actions own a full row; revealed cards replace that row at showdown.
+			stack.offset_top = 28.0
+			stack.offset_right = -4.0 if revealed_cards else -cards_width
+			stack.offset_bottom = 56.0
+			state_badge.offset_bottom = 28.0
+			action_badge.set_anchors_preset(Control.PRESET_TOP_WIDE)
+			action_badge.offset_left = 4.0
+			action_badge.offset_right = -4.0
+			action_badge.offset_top = 56.0
+			action_badge.offset_bottom = 86.0
+			cards.offset_top = 56.0 if revealed_cards else 28.0
+			cards.offset_bottom = cards.offset_top + (30.0 if revealed_cards else 26.0)
+
+
+func _phone_numeric_rows_needed(surface_size: Vector2) -> bool:
+	if surface_size.x > surface_size.y or _seat_widgets.size() > 7:
+		return false
+	var rects: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(
+		surface_size, _seat_widgets.size()
+	)
+	for seat: int in _seat_widgets:
+		if seat == _bound_view.hero_seat:
+			continue
+		var panel: Control = _seat_widgets[seat]
+		var stack := panel.find_child("Stack", true, false) as Label
+		var action := panel.find_child("ActionBadge", true, false) as Label
+		var cards := panel.find_child("HoleCards", true, false) as Control
+		var revealed: bool = _phone_token_shows_cards(cards)
+		var card_width: float = 94.0 if revealed else 40.0
+		var action_width: float = _phone_action_badge_width(action) if not revealed else 0.0
+		if (
+			_phone_action_badge_width(stack, 0.0, 0.0) + card_width + action_width + 4.0
+			> rects[1].size.x
+		):
+			return true
+	return false
 
 
 func _phone_action_badge_width(
@@ -794,7 +907,9 @@ func _refresh_rendered_phone_action_badges() -> void:
 	if not _phone_seat_widgets or _bound_view == null:
 		return
 	_phone_hero_action_badge.text = _phone_hero_action_for_seat(_bound_view.hero_seat)
-	_phone_hero_action_badge.visible = not _phone_hero_action_badge.text.is_empty()
+	_phone_hero_action_badge.visible = (
+		not _phone_hero_action_badge.text.is_empty() and not _bound_view.hand_complete
+	)
 	_phone_hero_action_badge.tooltip_text = _phone_action_tooltip(_bound_view.hero_seat)
 	for seat: int in _seat_widgets:
 		var badge := _seat_widgets[seat].find_child("ActionBadge", true, false) as Label
@@ -1057,7 +1172,9 @@ func _create_seat_identity(player_view: PlayerView, name_font_size: int) -> VBox
 	identity.add_child(name_label)
 	var stack_label := Label.new()
 	stack_label.name = "Stack"
-	stack_label.text = "%d chips" % player_view.stack
+	stack_label.text = (
+		str(player_view.stack) if player_view.stack >= 100000 else "%d chips" % player_view.stack
+	)
 	stack_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	stack_label.clip_text = true
 	stack_label.add_theme_font_size_override("font_size", OPPONENT_CHIP_FONT_SIZE)
@@ -1175,8 +1292,18 @@ func _create_opponent_card_face(card_data: CardData, index: int) -> PanelContain
 func _open_phone_seat_detail(seat: int) -> void:
 	if not _phone_seat_widgets or _player_view_for_seat(seat) == null:
 		return
+	_switch_phone_modal()
 	_seat_detail_seat = seat
 	_refresh_phone_seat_detail()
+	(
+		_modal_guard
+		. begin(
+			_seat_detail_overlay,
+			_close_phone_seat_detail,
+			_seat_detail_overlay.get_node("Content/CloseButton"),
+			_phone_more_button,
+		)
+	)
 	_queue_layout()
 
 
@@ -1184,6 +1311,7 @@ func _close_phone_seat_detail() -> void:
 	_seat_detail_seat = Table.NO_SEAT
 	if is_instance_valid(_seat_detail_overlay):
 		_seat_detail_overlay.hide()
+	_finish_phone_modal_if_closed()
 
 
 func _refresh_phone_seat_detail() -> void:
@@ -1230,8 +1358,13 @@ func _refresh_phone_seat_detail() -> void:
 	close_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	close_button.pressed.connect(_close_phone_seat_detail)
 	content.add_child(close_button)
+	_add_phone_modal_quit(content)
 	_surface.add_child(_seat_detail_overlay)
 	_layout_phone_seat_detail()
+	if _modal_guard.is_active():
+		_modal_guard.begin(
+			_seat_detail_overlay, _close_phone_seat_detail, close_button, _phone_more_button
+		)
 
 
 func _player_view_for_seat(seat: int) -> PlayerView:
@@ -1291,6 +1424,8 @@ func _action_record_text(latest_record: PublicActionRecord) -> String:
 				action_text = "Raise to %d" % latest_record.amount
 			PlayerAction.Kind.ALL_IN:
 				action_text = "All-in to %d" % latest_record.amount
+	if latest_record.amount >= 100000 and _uses_compact_table_copy():
+		action_text = action_text.replace(" to ", " ")
 	return action_text
 
 
@@ -1332,6 +1467,11 @@ func _refresh_action_controls() -> void:
 		_wager_keypad.hide()
 	if _bound_view.tournament_status == &"finished":
 		_action_status.text = TournamentStatusFormatterScript.format(_bound_view)
+		if _bound_view.end_reason == &"winner":
+			_action_status.text = (
+				"%s wins the tournament!"
+				% _display_name_for_seat(_bound_view.tournament_winner_seat)
+			)
 	elif is_human_turn:
 		_action_status.text = "Your turn — %s." % GuiEventFormatterScript.street_name(_bound_view)
 	elif _bound_view.hand_complete:
@@ -1346,7 +1486,9 @@ func _refresh_action_controls() -> void:
 		)
 	if _uses_compact_table_copy():
 		if _bound_view.tournament_status == &"finished" and _bound_view.end_reason == &"winner":
-			_action_status.text = "Player %d wins" % (_bound_view.tournament_winner_seat + 1)
+			_action_status.text = (
+				"%s wins" % _display_name_for_seat(_bound_view.tournament_winner_seat)
+			)
 		elif _bound_view.tournament_status != &"finished":
 			if is_human_turn:
 				_action_status.text = (
@@ -1359,6 +1501,11 @@ func _refresh_action_controls() -> void:
 					"Act: %s"
 					% GuiEventFormatterScript.player_name_for(_bound_view, _bound_view.acting_seat)
 				)
+
+	if GuiLayoutProfileScript.is_phone(get_layout_profile()) and _bound_view.hand_complete:
+		var result_text: String = _phone_hand_result_text()
+		if not result_text.is_empty() and _bound_view.tournament_status != &"finished":
+			_action_status.text = result_text
 
 
 func _configure_action_control_copy(legal: Array) -> void:
@@ -1450,13 +1597,70 @@ func _refresh_phone_hero_summary() -> void:
 		_phone_hero_cards.add_child(card)
 
 
+func _phone_hand_result_text(maximum_width: float = INF) -> String:
+	if _bound_view == null or not _bound_view.hand_complete:
+		return ""
+	var recipients: Array[int] = []
+	for award: PotAward in _bound_view.pot_awards:
+		for seat: int in award.winner_seats:
+			if seat not in recipients:
+				recipients.append(seat)
+	if recipients.is_empty() and _bound_view.hand_winner_seat != Table.NO_SEAT:
+		recipients.append(_bound_view.hand_winner_seat)
+	if recipients.is_empty():
+		return ""
+	recipients.sort()
+	var lines: Array[String] = []
+	var line: String = "Winner: " if recipients.size() == 1 else "Winners: "
+	var font: Font = _action_status.get_theme_font("font")
+	for seat: int in recipients:
+		var player_name: String = _display_name_for_seat(seat)
+		var candidate: String = line + player_name
+		if (
+			font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, GUI_MINIMUM_FONT_SIZE).x
+			> maximum_width
+		):
+			lines.append(line.trim_suffix(", "))
+			line = player_name + ", "
+		else:
+			line = candidate + ", "
+	lines.append(line.trim_suffix(", "))
+	return "\n".join(lines)
+
+
+func _on_phone_more_pressed() -> void:
+	if _bound_view != null and _bound_view.hand_complete and _has_phone_hand_summary():
+		_open_phone_showdown()
+	else:
+		_open_phone_overflow_menu()
+
+
 func _refresh_phone_secondary_controls() -> void:
 	if _bound_view == null:
 		return
-	_phone_menu_showdown_button.visible = not _bound_view.showdown_results.is_empty()
+	var has_result: bool = _bound_view.hand_complete and _has_phone_hand_summary()
+	_phone_more_button.text = "Pots" if has_result else "More"
+	_phone_more_button.tooltip_text = "Show pot awards and hands" if has_result else "Table menu"
+	_phone_menu_showdown_button.visible = _has_phone_hand_summary()
 	_phone_showdown_summary.text = _phone_showdown_summary_text()
-	if _bound_view.showdown_results.is_empty():
+	if not _has_phone_hand_summary():
 		_close_phone_showdown()
+
+
+func _has_phone_hand_summary() -> bool:
+	return (
+		_bound_view != null
+		and (
+			not _bound_view.showdown_results.is_empty()
+			or not _bound_view.pot_awards.is_empty()
+			or _bound_view.hand_winner_seat != Table.NO_SEAT
+		)
+	)
+
+
+func _display_name_for_seat(seat: int) -> String:
+	var player_view: PlayerView = _player_view_for_seat(seat)
+	return _seat_title(player_view) if player_view != null else "Player %d" % (seat + 1)
 
 
 func _phone_showdown_summary_text() -> String:
@@ -1467,6 +1671,18 @@ func _phone_showdown_summary_text() -> String:
 		seats.append(seat)
 	seats.sort()
 	var lines: Array[String] = []
+	for award: PotAward in _bound_view.pot_awards:
+		var pot_name: String = (
+			"Main pot" if award.pot_index == 0 else "Side pot %d" % award.pot_index
+		)
+		var recipients: Array[String] = []
+		for seat: int in award.winner_seats:
+			recipients.append(
+				"%s +%d" % [_display_name_for_seat(seat), award.amounts_by_seat[seat]]
+			)
+		lines.append("%s (%d): %s" % [pot_name, award.amount, ", ".join(recipients)])
+	if _bound_view.pot_awards.is_empty() and _bound_view.hand_winner_seat != Table.NO_SEAT:
+		lines.append("%s wins the hand" % _display_name_for_seat(_bound_view.hand_winner_seat))
 	for seat: int in seats:
 		var player_view: PlayerView = _player_view_for_seat(seat)
 		if player_view == null:
@@ -1481,50 +1697,102 @@ func _phone_showdown_summary_text() -> String:
 func _open_phone_overflow_menu() -> void:
 	if not GuiLayoutProfileScript.is_phone(get_layout_profile()):
 		return
-	_phone_showdown_overlay.hide()
+	_switch_phone_modal()
 	_phone_overflow_menu.show()
+	_modal_guard.begin(
+		_phone_overflow_menu,
+		_close_phone_overflow_menu,
+		_phone_menu_close_button,
+		_phone_more_button
+	)
 	_layout_phone_overlays()
 
 
 func _close_phone_overflow_menu() -> void:
 	_phone_overflow_menu.hide()
+	_finish_phone_modal_if_closed()
 
 
 func _open_phone_showdown() -> void:
-	if (
-		not GuiLayoutProfileScript.is_phone(get_layout_profile())
-		or _bound_view == null
-		or _bound_view.showdown_results.is_empty()
-	):
+	if not GuiLayoutProfileScript.is_phone(get_layout_profile()) or not _has_phone_hand_summary():
 		return
-	_phone_overflow_menu.hide()
+	_switch_phone_modal()
 	_phone_showdown_summary.text = _phone_showdown_summary_text()
 	_phone_showdown_overlay.show()
+	_modal_guard.begin(
+		_phone_showdown_overlay,
+		_close_phone_showdown,
+		_phone_showdown_close_button,
+		_phone_more_button
+	)
 	_layout_phone_overlays()
 
 
 func _close_phone_showdown() -> void:
 	_phone_showdown_overlay.hide()
+	_finish_phone_modal_if_closed()
+
+
+func _switch_phone_modal(keep_keypad: bool = false) -> void:
+	_switching_modal = true
+	_phone_showdown_overlay.hide()
+	_phone_overflow_menu.hide()
+	_phone_quit_confirmation.hide()
+	_quit_confirmation.hide()
+	_close_phone_seat_detail()
+	# Reopening the same PopupPanel must not queue a hide from the previous
+	# presentation that can later cancel the newly opened draft.
+	if not keep_keypad:
+		_wager_keypad.cancel()
+	_switching_modal = false
 
 
 func _close_phone_overlays() -> void:
-	_close_phone_showdown()
-	_close_phone_overflow_menu()
-	_close_phone_quit_confirmation()
+	_switch_phone_modal()
+	_modal_guard.finish()
+
+
+func _finish_phone_modal_if_closed() -> void:
+	if _modal_guard == null or _switching_modal:
+		return
+	if not (
+		_phone_showdown_overlay.visible
+		or _phone_overflow_menu.visible
+		or _phone_quit_confirmation.visible
+		or _quit_confirmation.visible
+		or _wager_keypad.visible
+		or (is_instance_valid(_seat_detail_overlay) and _seat_detail_overlay.visible)
+	):
+		_modal_guard.finish()
 
 
 func _on_phone_menu_quit_pressed() -> void:
-	_close_phone_overflow_menu()
+	_on_modal_quit_pressed()
+
+
+func _on_modal_quit_pressed() -> void:
 	_on_quit_pressed()
+
+
+func _add_phone_modal_quit(content: Node) -> void:
+	var button := Button.new()
+	button.name = "ModalQuitButton"
+	button.text = "Quit"
+	button.custom_minimum_size.y = 48.0
+	button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	button.pressed.connect(_on_modal_quit_pressed)
+	content.add_child(button)
 
 
 func _close_phone_quit_confirmation() -> void:
 	_phone_quit_confirmation.hide()
+	_finish_phone_modal_if_closed()
 
 
 func _on_phone_quit_confirmed() -> void:
-	_close_phone_quit_confirmation()
+	_modal_guard.cancel_advance()
 	_on_quit_confirmed()
+	_close_phone_quit_confirmation()
 
 
 func _uses_compact_table_copy() -> bool:
@@ -1592,7 +1860,7 @@ func _on_pot_raise_pressed() -> void:
 
 
 func _on_wager_pressed() -> void:
-	if GuiLayoutProfileScript.is_phone(get_layout_profile()):
+	if GuiLayoutProfileScript.is_phone(get_layout_profile()) or _uses_numeric_keypad():
 		show_wager_keypad()
 		return
 	_submit_wager_input()
@@ -1621,19 +1889,36 @@ func _on_quit_pressed() -> void:
 	if _match == null:
 		return
 	if _match.state == TournamentMatch.State.FINISHED:
+		_modal_guard.cancel_advance()
+		_close_phone_overlays()
 		return_to_startup_requested.emit()
 	elif _match.state == TournamentMatch.State.RUNNING:
 		if GuiLayoutProfileScript.is_phone(get_layout_profile()):
+			_switch_phone_modal()
 			_phone_quit_confirmation.show()
+			_modal_guard.begin(
+				_phone_quit_confirmation,
+				_close_phone_quit_confirmation,
+				_phone_quit_continue_button,
+				_phone_more_button
+			)
 			_layout_phone_quit_confirmation()
 		else:
+			_switch_phone_modal()
 			_quit_confirmation.popup_centered()
+			_modal_guard.begin(
+				_quit_confirmation,
+				_quit_confirmation.hide,
+				_quit_confirmation.get_cancel_button(),
+				_quit_button
+			)
 
 
 func _on_quit_confirmed() -> void:
 	if _match == null:
 		return
 	_action_pacer.cancel()
+	_modal_guard.cancel_advance()
 	var result: StepResult = _match.request_quit()
 	refresh_from_match()
 	if result.status == StepResult.Status.ERROR:
@@ -1643,6 +1928,8 @@ func _on_quit_confirmed() -> void:
 
 
 func _submit_action(action: PlayerAction) -> void:
+	if _modal_guard.is_active():
+		return
 	if _match == null:
 		push_error("PokerTableController cannot submit without a TournamentMatch.")
 		return
@@ -1684,6 +1971,8 @@ func _schedule_next_action(actor_seat: int) -> void:
 
 
 func _advance_after_action_pause() -> void:
+	if _modal_guard.hold_advance(_advance_after_action_pause):
+		return
 	if _match == null:
 		return
 	var latest_action_seat: int = GuiMatchProgressInspectorScript.latest_action_seat(
@@ -1705,6 +1994,8 @@ func _advance_after_action_pause() -> void:
 
 
 func _advance_after_hand_boundary() -> void:
+	if _modal_guard.hold_advance(_advance_after_hand_boundary):
+		return
 	if _match == null or _match.state != TournamentMatch.State.RUNNING:
 		return
 	var result: StepResult = _match.advance_one_action()
@@ -1803,6 +2094,8 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	var profile_changed: bool = layout_profile != _applied_layout_profile
 	var had_applied_profile: bool = _applied_layout_profile != GuiLayoutProfileScript.AUTOMATIC
 	_applied_layout_profile = layout_profile
+	if profile_changed:
+		_refresh_action_controls()
 	_configure_center_copy(phone_layout)
 	if phone_layout != _phone_seat_widgets and _bound_view != null:
 		if not phone_layout:
@@ -1975,6 +2268,39 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	if compact_tablet_layout or short_desktop_center_layout:
 		_pot_zone.custom_minimum_size.y = 42.0
 		_wager_zone.custom_minimum_size.y = 42.0
+	if _uses_large_chip_values():
+		_pot_zone.custom_minimum_size.y = maxf(
+			_pot_zone.custom_minimum_size.y,
+			(
+				(
+					ceilf(
+						_pot_label.get_theme_font("font").get_height(
+							_pot_label.get_theme_font_size("font_size")
+						)
+					)
+					* 2.0
+				)
+				+ 8.0
+			)
+		)
+		if _uses_numeric_keypad():
+			_configure_numeric_action_rows()
+		else:
+			for control: Control in [
+				_fold_button,
+				_check_call_button,
+				_min_wager_button,
+				_pot_raise_button,
+				_all_in_button,
+				_wager_button,
+				_wager_input
+			]:
+				control.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+				control.custom_minimum_size = Vector2(
+					maxf(control.custom_minimum_size.x, 48.0), 48.0
+				)
+		if small_desktop_layout:
+			_wager_zone.custom_minimum_size.y = 30.0
 	var center_width: float = clampf(
 		surface_size.x * (0.56 if mobile_portrait_layout else 0.48),
 		230.0,
@@ -2019,6 +2345,19 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		),
 	)
 	var center_position: Vector2 = (surface_size - center_size) * 0.5
+	if portrait_tablet_layout and _uses_large_chip_values():
+		var lower_height: float = maxf(125.0, _action_panel.get_combined_minimum_size().y)
+		var status_height: float = (
+			(
+				GuiMobileTableLayoutScript.COMPACT_STATUS_BAND_HEIGHT
+				+ GuiMobileTableLayoutScript.STATUS_BAND_GAP
+			)
+			* _tablet_status_scale()
+		)
+		center_position.y = minf(
+			center_position.y,
+			maxf(0.0, surface_size.y - lower_height * 2.0 - status_height - 12.0 - center_size.y)
+		)
 	if small_desktop_layout:
 		# Use the top safety edge so the compact side panels can begin directly
 		# after the central stack without entering its bounds.
@@ -2075,7 +2414,9 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		compact_tablet_seat_width = minf(compact_tablet_seat_width, (surface_size.x - 24.0) * 0.25)
 		seat_width = compact_tablet_seat_width
 	var full_ring_desktop_layout: bool = (
-		seat_count == 9 and not compact_layout and not landscape_tablet_layout
+		(seat_count == 9 or (seat_count == 7 and surface_size.y < 1200.0))
+		and not compact_layout
+		and not landscape_tablet_layout
 	)
 	var full_ring_opponent_height: float = 198.0 * seat_visual_scale
 	var full_ring_footprint_height: float = (
@@ -2222,7 +2563,13 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 				7: Vector2(outer_left_x, 0.0),
 				8: Vector2(inner_left_x, 0.0),
 			}
-			panel.position = full_ring_positions[visual_slot]
+			# Seven seats use the same non-overlapping side-column footprints,
+			# omitting the two outer top seats while retaining clockwise order.
+			var footprint_slot: int = visual_slot
+			if seat_count == 7:
+				var seven_seat_slots: Dictionary[int, int] = {0: 0, 1: 2, 2: 3, 4: 5, 5: 6, 6: 8}
+				footprint_slot = seven_seat_slots[visual_slot]
+			panel.position = full_ring_positions[footprint_slot]
 		if small_desktop_layout:
 			if is_hero:
 				panel.position = Vector2(
@@ -2386,14 +2733,15 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 	_phone_hero_summary.add_theme_constant_override("separation", 4)
 	_phone_hero_cards.add_theme_constant_override("separation", 2)
 	_configure_phone_action_rows(landscape)
-	_layout_phone_opponent_action_badges(landscape)
+	var numeric_rows: bool = _phone_numeric_rows_needed(surface_size)
+	_layout_phone_opponent_action_badges(landscape, numeric_rows)
 	if _phone_more_button.get_parent() != _surface:
 		_phone_more_button.reparent(_surface)
 	_phone_more_button.show()
 	_phone_hero_stack.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	_phone_hero_stack.clip_text = true
 	_phone_hero_stack.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_phone_hero_stack.custom_minimum_size.x = 0.0
+	_phone_hero_stack.custom_minimum_size.x = _phone_action_badge_width(_phone_hero_stack, 0.0, 0.0)
 	_phone_hero_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_phone_hero_action_badge.clip_text = false
 	_phone_hero_action_badge.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
@@ -2401,11 +2749,85 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 		_phone_hero_action_badge, 0.0, PHONE_HERO_ACTION_HORIZONTAL_PADDING
 	)
 	_phone_hero_action_badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# Preserve exact stack and action text when a large wager exceeds the shared row.
+	var summary_width: float = surface_size.x - 106.0
+	var hero_required_width: float = (
+		_phone_hero_cards.get_combined_minimum_size().x
+		+ _phone_action_badge_width(_phone_hero_stack, 0.0, 0.0)
+		+ (
+			_phone_hero_action_badge.custom_minimum_size.x
+			if _phone_hero_action_badge.visible
+			else 0.0
+		)
+		+ 8.0
+	)
+	if not landscape and _phone_hero_action_badge.visible and hero_required_width > summary_width:
+		if not is_instance_valid(_phone_numeric_feedback):
+			_phone_numeric_feedback = HBoxContainer.new()
+			_phone_numeric_feedback.name = "PhoneNumericFeedback"
+			_phone_numeric_feedback.add_theme_constant_override("separation", 4)
+			action_content.add_child(_phone_numeric_feedback)
+		_phone_numeric_feedback.show()
+		_action_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		action_content.move_child(_phone_numeric_feedback, 1)
+		_action_status.reparent(_phone_numeric_feedback)
+		_phone_hero_action_badge.reparent(_phone_numeric_feedback)
+		if not _bound_view.hand_complete:
+			_action_status.text = (
+				"Your turn" if _bound_view.acting_seat == _bound_view.hero_seat else "Waiting"
+			)
+
+	if (
+		numeric_rows
+		or (
+			_phone_hero_action_badge.visible
+			and hero_required_width > summary_width
+			and not landscape
+		)
+	):
+		action_margin.add_theme_constant_override("margin_right", 2)
+		if not is_instance_valid(_phone_more_spacer):
+			_phone_more_spacer = Control.new()
+			_phone_more_spacer.name = "PhoneMoreSpacer"
+			_phone_more_spacer.custom_minimum_size.x = 64.0
+			_phone_hero_summary.add_child(_phone_more_spacer)
+		_phone_more_spacer.show()
 	_action_status.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	_action_status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_action_status.clip_text = true
 	_action_status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_action_status.max_lines_visible = 1
+	if _bound_view.hand_complete and not landscape and _has_phone_hand_summary():
+		# Completed rounds use the full status width for all named recipients.
+		# Existing card/seat geometry and the More/Pots touch target stay owned
+		# by the same phone plan; no overlay obscures the revealed cards.
+		action_margin.add_theme_constant_override("margin_right", 2)
+		if not is_instance_valid(_phone_more_spacer):
+			_phone_more_spacer = Control.new()
+			_phone_more_spacer.name = "PhoneMoreSpacer"
+			_phone_more_spacer.custom_minimum_size.x = 64.0
+			_phone_hero_summary.add_child(_phone_more_spacer)
+		_phone_more_spacer.show()
+		var panel_style: StyleBox = _action_panel.get_theme_stylebox("panel")
+		var result_width: float = (
+			surface_size.x
+			- panel_style.get_minimum_size().x
+			- action_margin.get_theme_constant("margin_left")
+			- action_margin.get_theme_constant("margin_right")
+			- 4.0
+		)
+		if _bound_view.tournament_status != &"finished":
+			_action_status.text = _phone_hand_result_text(result_width)
+		_action_status.max_lines_visible = -1
+		_action_status.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		var line_count: int = _action_status.text.count("\n") + 1
+		_action_status.custom_minimum_size.y = (
+			(
+				ceilf(_action_status.get_theme_font("font").get_height(GUI_MINIMUM_FONT_SIZE))
+				* line_count
+			)
+			+ _action_status.get_theme_constant("line_spacing") * maxi(0, line_count - 1)
+		)
 	for button: Button in [_fold_button, _check_call_button, _wager_button, _all_in_button]:
 		button.custom_minimum_size = Vector2(48.0, 48.0)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -2422,6 +2844,7 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 			_action_panel.get_combined_minimum_size(),
 			_phone_overflow_menu.get_combined_minimum_size(),
 			detail_minimum_size,
+			86.0 if numeric_rows else GuiPhoneSeatLayoutScript.PORTRAIT_TOKEN_HEIGHT,
 		)
 	):
 		return
@@ -2444,6 +2867,7 @@ func _layout_phone_table(surface_size: Vector2, generation: int) -> void:
 
 
 func _configure_phone_action_rows(single_row: bool) -> void:
+	_restore_phone_action_rows()
 	var action_content := _action_panel.get_node("Margin/Content") as VBoxContainer
 	var hero_summary := action_content.get_node("PhoneHeroSummary") as HBoxContainer
 	var action_rows := _action_panel.get_node("Margin/Content/ActionRows") as VBoxContainer
@@ -2460,17 +2884,27 @@ func _configure_phone_action_rows(single_row: bool) -> void:
 		if _all_in_button.get_parent() != primary_buttons:
 			_all_in_button.reparent(primary_buttons)
 		wager_controls.hide()
-	else:
-		_restore_phone_action_rows()
 
 
 func _restore_phone_action_rows() -> void:
 	if not is_instance_valid(_action_panel):
 		return
 	_action_status.show()
+	_action_status.custom_minimum_size.y = 0.0
+	_action_status.max_lines_visible = 1
+	if is_instance_valid(_phone_numeric_feedback):
+		_phone_numeric_feedback.hide()
+	if is_instance_valid(_phone_more_spacer):
+		_phone_more_spacer.hide()
 	var action_content := _action_panel.get_node("Margin/Content") as VBoxContainer
+	if _phone_hero_action_badge.get_parent() != _phone_hero_summary:
+		_phone_hero_action_badge.reparent(_phone_hero_summary)
 	var action_rows := action_content.get_node("ActionRows") as VBoxContainer
 	var wager_controls := action_rows.get_node("WagerControls") as HBoxContainer
+	var primary_buttons := action_rows.get_node("PrimaryButtons") as HBoxContainer
+	for button: Button in [_min_wager_button, _pot_raise_button]:
+		if button.get_parent() != primary_buttons:
+			button.reparent(primary_buttons)
 	if _action_status.get_parent() != action_content:
 		_action_status.reparent(action_content)
 		action_content.move_child(_action_status, 1)
@@ -2484,6 +2918,17 @@ func _restore_phone_action_rows() -> void:
 
 func _apply_phone_layout_plan(plan: RefCounted) -> void:
 	_apply_center_zone_bounds(plan.center_rect.size, plan.center_rect.position)
+	if plan.compact_numeric_center:
+		_pot_label.text = "Pot %d" % displayed_pot_amount
+		_wager_label.text = "Bet %d" % _current_wager_total()
+		_board_zone.size.y = 58.0
+		_pot_zone.position = Vector2(0.0, 62.0)
+		_pot_zone.custom_minimum_size.y = 34.0
+		_pot_zone.size = Vector2(plan.center_rect.size.x * 0.5, 34.0)
+		_wager_zone.position = Vector2(plan.center_rect.size.x * 0.5, 62.0)
+		_wager_zone.custom_minimum_size.y = 34.0
+		_wager_zone.size = _pot_zone.size
+
 	var player_count: int = _seat_widgets.size()
 	for seat: int in _seat_widgets:
 		var panel: PanelContainer = _seat_widgets[seat]

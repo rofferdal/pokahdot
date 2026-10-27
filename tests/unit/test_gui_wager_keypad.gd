@@ -80,3 +80,35 @@ func test_keypad_uses_opaque_grouping_and_high_contrast_key_boundaries() -> void
 	assert_gt(panel_style.bg_color.a, 0.9)
 	assert_gte(key_style.border_width_left, 2)
 	assert_ne(key_style.bg_color, done_style.bg_color)
+
+
+func test_cancel_preserves_exact_original_text_for_every_entry_mode() -> void:
+	var input := LineEdit.new()
+	add_child_autofree(input)
+	var keypad = WagerKeypadScript.new()
+	add_child_autofree(keypad)
+	for mode: int in range(3):
+		for original: String in ["25", "-3", "invalid", "", "   ", " 25 "]:
+			input.text = original
+			if mode == 0:
+				keypad.open_number(input)
+			else:
+				keypad.open(input, 20, 100, 1.0, mode == 2)
+			assert_eq(input.text, original, "Opening must leave committed text unchanged")
+			keypad.get_node("Content/Keys/KeyClear").emit_signal("pressed")
+			keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+			keypad.get_node("Content/Keys/Key5").emit_signal("pressed")
+			assert_eq(input.text, original, "Draft edits must not commit")
+			keypad.get_node("Content/Cancel").emit_signal("pressed")
+			assert_eq(input.text, original, "Cancel must preserve original bytes")
+			assert_false(keypad.visible)
+			if mode == 0:
+				keypad.open_number(input)
+			else:
+				keypad.open(input, 20, 100, 1.0, mode == 2)
+			keypad.get_node("Content/Keys/KeyClear").emit_signal("pressed")
+			keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+			keypad.get_node("Content/Keys/Key5").emit_signal("pressed")
+			assert_eq(input.text, original, "Only Done may commit")
+			keypad.get_node("Content/Done").emit_signal("pressed")
+			assert_eq(input.text, "25")

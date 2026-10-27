@@ -33,8 +33,8 @@ Do not add a competing container or controller for those rectangles.
 All player-facing text has a 20 px minimum and touch targets a 48 × 48 logical
 pixel minimum. Reflow when space is tight. Required content must pass text-fit
 checks, including ellipsis and overlay text. Passing a matrix is evidence for
-its fixtures, not proof that every supported numeric value or device is clear;
-GUI-02 owns the remaining large-value readability work.
+its fixtures, not proof that every device is clear. The ordinary numeric-bound
+regressions supplement canonical layout coverage.
 
 The theme is `resources/gui_theme.tres`. Keep the plain non-serif face across
 startup, table, keypad, and overlays. Avoid post-render scaling of desktop
@@ -48,8 +48,9 @@ depends on DPR; source dimensions are not a browser display measurement.
 
 Input follows event modality. Touch opens the in-canvas keypad; mouse/pointer
 focus retains physical-keyboard editing even in a phone-sized desktop window.
-Cancel is intended to preserve the exact committed value; GUI-03 owns the
-known invalid-text cancellation defect. Do not claim that edge case is fixed.
+Opening and draft edits preserve the original field text, including invalid,
+blank and whitespace input. Cancel/dismissal keeps it unchanged; only Done
+commits. Startup and wager entry share this transaction behavior.
 
 ## Phone composition and acceptance
 
@@ -58,11 +59,24 @@ Tablet, small-desktop, desktop, CLI, and core retain 2–9 support. Never clamp
 an active tournament when its viewport changes. Phone densities are standard
 for 2–4, compact for 5–6, and minimal for 7 players.
 
+Keep supported chip totals exact, including accumulated stacks up to seven
+million on phones. Numeric overflow reflows portrait tokens and the center
+rather than shrinking text below 20 px; ordinary values restore compact rows.
+Compact larger layouts keep Min/Pot presets visible and open free wager entry
+through the keypad when large values need the action space. See the
+[implemented numeric layout contract](ARCHITECTURE.md).
+
 Retain each seat's assigned name, numeric stack, role/state, two card fields,
 and latest public action within the owned token regions. More/detail and
-summary overlays expose recipient-safe details. Phone layouts have no event
-history surface; non-phone layouts retain the event log. GUI-01 and GUI-04
-own remaining winner clarity and modal/pacing work.
+summary overlays expose recipient-safe details. Completed phone hands name all
+pot winners in the existing status region; Pots opens exact award details
+without navigating More. Keep the revealed cards visible and return the button
+to More on the next hand. Phone layouts have no event
+history surface; non-phone layouts retain the event log. One table overlay is
+active at a time. Modal input blocks underlying actions, focus stays inside,
+and advancement waits until the overlay closes. Close/Cancel and Quit remain
+reachable; see the [modal contract](ARCHITECTURE.md#gui-adapter) for focus,
+Escape, engine-back and browser-history distinctions.
 
 Run `make check gui-current-invariant-gate` after layout changes and review
 rendered captures under the visual testing contract. Keep physical acceptance

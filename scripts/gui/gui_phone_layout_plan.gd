@@ -13,6 +13,7 @@ const MORE_BUTTON_SIZE := Vector2(72.0, 48.0)
 const SEAT_DETAIL_SIZE := Vector2(280.0, 188.0)
 const PHONE_QUIT_SIZE := Vector2(320.0, 180.0)
 
+var compact_numeric_center: bool = false
 var usable_rect: Rect2
 var seat_rects: Dictionary[int, Rect2]
 var center_rect: Rect2
@@ -30,16 +31,19 @@ func configure(
 	action_minimum_size: Vector2,
 	menu_minimum_size: Vector2 = Vector2.ZERO,
 	seat_detail_minimum_size: Vector2 = Vector2.ZERO,
+	portrait_token_height: float = GuiPhoneSeatLayoutScript.PORTRAIT_TOKEN_HEIGHT,
 ) -> bool:
 	var resolved_seats: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(
-		usable_size, player_count
+		usable_size, player_count, portrait_token_height
 	)
 	if resolved_seats.is_empty():
 		return false
 
 	usable_rect = Rect2(Vector2.ZERO, usable_size)
 	seat_rects = resolved_seats
-	center_rect = GuiPhoneSeatLayoutScript.center_rect(usable_size, player_count)
+	center_rect = GuiPhoneSeatLayoutScript.center_rect(
+		usable_size, player_count, portrait_token_height
+	)
 	var landscape: bool = usable_size.x > usable_size.y
 	var rendered_center_width: float = minf(usable_size.x, maxf(center_rect.size.x, 280.0))
 	if landscape:
@@ -68,7 +72,8 @@ func configure(
 		Vector2(action_side_inset, usable_size.y - resolved_action_height),
 		Vector2(usable_size.x - action_side_inset * 2.0, resolved_action_height),
 	)
-	var center_height: float = 108.0 if landscape else 174.0
+	compact_numeric_center = not landscape and portrait_token_height > 60.0
+	var center_height: float = 108.0 if landscape else (96.0 if compact_numeric_center else 174.0)
 	center_rect.size.y = minf(center_height, maxf(0.0, action_rect.position.y - 4.0))
 	center_rect.position.y = minf(
 		maxf(64.0 if landscape else center_rect.position.y, center_rect.position.y),

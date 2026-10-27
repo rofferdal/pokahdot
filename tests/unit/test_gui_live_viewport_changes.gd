@@ -89,7 +89,8 @@ func test_phone_burst_resizes_preserve_safe_open_ui_and_reject_stale_plan() -> v
 	var stale_plan: RefCounted = table._applied_phone_layout_plan
 	var stale_generation: int = table.get_layout_generation()
 
-	table.get_node("%PhoneMoreButton").emit_signal("pressed")
+	# Completed-hand Pots opens results directly; exercise menu geometry explicitly.
+	table._open_phone_overflow_menu()
 	await _burst_phone_resize(harness, table)
 	assert_true((table.get_node("%PhoneOverflowMenu") as Control).visible)
 	_assert_phone_plan_applied(table, 6)

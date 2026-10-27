@@ -711,11 +711,71 @@ not a node reference, so rerenders cannot attach details to the wrong player.
 The phone composition does not instantiate or expose event history; the
 underlying recipient-safe history remains unchanged for core state and larger
 profiles. Numeric entry is selected from the actual input event: touch opens
-the transactional in-canvas keypad on every profile, while pointer focus and
+the transactional in-canvas keypad on every profile. Opening and draft edits
+leave the original field text untouched, including invalid and whitespace-only
+text; Cancel/dismissal preserves it exactly and only Done commits the draft.
+Pointer focus and
 physical-keyboard editing remain native even in a phone-sized window. Godot's
 project-level mouse-to-touch emulation is disabled because browsers already
 report the real pointer modality; genuine touchscreen events still follow the
 touch path.
+Supported chip values retain their complete integer spelling. A phone table can
+accumulate up to 7,000,000 chips (9,000,000 on larger layouts), although startup
+stacks and blinds are capped at 1,000,000. When an opponent's measured stack,
+action and card fields cannot share the compact row, portrait tokens expand
+from 60 to 86 logical pixels: current actions use a third row, replaced by
+legitimately revealed cards at showdown. The same immutable phone plan reserves
+a 96 px center with side-by-side exact Pot/Bet totals. Large hero actions share
+a feedback row with concise turn state; More retains its own reserved width.
+Ordinary values restore the compact composition without mutating the view.
+
+Larger layouts omit the redundant `chips` suffix from large stacks and split
+long pot/blind information across two lines. Compact tablet and small-desktop
+large-value action rails keep two rows: Fold/Call/All-in and Min/Pot/Bet or
+Raise. The wager button opens the existing keypad for free entry; both the
+inline and keypad presets retain their exact core-validated targets. Full
+desktop numeric controls retain inline input and use at least 20 px type.
+Seven-seat full desktops with usable height below 1200 px reuse the nine-slot
+ring footprint with two empty slots so required below-seat status bands remain
+clear; taller canvases retain the ordinary ring.
+
+At phone hand completion, the existing action-status region names every unique
+pot winner in the default table presentation. Measured line breaks retain the
+20 px floor and all recipient names within the full-width completed-hand
+footer; the obsolete hero action badge yields to this result. Cards stay
+visible and the ordinary completed-hand pause remains unchanged. The existing
+72 × 48 button reads `Pots` and opens Hand summary directly for exact awards;
+normal play restores `More` and its menu. Tournament-winner copy is retained.
+Larger profiles restore their existing status presentation on profile changes.
+
+The phone Hand summary is available directly from Pots after fold wins and
+showdowns. It lists each main/side pot's total and named recipients with their
+exact awarded shares (including odd chips), followed by recipient-safe hand
+descriptions. It reads only `GameView` settlement records and revealed results;
+fold wins never reveal private cards. Compact final-winner copy uses the same
+GUI-assigned name as the seat.
+
+`GuiModalGuard` owns table-modal input and reading pauses. Phone menu, hand
+summary, seat detail, wager keypad, and quit confirmation are exclusive: opening
+one replaces the previous surface without resuming play between them. A full
+usable-table backdrop intercepts underlying pointer/touch input, keyboard focus
+cycles within the active surface, and stray underlying action submissions are
+rejected by the adapter. Closing restores the previous live focus target, with
+More or the visible wager button as a fallback after a seat rebuild/profile
+change. Every surface provides Close/Cancel and a visible Quit route.
+
+Presentation timers may expire while a modal is open, but their next core
+advancement callback is retained until the last modal closes. It resumes once,
+after the closing input event; switching surfaces never advances the hand.
+Thus a completed-hand summary remains readable indefinitely. Confirmed quit
+cancels held advancement. The same guard keeps table keypads and native quit
+confirmation exclusive on larger profiles without adding pause state to core.
+Escape dismisses the active surface without committing a keypad draft. The
+engine's go-back notification follows the same dismissal path; automatic
+`SceneTree.quit_on_go_back` is temporarily disabled and restored afterward.
+Browser-history Back and physical-device navigation require device evidence;
+they are not certified by synthetic engine-notification tests.
+
 The phone More control occupies reserved space in the bottom action region,
 never a perimeter seat slot. Phone quit confirmation uses a bounded in-canvas
 panel with two explicit 48 px actions; desktop retains the native confirmation

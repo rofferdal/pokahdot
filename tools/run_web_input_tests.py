@@ -95,7 +95,23 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
     try:
         page.goto(base_url + "/index.html?" + fixture)
         wait("window.pokahdotInput.frame > 10")
-        if not mobile:
+        if fixture == "table-showdown":
+            state = wait("window.pokahdotInput.hand_complete && window.pokahdotInput.result_visible")
+            assert state["winner_names"], "Real settlement must identify at least one winner"
+            for winner_name in state["winner_names"]:
+                assert winner_name in state["result_text"], state["result_text"]
+            assert state["result_button"] == "Pots"
+            assert not state["summary_open"], "Result must be visible with the cards"
+            hand_number = state["hand_number"]
+            click("PhoneMoreButton")
+            state = wait("window.pokahdotInput.summary_open")
+            for winner_name in state["winner_names"]:
+                assert winner_name in state["summary_text"]
+            click("PhoneShowdownCloseButton")
+            state = wait("!window.pokahdotInput.summary_open && window.pokahdotInput.more_focus")
+            assert state["hand_number"] == hand_number
+            assert state["result_visible"]
+        elif not mobile:
             click("input", False)
             wait("window.pokahdotInput.focus")
             page.keyboard.press("ControlOrMeta+A")
@@ -105,6 +121,21 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
                 page.keyboard.press("Enter")
                 wait("window.pokahdotInput.hero_wager === 250")
         else:
+            if fixture == "table":
+                history = page.evaluate("window.pokahdotInput.history_count")
+                click("PhoneMoreButton")
+                wait("window.pokahdotInput.menu && window.pokahdotInput.modal_focus")
+                click("FoldButton")
+                assert page.evaluate("window.pokahdotInput.history_count") == history
+                assert page.evaluate("window.pokahdotInput.menu")
+                for _ in range(6):
+                    page.keyboard.press("Tab")
+                    wait("window.pokahdotInput.modal_focus")
+                click("PhoneMenuQuitButton")
+                wait("window.pokahdotInput.quit_confirmation && !window.pokahdotInput.menu")
+                page.keyboard.press("Escape")
+                wait("!window.pokahdotInput.quit_confirmation && window.pokahdotInput.more_focus")
+                assert page.evaluate("window.pokahdotInput.history_count") == history
             original = page.evaluate("window.pokahdotInput.input")
             click("open")
             wait("window.pokahdotInput.popup")
@@ -112,9 +143,44 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
             click("Key2")
             wait("window.pokahdotInput.draft === '2'")
             assert page.evaluate("window.pokahdotInput.input") == original
-            click("Cancel")
+            page.keyboard.press("Escape")
             wait("!window.pokahdotInput.popup")
             assert page.evaluate("window.pokahdotInput.input") == original
+            if fixture == "table":
+                page.set_viewport_size({"width": 1280, "height": 720})
+                click("input")
+                wait("window.pokahdotInput.popup")
+                click("KeyClear")
+                click("Key2")
+                history = page.evaluate("window.pokahdotInput.history_count")
+                click("FoldButton")
+                wait("window.pokahdotInput.frame > " + str(page.evaluate("window.pokahdotInput.frame") + 2))
+                assert page.evaluate("window.pokahdotInput.history_count") == history
+                assert page.evaluate("window.pokahdotInput.input") == original
+                if page.evaluate("window.pokahdotInput.popup"):
+                    click("Cancel")
+                wait("!window.pokahdotInput.popup")
+                page.set_viewport_size({"width": 390, "height": 844})
+            for original_text in ("invalid", "", "   "):
+                if fixture == "table":
+                    page.set_viewport_size({"width": 1280, "height": 720})
+                click("input", False)
+                wait("window.pokahdotInput.focus && !window.pokahdotInput.popup")
+                page.keyboard.press("ControlOrMeta+A")
+                page.keyboard.press("Backspace")
+                if original_text:
+                    page.keyboard.type(original_text)
+                wait("window.pokahdotInput.input === " + json.dumps(original_text))
+                if fixture == "table":
+                    page.set_viewport_size({"width": 390, "height": 844})
+                click("open")
+                wait("window.pokahdotInput.popup")
+                assert page.evaluate("window.pokahdotInput.input") == original_text
+                click("KeyClear")
+                click("Key2")
+                click("Cancel")
+                wait("!window.pokahdotInput.popup")
+                assert page.evaluate("window.pokahdotInput.input") == original_text
             if fixture == "table":
                 page.set_viewport_size({"width": 1280, "height": 720})
                 click("input", False)
@@ -171,6 +237,8 @@ def main() -> None:
             results = [exercise(browser, f"http://127.0.0.1:{server.server_port}", args.output,
                                 fixture, mobile)
                        for fixture in ("startup", "table") for mobile in (False, True)]
+            results.append(exercise(browser, f"http://127.0.0.1:{server.server_port}", args.output,
+                                    "table-showdown", True))
             browser.close()
         result_document = {
             "suite": "exported_web_input_v1",

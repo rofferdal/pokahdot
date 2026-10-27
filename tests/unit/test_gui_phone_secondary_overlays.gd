@@ -66,9 +66,9 @@ func test_phone_wager_sheet_cancel_is_inert_and_done_submits() -> void:
 func test_phone_showdown_summary_uses_only_recipient_safe_results() -> void:
 	var descriptor: Dictionary = GuiVisualStateFixturesScript.by_id(&"showdown-long", 6)
 	var table: PokerTableController = await _phone_view_table(descriptor.view)
+	assert_eq((table.get_node("%PhoneMoreButton") as Button).text, "Pots")
 	table.get_node("%PhoneMoreButton").emit_signal("pressed")
-	assert_true((table.get_node("%PhoneMenuShowdownButton") as Control).visible)
-	table.get_node("%PhoneMenuShowdownButton").emit_signal("pressed")
+	assert_false((table.get_node("%PhoneOverflowMenu") as Control).visible)
 	var summary := table.get_node("%PhoneShowdownSummary") as Label
 	assert_true((table.get_node("%PhoneShowdownOverlay") as Control).visible)
 	assert_false(summary.text.is_empty())
@@ -79,6 +79,40 @@ func test_phone_showdown_summary_uses_only_recipient_safe_results() -> void:
 	assert_false("Player 3 —" in summary.text)
 	table.get_node("%PhoneShowdownCloseButton").emit_signal("pressed")
 	assert_false((table.get_node("%PhoneShowdownOverlay") as Control).visible)
+
+
+func test_phone_summary_names_fold_winner_without_revealing_cards() -> void:
+	var view: GameView = GuiVisualStateFixturesScript.by_id(&"showdown-long", 6).view
+	view._showdown_results = {}
+	view._revealed_hole_cards = {}
+	view.hand_winner_seat = 1
+	view._pot_awards = [PotAward.new(0, 101, [1], {1: 101})]
+	var table: PokerTableController = await _phone_view_table(view)
+	table._name_assignments = {1: "Linh"}
+	table._refresh_phone_secondary_controls()
+	table._open_phone_showdown()
+	assert_true(table._phone_showdown_overlay.visible)
+	assert_eq(table._phone_showdown_summary.text, "Main pot (101): Linh +101")
+	assert_true(table.displayed_hero_cards.size() <= 2)
+	assert_true(view.revealed_hole_cards.is_empty())
+
+
+func test_phone_summary_reports_each_split_and_side_pot_share_and_assigned_winner() -> void:
+	var view: GameView = GuiVisualStateFixturesScript.by_id(&"showdown-long", 6).view
+	view._pot_awards = [
+		PotAward.new(0, 101, [4, 5], {4: 51, 5: 50}),
+		PotAward.new(1, 40, [5], {5: 40}),
+	]
+	view.tournament_status = &"finished"
+	view.end_reason = &"winner"
+	view.tournament_winner_seat = 5
+	var table: PokerTableController = await _phone_view_table(view)
+	table._name_assignments = {4: "Bao", 5: "Linh"}
+	table._refresh_action_controls()
+	var summary: String = table._phone_showdown_summary_text()
+	assert_string_contains(summary, "Main pot (101): Bao +51, Linh +50")
+	assert_string_contains(summary, "Side pot 1 (40): Linh +40")
+	assert_eq(table._action_status.text, "Linh wins")
 
 
 func test_phone_overflow_quit_waits_for_confirmation_and_profile_exit_restores_desktop() -> void:

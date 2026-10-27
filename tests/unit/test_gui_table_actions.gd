@@ -514,7 +514,7 @@ func test_tournament_winner_and_eliminated_seat_are_rendered_from_the_match_view
 	table.bind_view(view, _empty_assignments(), visual_names)
 
 	assert_true(
-		table.get_node("%ActionStatus").text in ["Player 1 wins the tournament!", "Player 1 wins"]
+		table.get_node("%ActionStatus").text in ["Human wins the tournament!", "Human wins"]
 	)
 	assert_eq(
 		(

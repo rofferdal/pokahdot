@@ -70,8 +70,8 @@ func test_turn_capture_keeps_complete_center_and_seat_action_amounts() -> void:
 	var pot_label := table.get_node("%PotLabel") as Label
 	var wager_label := table.get_node("%WagerLabel") as Label
 	var seat_name := _seat(table, 1).find_child("Name", true, false) as Label
-	assert_eq(pot_label.text, "Pot: 360")
-	assert_eq(wager_label.text, "Current wager: 240")
+	assert_eq(pot_label.text, "Pot 360")
+	assert_eq(wager_label.text, "Bet 240")
 	assert_eq(
 		pot_label.get_theme_font_size("font_size"), seat_name.get_theme_font_size("font_size")
 	)

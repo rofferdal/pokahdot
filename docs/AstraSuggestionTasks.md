@@ -1,6 +1,6 @@
 # Astra Suggested Improvement Tasks
 
-Status: In progress; sections 1–4 are complete.
+Status: In progress; sections 1–4 and GUI-02–04 are complete. GUI-01 implementation is updated; physical phone acceptance remains pending.
 Reviewed: 2026-10-26, baseline `c6166b5`.
 
 Themes and tasks are ordered by importance. **Defect** means an observed code
@@ -249,39 +249,214 @@ checkboxes or treat deferred landscape support as accepted.
 
 ## 5. GUI clarity and interaction
 
-- [ ] **GUI-01 — Show who won on phones. [Defect]**
+- [ ] **GUI-01 — Show who won on phones. [Defect; reopened]**
   [poker_table_controller.gd](../scripts/gui/poker_table_controller.gd) hides
   status bands in phone mode; compact tokens lack a winner state, the summary
   omits pot awards, and final results use `Player N` instead of assigned names.
   Done: named fold/showdown winners and split/side-pot awards are understandable
   on the table or accessible summary, with recipient privacy preserved.
+  Verified 2026-10-26: More → Hand summary reports named fold wins and exact
+  main/split/side-pot shares from recipient-safe settlement records; final
+  winner copy uses GUI-assigned names. Full check passes: 593 GUT tests,
+  95,288 assertions, 89 evolution and 34 LAN tests, documentation, lint and
+  formatting. Focused summary/privacy regressions pass.
+  Reopened 2026-10-27: the user reports that the phone does not show who wins
+  at showdown. The earlier tests verify summary formatting/accessibility, not
+  that the result is obvious during actual play. Source review finds generic
+  `Hand complete` table feedback and no winner state in compact phone badges;
+  named awards are behind More → Hand summary. Whether that summary worked
+  on the reported device has not been established. Record the tested build,
+  browser/device and outcome before claiming a device-specific root cause.
+  Revised completion: named winner(s) must be apparent in the default phone
+  completed-hand presentation, without discovering a hidden menu; main/split/
+  side-pot recipients and amounts remain clear on the table or an obviously
+  presented summary. Add a failing real-flow regression through settlement
+  and the hand pause for 2-, 4-, 6- and 7-player portrait tables, including hero
+  and opponent wins, splits and side pots. Preserve privacy, revealed-card
+  legibility, modal pacing, the working iPad layout and the stop-on-cycle rule.
+  Close only after the physical phone verification below passes.
+  Implementation updated 2026-10-27: the default phone footer now names every
+  awarded recipient, retains the revealed cards and the normal hand pause,
+  and offers Pots for direct access to exact awards. More returns on the next
+  hand. Seven new regressions cover real settlement and the seven-recipient
+  boundary at 360 × 640. Full check: 616 GUT tests, 98,158 assertions, 89
+  evolution and 34 LAN tests; all four layout gates and five exported Chromium
+  cases pass. Single-winner Web and seven-winner native captures were reviewed.
+  Real-flow coverage preserves only byte-identical preexisting board-rank
+  clipping measured before settlement; it does not certify those old glyph
+  gaps fixed. New/changed failures and winner-text clipping always fail.
+  See GUI-05-D for the separately recorded rank/name defects. No fix cycle was
+  observed; existing clear layouts remain regression controls.
+  - [x] Implement and automatically verify default visible phone winner feedback.
+  Physical acceptance is still owned by the unchecked named-winner task in
+  [OptimizingPhoneGuiTasks.md](OptimizingPhoneGuiTasks.md); the parent GUI-01
+  checkbox remains open. Continue to GUI-05-A after that verification.
 
-- [ ] **GUI-02 — Keep supported numeric values readable. [Defect]**
+- [x] **GUI-02 — Keep supported numeric values readable. [Defect]**
   Phone action-width allocation in the same controller leaves a million-chip
   stack just 1 px beside `R999999` at 360×640. Done: align with RULE-02 bounds
   and reflow supported values; test maximum stacks, pots, blinds and wagers
   across supported counts, without truncation or sub-20-px text.
+  Verified 2026-10-26: exact values through 7,000,000 on phones and 9,000,000
+  on larger layouts reflow without lowering the 20 px floor. Nine numeric
+  regressions cover all phone counts, larger-layout counts, isolated triggers,
+  fallback fonts/DPR, resize restoration and real Min/Pot/free wagers.
+  Full check passes: 602 GUT tests, 96,906 assertions, 89 evolution and 34 LAN
+  tests; all four layout gates pass. Four native numeric captures were reviewed.
+  Physical acceptance remains separate.
 
-- [ ] **GUI-03 — Make keypad Cancel truly transactional. [Defect]**
+- [x] **GUI-03 — Make keypad Cancel truly transactional. [Defect]**
   [wager_keypad.gd](../scripts/gui/wager_keypad.gd) clears invalid existing text
   before creating its draft; opening and cancelling changes `invalid` to empty.
   Done: Cancel restores exact valid, invalid, blank and whitespace input;
   only Done commits, for both startup fields and wagers.
+  Verified 2026-10-26: opening sanitizes only the draft; original field text
+  remains unchanged through edits and Cancel. Regression first failed and now
+  passes across startup, desktop wager and phone wager modes, including padded
+  and whitespace-only text. Full check passes: 603 GUT tests, 97,014 assertions,
+  89 evolution and 34 LAN tests. Four isolated exported Chromium input cases
+  pass, including actual keyboard entry and touch Cancel for invalid/blank/
+  whitespace fields on startup and the table.
 
-- [ ] **GUI-04 — Define modal focus and hand-pacing behavior. [Decision]**
+- [x] **GUI-04 — Define modal focus and hand-pacing behavior. [Decision]**
   Phone overlays are ordinary panels and do not suspend advancement; summaries
   can disappear when the next hand starts. Done: decide reading/pause policy,
   enforce one active overlay and appropriate input blocking, restore focus,
   and test Escape/back plus actual touch events against underlying actions.
   Keep quit reachable.
+  Verified 2026-10-26: exclusive table overlays hold advancement until closed,
+  block underlying input, contain/restore focus and expose Quit. Escape and
+  synthetic engine-back dismissal preserve keypad drafts; actual browser/device
+  Back remains part of GUI-05. Reopening a keypad preserves its popup lifecycle
+  across resize. Full check passes: 609 GUT tests, 97,066 assertions, 89 evolution
+  and 34 LAN tests; all four layout gates pass. Exported Chromium passes all
+  four cases with both working modal touches and blocked underlying touches.
+  Native summary/short-keypad captures were reviewed; no input/layout cycle
+  remains in these verified cases.
 
 - [ ] **GUI-05 — Resolve usable-area and device support with evidence. [Decision]**
   [Web geometry](../scripts/gui/gui_web_viewport_geometry.gd) divides backing
   dimensions by scale; safe-area, browser chrome and keyboard behavior need
   exported-device evidence. Done: complete the existing phone acceptance tasks
-  at one identified deployed SHA; measure CSS size/DPR/insets and a second
+  against one identified exported build; measure CSS size/DPR/insets and a second
   browser/device, then fix demonstrated gaps. Keep landscape deferred until
   its support contract is decided.
+  Testing plan confirmed by the user, 2026-10-26: use the local Wi-Fi Web
+  workflow on desktop browsers at multiple screen sizes, iPad, and phone.
+  Record the same pinned LAN build ID, source SHA and dirty-source fingerprint
+  on every device. This replaces the hosted-deployment requirement for this
+  review; physical results and acceptance remain pending.
+
+
+### GUI-05 browser capture review
+
+Reviewed 2026-10-27 (Europe/Oslo). Evidence is the four user attachments in
+submission order, showing the same six-player preflop human turn: pot 65,
+blinds 5/10, Human 1000 with 4-spades/8-diamonds, Wei raised to 20,
+Youssef raised to 30, and Haruto folded. Attachment pixels are screenshot
+rasters, not measured CSS viewports. Original rasters for captures 1–3 were
+2738 × 1448, 2754 × 1554 and 2494 × 1272; the chat display resized these.
+No local attachment copies or checksums have been established. Build identity,
+browser/device versions, zoom, CSS/canvas geometry, DPR and insets were not
+supplied with these captures. Do not assume the previously prepared LAN build
+`17924d63` was used without confirmation.
+
+| Evidence | Observed result | Assessment |
+| --- | --- | --- |
+| Capture 1 | Wei's seat overlaps the community-card region; its `Raise to 20` occupies the board area. Chidi's `Big blind 10` crosses Yael's seat. Human/Youssef names and several stack-label suffixes are clipped. | Fail: obstructive overlap and unreadable required identity text. |
+| Capture 2 | Yael's `Small blind 5` crosses Chidi's name/seat; Youssef's `Raise to 30` crosses Haruto's seat. Human and chip-label text are clipped. The left/right pairs reverse their visible clockwise order relative to captures 1, 3 and 4. | Fail: status/seat overlap, text clipping and inconsistent visual position mapping. |
+| Capture 3 | Names, complete stack labels, private hero cards, hidden opponent cards, center fields and action controls appear separated and readable. | Provisional visual pass for this captured state only. |
+| Capture 4 | Required information appears readable and regions are separated at the shown state. | Provisional visual pass for this captured state only. |
+| User's iPad review | User reports that the iPad screen looks OK; association with a numbered attachment was not specified. | Positive user visual evidence for the reviewed screen; preserve it. Other phases/input paths and exact environment remain unverified. |
+
+The differing visual clockwise order in capture 2 is an observed presentation
+problem, not evidence that core seat IDs or poker state changed. Captures 1,
+3 and 4 place Yael below Chidi on the left and Youssef below Haruto on the
+right; capture 2 reverses both pairs. All four show complete numeric stack
+amounts at ordinary values; the observed stack-text clipping is in the label
+suffix, so do not describe these images as proof of missing amount digits.
+
+Additional phone result, 2026-10-27: the user reports that showdown does not
+show who wins. This is a failed winner-clarity check and reopens GUI-01 above;
+it is separate from the four preflop captures. No showdown screenshot, exact
+build/device/browser or test of More → Hand summary was supplied with this
+report. The user's positive iPad screen review remains unchanged. GUI-05-F
+must include the [physical winner check](OptimizingPhoneGuiTasks.md) before
+acceptance; earlier synthetic summary tests do not close this defect.
+
+**GUI-05 remains incomplete.** These captures establish real browser layout
+failures despite earlier automated passes. They do not demonstrate phone
+portrait composition, safe-area/browser-chrome behavior, overlays, touch,
+keyboard/keypad, showdown awards, or tournament completion. Keep GUI-01–04's
+recorded automated evidence scoped to its tested cases; it is not blanket
+browser acceptance. Do not reopen the archived LAN workflow or historical iPad
+acceptance record.
+
+Execute these follow-ups in order. Change only the responsible presentation
+owner and compare the same state on all four surfaces and the working iPad
+after each fix. Apply the stop-on-cycle rule below; do not trade the original
+failure for a regression in a previously clear layout.
+
+- [ ] **GUI-05-A — Bind and reproduce the browser evidence. [Evidence]**
+  Record the pinned LAN build ID, source SHA/fingerprint, device/OS/browser,
+  browser zoom, CSS viewport, canvas CSS/backing sizes, DPR, selected layout
+  profile and usable rectangle for each capture; record insets/browser chrome
+  where relevant. Identify the working iPad environment without assuming which
+  attachment represents it. Retain originals under ignored `localtmp/` with
+  recorded filenames/checksums when available. Done: known values and remaining
+  unknowns are explicit, and an exported same-state reproduction is documented;
+  screenshot raster sizes are never substituted for logical viewport sizes.
+
+- [ ] **GUI-05-B — Add failing browser regressions before changing layout. [QA]**
+  Reproduce the six-player ordinary-value state with the same names, markers,
+  folds and actions. Assert complete seat-plus-status footprints do not cross
+  another seat or the board; required names/stack labels fit; visual clockwise
+  seat order remains consistent through resize/profile transitions. Exercise
+  the actual exported font/layout path and settled resize, retaining captures
+  3/4 and the working iPad as positive controls. Done: the observed defects fail
+  before remediation without weakening existing assertions or inventing missing
+  device measurements; boundary values remain covered too.
+
+- [ ] **GUI-05-C — Remove seat/status/board collisions. [Defect]**
+  Fix the demonstrated collisions in captures 1 and 2 using a single layout
+  owner for each complete seat/status footprint and the center region. Done:
+  `Big blind 10`, `Small blind 5`, `Raise to 20` and `Raise to 30` remain attached
+  to their seats and clear of other seats, community cards and controls across
+  the recorded failing surfaces and intervening resize widths. Preserve the
+  clear layouts and iPad result; verify before adding geometry exceptions.
+
+- [ ] **GUI-05-D — Preserve complete seat identity and stack copy. [Defect]**
+  Fix clipped `Human`, `Youssef` and stack-label text in captures 1/2 at normal
+  970–1000-chip values. Done: names, numeric stacks, chosen chip-label format,
+  position badges and card cells fit without masking one another, ellipsis or
+  sub-20-px text. If the redundant `chips` suffix is omitted, use a consistent,
+  intentional presentation rather than clipped fragments; preserve maximum
+  supported-value regressions and the working iPad layout.
+  Additional preexisting evidence from GUI-01 real-hand fixtures: board rank
+  `10` needs 25 px but receives 24.4 px in the compact community-card face;
+  the exported browser capture also shows only `1`. A valid eight-character
+  test name `Santiago` needs 84 px but receives 78 px beside combined role/
+  all-in state. These failures exist before the winner change. Include them
+  in this task's glyph/cell measurements and failing regressions; do not fix
+  them through repeated viewport-specific offsets or hide them from acceptance.
+
+- [ ] **GUI-05-E — Keep visual clockwise order stable across profiles. [Defect]**
+  Correct the observed pair reversals in capture 2. Done: the same recipient
+  remains at the bottom and opponents retain their clockwise core-seat order
+  across all recorded layouts and resize transitions; Yael/Chidi and
+  Haruto/Youssef do not swap apparent poker position. Verify using stable seat
+  IDs and role markers, without changing the match or assigning new names.
+
+- [ ] **GUI-05-F — Verify corrections and finish the device review. [Acceptance]**
+  Review corrected captures at the identified failing sizes plus the clear
+  sizes/iPad, then run full checks, current layout gates and exported input
+  tests against one identified candidate. Complete the still-open
+  [phone acceptance tasks](OptimizingPhoneGuiTasks.md) for supported portrait
+  counts, showdown cards, overlays and the independent browser/device check;
+  include browser bars, insets, keypad/focus and real device/browser Back.
+  Done: results and remaining limitations are recorded for the same pinned
+  build and the user accepts the reviewed experience. The current iPad report
+  is a pass for its reviewed screen only. Phone landscape remains deferred.
 
 ## 6. Code readability, economy, and runtime cost
 
@@ -359,6 +534,11 @@ checkboxes or treat deferred landscape support as accepted.
   existing explicit review decision.
 
 ## Execution notes
+
+Phone GUI stop rule (user instruction, 2026-10-26): stop the active task if a
+chain of fixes reintroduces substantially the original failure. Do not continue
+cycling between fixes. Leave that task unchecked, record the cycle and preserve
+the last verified behavior before considering a different design.
 
 Fix RULE-01–05 and SIM-01–06 before treating newly generated fitness as reliable
 promotion evidence. Determine which existing evaluations need replacement;

@@ -84,6 +84,11 @@ This is a No Limit convenience preset, not a Pot Limit game mode: the
 conventional Pot Limit post-call raise formula is intentionally not used for
 this product shortcut.
 
+The GUI reflows large chip values while retaining every digit. On compact
+tablet and small-desktop tables with large values, **Bet**/**Raise** opens the
+number pad for free entry; **Min**, **Pot**, and **All-in** remain available on
+the table. Phone layouts also expose wager presets in the number pad.
+
 ### Bot roster selection
 
 Standard GUI and CLI games select strategic `StrategyDecisionModel` profiles
@@ -345,11 +350,27 @@ Reopen the HTTPS root URL from devices on the same Wi-Fi to select the new
 export; starting a second server is unnecessary. Compare the tab's
 `Pokahdot · LAN <build-ID-prefix>` with `make web-lan-status`. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
-Physical-browser verification is tracked in [LanTestTasks.md](docs/arkiv/LanTestTasks.md).
+The completed server workflow is recorded in [LanTestTasks.md](docs/arkiv/LanTestTasks.md).
+Current GUI/device review and demonstrated browser defects are tracked in
+[AstraSuggestionTasks.md](docs/AstraSuggestionTasks.md#gui-05-browser-capture-review)
+and [OptimizingPhoneGuiTasks.md](docs/OptimizingPhoneGuiTasks.md).
 
 ## GUI action pace
 
-The GUI waits two seconds after rendering each player action before advancing to the next automatic action. It uses the same configured pause after each flop, turn, and river reveal, then waits five seconds after any completed hand before starting the next hand. On non-phone layouts, the shared seat-status band displays showdown hands or `Winner` for a fold win. Phone layouts use compact tokens and summaries; winner clarity remains tracked in GUI-01. Edit `resources/gui_action_timing_config.tres` in Godot to change `default_pause_seconds`, add a `pause_seconds_by_seat` entry for an individual bot seat (for example, seat `1`), or change `showdown_pause_seconds`. Set a value to `0.0` for immediate progression during development.
+The GUI waits two seconds after rendering each player action and each flop,
+turn, or river reveal, then five seconds after a completed hand. Opening a
+table overlay holds advancement until it closes, so hand summaries remain
+readable. Non-phone seat-status bands show showdown hands or `Winner` for fold
+wins. On phones, completed-hand feedback names the winners while keeping cards
+visible; **Pots** opens exact main/split/side-pot awards directly. During play,
+the same button remains **More**. Overlays block underlying actions, contain keyboard
+focus, and offer Close/Cancel and Quit. Keypad Cancel preserves the original
+text exactly; only Done commits.
+
+Edit `resources/gui_action_timing_config.tres` in Godot to change
+`default_pause_seconds`, add a `pause_seconds_by_seat` entry for a bot seat
+(for example, seat `1`), or change `showdown_pause_seconds`. Set a value to
+`0.0` for immediate progression during development.
 
 ## Directory structure
 

@@ -1,8 +1,10 @@
 # How-To Guide: Build and Serve the Latest Game over Local Wi-Fi
 
 Use this workflow to test the current working tree on the development Mac,
-an iPad or an Android phone without pushing or merging. Progress and physical
-device evidence are tracked in [`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md).
+an iPad or an Android phone without pushing or merging. The completed server workflow is recorded in
+[`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). Current GUI device
+acceptance belongs to [`OptimizingPhoneGuiTasks.md`](../../docs/OptimizingPhoneGuiTasks.md)
+and section 5 of [`AstraSuggestionTasks.md`](../../docs/AstraSuggestionTasks.md).
 
 Install the [normal development dependencies](../../README.md#development-checks)
 and Godot 4.7.2 with matching Web export templates. The CLI uses Python 3's
@@ -248,6 +250,7 @@ Device model / OS version:
 Browser name / version:
 CA fingerprint / certificate trusted without a browser warning:
 CSS viewport / DPR / orientation / browser chrome:
+Canvas CSS and backing sizes / visual viewport / safe-area inset observations:
 Secure context / console errors:
 Startup / six-player tournament:
 Keypad Cancel / Done / pointer-keyboard focus where available:
@@ -259,6 +262,36 @@ Results / defects / screenshot locations / untested flows:
 Physical-device success is separate from the automated `make web-lan-test`
 regressions and the host's own requests to its Wi-Fi address. This LAN record
 does not certify the rolling Pages build.
+
+## Current GUI-05 device review
+
+Use one pinned LAN build on desktop browsers at multiple sizes, iPad, and
+phone, as selected for the current
+[GUI backlog](../../docs/AstraSuggestionTasks.md#5-gui-clarity-and-interaction).
+Reopen the root URL after rebuilding and compare the build ID on every device.
+Record results in the active
+[phone acceptance record](../../docs/OptimizingPhoneGuiTasks.md), keeping the
+completed server-workflow archive unchanged.
+
+- Record device/OS/browser versions, CSS viewport, DPR and browser-bar state.
+  The `/__lan/` page records its own viewport; it does not measure the game's
+  canvas or Godot usable rectangle. Where browser inspection is available,
+  record the game canvas's CSS bounding rectangle, backing width/height,
+  `visualViewport` dimensions/offsets and computed safe-area insets separately.
+  Mark unavailable measurements pending rather than inferring a device pass.
+- On phones, review 2-, 4-, 6-, and 7-player portrait tables. On larger layouts,
+  include 9 players. Cover human/bot turns, large supported amounts, folds,
+  all-ins, showdown, elimination and a named tournament winner.
+- Open the hand summary and check named main/split/side-pot awards where
+  reached. Open each overlay, wait beyond the usual hand pause, and check its
+  close/cancel path, focus, background-input blocking and Quit access.
+- Check keypad Cancel with valid, invalid, blank and whitespace text; use Done
+  separately to commit. Exercise address bars, keyboard/keypad opening,
+  desktop resize, Escape and device/browser Back; record browser navigation
+  separately from in-game dismissal. Phone landscape remains deferred.
+- Attach screenshots and the pinned build identity to each defect, including
+  the last action and browser state needed to reproduce it. Untested states
+  and a second independent browser/device remain pending until observed.
 
 ## Automated checks and accepted session
 

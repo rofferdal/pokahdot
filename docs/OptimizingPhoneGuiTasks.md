@@ -1,6 +1,6 @@
 # Optimizing the Phone GUI
 
-Status: Active — physical Android review found unreadable opponent showdown cards
+Status: Active — showdown-card acceptance remains open; latest phone review reports missing winner feedback
 Started: 2026-10-25  
 Evidence baseline: `localtmp/from_real_tests/Screenshot_20261025_214505_Chrome.jpg`
 
@@ -279,6 +279,15 @@ complete only when its acceptance evidence has been recorded.
   and folded hands remain private and the board, pot, winner state, names, and
   stacks remain unobstructed. Record the deployed SHA, workflow run, viewport,
   browser state, and screenshots in the evidence log before checking this task.
+- [ ] **Verify named showdown winners on the physical phone.** The user reports
+  that the phone does not show who wins at showdown (2026-10-27); the owning
+  implementation task GUI-01 in [AstraSuggestionTasks.md](AstraSuggestionTasks.md)
+  is reopened. After its fix, test a named hero win, opponent win, split and
+  side-pot awards at supported portrait counts. Acceptance: the completed-hand
+  screen makes winner identity obvious without searching More; exact awards
+  are clear directly or in an obviously presented summary, remain readable
+  during the hand pause, and preserve card privacy/legibility. Record the
+  pinned LAN build/device/browser and results before checking this task.
 - [ ] **Validate phone overlays by touch.** Exercise wager entry, overflow,
   seat detail, showdown summary, and quit confirmation. Each surface must have
   an obvious 48 x 48-or-larger close/cancel path, preserve its transaction
@@ -317,6 +326,60 @@ complete only when its acceptance evidence has been recorded.
   satisfactory.
 
 ## Evidence log
+
+### Current review plan — 2026-10-26
+
+The user selected local Wi-Fi Web testing for Astra GUI-05 on desktop browsers
+at multiple sizes, iPad, and phone. For this review, references below to a clean
+deployed SHA mean one pinned LAN export identified by build ID, source SHA,
+and dirty-source fingerprint from `build-info.json`. A hosted workflow run is
+not required for this review. Use the
+[LAN how-to](../devdocs/how-to/local-wifi-web-testing.md#local-device-evidence-record)
+to record device/browser, CSS viewport, DPR, browser chrome, safe-area/inset
+observations, keypad/focus/overlay behavior, and screenshots against that same
+build. Complete the open physical tasks only after results exist; landscape
+remains deferred. No new physical acceptance is claimed here.
+
+### 2026-10-27 — Visible winner implementation ready for phone verification
+
+The updated candidate names the pot winner(s) in the default phone footer,
+keeps cards visible, and changes More to Pots for direct award details during
+the completed-hand pause. Normal play restores More. The full suite passes
+616 GUT tests and 98,158 assertions; all four layout gates and five exported
+Chromium cases pass. Native real-hand regressions cover wins, splits, side pots,
+folds, privacy and pacing; a seven-recipient boundary fits at 360 × 640.
+Single-winner Web and seven-winner native captures were reviewed. This is
+implementation evidence, not a physical-phone pass: keep the named-winner
+verification and GUI-01 unchecked until the user tests the new candidate.
+Existing board-rank/name clipping is recorded separately under GUI-05-D and
+must not be confused with winner-feedback acceptance or silently hidden.
+
+### 2026-10-27 — Phone showdown winner is not shown
+
+- User report: on the phone, it is not shown who wins at showdown.
+- Result: fail for winner clarity. GUI-01 is reopened and physical winner
+  verification is now an explicit task above. Earlier automated summary tests
+  remain historical evidence for their fixtures, not acceptance of this flow.
+- Source review: the phone table uses generic `Hand complete` feedback and
+  compact tokens lack winner copy; named pot awards are in More → Hand summary.
+  This explains a presentation/discoverability gap but does not establish the
+  reported device's exact execution path or whether its summary was available.
+- Missing evidence: showdown capture, pinned build identity, phone/browser and
+  viewport, winner/award details, and whether the hand summary was tried.
+- The user's positive iPad screen review is unchanged. Apply the stop-on-cycle
+  rule and preserve working layouts when fixing this phone-specific feedback.
+
+### 2026-10-27 — Initial GUI-05 browser review
+
+The user supplied four same-state landscape browser captures. Two show seat,
+status or board overlap and clipped identity text; the other two appear clear
+for that state. The user also reports that the iPad screen looks OK, without
+identifying it as a particular numbered attachment. The
+[owning GUI-05 review and follow-up tasks](AstraSuggestionTasks.md#gui-05-browser-capture-review)
+record the findings and missing environment/build measurements. No dedicated
+phone portrait capture or phone interaction result was supplied in this set;
+existing physical phone checkboxes remain unchanged. Preserve the working iPad
+result during fixes; landscape support remains deferred.
 
 ### 2026-10-25 — Initial Android Chrome capture
 

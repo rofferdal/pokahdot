@@ -24,6 +24,17 @@ A rendered review proves only its captured scope; neither proves a physical
 device passed. Accepted old captures do not certify later code or matrix versions.
 The completed [LAN workflow](arkiv/LanTestTasks.md) records user acceptance with
 resolution limitations; it does not complete the active phone acceptance tasks.
+The [current GUI-05 browser capture review](AstraSuggestionTasks.md#gui-05-browser-capture-review)
+records overlapping/clipped content in two of four same-state browser captures,
+provisionally clear content in the other two, and the user's positive iPad
+screen review. This is limited state-level evidence: exact environments and
+remaining device/input checks are pending. Preserve the working iPad result
+while fixing the demonstrated browser layouts. The subsequent phone report
+that showdown does not show the winner reopened GUI-01. The updated candidate
+now has default visible winner feedback and direct Pots access; physical phone
+verification is still pending. Summary-formatting tests alone do not establish
+visible winner feedback during actual play.
+
 General hosted checks are optional for deployment. Explicit phone acceptance
 work remains required before claiming the corresponding phone/device support.
 
@@ -79,6 +90,27 @@ uses 2, 4, 6, and 7. Startup uses player count `0` because no table exists yet.
 A fixture may declare a narrower applicable set, but it must state why;
 silently omitting a difficult viewport, player count, or state is not allowed.
 
+The ordinary GUT suite additionally runs
+`tests/unit/test_gui_phone_numeric_bounds.gd`. Its synthetic presentation stress
+views exercise 2–7 phone counts at 360 × 640, large-value tablet/desktop
+surfaces through nine players, exact 999999/6999999/8999999 amounts,
+1,000,000 blinds, split numeric rows, profile restoration, Web fallback
+font metrics, DPR normalization, and real core submissions through inline/keypad
+presets. These deliberately combine boundary values to test layout rather than
+representing a chip-conserving poker hand. They supplement the frozen canonical
+matrices and do not establish physical-device acceptance.
+
+The real-flow winner regressions in `test_gui_phone_winner_flow.gd` drive
+`TournamentMatch` through settlement for hero/opponent wins, splits, side pots
+and folds at 2/4/6/7 seats. Winner text must fit and appear before opening Pots;
+card privacy and hand-pause/reset behavior are checked. Identical preexisting
+board-rank text-clipping failures may remain only when measured before the
+same settlement; every new/changed failure still fails the test. Known glyph
+and long-name gaps remain owned by GUI-05-D rather than being certified clear
+by winner-specific coverage. Supplemental seven-recipient boundary coverage
+checks the largest result footer. Exported input tests include a real six-seat
+showdown and touch on Pots/Close, in addition to keypad/modal cases.
+
 ## Canonical visual states
 
 Use these stable state IDs in tests, manifests, filenames, and defect records:
@@ -102,6 +134,15 @@ Use these stable state IDs in tests, manifests, filenames, and defect records:
 | `event-history-full` | non-phone event history filled enough to require scrolling; excluded from the phone suite |
 | `quit-confirmation` | quit confirmation modal is open |
 | `keypad-open` | numeric keypad is open |
+
+Modal interaction regressions in `test_gui_modal_interaction.gd` use a real
+390 x 844 `SubViewport` and delivered touch/key events, including an unblocked
+positive control. They cover reading past hand timers, exclusive surfaces,
+focus cycling/restoration, synthetic engine back dismissal, profile cleanup,
+and keypad-to-native-quit transitions. Exported Web input tests also exercise
+touch on an underlying Fold while a menu is open, Tab focus containment,
+menu-to-quit switching, outside-keypad touch, and Escape cancellation. Synthetic back coverage does
+not establish physical Android or browser-history navigation acceptance.
 
 Fixtures use fixed seeds and recipient-safe `GameView` data. They must not read
 hidden core state or reproduce poker rules inside the presentation harness.

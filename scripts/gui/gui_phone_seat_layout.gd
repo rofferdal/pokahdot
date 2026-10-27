@@ -34,12 +34,16 @@ static func density_for(player_count: int) -> Density:
 	return Density.MINIMAL
 
 
-static func seat_rects(usable_size: Vector2, player_count: int) -> Dictionary[int, Rect2]:
+static func seat_rects(
+	usable_size: Vector2, player_count: int, portrait_token_height: float = PORTRAIT_TOKEN_HEIGHT
+) -> Dictionary[int, Rect2]:
 	var rects: Dictionary[int, Rect2] = {}
 	if not _has_valid_inputs(usable_size, player_count):
 		return rects
 
-	var token_size: Vector2 = _token_size(usable_size, density_for(player_count), player_count)
+	var token_size: Vector2 = _token_size(
+		usable_size, density_for(player_count), player_count, portrait_token_height
+	)
 	var opponent_slots: Array[Rect2] = _opponent_slots(usable_size, token_size, player_count)
 	var opponent_count: int = player_count - 1
 	for opponent_index: int in range(opponent_count):
@@ -57,7 +61,9 @@ static func seat_rects(usable_size: Vector2, player_count: int) -> Dictionary[in
 
 
 static func center_rect(
-	usable_size: Vector2, player_count: int = MAX_SUPPORTED_PLAYER_COUNT
+	usable_size: Vector2,
+	player_count: int = MAX_SUPPORTED_PLAYER_COUNT,
+	portrait_token_height: float = PORTRAIT_TOKEN_HEIGHT
 ) -> Rect2:
 	if usable_size.x <= 0.0 or usable_size.y <= 0.0:
 		return Rect2()
@@ -71,7 +77,9 @@ static func center_rect(
 		usable_size.y * (0.38 if portrait else 0.36),
 	)
 	if portrait and _has_valid_inputs(usable_size, player_count):
-		var token_size: Vector2 = _token_size(usable_size, density_for(player_count), player_count)
+		var token_size: Vector2 = _token_size(
+			usable_size, density_for(player_count), player_count, portrait_token_height
+		)
 		var opponent_slots: Array[Rect2] = _opponent_slots(usable_size, token_size, player_count)
 		var opponent_bottom: float = 0.0
 		var opponent_count: int = player_count - 1
@@ -93,7 +101,9 @@ static func _has_valid_inputs(usable_size: Vector2, player_count: int) -> bool:
 	)
 
 
-static func _token_size(usable_size: Vector2, density: Density, player_count: int) -> Vector2:
+static func _token_size(
+	usable_size: Vector2, density: Density, player_count: int, portrait_token_height: float
+) -> Vector2:
 	var portrait: bool = usable_size.y > usable_size.x
 	var preferred_width: float = 168.0 if portrait else 160.0
 	var height: float
@@ -105,7 +115,7 @@ static func _token_size(usable_size: Vector2, density: Density, player_count: in
 		_:
 			height = 60.0
 	if portrait and player_count <= MAX_SUPPORTED_PLAYER_COUNT:
-		height = PORTRAIT_TOKEN_HEIGHT
+		height = portrait_token_height
 	if player_count > MAX_SUPPORTED_PLAYER_COUNT:
 		preferred_width = 78.0 if portrait else 88.0
 		height = 48.0
