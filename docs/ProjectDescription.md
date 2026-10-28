@@ -152,11 +152,24 @@ Legal actions depend on `current_bet`, the largest wager on the current street
 | `check` | When `bet_this_round == current_bet`. |
 | `call` | When `current_bet > bet_this_round`. The call is `min(stack, current_bet - bet_this_round)`; committing the full stack is all-in. |
 | `bet` | Postflop when `current_bet == 0`. Minimum is one big blind; maximum is the full stack. |
-| `raise` | When `current_bet > 0`. A minimum **full raise** reaches `current_bet + big_blind`, regardless of previous full-raise sizes on that street. The first preflop raise is therefore at least 2 BB when `current_bet` is 1 BB. Maximum is all-in. |
+| `raise` | When `current_bet > 0`. The first preflop **full raise** must reach at least **2 × the big blind** in total. Subsequent full raises on the same street must increase `current_bet` by at least the previous full betting increment. Maximum is all-in. |
+
+The betting increment is the difference between the new wager total and the
+previous `current_bet`, not the chips added by a player who already contributed.
+Initialize the minimum full-raise increment to one big blind preflop. Postflop,
+an opening full bet sets the increment to that bet's amount. Each full raise
+sets the increment to `new_total - previous_current_bet`; reset it on each new
+street. For example, with a big blind of 10, a preflop raise from 10 to 30 has
+an increment of 20, so the next full raise must reach at least 50. If the next
+player raises to 60, the increment becomes 30 and the following minimum
+total is 90. Postflop, an opening bet of 40 requires a full raise to at least 80.
 
 An all-in raise below the minimum full raise is legal, but does **not** reopen
 raising for players who already acted and matched the previous full raise.
-Players who have not yet acted must still fold, call, or raise.
+It updates `current_bet` without changing the minimum full-raise increment.
+For example, after a raise from 10 to 30, a short all-in to 35 leaves the
+increment at 20; a player with raise rights must reach at least 55 for a full
+raise. Players who have not yet acted must still fold, call, or raise.
 
 The GUI's **Pot bet**/**Pot raise** controls and CLI `potbet`/`potraise`
 commands are No Limit convenience presets, not Pot Limit rules. Wagers remain
@@ -521,7 +534,10 @@ Automated Godot tests or pure GDScript assertions cover at least:
 - A five-high wheel beats king-high and loses to a six-high straight.
 - Side pot: A all-in for 40, B for 100, C for 100; A is eligible for only the
   120-chip main pot, and B and C contest the remainder.
-- Minimum preflop raise from a big-blind wager.
+- First preflop full raise reaches at least twice the big blind; subsequent
+  full raises use the previous full betting increment on that street.
+- Postflop opening bets set the minimum full-raise increment; each new street
+  resets it, and short all-ins do not reduce it.
 - A short all-in raise does not reopen action for a player who already called.
 - An agent does not receive opponent hole cards before showdown.
 - A zero-stack player is eliminated and omitted from the next hand.

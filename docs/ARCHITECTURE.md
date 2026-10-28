@@ -380,14 +380,31 @@ For `BET` and `RAISE`, “total wager amount” means the player's target total 
 
 - acting seat;
 - current bet;
-- the table's big blind as the fixed minimum full-raise increment;
+- the minimum full-raise increment for this street, initialized to the table's
+  big blind and updated after each full bet or raise;
 - seats that still owe action;
 - seats whose raise rights are open;
 - legal action calculation;
 - action application and next-seat selection;
 - round completion.
 
-A full raise must reach at least `current_bet + big_blind`, regardless of the size of any previous bet or raise on the street. An opening postflop bet must be at least one big blind. A short all-in raise with an increment below one big blind updates the amount to call but does not reopen raise rights for players who already acted and matched the previous full raise. These rules must be represented directly in state, not inferred from action history in the UI.
+A first preflop full raise must reach at least twice the big blind. Subsequent
+full raises must reach at least `current_bet + minimum_full_raise_increment`.
+An opening postflop bet must be at least one big blind and sets the increment
+to its amount. Each full raise sets the increment to
+`new_total - previous_current_bet`; each new street resets it. For example,
+with a big blind of 10, a raise from 10 to 30 sets an increment of 20, making
+the next minimum total 50. A short all-in raise below the applicable increment
+updates the amount to call without changing that increment or reopening raise
+rights for players who already acted and matched the previous full raise.
+These rules must be represented directly in core state, not inferred from
+action history in the UI.
+
+Implementation status: this is the required design under
+[`ProjectDescription.md`, section 4.5](ProjectDescription.md#45-actions-no-limit).
+The current `scripts/core/betting_round.gd` still uses a fixed big-blind
+increment for minimum totals and action reopening; migrating that code and its
+tests remains pending.
 
 Invalid actions return a typed rejection and leave all state unchanged. Bot
 fallback selection happens in `HandController`, not inside `BettingRound`.
@@ -1532,7 +1549,11 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 - chip stack bounds;
 - startup configuration defaults, complete omission, partial overrides, valid boundaries, invalid explicit values, and immutability after match start;
 - hand category and tie-break comparisons, including that the five-high wheel beats king-high and loses to a six-high straight;
-- betting legality and the fixed big-blind minimum raise increment, including the first preflop raise and subsequent raises after a larger full raise;
+- betting legality, a first preflop full raise to at least twice the big blind,
+  subsequent raises using the previous full betting increment, postflop
+  opening-bet increments, and increment reset on each street;
+- short all-ins preserve the minimum full-raise increment, including when the
+  short increment is at least one big blind but below the previous full increment;
 - short all-in raises do not reopen raising for a player who already called and matched the previous full raise;
 - side-pot construction, eligibility, split pots, and odd chips, including A all-in for 40 versus B and C for 100, where A is eligible for only the 120-chip main pot;
 - seat traversal and heads-up order;
