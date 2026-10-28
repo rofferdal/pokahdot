@@ -250,7 +250,7 @@ func test_live_repeated_raise_uses_existing_wager_and_reopens_action() -> void:
 	assert_eq(reraised_view.pot_amount, 80)
 	assert_eq(_seat_view(reraised_view, 0).bet_this_round, 20)
 	assert_eq(reraised_view.call_amount, 20)
-	assert_eq(reraised_view.minimum_wager_total, 50)
+	assert_eq(reraised_view.minimum_wager_total, 60)
 	assert_eq(reraised_view.maximum_wager_total, 490)
 	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 80")
 	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 80")
@@ -281,6 +281,158 @@ func test_live_repeated_raise_uses_existing_wager_and_reopens_action() -> void:
 	assert_eq(opponent_view.call_amount, 60)
 	assert_true(PlayerAction.Kind.CALL in opponent_view.legal_actions)
 	assert_true(PlayerAction.Kind.RAISE in opponent_view.legal_actions)
+
+
+func test_live_repeated_raise_refreshes_minimum_and_rejects_obsolete_input_across_profiles(
+) -> void:
+	for profile: int in _minimum_raise_profiles():
+		var match_instance := _waiting_match_with_stack(
+			[PlayerAction.check_action(), PlayerAction.check_action(), PlayerAction.raise_to(40)],
+			500,
+		)
+		var table := PokerTableScene.instantiate() as PokerTableController
+		add_child_autofree(table)
+		_disable_action_pacing(table)
+		table.bind_match(match_instance, 0, _empty_assignments())
+		table.set_layout_profile_override(profile)
+		table.get_node("%CheckCallButton").emit_signal("pressed")
+		table.submit_wager_total(20)
+		var before := match_instance.get_view_for(0)
+		assert_eq(before.minimum_wager_total, 60)
+		assert_eq(before.call_amount, 20)
+		assert_true(table.get_node("%MinWagerButton").text in ["Min Raise 60", "Min 60"])
+		assert_false(table.get_node("%WagerButton").disabled)
+		table.show_wager_keypad()
+		var keypad := table.get_node("WagerKeypad") as WagerKeypad
+		assert_true(keypad.visible)
+		assert_eq((keypad.get_node("Content/Range") as Label).text, "Min 60  •  Max 490")
+		assert_eq(keypad.get_node("Content/Keys/KeyMin").get_meta("wager_value"), 60)
+		assert_eq(keypad.get_node("Content/Keys/KeyPot").get_meta("wager_value"), 100)
+		keypad.cancel()
+
+		var input := table.get_node("%WagerInput") as LineEdit
+		input.text = "50"
+		input.text_submitted.emit(input.text)
+		var rejected := match_instance.get_view_for(0)
+		assert_eq(rejected.acting_seat, 0)
+		assert_eq(rejected.action_history.size(), before.action_history.size())
+		assert_eq(rejected.pot_amount, before.pot_amount)
+		assert_eq(_seat_view(rejected, 0).stack, _seat_view(before, 0).stack)
+		assert_eq(_seat_view(rejected, 0).bet_this_round, 20)
+		assert_eq(rejected.minimum_wager_total, 60)
+		assert_eq(
+			(table.get_node("%ActionStatus") as Label).text,
+			"The wager is below the minimum full bet or raise.",
+		)
+		var events: Array[DomainEvent] = match_instance.get_events()
+		assert_eq(events[-1].kind, DomainEvent.Kind.ACTION_REJECTED)
+		assert_eq(events[-1].rejection_code, ActionValidationResult.Code.BELOW_MINIMUM)
+
+		_freeze_action_pacing(table)
+		if GuiLayoutProfileScript.is_phone(profile):
+			table.show_wager_keypad()
+			keypad.get_node("Content/Keys/KeyMin").emit_signal("pressed")
+			assert_eq((keypad.get_node("Content/Value") as Label).text, "60")
+			keypad.get_node("Content/Done").emit_signal("pressed")
+		else:
+			table.get_node("%MinWagerButton").emit_signal("pressed")
+		var after := match_instance.get_view_for(0)
+		assert_eq(_latest_player_action_for(after, 0).amount, 60)
+		assert_eq(_seat_view(after, 0).bet_this_round, 60)
+		assert_eq(after.action_history.size(), before.action_history.size() + 1)
+		assert_eq(after.acting_seat, 1)
+		assert_eq(after.pot_amount, before.pot_amount + 40)
+
+
+func test_live_street_change_refreshes_minimum_and_keypad_bounds_across_profiles() -> void:
+	for profile: int in _minimum_raise_profiles():
+		var match_instance := _waiting_match_with_agent(CheckingCallingAgent.new(), 500, 5, 10)
+		var table := PokerTableScene.instantiate() as PokerTableController
+		add_child_autofree(table)
+		_disable_action_pacing(table)
+		table.bind_match(match_instance, 0, _empty_assignments())
+		table.set_layout_profile_override(profile)
+		table.get_node("%CheckCallButton").emit_signal("pressed")
+		assert_eq(match_instance.get_view_for(0).street, &"flop")
+		table.submit_wager_total(40)
+		var turn := match_instance.get_view_for(0)
+		assert_eq(turn.street, &"turn")
+		assert_eq(turn.minimum_wager_total, 10)
+		assert_eq(turn.maximum_wager_total, 450)
+		assert_true(table.get_node("%MinWagerButton").text in ["Min Bet 10", "Min 10"])
+		assert_eq(table.get_node("%CheckCallButton").text, "Check")
+		table.show_wager_keypad()
+		var keypad := table.get_node("WagerKeypad") as WagerKeypad
+		assert_eq((keypad.get_node("Content/Range") as Label).text, "Min 10  •  Max 450")
+		assert_eq(keypad.get_node("Content/Keys/KeyMin").get_meta("wager_value"), 10)
+		keypad.cancel()
+
+
+func test_core_short_all_in_views_keep_raise_controls_aligned_with_recipient_rights() -> void:
+	for profile: int in _minimum_raise_profiles():
+		for unacted_stack: int in [100, 50]:
+			var players: Array[Player] = []
+			var stacks: Array[int] = [100, 100, 40, unacted_stack]
+			for seat: int in range(4):
+				var stack: int = stacks[seat]
+				players.append(
+					Player.new(StringName("short_%d" % seat), "Player %d" % seat, seat, stack)
+				)
+			var core_table := Table.new(players, 5, 10)
+			var round := BettingRound.new(core_table, 0, 10)
+			assert_true(round.apply_action(0, PlayerAction.raise_to(30)).is_ok())
+			assert_true(round.apply_action(1, PlayerAction.call_action()).is_ok())
+			assert_true(round.apply_action(2, PlayerAction.all_in_action()).is_ok())
+			var table := PokerTableScene.instantiate() as PokerTableController
+			add_child_autofree(table)
+			table.set_layout_profile_override(profile)
+			var open_view := _core_raise_view(core_table, round, 3)
+			table.bind_view(open_view, _empty_assignments())
+			assert_eq(open_view.minimum_wager_total, 60)
+			assert_eq(open_view.call_amount, 40)
+			assert_false(table.get_node("%CheckCallButton").disabled)
+			assert_false(table.get_node("%AllInButton").disabled)
+			assert_eq(table.get_node("%MinWagerButton").disabled, unacted_stack < 60)
+			assert_eq(table.get_node("%WagerButton").disabled, unacted_stack < 60)
+			assert_eq((table.get_node("%WagerInput") as LineEdit).editable, unacted_stack >= 60)
+			if unacted_stack < 60:
+				assert_true(table.get_node("%PotRaiseButton").disabled)
+				table.show_wager_keypad()
+				assert_false(table.get_node("WagerKeypad").visible)
+			else:
+				table.show_wager_keypad()
+				var keypad := table.get_node("WagerKeypad") as WagerKeypad
+				assert_eq((keypad.get_node("Content/Range") as Label).text, "Min 60  •  Max 100")
+				keypad.cancel()
+			assert_true(round.apply_action(3, PlayerAction.call_action()).is_ok())
+			var closed_view := _core_raise_view(core_table, round, 0)
+			table.bind_view(closed_view, _empty_assignments())
+			assert_eq(closed_view.minimum_wager_total, 60)
+			assert_eq(closed_view.call_amount, 10)
+			assert_false(table.get_node("%CheckCallButton").disabled)
+			for button: String in [
+				"%MinWagerButton", "%PotRaiseButton", "%WagerButton", "%AllInButton"
+			]:
+				assert_true(table.get_node(button).disabled)
+			assert_false((table.get_node("%WagerInput") as LineEdit).editable)
+			table.show_wager_keypad()
+			assert_false(table.get_node("WagerKeypad").visible)
+
+
+func _core_raise_view(core_table: Table, round: BettingRound, recipient: int) -> GameView:
+	var pots := PotManager.new()
+	for player: Player in core_table.players:
+		pots.record_contribution(player.seat, player.total_contribution)
+	return GameView.for_preflop(core_table, recipient, round, pots, [])
+
+
+func _minimum_raise_profiles() -> Array[int]:
+	return [
+		GuiLayoutProfileScript.Kind.DESKTOP,
+		GuiLayoutProfileScript.Kind.PHONE_PORTRAIT,
+		GuiLayoutProfileScript.Kind.TABLET,
+		GuiLayoutProfileScript.Kind.SMALL_DESKTOP,
+	]
 
 
 func test_live_short_stack_disables_exact_pot_without_clamping_to_all_in() -> void:

@@ -30,7 +30,7 @@ A rendered review proves only its captured scope; neither proves a physical
 device passed. Accepted old captures do not certify later code or matrix versions.
 The completed [LAN workflow](arkiv/LanTestTasks.md) records user acceptance with
 resolution limitations; it does not complete open recorded phone acceptance checks.
-The [historical GUI-05 browser capture review](arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
+The [archived GUI-05 browser capture review](arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
 records overlapping/clipped content in two of four same-state browser captures,
 provisionally clear content in the other two, and the user's positive iPad
 screen review. This is limited state-level evidence: exact environments and

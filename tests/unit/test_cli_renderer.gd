@@ -113,6 +113,85 @@ func test_renderer_omits_pot_command_when_exact_target_is_outside_legal_range() 
 	assert_eq(io.count_writes_containing("potraise"), 0)
 
 
+func test_core_repeated_raises_publish_updated_full_and_compact_ranges() -> void:
+	var players: Array[Player] = []
+	for seat: int in range(3):
+		players.append(Player.new(StringName("range_%d" % seat), "Player %d" % seat, seat, 100))
+	var table := Table.new(players, 5, 10)
+	var round := BettingRound.new(table, 0, 10)
+	assert_true(round.apply_action(0, PlayerAction.raise_to(30)).is_ok())
+	_assert_both_render_modes(
+		GameView.for_preflop(table, 1, round, PotManager.new(), []),
+		"Legal actions: fold, call (30), raise (50-100 total), allin",
+	)
+	assert_true(round.apply_action(1, PlayerAction.raise_to(60)).is_ok())
+	_assert_both_render_modes(
+		GameView.for_preflop(table, 2, round, PotManager.new(), []),
+		"Legal actions: fold, call (60), raise (90-100 total), allin",
+	)
+
+
+func test_core_short_all_in_ranges_follow_raise_rights_and_stack_limits() -> void:
+	for unacted_stack: int in [100, 50]:
+		var players: Array[Player] = []
+		var stacks: Array[int] = [100, 100, 40, unacted_stack]
+		for seat: int in range(stacks.size()):
+			players.append(
+				Player.new(StringName("short_%d" % seat), "Player %d" % seat, seat, stacks[seat])
+			)
+		var table := Table.new(players, 5, 10)
+		var round := BettingRound.new(table, 0, 10)
+		assert_true(round.apply_action(0, PlayerAction.raise_to(30)).is_ok())
+		assert_true(round.apply_action(1, PlayerAction.call_action()).is_ok())
+		assert_true(round.apply_action(2, PlayerAction.all_in_action()).is_ok())
+		var open_view := GameView.for_preflop(table, 3, round, PotManager.new(), [])
+		assert_eq(open_view.minimum_wager_total, 60)
+		_assert_both_render_modes(
+			open_view,
+			(
+				"Legal actions: fold, call (40), raise (60-100 total), allin"
+				if unacted_stack == 100
+				else "Legal actions: fold, call (40), allin"
+			),
+		)
+		assert_true(round.apply_action(3, PlayerAction.call_action()).is_ok())
+		_assert_both_render_modes(
+			GameView.for_preflop(table, 0, round, PotManager.new(), []),
+			"Legal actions: fold, call (10)",
+		)
+
+
+func test_core_closed_raise_rights_still_render_exact_all_in_call() -> void:
+	var players: Array[Player] = [
+		Player.new(&"caller", "Caller", 0, 40),
+		Player.new(&"other", "Other", 1, 100),
+		Player.new(&"short", "Short", 2, 40),
+	]
+	var table := Table.new(players, 5, 10)
+	var round := BettingRound.new(table, 0, 10)
+	assert_true(round.apply_action(0, PlayerAction.raise_to(30)).is_ok())
+	assert_true(round.apply_action(1, PlayerAction.call_action()).is_ok())
+	assert_true(round.apply_action(2, PlayerAction.all_in_action()).is_ok())
+	_assert_both_render_modes(
+		GameView.for_preflop(table, 0, round, PotManager.new(), []),
+		"Legal actions: fold, call (10), allin",
+	)
+
+
+func _assert_both_render_modes(view: GameView, expected: String) -> void:
+	for compact: bool in [false, true]:
+		var io := FakeCliIO.new()
+		var renderer := CliRenderer.new(io)
+		if compact:
+			renderer.render_update(view)
+			io.writes.clear()
+			renderer.render_update(view)
+			assert_eq(io.count_writes_containing("Stacks:"), 1)
+		else:
+			renderer.render_hand(view)
+		assert_true(io.contains_write(expected), "compact=%s expected=%s" % [compact, expected])
+
+
 func test_card_formatter_covers_every_rank_and_suit() -> void:
 	var rank_labels: Dictionary[int, String] = {
 		2: "2",

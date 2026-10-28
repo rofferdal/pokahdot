@@ -392,12 +392,24 @@ release workflow, which checks out the pushed SHA and runs
 GitHub Pages. For optional manual hosted checks, follow the
 [Web publishing and hosted-verification runbook](../../docs/OPTIONAL_WEB_SETUP.md).
 
+## Minimum-raise regression checks
+
+The core tracks full betting increments per street. Focused tests cover repeated
+raises, short all-ins and raise rights, nominal short-blind calls, street/hand
+resets, generated action sequences, and GUI/CLI limits and rejection recovery.
+Run the [minimum-raise backlog's commands](../../docs/MinimumRaiseTasks.md#verification-commands)
+for focused checks and `make check gui-current-invariant-gate` for regression.
+Local rendered evidence and deterministic CLI transcripts are recorded in that
+backlog separately from automated and physical-device acceptance.
+
 ## Documentation checks
 
 Run `make docs-check` to validate local Markdown targets and heading anchors in
-`README.md`, `docs/`, and `devdocs/`, including archived records. Missing ignored
-`localtmp/` evidence is reported separately and never treated as a replacement
-for retained screenshots. The same check runs with `make check`.
+`README.md`, current `docs/`, and `devdocs/`. Documents under `docs/arkiv/`
+are historical legacy records and are excluded; their internal links may be
+invalid. Links from current documents to archive targets are still checked.
+Missing ignored `localtmp/` evidence is reported separately and never treated
+as a replacement for retained screenshots. The same check runs with `make check`.
 
 Development pins: Godot and Web templates 4.7.2; CI Python 3.12; GUT 9.7.1;
 `requirements-dev.txt` pins gdtoolkit 4.5.0 and `requirements-web-test.txt` pins

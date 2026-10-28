@@ -15,13 +15,8 @@ func test_tournament_applies_increased_blinds_only_on_the_next_hand() -> void:
 	while completed_hands < 10:
 		while result.status == StepResult.Status.WAITING_FOR_HUMAN:
 			var view: GameView = match_instance.get_view_for(0)
-			result = match_instance.submit_human_action(
-				(
-					PlayerAction.check_action()
-					if PlayerAction.Kind.CHECK in view.legal_actions
-					else PlayerAction.call_action()
-				)
-			)
+			assert_eq(view.minimum_wager_total, view.big_blind * 2)
+			result = match_instance.submit_human_action(PlayerAction.raise_to(view.big_blind * 3))
 		assert_ne(result.status, StepResult.Status.ERROR)
 		if result.status == StepResult.Status.HAND_COMPLETED:
 			completed_hands += 1

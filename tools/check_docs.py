@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check repository documentation links without requiring network access."""
+"""Check current documentation links offline; exclude historical docs/arkiv."""
 from pathlib import Path
 import re
 import sys
@@ -21,7 +21,10 @@ def anchors(path: Path) -> set[str]:
 
 
 def main() -> int:
-    paths = [ROOT / 'README.md', *sorted((ROOT / 'docs').rglob('*.md')),
+    archive = ROOT / 'docs' / 'arkiv'
+    current_docs = sorted(path for path in (ROOT / 'docs').rglob('*.md')
+                          if archive not in path.parents)
+    paths = [ROOT / 'README.md', *current_docs,
              *sorted((ROOT / 'devdocs').rglob('*.md'))]
     errors: list[str] = []
     local_evidence: set[str] = set()

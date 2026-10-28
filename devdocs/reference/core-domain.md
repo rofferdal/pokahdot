@@ -88,6 +88,14 @@ Enforces action validity for one betting street.
 - `legal_actions(seat: int) -> Array[PlayerAction.Kind]`: List of permitted actions for the active seat.
 - `can_raise(seat: int) -> bool`: False if an opponent's under-sized all-in did not reopen raising.
 
+The [minimum-raise rule](../../docs/ProjectDescription.md#45-actions-no-limit)
+uses the tracked previous full betting increment on the same street. Preflop,
+the nominal blind remains the call target even when posted short, and the first
+full raise reaches twice that blind. An opening postflop full bet sets the
+increment to its amount. Short all-ins preserve it and never cumulatively
+reopen closed rights. Every new street initializes it from the current big
+blind. Views publish these limits directly for adapters and bots.
+
 ### `PotManager` (`scripts/core/pot_manager.gd`)
 Tracks contributions and derives main and side pots.
 
