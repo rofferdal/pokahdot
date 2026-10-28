@@ -15,13 +15,13 @@ section. Keep completion evidence and checkboxes in the owning backlog.
 - [`RestructureGuiTasks.md`](RestructureGuiTasks.md) — proposed GUI replacement:
   unified geometry/classification, pure presentation models, component scenes,
   themes and container-owned responsive layouts. First task: RG-00 baseline.
-- [`MinimumRaiseTasks.md`](MinimumRaiseTasks.md) — street-local minimum full-raise
-  increments, GUI/CLI submission and rejection recovery are complete and
-  user-accepted after testing with no reported errors (2026-10-28). All
-  MR-00–MR-06 checks pass; historical archive contents are excluded from validation.
+
 
 ## Archived task records
 
+- [`arkiv/MinimumRaiseTasks.md`](arkiv/MinimumRaiseTasks.md) — completed
+  street-local minimum full-raise increments and GUI/CLI verification;
+  MR-00–MR-06 user-accepted after testing with no reported errors (2026-10-28).
 - [`arkiv/AstraSuggestionTasks.md`](arkiv/AstraSuggestionTasks.md) — historical
   correctness, GUI, maintenance and CLI work; its evidence does not complete
   the replacement GUI's implementation or device acceptance tasks.

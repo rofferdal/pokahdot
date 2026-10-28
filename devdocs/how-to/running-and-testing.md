@@ -397,8 +397,9 @@ GitHub Pages. For optional manual hosted checks, follow the
 The core tracks full betting increments per street. Focused tests cover repeated
 raises, short all-ins and raise rights, nominal short-blind calls, street/hand
 resets, generated action sequences, and GUI/CLI limits and rejection recovery.
-Run the [minimum-raise backlog's commands](../../docs/MinimumRaiseTasks.md#verification-commands)
-for focused checks and `make check gui-current-invariant-gate` for regression.
+Run `make check gui-current-invariant-gate` for regression. Historical
+implementation and acceptance evidence lives in the
+[archived minimum-raise backlog](../../docs/arkiv/MinimumRaiseTasks.md).
 Local rendered evidence and deterministic CLI transcripts are recorded in that
 backlog separately from automated and physical-device acceptance.
 

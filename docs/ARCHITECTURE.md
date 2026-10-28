@@ -412,7 +412,8 @@ minimum totals through `GameView`. If checked addition cannot represent a
 full raise, ordinary Raise is unavailable; an All-in increase remains subject
 to the short-increase and raise-rights rules. GUI, CLI and bots consume the
 published limits without reconstructing increments from history. Regression
-coverage and gate evidence live in [MinimumRaiseTasks.md](MinimumRaiseTasks.md).
+coverage and gate evidence are recorded in the
+[archived minimum-raise backlog](arkiv/MinimumRaiseTasks.md).
 
 Invalid actions return a typed rejection and leave all state unchanged. Bot
 fallback selection happens in `HandController`, not inside `BettingRound`.
