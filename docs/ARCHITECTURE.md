@@ -400,11 +400,19 @@ rights for players who already acted and matched the previous full raise.
 These rules must be represented directly in core state, not inferred from
 action history in the UI.
 
-Implementation status: this is the required design under
-[`ProjectDescription.md`, section 4.5](ProjectDescription.md#45-actions-no-limit).
-The current `scripts/core/betting_round.gd` still uses a fixed big-blind
-increment for minimum totals and action reopening; migrating that code and its
-tests remains pending.
+Boundary initialization: `HandController` starts preflop with the nominal big
+blind as the call total even when its posted contribution is short. A short
+postflop opening all-in preserves the initial big-blind increment, so an
+opening 5 / BB 10 permits a full raise to 15. Short increases never accumulate
+to reopen closed rights; this includes a player who checked before a short
+opening all-in. Only an individual full increase reopens rights.
+
+The implementation tracks this increment directly and publishes saturated
+minimum totals through `GameView`. If checked addition cannot represent a
+full raise, ordinary Raise is unavailable; an All-in increase remains subject
+to the short-increase and raise-rights rules. GUI, CLI and bots consume the
+published limits without reconstructing increments from history. Regression
+coverage and gate evidence live in [MinimumRaiseTasks.md](MinimumRaiseTasks.md).
 
 Invalid actions return a typed rejection and leave all state unchanged. Bot
 fallback selection happens in `HandController`, not inside `BettingRound`.

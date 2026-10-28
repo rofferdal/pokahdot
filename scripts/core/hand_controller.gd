@@ -96,7 +96,7 @@ func start(max_transitions: int = 32) -> StepResult:
 	_post_blind(_table.small_blind_seat(), _table.small_blind)
 	_post_blind(_table.big_blind_seat(), _table.big_blind)
 	_deal_hole_cards()
-	_betting = BettingRound.new(_table, _table.first_to_act_preflop(), _largest_round_bet())
+	_betting = BettingRound.new(_table, _table.first_to_act_preflop(), _table.big_blind)
 	state = State.PREFLOP
 	return advance_until_blocked(max_transitions)
 
@@ -366,10 +366,3 @@ func _street_name() -> StringName:
 		State.COMPLETE:
 			return &"hand_end"
 	return &"preflop"
-
-
-func _largest_round_bet() -> int:
-	var largest: int = 0
-	for player: Player in _table.players:
-		largest = maxi(largest, player.bet_this_round)
-	return largest

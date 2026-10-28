@@ -80,6 +80,13 @@ big blind, rounded upward to an even integer, and the small blind is half of it
 500,000/1,000,000 while level timing continues. The CLI and table show the
 current blinds, level, completed hands, and hands remaining in the level.
 
+Minimum full raises use the previous full betting increment on that street.
+With BB 10, raising 10→30 makes the next minimum 50; raising 30→60 makes it 90.
+An opening postflop bet of 40 requires a raise to at least 80. Short all-ins
+preserve the increment and do not cumulatively reopen closed raise rights.
+The increment resets on each street. GUI and CLI display the core's current
+legal totals; see the [betting rules](docs/ProjectDescription.md#45-actions-no-limit).
+
 When it is a legal bet or raise and the hero can cover it, the GUI's **Pot
 bet**/**Pot raise** control and the CLI's `potbet`/`potraise` command submit an
 exact pot-sized target total through the normal wager-validation path. With pot
@@ -382,7 +389,7 @@ the running build. Stop with Ctrl+C or
 `make web-lan-stop`. Outputs and certificates stay under ignored `localtmp/`.
 The completed server workflow is recorded in [LanTestTasks.md](docs/arkiv/LanTestTasks.md).
 GUI/device review and demonstrated browser defects are recorded in
-[AstraSuggestionTasks.md](docs/AstraSuggestionTasks.md#gui-05-browser-capture-review)
+[AstraSuggestionTasks.md](docs/arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
 and the archived [phone review](docs/arkiv/OptimizingPhoneGuiTasks.md).
 
 ## GUI action pace

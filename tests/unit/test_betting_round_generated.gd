@@ -92,21 +92,26 @@ func _run_sequence(count: int, replay_seed: int) -> void:
 		initial_bet = 10
 	var round := BettingRound.new(table, rng.randi_range(0, count - 1), initial_bet)
 	var trace: Array[String] = []
+	var expected_increment: int = 10
+	var expected_bet: int = initial_bet
 	for step: int in range(MAX_STEPS):
 		var context: String = (
 			"count=%d seed=%d stacks=%s initial_bet=%d actions=%s"
 			% [count, replay_seed, stacks, initial_bet, trace]
 		)
+		assert_eq(round.current_bet, expected_bet, context)
+		assert_eq(round.minimum_wager_total(), expected_bet + expected_increment, context)
 		_assert_conservation(players, stacks, context)
 		_assert_private_views(table, round, context)
 		if round.is_complete():
 			return
-		_assert_rights(table, round, rights, context)
+		_assert_rights(table, round, rights, expected_increment, context)
 		var seat: int = round.acting_seat
 		var player: Player = players[seat]
 		var maximum: int = player.stack + player.bet_this_round
-		var minimum: int = round.current_bet + 10
-		_probe_rejections(table, round, context)
+		var minimum: int = expected_bet + expected_increment
+		assert_eq(round.minimum_wager_total(), minimum, context)
+		_probe_rejections(table, round, minimum, context)
 		# Independent action candidates use public chip values and our own ledger.
 		var options: Array[PlayerAction] = [
 			(
@@ -129,7 +134,15 @@ func _run_sequence(count: int, replay_seed: int) -> void:
 					)
 				)
 		var action: PlayerAction = options[rng.randi_range(0, options.size() - 1)]
-		var previous_bet: int = round.current_bet
+		var target: int = player.bet_this_round
+		match action.kind:
+			PlayerAction.Kind.BET, PlayerAction.Kind.RAISE:
+				target = action.amount
+			PlayerAction.Kind.ALL_IN:
+				target = maximum
+			PlayerAction.Kind.CALL:
+				target += mini(player.stack, expected_bet - player.bet_this_round)
+		var increase: int = maxi(0, target - expected_bet)
 		var previous_stack: int = player.stack
 		trace.append("%d:%s(%d)" % [seat, PlayerAction.Kind.keys()[action.kind], action.amount])
 		context += " next=" + trace[-1]
@@ -139,17 +152,21 @@ func _run_sequence(count: int, replay_seed: int) -> void:
 			return
 		assert_eq(result.chips_committed, previous_stack - player.stack, context)
 		rights.erase(seat)
-		if round.current_bet - previous_bet >= 10:
+		if increase >= expected_increment:
+			expected_increment = increase
 			for other: Player in players:
 				if other.seat != seat and not other.folded and not other.all_in:
 					rights[other.seat] = true
+		expected_bet = maxi(expected_bet, target)
+		assert_eq(round.current_bet, expected_bet, context)
+		assert_eq(round.minimum_wager_total(), expected_bet + expected_increment, context)
 		_assert_conservation(players, stacks, context)
 	assert_true(
 		round.is_complete(), "sequence budget exceeded: seed=%d actions=%s" % [replay_seed, trace]
 	)
 
 
-func _probe_rejections(table: Table, round: BettingRound, context: String) -> void:
+func _probe_rejections(table: Table, round: BettingRound, minimum: int, context: String) -> void:
 	var seat: int = round.acting_seat
 	var player: Player = table.get_player(seat)
 	var invalid: Array[PlayerAction] = [
@@ -163,6 +180,13 @@ func _probe_rejections(table: Table, round: BettingRound, context: String) -> vo
 			else PlayerAction.check_action()
 		),
 	]
+	invalid.append(
+		(
+			PlayerAction.bet_to(minimum - 1)
+			if round.current_bet == 0
+			else PlayerAction.raise_to(minimum - 1)
+		)
+	)
 	if not round.can_raise(seat) and player.stack + player.bet_this_round > round.current_bet:
 		invalid.append(PlayerAction.all_in_action())
 	for action: PlayerAction in invalid:
@@ -184,7 +208,11 @@ func _assert_rejected_unchanged(
 
 func _snapshot(table: Table, round: BettingRound) -> Array:
 	var state: Array = [
-		round.acting_seat, round.current_bet, round.pending_seats(), round.is_complete()
+		round.acting_seat,
+		round.current_bet,
+		round.minimum_wager_total(),
+		round.pending_seats(),
+		round.is_complete()
 	]
 	for player: Player in table.players:
 		(
@@ -221,7 +249,11 @@ func _assert_conservation(players: Array[Player], stacks: Array[int], context: S
 
 
 func _assert_rights(
-	table: Table, round: BettingRound, rights: Dictionary[int, bool], context: String
+	table: Table,
+	round: BettingRound,
+	rights: Dictionary[int, bool],
+	expected_increment: int,
+	context: String
 ) -> void:
 	for player: Player in table.players:
 		var expected: bool = rights.has(player.seat) and not player.folded and not player.all_in
@@ -238,13 +270,19 @@ func _assert_rights(
 				PlayerAction.Kind.BET if round.current_bet == 0 else PlayerAction.Kind.RAISE
 			)
 			assert_eq(
-				wager_kind in actions, expected and maximum >= round.current_bet + 10, context
+				wager_kind in actions,
+				expected and maximum >= round.current_bet + expected_increment,
+				context
 			)
 
 
 func _assert_private_views(table: Table, round: BettingRound, context: String) -> void:
 	for recipient: Player in table.players:
 		var view := GameView.for_preflop(table, recipient.seat, round, PotManager.new(), [])
+		assert_eq(view.minimum_wager_total, round.minimum_wager_total(), context)
+		assert_eq(view.maximum_wager_total, recipient.bet_this_round + recipient.stack, context)
+		assert_eq(view.call_amount, round.call_amount(recipient.seat), context)
+		assert_eq(view.legal_actions, round.legal_actions(recipient.seat), context)
 		assert_eq(view.hero_hole_cards, recipient.hole_cards, context)
 		assert_true(view.revealed_hole_cards.is_empty(), context)
 		assert_true(view.showdown_results.is_empty(), context)

@@ -150,7 +150,7 @@ At each street:
 4. `PotManager` resolves all main and side pots and credits players' stacks.
 
 ### 3.3 Wagering Rules (`BettingRound`)
-`BettingRound` owns No Limit Hold'em wagering validation. The required rules are:
+`BettingRound` owns No Limit Hold'em wagering validation. The implemented rules are:
 - **Target Totals**: Wagers are specified as the **target total commitment** for the current street.
   - If big blind is 10 and player raises to 30, the amount is `30` (not +20).
 - **First Preflop Raise**: The first full raise must reach at least twice the big blind in total.
@@ -159,10 +159,12 @@ At each street:
 - **Under-raises (All-in)**: An all-in raise below the applicable full-raise increment is legal, but does **not reopen the betting** for players who already faced and matched the previous full wager. It updates `current_bet` without changing the minimum full-raise increment.
 - **Raise Rights**: Tracks which seats still have the option to reopen raising on this street.
 
-Implementation status: the core still uses a fixed big-blind increment for
-minimum raises and action reopening. The increment-based rule above is pending
-implementation and test updates; see the
-[authoritative betting-round design](../../docs/ARCHITECTURE.md#57-betting_roundgd)
+Preflop initialization uses the nominal big blind even when its post is short.
+A short postflop opening all-in preserves the big-blind increment (opening 5
+with BB 10 permits a full raise to 15). Multiple short increases never
+cumulatively reopen closed rights. Minimum totals saturate on integer overflow;
+ordinary Raise is unavailable if a full minimum cannot be represented.
+See the [authoritative betting-round design](../../docs/ARCHITECTURE.md#57-betting_roundgd)
 and [product rules](../../docs/ProjectDescription.md#45-actions-no-limit).
 
 The GUI and CLI Pot shortcuts use the displayed pre-action pot while retaining

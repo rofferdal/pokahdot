@@ -7,6 +7,30 @@ const StrategyParametersScript := preload(
 )
 
 
+func test_strategy_sizing_obeys_live_repeated_raise_limits_without_fallback() -> void:
+	for replay_seed: int in [1, 7, 23, 104729]:
+		var players: Array[Player] = []
+		for seat: int in range(3):
+			players.append(Player.new(StringName("p%d" % seat), "Player", seat, 1000))
+		players[2].add_hole_card(CardData.new(14, CardData.Suit.SPADES))
+		players[2].add_hole_card(CardData.new(14, CardData.Suit.HEARTS))
+		var table := Table.new(players, 5, 10)
+		var round := BettingRound.new(table, 0, 10)
+		assert_true(round.apply_action(0, PlayerAction.raise_to(30)).is_ok())
+		assert_true(round.apply_action(1, PlayerAction.raise_to(60)).is_ok())
+		var view := GameView.for_preflop(table, 2, round, PotManager.new(), [])
+		assert_eq(view.minimum_wager_total, 90)
+		var parameters := StrategyParametersScript.new()
+		parameters.tight_vs_loose = 100
+		parameters.call_vs_raise = 100
+		parameters.bluff_rate = 0
+		var action := _model_with_parameters(replay_seed, parameters).choose_action(view)
+		assert_has(view.legal_actions, action.kind)
+		if action.kind == PlayerAction.Kind.RAISE:
+			assert_between(action.amount, 90, 1000)
+		assert_true(round.apply_action(2, action).is_ok(), "seed %d" % replay_seed)
+
+
 func test_configuration_rejects_missing_mismatched_and_invalid_parameters() -> void:
 	var model: DecisionModel = StrategyModelScript.new()
 	var invalid_parameters := StrategyParametersScript.new()

@@ -7,6 +7,7 @@ var acting_seat: int = Table.NO_SEAT
 var current_bet: int
 
 var _table: Table
+var _minimum_full_raise_increment: int
 var _pending_action: Dictionary[int, bool] = {}
 var _raise_rights: Dictionary[int, bool] = {}
 var _complete: bool = false
@@ -20,6 +21,7 @@ func _init(
 	assert(table != null, "A betting round requires a table.")
 	assert(initial_current_bet >= 0, "The current bet cannot be negative.")
 	_table = table
+	_minimum_full_raise_increment = table.big_blind
 	current_bet = initial_current_bet
 	for seat: int in table.active_seats():
 		var player: Player = table.get_player(seat)
@@ -56,10 +58,10 @@ func call_amount(seat: int) -> int:
 
 func minimum_wager_total() -> int:
 	if current_bet == 0:
-		return _table.big_blind
-	if not IntegerBounds.can_add_nonnegative(current_bet, _table.big_blind):
+		return _minimum_full_raise_increment
+	if not IntegerBounds.can_add_nonnegative(current_bet, _minimum_full_raise_increment):
 		return IntegerBounds.MAX_INT_64
-	return current_bet + _table.big_blind
+	return current_bet + _minimum_full_raise_increment
 
 
 func maximum_wager_total(seat: int) -> int:
@@ -84,7 +86,10 @@ func legal_actions(seat: int) -> Array[PlayerAction.Kind]:
 		result.append(PlayerAction.Kind.CALL)
 
 	var maximum: int = maximum_wager_total(seat)
-	if maximum >= minimum_wager_total() and can_raise(seat):
+	var full_minimum_fits: bool = IntegerBounds.can_add_nonnegative(
+		current_bet, _minimum_full_raise_increment
+	)
+	if full_minimum_fits and maximum >= minimum_wager_total() and can_raise(seat):
 		if current_bet == 0:
 			result.append(PlayerAction.Kind.BET)
 		else:
@@ -119,7 +124,8 @@ func apply_action(seat: int, action: PlayerAction) -> ActionValidationResult:
 	if target_total > previous_current_bet:
 		var raise_size: int = target_total - previous_current_bet
 		current_bet = target_total
-		if raise_size >= _table.big_blind:
+		if raise_size >= _minimum_full_raise_increment:
+			_minimum_full_raise_increment = raise_size
 			_reopen_after_full_raise(seat)
 		else:
 			_require_calls_after_short_raise(seat)

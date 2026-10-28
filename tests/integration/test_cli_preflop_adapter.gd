@@ -36,6 +36,63 @@ func test_match_loop_renders_before_prompt_rejects_without_losing_turn_and_settl
 	_assert_no_bot_cards_are_rendered(io, match_instance)
 
 
+func test_repeated_raise_transcript_rejects_obsolete_amount_and_recovers_to_minimum() -> void:
+	for compact: bool in [false, true]:
+		var io := FakeCliIO.new()
+		for command: String in ["check", "bet 20", "raise 50", "state", "raise 60"]:
+			io.queue_line(command)
+		var match_instance := (
+			TournamentMatch
+			. new(
+				_config(2, 500, 5, 10),
+				{
+					0: HumanAgent.new(),
+					1:
+					ScriptedAgent.new(
+						[
+							PlayerAction.call_action(),
+							PlayerAction.raise_to(40),
+							PlayerAction.fold_action()
+						]
+					),
+				}
+			)
+		)
+		assert_eq(
+			CliCommandLoop.new(io, null, null, compact).run_match(match_instance, 0),
+			CliCommandLoop.Status.EOF
+		)
+		assert_true(
+			io.contains_write(
+				"Legal actions: fold, call (20), raise (60-490 total), potraise (80), allin"
+			)
+		)
+		assert_eq(
+			io.count_writes_containing(
+				"Action rejected: The wager is below the minimum full bet or raise."
+			),
+			1
+		)
+		assert_true(io.contains_write("  Seat 0 raises to 60"))
+		assert_false(io.contains_write("  Seat 0 raises to 50"))
+		assert_true(io.contains_write("Hand complete. Seat 0 wins by folds."))
+		var view := match_instance.get_view_for(0)
+		var human_raises: Array[PublicActionRecord] = view.action_history.filter(
+			func(record: PublicActionRecord) -> bool:
+				return record.seat == 0 and record.kind == PlayerAction.Kind.RAISE
+		)
+		assert_eq(human_raises.size(), 1)
+		assert_eq(human_raises[0].amount, 60)
+		var rejections: Array[DomainEvent] = match_instance.get_events().filter(
+			func(event: DomainEvent) -> bool: return event.kind == DomainEvent.Kind.ACTION_REJECTED
+		)
+		assert_eq(rejections.size(), 1)
+		assert_eq(rejections[0].rejection_code, ActionValidationResult.Code.BELOW_MINIMUM)
+		assert_eq(rejections[0].requested_action_amount, 50)
+		assert_false(rejections[0].fallback_applied)
+		_assert_no_bot_cards_are_rendered(io, match_instance)
+
+
 func test_match_loop_executes_potbet_from_the_current_recipient_safe_view() -> void:
 	var io := FakeCliIO.new()
 	io.queue_line("check").queue_line("potbet")

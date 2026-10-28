@@ -8,6 +8,129 @@ class RejectingFallbackHandController:
 		return PlayerAction.call_action()
 
 
+class MatchingAgent:
+	extends Agent
+
+	func choose_action(view: GameView) -> PlayerAction:
+		if PlayerAction.Kind.CHECK in view.legal_actions:
+			return PlayerAction.check_action()
+		return PlayerAction.call_action()
+
+
+func test_short_big_blind_keeps_nominal_call_and_raise_totals() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),
+		Player.new(&"sb", "SB", 1, 100, MatchingAgent.new()),
+		Player.new(&"bb", "BB", 2, 7, MatchingAgent.new()),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var controller := _controller(table)
+	assert_eq(controller.start().status, StepResult.Status.WAITING_FOR_HUMAN)
+	var before := controller.get_view_for(0)
+	assert_eq(before.pot_amount, 12)
+	assert_eq(before.call_amount, 10)
+	assert_eq(before.minimum_wager_total, 20)
+	assert_eq(before.action_history[1].amount, 7)
+	assert_eq(
+		controller.submit_human_action(PlayerAction.raise_to(19)).status,
+		StepResult.Status.WAITING_FOR_HUMAN
+	)
+	assert_eq(controller.events[-1].rejection_code, ActionValidationResult.Code.BELOW_MINIMUM)
+	assert_eq(controller.get_view_for(0).action_history.size(), before.action_history.size())
+	assert_eq(players[0].stack, 100)
+	assert_eq(
+		controller.submit_human_action_without_advance(PlayerAction.raise_to(20)).status,
+		StepResult.Status.YIELDED
+	)
+	assert_eq(players[0].bet_this_round, 20)
+
+
+func test_full_increment_resets_on_every_street_and_views_keep_recipient_limits() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 1000, HumanAgent.new()),
+		Player.new(&"bot", "Bot", 1, 1000, MatchingAgent.new()),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var controller := _controller(table)
+	assert_eq(controller.start().status, StepResult.Status.WAITING_FOR_HUMAN)
+	assert_eq(
+		controller.submit_human_action(PlayerAction.raise_to(30)).status,
+		StepResult.Status.WAITING_FOR_HUMAN
+	)
+	var amount: int = 40
+	for street: StringName in [&"flop", &"turn", &"river"]:
+		var view := controller.get_view_for(0)
+		assert_eq(view.street, street)
+		assert_eq(view.minimum_wager_total, 10)
+		assert_eq(view.call_amount, 0)
+		assert_eq(view.maximum_wager_total, players[0].stack)
+		assert_has(view.legal_actions, PlayerAction.Kind.BET)
+		assert_true(controller.get_view_for(1).legal_actions.is_empty())
+		assert_eq(
+			controller.submit_human_action_without_advance(PlayerAction.bet_to(amount)).status,
+			StepResult.Status.YIELDED
+		)
+		var opponent := controller.get_view_for(1)
+		assert_eq(opponent.minimum_wager_total, amount * 2)
+		assert_eq(opponent.call_amount, amount)
+		assert_eq(opponent.maximum_wager_total, players[1].stack)
+		assert_has(opponent.legal_actions, PlayerAction.Kind.RAISE)
+		assert_eq(opponent.hero_hole_cards, players[1].hole_cards)
+		assert_true(opponent.revealed_hole_cards.is_empty())
+		assert_true(controller.get_view_for(0).legal_actions.is_empty())
+		var result := controller.advance_until_blocked()
+		assert_eq(
+			result.status,
+			(
+				StepResult.Status.HAND_COMPLETED
+				if street == &"river"
+				else StepResult.Status.WAITING_FOR_HUMAN
+			)
+		)
+		amount += 10
+	assert_chip_total([players[0].stack, players[1].stack], 2000)
+	for event: DomainEvent in controller.events:
+		assert_ne(event.kind, DomainEvent.Kind.ACTION_REJECTED)
+
+
+func test_short_all_in_rejection_preserves_history_and_stacks() -> void:
+	var players: Array[Player] = [
+		Player.new(&"human", "Human", 0, 100, HumanAgent.new()),
+		Player.new(&"caller", "Caller", 1, 100, MatchingAgent.new()),
+		Player.new(&"short", "Short", 2, 40, ScriptedAgent.new([PlayerAction.all_in_action()])),
+	]
+	var table := Table.new(players, 5, 10)
+	table.button_seat = 0
+	var controller := _controller(table)
+	controller.start()
+	assert_eq(
+		controller.submit_human_action(PlayerAction.raise_to(30)).status,
+		StepResult.Status.WAITING_FOR_HUMAN
+	)
+	var before := controller.get_view_for(0)
+	assert_eq(before.minimum_wager_total, 60)
+	for action: PlayerAction in [PlayerAction.raise_to(60), PlayerAction.all_in_action()]:
+		assert_eq(
+			controller.submit_human_action(action).status, StepResult.Status.WAITING_FOR_HUMAN
+		)
+		var after := controller.get_view_for(0)
+		assert_eq(
+			controller.events[-1].rejection_code, ActionValidationResult.Code.RAISE_NOT_REOPENED
+		)
+		assert_eq(after.action_history.size(), before.action_history.size())
+		assert_eq(after.pot_amount, before.pot_amount)
+		assert_eq(after.acting_seat, before.acting_seat)
+		assert_eq(after.minimum_wager_total, before.minimum_wager_total)
+		assert_eq(after.legal_actions, before.legal_actions)
+		assert_eq(players[0].stack, 70)
+	assert_eq(
+		controller.submit_human_action(PlayerAction.call_action()).status,
+		StepResult.Status.WAITING_FOR_HUMAN
+	)
+
+
 func test_setup_posts_blinds_deals_cards_and_waits_for_human() -> void:
 	var players: Array[Player] = _players_with_agents()
 	var table := Table.new(players, 5, 10)
@@ -205,7 +328,7 @@ func test_all_in_preflop_runs_out_board_and_completes_automatically() -> void:
 	assert_chip_total([players[0].stack, players[1].stack, players[2].stack], 60)
 
 
-func test_short_big_blind_post_commits_actual_stack_and_runs_out_without_action() -> void:
+func test_short_big_blind_posts_actual_chips_then_runs_out_after_nominal_call() -> void:
 	var players: Array[Player] = [
 		Player.new(&"human", "Human", 0, 900, HumanAgent.new()),
 		Player.new(&"short_bb", "Short BB", 1, 631, ScriptedAgent.new([])),
@@ -216,13 +339,20 @@ func test_short_big_blind_post_commits_actual_stack_and_runs_out_without_action(
 
 	var result: StepResult = controller.start(1)
 
-	assert_eq(result.status, StepResult.Status.YIELDED)
+	assert_eq(result.status, StepResult.Status.WAITING_FOR_HUMAN)
 	var history: Array[PublicActionRecord] = controller.get_view_for(0).action_history
 	assert_eq(history[0].amount, 660)
 	assert_eq(history[1].amount, 631)
 	assert_true(players[1].all_in)
 	assert_eq(history.size(), 2)
-	while controller.state != HandController.State.COMPLETE:
+	assert_eq(controller.get_view_for(0).call_amount, 240)
+	assert_eq(
+		controller.submit_human_action_without_advance(PlayerAction.call_action()).status,
+		StepResult.Status.YIELDED
+	)
+	for _step: int in range(16):
+		if controller.state == HandController.State.COMPLETE:
+			break
 		var view: GameView = controller.get_view_for(0)
 		assert_eq(view.acting_seat, Table.NO_SEAT)
 		assert_true(view.legal_actions.is_empty())

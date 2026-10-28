@@ -5,7 +5,7 @@ an iPad or an Android phone without pushing or merging. The completed server wor
 [`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). GUI device-review evidence and
 remaining acceptance limitations are recorded in the archived
 [`OptimizingPhoneGuiTasks.md`](../../docs/arkiv/OptimizingPhoneGuiTasks.md)
-and section 5 of [`AstraSuggestionTasks.md`](../../docs/AstraSuggestionTasks.md).
+and section 5 of the archived [`AstraSuggestionTasks.md`](../../docs/arkiv/AstraSuggestionTasks.md).
 
 Install the [normal development dependencies](../../README.md#development-checks)
 and Godot 4.7.2 with matching Web export templates. The CLI uses Python 3's
@@ -271,7 +271,7 @@ does not certify the rolling Pages build.
 
 Use one pinned LAN build on desktop browsers at multiple sizes, iPad, and
 phone, as selected for the current
-[GUI backlog](../../docs/AstraSuggestionTasks.md#5-gui-clarity-and-interaction).
+[GUI backlog](../../docs/arkiv/AstraSuggestionTasks.md#5-gui-clarity-and-interaction).
 Reopen the root URL after rebuilding and compare the build ID on every device.
 Consult the archived
 [phone acceptance record](../../docs/arkiv/OptimizingPhoneGuiTasks.md) for earlier

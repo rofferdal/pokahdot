@@ -143,8 +143,9 @@ can act.
 
 ### 4.5 Actions (No Limit)
 
-Legal actions depend on `current_bet`, the largest wager on the current street
-(including preflop blinds), plus the player's `bet_this_round` and `stack`.
+Legal actions depend on `current_bet`, the call target on the current street,
+plus the player's `bet_this_round` and `stack`. The target is the largest wager,
+with a nominal-big-blind floor preflop even when the blind posts short.
 
 | Action | When legal |
 | --- | --- |
@@ -170,6 +171,14 @@ It updates `current_bet` without changing the minimum full-raise increment.
 For example, after a raise from 10 to 30, a short all-in to 35 leaves the
 increment at 20; a player with raise rights must reach at least 55 for a full
 raise. Players who have not yet acted must still fold, call, or raise.
+
+Boundary rules: preflop, a short-posted big blind still establishes the nominal
+big blind as the call total, and the first full raise must reach twice that
+blind. Postflop, an opening all-in below one big blind leaves the full-raise
+increment at one big blind: with an opening all-in to 5 and BB 10, a full raise
+must reach 15. Multiple short all-ins never cumulatively reopen closed raise
+rights, even when their combined increases reach a full increment. A player
+who checked before a short opening all-in also retains closed raise rights.
 
 The GUI's **Pot bet**/**Pot raise** controls and CLI `potbet`/`potraise`
 commands are No Limit convenience presets, not Pot Limit rules. Wagers remain
