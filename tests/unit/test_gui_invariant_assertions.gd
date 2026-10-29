@@ -87,11 +87,11 @@ func test_ellipsized_required_content_clipping_is_reported() -> void:
 	var name_label := seat.find_child("Name", true, false) as Label
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.text = "Required player name is deliberately too long ".repeat(8)
-	_assert_failure(rendered, "text-clipping:", "/Name")
+	_assert_failure(rendered, "text-clipping:", "seat/1/name")
 	var stack_label := seat.find_child("Stack", true, false) as Label
 	stack_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	stack_label.text = "99999999999999999999999999999999999999999999999999999999"
-	_assert_failure(rendered, "text-clipping:", "/Stack")
+	_assert_failure(rendered, "text-clipping:", "seat/1/stack")
 
 
 func test_wrapped_ellipsis_line_limit_is_reported_even_with_spare_height() -> void:
@@ -190,13 +190,31 @@ func test_touch_target_failure_is_reported() -> void:
 	_assert_failure(rendered, "touch-target:")
 
 
-func test_community_card_failure_is_reported() -> void:
+func test_required_card_content_and_visibility_failures_are_reported() -> void:
 	var rendered: Dictionary = await _render(&"human-turn-river")
 	var wager_input := rendered.table.get_node("%WagerInput") as LineEdit
 	wager_input.text = "75"
 	var card := rendered.table.get_node("%CardSlots").get_child(0) as Control
 	card.visible = false
 	_assert_failure(rendered, "community-cards:")
+	var harness: Node = GuiSceneHarnessScript.new()
+	add_child_autofree(harness)
+	var phone: Dictionary = harness.render(
+		GuiVisualStateFixturesScript.by_id(&"showdown-long", PLAYER_COUNT), Vector2i(390, 844)
+	)
+	assert_true(await harness.settle_layout())
+	var face := phone.table.find_child("ShowdownCard1", true, false) as Control
+	assert_not_null(face, "The showdown fixture must exercise an actual revealed opponent face")
+	if face == null:
+		return
+	var rank := face.get_node("Content/Rank") as Control
+	var suit := face.get_node("Content/Suit") as Control
+	for field: Control in [rank, suit]:
+		field.hide()
+		_assert_failure(phone, "seat-content:", "omits visible rank or suit")
+		field.show()
+	face.modulate.a = 0.5
+	_assert_failure(phone, "seat-content:", "card content is faded")
 
 
 func test_legal_action_failure_is_reported() -> void:
@@ -208,12 +226,48 @@ func test_legal_action_failure_is_reported() -> void:
 
 func test_overlay_exceptions_are_state_specific() -> void:
 	var ordinary: Dictionary = await _render(&"wager-entry")
-	ordinary.intentional_overlap_controls = [&"UnexpectedOverlay"]
+	ordinary.intentional_overlap_roles = [&"unexpected"]
 	_assert_failure(ordinary, "overlay-exception:")
 
 	var quit: Dictionary = await _render(&"quit-confirmation")
-	quit.intentional_overlap_controls = []
+	quit.intentional_overlap_roles = []
 	_assert_failure(quit, "overlay-exception:")
+
+
+func test_snapshot_contract_preserves_rejection_without_scene_access() -> void:
+	assert_string_contains(
+		"\n".join(GuiInvariantAssertionsScript.validate_snapshot(null)), "layout-readiness:"
+	)
+	var empty := GuiLayoutSnapshot.new()
+	assert_string_contains(
+		"\n".join(GuiInvariantAssertionsScript.validate_snapshot(empty)), "layout-readiness:"
+	)
+	empty.ready = true
+	assert_string_contains(
+		"\n".join(GuiInvariantAssertionsScript.validate_snapshot(empty)), "layout-contract:"
+	)
+	var rendered: Dictionary = await _render(&"wager-entry")
+	var snapshot: GuiLayoutSnapshot = rendered.root.get_layout_snapshot()
+	rendered.root.free()
+	assert_eq(GuiInvariantAssertionsScript.validate_snapshot(snapshot), PackedStringArray())
+	snapshot.elements[&"action/fold"].enabled = false
+	assert_string_contains(
+		"\n".join(GuiInvariantAssertionsScript.validate_snapshot(snapshot)), "legal-action:"
+	)
+
+
+func test_integrated_status_is_valid_without_the_reference_sibling_layout() -> void:
+	var rendered: Dictionary = await _render(&"wager-entry")
+	var snapshot: GuiLayoutSnapshot = rendered.root.get_layout_snapshot()
+	var seat: GuiSeatSnapshot = snapshot.seats[1]
+	seat.status.parent_role = seat.panel.role
+	seat.status.rect = Rect2(seat.panel.rect.position + Vector2(4, 4), Vector2(40, 20))
+	assert_eq(GuiInvariantAssertionsScript.validate_snapshot(snapshot), PackedStringArray())
+	seat.status.rect.position = seat.panel.rect.end
+	assert_string_contains(
+		"\n".join(GuiInvariantAssertionsScript.validate_snapshot(snapshot)),
+		"auxiliary-clearance: integrated status_1 escapes seat"
+	)
 
 
 func _render(state_id: StringName, player_count: int = PLAYER_COUNT) -> Dictionary:

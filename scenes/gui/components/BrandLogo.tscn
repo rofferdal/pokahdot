@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://resources/gui_logo_texture.tres" id="1_texture"]
+[ext_resource type="Shader" path="res://resources/gui_logo.gdshader" id="2_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_logo"]
+shader = ExtResource("2_shader")
+shader_parameter/embossed = false
+
+[node name="BrandLogo" type="TextureRect"]
+material = SubResource("ShaderMaterial_logo")
+mouse_filter = 2
+texture = ExtResource("1_texture")
+expand_mode = 1
+stretch_mode = 5

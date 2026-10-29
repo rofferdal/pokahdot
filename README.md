@@ -41,6 +41,11 @@ On macOS, if Godot is not in `PATH`:
 /Applications/Godot.app/Contents/MacOS/Godot --path .
 ```
 
+The GUI normalizes native display scale and actual Web canvas CSS geometry
+through one viewport adapter. Startup, table and popups share safe-area bounds;
+container/content minimums guide responsive fit. The replacement components and
+presentation requirements remain tracked in the [GUI backlog](docs/RestructureGuiTasks.md).
+
 ## Start headless (terminal)
 
 Run the CLI entry point without a window:
@@ -362,6 +367,9 @@ defect. The complete command reference is also available in
 [`devdocs/how-to/running-and-testing.md`](devdocs/how-to/running-and-testing.md).
 `make check gui-current-invariant-gate` runs the complete headless suite and
 the historical, phone, iPad, and desktop layout matrices during development.
+`check` also compares the step-80 GUI policy/fit characterization with its
+reviewed reference registry; recorded defects remain open. Use
+`make gui-layout-sweep` for the additional step-20 diagnostic samples.
 Pull requests run the same checks through `release-candidate-gate` on a clean
 proposed merge, using Godot 4.7.2, without deployment. Failures appear in the
 **Checks and current layouts** status; **Exported Web input** separately tests
@@ -394,6 +402,15 @@ and the archived [phone review](docs/arkiv/OptimizingPhoneGuiTasks.md).
 
 ## GUI action pace
 
+The shared transparent Pokahdot logo appears above the Start form and as a
+subtle embossed mark beneath table content. The Start form adapts its optional
+header content without scrolling or shrinking essential controls. The active
+[GUI replacement backlog](docs/RestructureGuiTasks.md) records current visual
+reviews, including the accepted phone-portrait redesign: two opponent seats per
+row, a centered top seat for odd opponent counts, and the community group above
+the human controls. These reviewed increments precede the remaining component
+and layout replacement work.
+
 The GUI waits two seconds after rendering each player action and each flop,
 turn, or river reveal, then five seconds after a completed hand. Opening a
 table overlay holds advancement until it closes, so hand summaries remain
@@ -401,7 +418,8 @@ readable. Non-phone seat-status bands show showdown hands or `Winner` for fold
 wins. On phones, completed-hand feedback names the winners while keeping cards
 visible; **Pots** opens exact main/split/side-pot awards directly. During play,
 the same button remains **More**. Overlays block underlying actions, contain keyboard
-focus, and offer Close/Cancel and Quit. Keypad Cancel preserves the original
+focus, and offer Close/Cancel. Tournament Quit stays outside numeric entry;
+cancel/close the keypad before using table/menu Quit. Keypad Cancel preserves the original
 text exactly; only Done commits.
 
 Edit `resources/gui_action_timing_config.tres` in Godot to change
@@ -425,4 +443,5 @@ pokahdot/
 GUI automated coverage and manual device acceptance are listed separately in
 the [visual evidence contract](docs/GUI_VISUAL_TESTING.md#current-support-and-acceptance).
 Physical-phone acceptance limitations remain recorded in the archived phone
-review; phone landscape remains deferred.
+review; the reference phone landscape remains diagnostic. The replacement
+backlog targets responsive portrait and landscape phone/tablet layouts.

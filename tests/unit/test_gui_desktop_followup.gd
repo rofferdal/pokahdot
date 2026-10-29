@@ -384,6 +384,39 @@ func test_event_log_and_action_panel_have_equal_size_and_symmetric_desktop_place
 			Rect2(Vector2.ZERO, surface.size).encloses(action_panel.get_rect()),
 			context + " action panel must remain in the felt",
 		)
+	# Compact previews also align both edges with the hero and clear curved felt.
+	for viewport: Vector2 in [Vector2(1280, 720), Vector2(1369, 724), Vector2(1440, 900)]:
+		var table := PokerTableScene.instantiate() as PokerTableController
+		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		table.size = viewport
+		add_child_autofree(table)
+		table.bind_view(_view(6), _avatar_assignments(6))
+		await _settle_layout()
+		var regions := table.get_resolved_region_rects()
+		for role: StringName in [&"event", &"action"]:
+			assert_almost_eq(regions[role].position.y, regions[&"hero"].position.y, 0.01)
+			assert_almost_eq(regions[role].end.y, regions[&"hero"].end.y, 0.01)
+		var felt := table.get_node("TableMargin/Felt") as Panel
+		var style := felt.get_theme_stylebox("panel") as StyleBoxFlat
+		for seat: int in [2, 4]:
+			var upper: Rect2 = regions[StringName("seat_%d" % seat)].merge(
+				regions[StringName("status_%d" % seat)]
+			)
+			assert_gte(
+				upper.position.y + _surface(table).position.y,
+				float(style.corner_radius_top_left) + 8.0,
+				"complete upper seat must clear the felt's curved border at %s" % viewport
+			)
+		var event_log := table.get_node("%EventLog") as RichTextLabel
+		assert_eq(event_log.get_theme_font_size("normal_font_size"), 18)
+		assert_gte((table.get_node("%BoardLabel") as Label).get_theme_font_size("font_size"), 20)
+		# The smaller log font must fit more history in the same reserved panel.
+		event_log.text = "Public action\n".repeat(20)
+		await _settle_layout()
+		var compact_height: int = event_log.get_content_height()
+		event_log.add_theme_font_size_override("normal_font_size", 20)
+		await _settle_layout()
+		assert_gt(event_log.get_content_height(), compact_height)
 
 
 func test_desktop_player_facing_nodes_use_source_font_without_post_render_scaling() -> void:

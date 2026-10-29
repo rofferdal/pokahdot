@@ -20,6 +20,7 @@ var _min_wager_button: Button
 var _pot_raise_button: Button
 var _wager_button: Button
 var _all_in_button: Button
+var _quit_button: Button
 var _wager_input: LineEdit
 var _action_status: Label
 var _phone_hero_summary: HBoxContainer
@@ -35,6 +36,7 @@ func configure(root: Control) -> void:
 	_pot_raise_button = root.get_node("%PotRaiseButton") as Button
 	_wager_button = root.get_node("%WagerButton") as Button
 	_all_in_button = root.get_node("%AllInButton") as Button
+	_quit_button = root.get_node("%QuitButton") as Button
 	_wager_input = root.get_node("%WagerInput") as LineEdit
 	_action_status = root.get_node("%ActionStatus") as Label
 	_phone_hero_summary = root.get_node("%PhoneHeroSummary") as HBoxContainer
@@ -56,6 +58,7 @@ func apply_action_control_styles() -> void:
 		_pot_raise_button,
 		_wager_button,
 		_all_in_button,
+		_quit_button,
 	]
 	for action_button: Button in action_buttons:
 		action_button.add_theme_stylebox_override(
@@ -74,16 +77,25 @@ func apply_action_control_styles() -> void:
 			"disabled", GuiTableStyleScript.action_control_box(Color("0a1711"), Color("385443"), 1)
 		)
 		action_button.add_theme_color_override("font_disabled_color", Color("7e8a83"))
-	_wager_input.add_theme_stylebox_override(
-		"normal", GuiTableStyleScript.action_control_box(Color("102d21"), Color("75c99a"), 1)
-	)
-	_wager_input.add_theme_stylebox_override(
-		"focus", GuiTableStyleScript.action_control_box(Color("1b4933"), Color("e7d39b"), 2)
-	)
-	_wager_input.add_theme_stylebox_override(
-		"read_only", GuiTableStyleScript.action_control_box(Color("0a1711"), Color("385443"), 1)
-	)
-	_wager_input.add_theme_color_override("font_placeholder_color", Color("7e8a83"))
+	for state: StringName in [&"normal", &"focus", &"read_only"]:
+		var border := Color("e7d39b") if state == &"focus" else Color("75c99a")
+		var background := Color("1b4933") if state == &"focus" else Color("102d21")
+		if state == &"read_only":
+			border = Color("557665")
+			background = Color("0a1711")
+		var field_style := GuiTableStyleScript.box(
+			background, border, 2 if state == &"focus" else 1, 0
+		)
+		# Inset only the drawn face; the Container allocation and touch area stay intact.
+		field_style.expand_margin_top = -4.0
+		field_style.expand_margin_bottom = -4.0
+		field_style.set_content_margin_all(2.0)
+		_wager_input.add_theme_stylebox_override(state, field_style)
+	for role: StringName in [&"font_color", &"caret_color", &"font_uneditable_color"]:
+		_wager_input.add_theme_color_override(role, Color("b8c3bb"))
+	_wager_input.add_theme_color_override("font_placeholder_color", Color("b8c3bb"))
+	_wager_input.add_theme_color_override("selection_color", Color("75c99a"))
+	_wager_input.add_theme_color_override("font_selected_color", Color("102d21"))
 
 
 func configure_numeric_action_rows() -> void:

@@ -3,6 +3,7 @@ extends "res://tests/support/poker_gut_test.gd"
 const GuiActionTimingConfigScript := preload("res://scripts/gui/gui_action_timing_config.gd")
 const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
+const Measurement := preload("res://scripts/gui/gui_snapshot_measurement.gd")
 
 
 func test_phone_center_keeps_decision_information_visible_and_moves_blinds_to_more() -> void:
@@ -10,8 +11,8 @@ func test_phone_center_keeps_decision_information_visible_and_moves_blinds_to_mo
 
 	assert_eq((table.get_node("%BoardLabel") as Label).text, "Community cards")
 	assert_eq(table.get_node("%CardSlots").get_child_count(), 5)
-	assert_eq((table.get_node("%PotLabel") as Label).text, "Pot: 45")
-	assert_eq((table.get_node("%WagerLabel") as Label).text, "Current wager: 10")
+	assert_eq((table.get_node("%PotLabel") as Label).text, "Pot 45")
+	assert_eq((table.get_node("%WagerLabel") as Label).text, "Bet 10")
 	assert_string_contains((table.get_node("%ActionStatus") as Label).text, "Your turn")
 	assert_eq((table.get_node("%CheckCallButton") as Button).text, "Call 10")
 	assert_false((table.get_node("%PhoneOverflowMenu") as Control).visible)
@@ -80,7 +81,9 @@ func test_turn_capture_keeps_complete_center_and_seat_action_amounts() -> void:
 	)
 	_assert_label_text_fits(pot_label)
 	_assert_label_text_fits(wager_label)
-	var expected_actions: Dictionary[int, String] = {1: "B120", 2: "C120", 3: "R240"}
+	var expected_actions: Dictionary[int, String] = {
+		1: "Bet to 120", 2: "Call to 120", 3: "Raise to 240"
+	}
 	for seat: int in expected_actions:
 		var action_badge := _action_badge(table, seat)
 		assert_eq(action_badge.text, expected_actions[seat], "seat %d action copy" % seat)
@@ -96,9 +99,9 @@ func test_phone_keeps_each_seats_latest_round_action_visible_until_street_change
 		PublicActionRecord.new(3, PlayerAction.Kind.RAISE, 30),
 	]
 	var table: PokerTableController = await _phone_view_table(view)
-	assert_eq(_visible_action_text(table, 1), "C10")
-	assert_eq(_visible_action_text(table, 2), "C10")
-	assert_eq(_visible_action_text(table, 3), "R30")
+	assert_eq(_visible_action_text(table, 1), "Call to 10")
+	assert_eq(_visible_action_text(table, 2), "Call to 10")
+	assert_eq(_visible_action_text(table, 3), "Raise to 30")
 	assert_false((table.get_node("%PhoneHeroActionBadge") as Label).visible)
 
 	view._action_history.append(PublicActionRecord.new(0, PlayerAction.Kind.CHECK, 0))
@@ -107,17 +110,17 @@ func test_phone_keeps_each_seats_latest_round_action_visible_until_street_change
 	await _settle()
 	assert_eq((table.get_node("%PhoneHeroActionBadge") as Label).text, "Chk")
 	assert_true((table.get_node("%PhoneHeroActionBadge") as Label).visible)
-	assert_eq(_visible_action_text(table, 1), "C30")
-	assert_eq(_visible_action_text(table, 2), "C10")
-	assert_eq(_visible_action_text(table, 3), "R30")
+	assert_eq(_visible_action_text(table, 1), "Call to 30")
+	assert_eq(_visible_action_text(table, 2), "Call to 10")
+	assert_eq(_visible_action_text(table, 3), "Raise to 30")
 	assert_eq((table.get_node("%PhoneHeroActionBadge") as Label).text, "Chk")
 
 	# Presentation timers from the former transient-badge behavior must not
 	# remove any seat's current-round action.
 	await get_tree().create_timer(0.03).timeout
-	assert_eq(_visible_action_text(table, 1), "C30")
-	assert_eq(_visible_action_text(table, 2), "C10")
-	assert_eq(_visible_action_text(table, 3), "R30")
+	assert_eq(_visible_action_text(table, 1), "Call to 30")
+	assert_eq(_visible_action_text(table, 2), "Call to 10")
+	assert_eq(_visible_action_text(table, 3), "Raise to 30")
 
 	view._seats[3].folded = true
 	view._action_history.append(PublicActionRecord.new(3, PlayerAction.Kind.FOLD, 0))
@@ -154,7 +157,7 @@ func test_phone_fold_action_and_durable_state_stay_visible_during_round() -> voi
 	view._action_history.append(PublicActionRecord.new(3, PlayerAction.Kind.FOLD, 0))
 	var table: PokerTableController = await _phone_view_table(view)
 	var seat := _seat(table, 3)
-	assert_true((seat.find_child("ActionBadge", true, false) as Label).visible)
+	assert_true(seat.action_badge.visible)
 	assert_not_null(seat.find_child("Badge", true, false))
 	assert_has((seat.find_child("Badge", true, false) as Label).text.split(" "), "F")
 	assert_null(seat.find_child("ShowdownCard1", true, false))
@@ -162,28 +165,28 @@ func test_phone_fold_action_and_durable_state_stay_visible_during_round() -> voi
 	assert_not_null(seat.find_child("HoleCardField2", true, false))
 
 	await get_tree().create_timer(0.03).timeout
-	assert_true((seat.find_child("ActionBadge", true, false) as Label).visible)
-	assert_eq((seat.find_child("ActionBadge", true, false) as Label).text, "F")
+	assert_true(seat.action_badge.visible)
+	assert_eq(seat.action_badge.text, "Fold")
 	assert_has((seat.find_child("Badge", true, false) as Label).text.split(" "), "F")
 	assert_null(seat.find_child("CardBack1", true, false))
 
 
 func test_desktop_copy_and_status_rows_are_restored_after_phone_profile() -> void:
 	var table: PokerTableController = await _phone_table(&"human-turn-preflop")
-	assert_eq((table.get_node("%PotLabel") as Label).text, "Pot: 45")
+	assert_eq((table.get_node("%PotLabel") as Label).text, "Pot 45")
 
 	table.size = Vector2(1280, 720)
 	await _settle()
 	assert_string_contains((table.get_node("%PotLabel") as Label).text, "SB 5 BB 10")
 	assert_eq((table.get_node("%WagerLabel") as Label).text, "Wagers  •  3 active")
 	assert_true(table.get_node("TableMargin/Felt/TableSurface/Seats/Seat2Status").visible)
-	assert_null(_seat(table, 2).find_child("ActionBadge", true, false))
+	assert_null(_seat(table, 2).action_badge)
 
 	table.size = Vector2(390, 844)
 	await _settle()
-	assert_eq((table.get_node("%PotLabel") as Label).text, "Pot: 45")
-	assert_eq((table.get_node("%WagerLabel") as Label).text, "Current wager: 10")
-	assert_not_null(_seat(table, 2).find_child("ActionBadge", true, false))
+	assert_eq((table.get_node("%PotLabel") as Label).text, "Pot 45")
+	assert_eq((table.get_node("%WagerLabel") as Label).text, "Bet 10")
+	assert_not_null(_seat(table, 2).action_badge)
 
 
 func _phone_table(state_id: StringName) -> PokerTableController:
@@ -205,12 +208,12 @@ func _phone_view_table(
 	return table
 
 
-func _seat(table: PokerTableController, seat: int) -> PanelContainer:
-	return table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as PanelContainer
+func _seat(table: PokerTableController, seat: int) -> GuiTableSeatView:
+	return table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as GuiTableSeatView
 
 
 func _action_badge(table: PokerTableController, seat: int) -> Label:
-	return _seat(table, seat).find_child("ActionBadge", true, false) as Label
+	return _seat(table, seat).action_badge
 
 
 func _visible_action_text(table: PokerTableController, seat: int) -> String:
@@ -219,19 +222,20 @@ func _visible_action_text(table: PokerTableController, seat: int) -> String:
 
 
 func _assert_label_text_fits(label: Label) -> void:
-	var rendered_width: float = (
-		label
-		. get_theme_font("font")
-		. get_string_size(
-			label.text,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1.0,
-			label.get_theme_font_size("font_size"),
-		)
-		. x
+	var value: GuiLayoutElement = Measurement.element(label, label, &"complete_copy")
+	assert_lte(
+		value.required_size.x,
+		value.allocated_size.x + 0.5,
+		"%s must render '%s' at its actual wrapped width" % [label.name, label.text]
 	)
 	assert_lte(
-		rendered_width, label.size.x, "%s must render '%s' in full" % [label.name, label.text]
+		value.required_size.y,
+		value.allocated_size.y + 0.5,
+		"%s must render every line of '%s'" % [label.name, label.text]
+	)
+	assert_true(
+		value.max_lines < 0 or value.line_count <= value.max_lines,
+		"%s must not hide required lines" % label.name
 	)
 
 

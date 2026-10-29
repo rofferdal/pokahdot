@@ -218,6 +218,36 @@ acceptance-eligible only if every expected capture settles and passes its
 recorded invariants. Capture commands refuse to overwrite existing evidence.
 Use `make GODOT=/full/path/to/godot <target>` when Godot is not on `PATH`.
 
+`make check` includes the step-80 GUI layout characterization. Use
+`make gui-layout-characterization` to run it alone, or `make gui-layout-sweep`
+for denser step-20 diagnostics. Read the
+[characterization guidance](../../docs/GUI_VISUAL_TESTING.md#policy-and-fit-characterization)
+before reviewing or explicitly changing the failure registry.
+
+The app-level `GuiViewportAdapter` owns Window normalization and usable origins;
+startup/table/popups consume its immutable geometry. Run the additional exported
+viewport gate with a fresh output directory:
+
+```sh
+make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-geometry-test \
+  WEB_GEOMETRY_OUTPUT=localtmp/geometry-review-01
+```
+
+It uses the same pinned Playwright setup as the input gate. If browsers were
+installed under `localtmp/playwright-browsers`, set
+`PLAYWRIGHT_BROWSERS_PATH="$PWD/localtmp/playwright-browsers"`. Finite inset
+presets belong only to the exported fixture; production observers provide no
+live input/geometry mutators. Real native measurements use
+`tests/performance/gui_geometry_fixture.tscn -- --app-adapter --output ...`.
+
+Shared GUI assertions and exported observers use `get_layout_snapshot()`.
+When adding a replacement composition, inject its fixture driver into
+`GuiSceneHarness`; keep reference node setup and exact legacy density checks
+in the reference driver. Browser layout reports use semantic label roles and
+one viewport-coordinate space (report suite v2). Keep observer helpers in the
+isolated test export support list and out of the production export.
+
+
 ### Exercise exported Web input
 
 Install `requirements-web-test.txt` into a development virtual environment,
@@ -361,6 +391,12 @@ The project `Makefile` runs Python unit tests, imports Godot assets, checks GDSc
 ```bash
 make check
 ```
+
+LAN builds also reject raw engine/script errors in the check log, even when
+the command exits successfully. A negative test that deliberately triggers
+`push_error` must capture and assert that diagnostic in a child process, as
+the native-popup guard test does. Preserve checks for unexpected diagnostics;
+do not disable engine error reporting or relax the LAN log scanner.
 
 ---
 

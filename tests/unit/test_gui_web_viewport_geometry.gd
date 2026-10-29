@@ -5,6 +5,7 @@ const GuiWebViewportGeometryScript := preload("res://scripts/gui/gui_web_viewpor
 const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
 const MainScene := preload("res://scenes/main.tscn")
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
+const Measurement := preload("res://scripts/gui/gui_snapshot_measurement.gd")
 const OPPONENT_ACTION_PADDING: float = 12.0
 const HERO_ACTION_PADDING: float = 4.0
 
@@ -168,23 +169,19 @@ func _assert_phone_composition(backing_size: Vector2i, pixel_ratio: float) -> vo
 	assert_false((table.get_node("%QuitButton") as Control).visible)
 	assert_true((table.get_node("%PhoneMoreButton") as Control).visible)
 	for seat: int in range(1, 6):
-		var panel := table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat)
-		var badge := panel.find_child("ActionBadge", true, false) as Label
+		var panel := (
+			table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as GuiTableSeatView
+		)
+		var badge: Label = panel.action_badge
 		_assert_action_padding(badge, OPPONENT_ACTION_PADDING, "seat %d" % seat)
 	var hero_badge := table.get_node("%PhoneHeroActionBadge") as Label
 	_assert_action_padding(hero_badge, HERO_ACTION_PADDING, "hero")
 
 
 func _assert_action_padding(label: Label, padding: float, context: String) -> void:
-	var rendered_width: float = (
-		label
-		. get_theme_font("font")
-		. get_string_size(
-			label.text,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1.0,
-			label.get_theme_font_size("font_size"),
-		)
-		. x
-	)
-	assert_lte(rendered_width + padding, label.size.x, "%s action padding" % context)
+	var value: GuiLayoutElement = Measurement.element(label, label, &"complete_action")
+	assert_lte(value.required_size.x + padding, label.size.x, "%s action padding" % context)
+	assert_lte(value.required_size.y, value.allocated_size.y + 0.5, context + " complete lines")
+	assert_true(value.max_lines < 0 or value.line_count <= value.max_lines, context + " line limit")
+	assert_false(label.clip_text, context + " must not hide clipped glyphs")
+	assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING)

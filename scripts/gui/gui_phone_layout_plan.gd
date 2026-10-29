@@ -9,6 +9,7 @@ extends RefCounted
 
 const GuiPhoneSeatLayoutScript := preload("res://scripts/gui/gui_phone_seat_layout.gd")
 const OVERLAY_MARGIN: float = 12.0
+const PORTRAIT_NUMERIC_CENTER_HEIGHT: float = 92.0
 const MORE_BUTTON_SIZE := Vector2(72.0, 48.0)
 const SEAT_DETAIL_SIZE := Vector2(280.0, 188.0)
 const PHONE_QUIT_SIZE := Vector2(320.0, 180.0)
@@ -32,9 +33,10 @@ func configure(
 	menu_minimum_size: Vector2 = Vector2.ZERO,
 	seat_detail_minimum_size: Vector2 = Vector2.ZERO,
 	portrait_token_height: float = GuiPhoneSeatLayoutScript.PORTRAIT_TOKEN_HEIGHT,
+	portrait_columns: int = 0,
 ) -> bool:
 	var resolved_seats: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(
-		usable_size, player_count, portrait_token_height
+		usable_size, player_count, portrait_token_height, portrait_columns
 	)
 	if resolved_seats.is_empty():
 		return false
@@ -59,7 +61,9 @@ func configure(
 
 	var resolved_action_height: float = minf(
 		usable_size.y,
-		maxf(112.0 if landscape else 128.0, action_minimum_size.y),
+		maxf(
+			112.0 if landscape else (0.0 if portrait_columns > 0 else 128.0), action_minimum_size.y
+		),
 	)
 	var action_side_inset: float = 0.0
 	if landscape:
@@ -72,13 +76,27 @@ func configure(
 		Vector2(action_side_inset, usable_size.y - resolved_action_height),
 		Vector2(usable_size.x - action_side_inset * 2.0, resolved_action_height),
 	)
-	compact_numeric_center = not landscape and portrait_token_height > 60.0
-	var center_height: float = 108.0 if landscape else (96.0 if compact_numeric_center else 174.0)
+	compact_numeric_center = (
+		not landscape and (portrait_token_height > 60.0 or portrait_columns > 0)
+	)
+	var center_height: float = (
+		108.0
+		if landscape
+		else (
+			(PORTRAIT_NUMERIC_CENTER_HEIGHT if portrait_columns > 0 else 96.0)
+			if compact_numeric_center
+			else 174.0
+		)
+	)
 	center_rect.size.y = minf(center_height, maxf(0.0, action_rect.position.y - 4.0))
 	center_rect.position.y = minf(
 		maxf(64.0 if landscape else center_rect.position.y, center_rect.position.y),
 		maxf(0.0, action_rect.position.y - center_rect.size.y - 4.0),
 	)
+	if not landscape and portrait_columns > 0:
+		center_rect.size.x = usable_size.x - 16.0
+		center_rect.position.x = 8.0
+		center_rect.position.y = action_rect.position.y - center_rect.size.y - 4.0
 	# More is rendered inside the reserved action rail; it never consumes a
 	# perimeter seat slot.
 	more_rect = Rect2(

@@ -2,6 +2,7 @@ extends "res://tests/support/poker_gut_test.gd"
 
 const GuiVisualStateFixturesScript := preload("res://tests/support/gui_visual_state_fixtures.gd")
 const PokerTableScene := preload("res://scenes/poker_table.tscn")
+const Measurement := preload("res://scripts/gui/gui_snapshot_measurement.gd")
 const HORIZONTAL_CONTENT_PADDING: float = 12.0
 const HERO_HORIZONTAL_CONTENT_PADDING: float = 4.0
 
@@ -24,15 +25,15 @@ func test_web_fallback_font_keeps_complete_opponent_and_hero_action_amounts() ->
 		view, {1: "Linh", 2: "Bao", 3: "Lior", 4: "Haruto", 5: "Kwame"}
 	)
 	var expected_actions: Dictionary[int, String] = {
-		1: "R310", 2: "B7", 3: "C42", 4: "B120", 5: "A1000"
+		1: "Raise to 310", 2: "Bet to 7", 3: "Call to 42", 4: "Bet to 120", 5: "All-in to 1000"
 	}
 	for seat: int in expected_actions:
 		var badge := _seat_action_badge(table, seat)
 		assert_eq(badge.text, expected_actions[seat], "seat %d complete copy" % seat)
 		_assert_web_font_content_fits(badge, "seat %d" % seat)
-		var token: Control = badge.get_parent().get_parent() as Control
+		var token: GuiTableSeatView = table._seat_widgets[seat]
 		for field_name: String in ["Name", "Stack", "Badge", "HoleCards"]:
-			var field := token.find_child(field_name, true, false) as Control
+			var field: Control = token.field(field_name)
 			assert_false(
 				badge.get_global_rect().intersects(field.get_global_rect()),
 				"seat %d action must not cover %s" % [seat, field_name],
@@ -70,9 +71,9 @@ func _phone_view_table(view: GameView, names: Dictionary[int, String]) -> PokerT
 
 func _seat_action_badge(table: PokerTableController, seat: int) -> Label:
 	var seat_panel := (
-		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as PanelContainer
+		table.get_node("TableMargin/Felt/TableSurface/Seats/Seat%d" % seat) as GuiTableSeatView
 	)
-	return seat_panel.find_child("ActionBadge", true, false) as Label
+	return seat_panel.action_badge
 
 
 func _assert_web_font_content_fits(
@@ -80,21 +81,14 @@ func _assert_web_font_content_fits(
 ) -> void:
 	var font: Font = label.get_theme_font("font")
 	assert_eq(font, ThemeDB.fallback_font, "%s uses the exported fallback-font path" % context)
-	var rendered_width: float = (
-		font
-		. get_string_size(
-			label.text,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1.0,
-			label.get_theme_font_size("font_size"),
-		)
-		. x
-	)
+	var value: GuiLayoutElement = Measurement.element(label, label, &"complete_action")
 	assert_lte(
-		rendered_width + horizontal_padding,
+		value.required_size.x + horizontal_padding,
 		label.size.x,
 		"%s must fit '%s' with horizontal padding" % [context, label.text],
 	)
+	assert_lte(value.required_size.y, value.allocated_size.y + 0.5, context + " complete lines")
+	assert_true(value.max_lines < 0 or value.line_count <= value.max_lines, context + " line limit")
 	assert_false(label.clip_text, "%s must not hide clipped glyphs" % context)
 	assert_eq(
 		label.text_overrun_behavior,

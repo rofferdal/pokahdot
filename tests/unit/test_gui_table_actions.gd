@@ -65,10 +65,12 @@ func test_action_controls_follow_recipient_legal_actions_and_submit_wagers() -> 
 	table.bind_view(match_instance.get_view_for(0), _empty_assignments())
 	table.show_wager_keypad()
 	assert_true(table.get_node("WagerKeypad").visible)
-	table.get_node("WagerKeypad/Content/Keys/Key2").emit_signal("pressed")
+	(table.get_node("WagerKeypad") as WagerKeypad).get_action_control(&"2").emit_signal("pressed")
 	assert_eq(wager_input.text, "")
 	assert_eq(table.get_node("WagerKeypad/Content/Value").text, "2")
-	table.get_node("WagerKeypad/Content/Cancel").emit_signal("pressed")
+	(table.get_node("WagerKeypad") as WagerKeypad).get_action_control(&"cancel").emit_signal(
+		"pressed"
+	)
 
 	table.submit_wager_total(view.minimum_wager_total)
 
@@ -97,7 +99,7 @@ func test_live_wager_input_uses_touch_keypad_and_pointer_keyboard_across_profile
 		input.gui_input.emit(_touch_press())
 		assert_true(keypad.visible, "touch profile %d" % profile)
 		assert_eq(
-			(keypad.get_node("Content/Keys/KeyPot") as Button).text,
+			(keypad.get_action_control(&"pot") as Button).text,
 			"Pot 15",
 			"pot target profile %d" % profile,
 		)
@@ -122,7 +124,7 @@ func test_live_wager_touch_done_submits_across_layout_profiles() -> void:
 		input.text = str(match_instance.get_view_for(0).minimum_wager_total)
 		input.gui_input.emit(_touch_press())
 		assert_true(keypad.visible, "touch profile %d" % profile)
-		keypad.get_node("Content/Done").emit_signal("pressed")
+		keypad.get_action_control(&"done").emit_signal("pressed")
 		assert_gt(match_instance.get_view_for(0).pot_amount, 15, "touch profile %d" % profile)
 
 
@@ -139,7 +141,7 @@ func test_live_wager_touch_cancel_and_keyboard_correction_submission_preserve_bo
 
 	input.text = str(view.minimum_wager_total)
 	input.gui_input.emit(_touch_press())
-	keypad.get_node("Content/Keys/Key9").emit_signal("pressed")
+	keypad.get_action_control(&"9").emit_signal("pressed")
 	assert_eq(input.text, str(view.minimum_wager_total))
 	input.gui_input.emit(_left_mouse_press())
 	assert_false(keypad.visible)
@@ -257,15 +259,15 @@ func test_live_repeated_raise_uses_existing_wager_and_reopens_action() -> void:
 	assert_false((table.get_node("%PotRaiseButton") as Button).disabled)
 	table.show_wager_keypad()
 	var keypad := table.get_node("WagerKeypad") as WagerKeypad
-	assert_eq((keypad.get_node("Content/Keys/KeyPot") as Button).text, "Pot 80")
-	keypad.get_node("Content/Keys/KeyPot").emit_signal("pressed")
+	assert_eq((keypad.get_action_control(&"pot") as Button).text, "Pot 80")
+	keypad.get_action_control(&"pot").emit_signal("pressed")
 	assert_eq((keypad.get_node("Content/Value") as Label).text, "100")
 
 	var pre_action_pot: int = reraised_view.pot_amount
 	var pre_action_wager: int = _seat_view(reraised_view, 0).bet_this_round
 	var pre_action_stack: int = _seat_view(reraised_view, 0).stack
 	_freeze_action_pacing(table)
-	keypad.get_node("Content/Done").emit_signal("pressed")
+	keypad.get_action_control(&"done").emit_signal("pressed")
 	var submitted_view: GameView = match_instance.get_view_for(0)
 	var submitted_action: PublicActionRecord = _latest_player_action_for(submitted_view, 0)
 	assert_eq(submitted_action.kind, PlayerAction.Kind.RAISE)
@@ -306,8 +308,8 @@ func test_live_repeated_raise_refreshes_minimum_and_rejects_obsolete_input_acros
 		var keypad := table.get_node("WagerKeypad") as WagerKeypad
 		assert_true(keypad.visible)
 		assert_eq((keypad.get_node("Content/Range") as Label).text, "Min 60  •  Max 490")
-		assert_eq(keypad.get_node("Content/Keys/KeyMin").get_meta("wager_value"), 60)
-		assert_eq(keypad.get_node("Content/Keys/KeyPot").get_meta("wager_value"), 100)
+		assert_eq(keypad.get_action_control(&"min").get_meta("wager_value"), 60)
+		assert_eq(keypad.get_action_control(&"pot").get_meta("wager_value"), 100)
 		keypad.cancel()
 
 		var input := table.get_node("%WagerInput") as LineEdit
@@ -331,9 +333,9 @@ func test_live_repeated_raise_refreshes_minimum_and_rejects_obsolete_input_acros
 		_freeze_action_pacing(table)
 		if GuiLayoutProfileScript.is_phone(profile):
 			table.show_wager_keypad()
-			keypad.get_node("Content/Keys/KeyMin").emit_signal("pressed")
+			keypad.get_action_control(&"min").emit_signal("pressed")
 			assert_eq((keypad.get_node("Content/Value") as Label).text, "60")
-			keypad.get_node("Content/Done").emit_signal("pressed")
+			keypad.get_action_control(&"done").emit_signal("pressed")
 		else:
 			table.get_node("%MinWagerButton").emit_signal("pressed")
 		var after := match_instance.get_view_for(0)
@@ -364,7 +366,7 @@ func test_live_street_change_refreshes_minimum_and_keypad_bounds_across_profiles
 		table.show_wager_keypad()
 		var keypad := table.get_node("WagerKeypad") as WagerKeypad
 		assert_eq((keypad.get_node("Content/Range") as Label).text, "Min 10  •  Max 450")
-		assert_eq(keypad.get_node("Content/Keys/KeyMin").get_meta("wager_value"), 10)
+		assert_eq(keypad.get_action_control(&"min").get_meta("wager_value"), 10)
 		keypad.cancel()
 
 
@@ -987,7 +989,7 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 			"%d-player event log must not cover the human seat" % player_count,
 		)
 
-	# Mobile phones and iPad portrait keep every action control inside the visible strip.
+	# Mobile phones and iPad portrait keep every visible action inside the strip.
 	for viewport_size: Vector2 in [Vector2(320, 568), Vector2(390, 780), Vector2(768, 1024)]:
 		var table = PokerTableScene.instantiate()
 		table.hide()
@@ -1013,6 +1015,12 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 			"TableMargin/Felt/TableSurface/ActionPanel"
 		)
 		var action_rect: Rect2 = action_panel.get_global_rect()
+		if viewport_size.x < 600.0:
+			assert_false(
+				table.get_node("%WagerInput").is_visible_in_tree(),
+				"Phone amount entry belongs to the modal keypad"
+			)
+			assert_true(table.get_node("%WagerButton").is_visible_in_tree())
 		for control: Control in [
 			table.get_node("%FoldButton"),
 			table.get_node("%CheckCallButton"),
@@ -1022,6 +1030,8 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 			table.get_node("%WagerInput"),
 			table.get_node("%WagerButton"),
 		]:
+			if not control.is_visible_in_tree():
+				continue
 			assert_true(
 				action_rect.encloses(control.get_global_rect()),
 				"%s must fit at %s" % [control.name, viewport_size]

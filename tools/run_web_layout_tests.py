@@ -35,6 +35,8 @@ DPR_CONTROLS = ((1280, 720), (1369, 724), (1440, 900), (1024, 768))
 SUPPORT = (
     "tests/support/gui_browser_capture_fixture.gd",
     "tests/support/gui_invariant_assertions.gd",
+    "tests/support/gui_snapshot_content_assertions.gd",
+    "tests/support/gui_snapshot_region_assertions.gd",
 )
 
 
@@ -50,12 +52,12 @@ def settle(page, width: int, height: int) -> dict:
     while time.monotonic() < deadline:
         snapshot = page.evaluate("window.pokahdotLayout || null")
         if snapshot:
-            table = snapshot["table_rect_global"]
+            table = snapshot["root_rect"]
             signature = json.dumps({key: snapshot[key] for key in (
-                "profile", "root_rect_global", "table_rect_global",
-                "regions_surface_local", "labels")}, sort_keys=True)
+                "profile", "root_rect", "usable_rect",
+                "regions", "labels")}, sort_keys=True)
             correct_size = abs(table[2] - width) <= 1 and abs(table[3] - height) <= 1
-            if correct_size and not snapshot["pending"] and snapshot["frame"] > previous_frame:
+            if correct_size and snapshot["ready"] and not snapshot["pending"] and snapshot["frame"] > previous_frame:
                 stable = stable + 1 if signature == previous else 0
                 previous = signature
                 previous_frame = snapshot["frame"]
@@ -150,7 +152,7 @@ def main() -> None:
             version = browser.version
             browser.close()
         document = {
-            "suite": "exported_web_layout_evidence_v1",
+            "suite": "exported_web_layout_evidence_v2",
             "mode": "strict" if args.strict else "report", "selected_check": args.check,
             "measurement_runner_sha256": sha256(Path(__file__)),
             "checker_sha256": sha256(ROOT / "tools/web_layout_assertions.py"),

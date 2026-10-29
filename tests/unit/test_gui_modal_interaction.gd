@@ -72,7 +72,7 @@ func test_menu_blocks_actual_touch_and_keyboard_actions_and_restores_focus() -> 
 	)
 
 
-func test_keypad_detail_quit_are_exclusive_and_back_cancels_without_mutation() -> void:
+func test_keypad_cancel_then_menu_quit_preserves_draft_and_modal_exclusivity() -> void:
 	var table: PokerTableController = await _table()
 	var original_back_policy: bool = get_tree().quit_on_go_back
 	table._open_phone_seat_detail(1)
@@ -83,10 +83,16 @@ func test_keypad_detail_quit_are_exclusive_and_back_cancels_without_mutation() -
 	await _settle()
 	assert_false(table._overlay_views.detail_overlay.visible)
 	assert_true(table._wager_keypad.visible)
-	assert_true(table._wager_keypad.get_node("Content/Keys/Quit").visible)
-	table._wager_keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
-	table._wager_keypad.get_node("Content/Keys/Quit").emit_signal("pressed")
+	assert_null(table._wager_keypad.get_action_control(&"quit"))
+	assert_null(table._wager_keypad.find_child("Quit", true, false))
+	table._wager_keypad.get_action_control(&"2").emit_signal("pressed")
+	table._wager_keypad.get_action_control(&"cancel").emit_signal("pressed")
 	assert_false(table._wager_keypad.visible)
+	assert_false(table._phone_quit_confirmation.visible)
+	assert_eq(table._wager_input.text, "")
+	table._open_phone_overflow_menu()
+	table._phone_menu_quit_button.pressed.emit()
+	assert_false(table._phone_overflow_menu.visible)
 	assert_true(table._phone_quit_confirmation.visible)
 	assert_eq(table._wager_input.text, "")
 	# Synthetic engine notification covers the engine path, not browser history.
@@ -114,19 +120,25 @@ func test_seat_refresh_and_profile_exit_release_modal_and_restore_valid_focus() 
 	assert_eq(table._overlay_views.detail_seat, Table.NO_SEAT)
 
 
-func test_nonphone_keypad_quit_remains_modal_until_native_cancel() -> void:
-	var table: PokerTableController = await _table()
-	table.size = Vector2(1280, 720)
-	await _settle()
+func test_nonphone_keypad_cancel_then_table_quit_preserves_original_field() -> void:
+	var table: PokerTableController = await _table(Vector2i(1280, 720))
+	table._wager_input.text = "  "
 	table.show_wager_keypad()
-	table._wager_keypad.get_node("Content/Keys/Quit").emit_signal("pressed")
+	assert_null(table._wager_keypad.get_action_control(&"quit"))
+	table._wager_keypad.get_action_control(&"2").pressed.emit()
+	table._wager_keypad.get_action_control(&"cancel").pressed.emit()
 	assert_false(table._wager_keypad.visible)
+	assert_eq(table._wager_input.text, "  ")
+	assert_false(table._quit_confirmation.visible)
+	table._quit_button.pressed.emit()
 	assert_true(table._quit_confirmation.visible)
 	assert_true(table._modal_guard.is_active())
-	table._quit_confirmation.hide()
+	table._quit_confirmation.get_cancel_button().pressed.emit()
 	await _settle()
+	assert_false(table._quit_confirmation.visible)
 	assert_false(table._modal_guard.is_active())
 	assert_eq(table._match.state, TournamentMatch.State.RUNNING)
+	assert_eq(table._wager_input.text, "  ")
 
 
 func test_outside_keypad_touch_does_not_click_through_or_commit_draft() -> void:
@@ -137,8 +149,8 @@ func test_outside_keypad_touch_does_not_click_through_or_commit_draft() -> void:
 	table.show_wager_keypad()
 	await _settle()
 	assert_true(table._wager_keypad.visible, "Reopening must not queue a stale popup hide")
-	table._wager_keypad.get_node("Content/Keys/KeyClear").emit_signal("pressed")
-	table._wager_keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	table._wager_keypad.get_action_control(&"clear").emit_signal("pressed")
+	table._wager_keypad.get_action_control(&"2").emit_signal("pressed")
 	var target: Vector2 = table._fold_button.get_global_rect().get_center()
 	assert_false(
 		Rect2(Vector2(table._wager_keypad.position), Vector2(table._wager_keypad.size)).has_point(

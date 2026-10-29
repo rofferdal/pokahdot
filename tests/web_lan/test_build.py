@@ -47,6 +47,8 @@ class BuildTests(unittest.TestCase):
         if arguments[0] == "make":
             if self.mode == "check_failure":
                 return subprocess.CompletedProcess(arguments, 2)
+            if self.mode == "check_error":
+                kwargs["stdout"].write("ERROR: Unexpected check error\n")
             if self.mode == "source_changed":
                 (self.root / "scripts/game.gd").write_text("extends Resource\n")
         if "--import" in arguments and self.mode == "import_failure":
@@ -137,7 +139,7 @@ class BuildTests(unittest.TestCase):
                 self.assertEqual(load_status(self.output, self.root)["state"], "failed")
 
     def test_failed_checks_and_source_change_stop_before_export(self) -> None:
-        for mode in ("check_failure", "source_changed"):
+        for mode in ("check_failure", "check_error", "source_changed"):
             with self.subTest(mode=mode):
                 self.mode = mode
                 self.calls.clear()

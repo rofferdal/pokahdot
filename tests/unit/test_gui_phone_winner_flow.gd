@@ -146,7 +146,9 @@ func test_seven_long_named_recipients_fit_at_supported_numeric_boundaries() -> v
 		assert_lte(names[seat].length(), GuiNameCatalog.MAX_CODE_POINT_COUNT)
 		assert_string_contains(label.text, names[seat])
 	var text_failures := PackedStringArray()
-	Invariants._validate_label_fit(label, "seven-recipient winner feedback", text_failures)
+	Invariants.validate_element(
+		table.get_layout_snapshot().elements[&"action/status"], text_failures
+	)
 	assert_eq(text_failures, PackedStringArray())
 	assert_eq(Invariants.validate(rendered), PackedStringArray(), "No boundary-layout exemptions")
 	assert_false(table._phone_showdown_overlay.visible)
@@ -155,6 +157,45 @@ func test_seven_long_named_recipients_fit_at_supported_numeric_boundaries() -> v
 	for seat: int in recipients:
 		assert_string_contains(table._phone_showdown_summary.text, "%s +1000000" % names[seat])
 	table._close_phone_showdown()
+	var compact_cards: Control = (table._seat_widgets[1] as GuiTableSeatView).hole_cards
+	assert_eq(compact_cards.size, Vector2(46, 60))
+	assert_eq((compact_cards.get_child(1) as Control).position, Vector2(0, 30))
+	harness.resize_viewport(Vector2i(640, 360))
+	assert_true(await harness.settle_layout())
+	assert_same((table._seat_widgets[1] as GuiTableSeatView).hole_cards, compact_cards)
+	assert_eq((compact_cards.get_child(1) as Control).position, Vector2(48, 0))
+	assert_gte(
+		(table._seat_widgets[1] as GuiTableSeatView).name_label.get_theme_font_size("font_size"), 20
+	)
+	assert_gte(
+		(table._seat_widgets[1] as GuiTableSeatView).stack_label.get_theme_font_size("font_size"),
+		20
+	)
+	harness.resize_viewport(Vector2i(360, 640))
+	assert_true(await harness.settle_layout())
+	assert_eq((compact_cards.get_child(1) as Control).position, Vector2(0, 30))
+	harness.resize_viewport(Vector2i(390, 844))
+	assert_true(await harness.settle_layout())
+	assert_same((table._seat_widgets[1] as GuiTableSeatView).hole_cards, compact_cards)
+	assert_eq(compact_cards.size.y, 30.0)
+	assert_eq((compact_cards.get_child(1) as Control).position, Vector2(48, 0))
+	for card: Control in compact_cards.get_children():
+		assert_eq(card.size, Vector2(46, 30))
+		assert_true(compact_cards.get_global_rect().encloses(card.get_global_rect()))
+	harness.resize_viewport(Vector2i(360, 640))
+	assert_true(await harness.settle_layout())
+	assert_eq(compact_cards.size, Vector2(46, 60))
+	assert_eq((compact_cards.get_child(1) as Control).position, Vector2(0, 30))
+	table.bind_view(Fixtures.by_id(&"human-turn-preflop", 7).view, {}, names)
+	assert_true(await harness.settle_layout())
+	for extent: Vector2i in [Vector2i(640, 360), Vector2i(360, 640)]:
+		harness.resize_viewport(extent)
+		assert_true(await harness.settle_layout())
+		var backs: Control = (table._seat_widgets[1] as GuiTableSeatView).hole_cards
+		assert_eq((backs.get_child(1) as Control).position.y, 0.0)
+		assert_gt((backs.get_child(1) as Control).position.x, 0.0)
+		assert_not_null(backs.find_child("CardBack1", false, false))
+		assert_null(backs.find_child("ShowdownCard1", false, false))
 	_dispose({"rendered": rendered, "harness": harness})
 
 
@@ -224,9 +265,12 @@ func test_acting_heads_up_dealer_keeps_long_name_stack_roles_and_previous_action
 			PackedStringArray(),
 			"Acting heads-up fields must all fit"
 		)
-		var panel: Control = table._seat_widgets[1]
+		var panel: GuiTableSeatView = table._seat_widgets[1]
 		assert_eq((panel.find_child("Stack", true, false) as Label).text, str(stack_value))
-		assert_eq((panel.find_child("ActionBadge", true, false) as Label).text, "R%d" % stack_value)
+		assert_eq(
+			panel.action_badge.text,
+			"Raise %d" % stack_value if stack_value >= 100000 else "Raise to %d" % stack_value
+		)
 		_dispose({"rendered": rendered, "harness": harness})
 
 
@@ -407,7 +451,9 @@ func _assert_default_result(mounted: Dictionary) -> void:
 	descriptor.view = table._bound_view
 	mounted.rendered.descriptor = descriptor
 	var result_failures := PackedStringArray()
-	Invariants._validate_label_fit(label, "phone winner feedback", result_failures)
+	Invariants.validate_element(
+		table.get_layout_snapshot().elements[&"action/status"], result_failures
+	)
 	assert_eq(result_failures, PackedStringArray(), "The entire named result must fit")
 	assert_eq(
 		Invariants.validate(mounted.rendered),

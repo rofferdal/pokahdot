@@ -45,6 +45,7 @@ func configure(
 	side_minimum: Vector2,
 	quit_minimum: Vector2,
 	opponent_minimum: Vector2 = Vector2(160.0, OPPONENT_HEIGHT),
+	upper_corner_clearance: float = 0.0,
 ) -> bool:
 	seat_rects.clear()
 	status_rects.clear()
@@ -62,7 +63,10 @@ func configure(
 	var center_top_minimum: float = footprint_height + GAP + quit_minimum.y + GAP
 	var center_top_maximum: float = lower_y - GAP - center_size.y
 	var lower_opponent_y: float = lower_y - GAP - footprint_height
-	if center_top_maximum < center_top_minimum or lower_opponent_y < footprint_height + GAP:
+	if (
+		center_top_maximum < center_top_minimum
+		or lower_opponent_y < footprint_height + maxf(0.0, upper_corner_clearance) + GAP
+	):
 		return false
 	center_rect = Rect2(
 		Vector2(
@@ -90,9 +94,12 @@ func configure(
 	seat_rects = {
 		0: hero_rect,
 		1: Rect2(Vector2(0.0, lower_opponent_y), opponent_size),
-		2: Rect2(Vector2.ZERO, opponent_size),
+		2: Rect2(Vector2(0.0, maxf(0.0, upper_corner_clearance)), opponent_size),
 		3: Rect2(Vector2((surface_size.x - lane_width) * 0.5, 0.0), opponent_size),
-		4: Rect2(Vector2(surface_size.x - lane_width, 0.0), opponent_size),
+		4:
+		Rect2(
+			Vector2(surface_size.x - lane_width, maxf(0.0, upper_corner_clearance)), opponent_size
+		),
 		5: Rect2(Vector2(surface_size.x - lane_width, lower_opponent_y), opponent_size),
 	}
 	for relative_seat: int in seat_rects:

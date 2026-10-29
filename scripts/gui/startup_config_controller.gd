@@ -5,7 +5,6 @@ const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_co
 const GuiLayoutProfileScript := preload("res://scripts/gui/gui_layout_profile.gd")
 const GuiMobileTableLayoutScript := preload("res://scripts/gui/gui_mobile_table_layout.gd")
 const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
-const GuiWebViewportGeometryScript := preload("res://scripts/gui/gui_web_viewport_geometry.gd")
 const WagerKeypadScript := preload("res://scripts/gui/wager_keypad.gd")
 const STARTUP_CHECKBOX_UNCHECKED := preload("res://assets/ui/checkbox_unchecked.svg")
 const STARTUP_CHECKBOX_CHECKED := preload("res://assets/ui/checkbox_checked.svg")
@@ -57,28 +56,66 @@ var _guidance_field_parent: VBoxContainer
 @onready var _form_status: Label = %FormStatus
 @onready var _start_button: Button = %StartButton
 @onready var _startup_panel: CenterContainer = $Center
+@onready var _brand_logo: TextureRect = %BrandLogo
+@onready var _background: ColorRect = $Background
 @onready var _startup_form_panel: PanelContainer = %Panel
 @onready var _startup_form: VBoxContainer = %Form
 @onready var _startup_fields: GridContainer = %Fields
 @onready var _poker_table: Control = $PokerTable
 @onready var _quit_application_button: Button = %QuitApplicationButton
+@onready var _viewport_adapter: GuiViewportAdapter = $ViewportAdapter
 
 
-func _enter_tree() -> void:
-	if not OS.has_feature("web"):
-		return
-	var root_window: Window = get_window()
-	if not root_window.size_changed.is_connected(_refresh_web_content_scale_size):
-		root_window.size_changed.connect(_refresh_web_content_scale_size)
-	_refresh_web_content_scale_size()
+## The active table delegates to its own public semantic measurement contract.
+func get_layout_snapshot() -> GuiLayoutSnapshot:
+	if not is_node_ready():
+		return GuiLayoutSnapshot.new()
+	if _poker_table.is_visible_in_tree():
+		var table_snapshot: GuiLayoutSnapshot = (
+			(_poker_table as PokerTableController).get_layout_snapshot()
+		)
+		table_snapshot.pending = table_snapshot.pending or _viewport_adapter.is_pending()
+		table_snapshot.ready = (
+			table_snapshot.ready
+			and _viewport_adapter.get_geometry().valid
+			and not table_snapshot.pending
+		)
+		return table_snapshot
+	var controls: Dictionary[StringName, Control] = {
+		&"title": _title,
+		&"description": _description,
+		&"form": _startup_form_panel,
+		&"player_count": _player_count_input,
+		&"starting_stack": _starting_stack_input,
+		&"small_blind": _small_blind_input,
+		&"big_blind": _big_blind_input,
+		&"player_count_label": _player_count_label,
+		&"starting_stack_label": _starting_stack_label,
+		&"small_blind_label": _small_blind_label,
+		&"big_blind_label": _big_blind_label,
+		&"legacy_models": _use_legacy_models_checkbox,
+		&"player_count_error": _player_count_error,
+		&"starting_stack_error": _starting_stack_error,
+		&"small_blind_error": _small_blind_error,
+		&"big_blind_error": _big_blind_error,
+		&"guidance": _phone_player_count_guidance,
+		&"status": _form_status,
+		&"start": _start_button,
+		&"quit": _quit_application_button,
+	}
+	var snapshot := GuiStartupSnapshotProducer.capture(
+		self, _startup_panel, controls, _number_keypad
+	)
+	snapshot.profile = GuiLayoutProfileScript.classify(_usable_size(), _layout_profile_override)
+	var geometry: GuiViewportGeometry = _viewport_adapter.get_geometry()
+	snapshot.usable_rect = get_global_transform_with_canvas() * geometry.usable_rect
+	snapshot.pending = _viewport_adapter.is_pending()
+	snapshot.ready = snapshot.ready and geometry.valid and not snapshot.pending
+	return snapshot
 
 
-func _exit_tree() -> void:
-	if not OS.has_feature("web"):
-		return
-	var root_window: Window = get_window()
-	if root_window.size_changed.is_connected(_refresh_web_content_scale_size):
-		root_window.size_changed.disconnect(_refresh_web_content_scale_size)
+func get_viewport_adapter() -> GuiViewportAdapter:
+	return _viewport_adapter
 
 
 func _ready() -> void:
@@ -95,31 +132,26 @@ func _ready() -> void:
 	%StartButton.pressed.connect(_on_start_pressed)
 	_poker_table.tournament_quit_confirmed.connect(_on_tournament_quit_confirmed)
 	_poker_table.return_to_startup_requested.connect(_on_return_to_startup_requested)
+	_poker_table.visibility_changed.connect(_refresh_startup_layout)
 	_quit_application_button.pressed.connect(_on_quit_application_pressed)
 	resized.connect(_refresh_startup_layout)
+	_viewport_adapter.geometry_changed.connect(_on_viewport_geometry_changed)
+	_viewport_adapter.bind(self, _startup_panel, _poker_table)
 	call_deferred("_refresh_startup_layout")
 
 
-func _refresh_web_content_scale_size() -> void:
-	var backing_size: Vector2i = DisplayServer.window_get_size()
-	var pixel_ratio: float = DisplayServer.screen_get_scale()
-	var logical_size: Vector2i = GuiWebViewportGeometryScript.logical_size(
-		backing_size, pixel_ratio
-	)
-	if logical_size == Vector2i.ZERO:
-		push_warning("Cannot normalize an empty Web canvas for GUI layout.")
+func _usable_size() -> Vector2:
+	if _viewport_adapter != null and _viewport_adapter.get_geometry().valid:
+		return _viewport_adapter.get_geometry().usable_rect.size
+	return size
+
+
+func _on_viewport_geometry_changed(geometry: GuiViewportGeometry) -> void:
+	if not geometry.valid:
 		return
-	var root_window: Window = get_window()
-	if root_window.content_scale_size == logical_size:
-		return
-	root_window.content_scale_size = logical_size
-	if OS.is_debug_build():
-		print(
-			(
-				"Web GUI viewport normalized: backing=%s pixel_ratio=%.3f logical=%s"
-				% [backing_size, pixel_ratio, logical_size]
-			)
-		)
+	if _number_keypad != null:
+		_number_keypad.set_usable_rect(get_global_transform_with_canvas() * geometry.usable_rect)
+	_refresh_startup_layout()
 
 
 func _on_start_pressed() -> void:
@@ -173,11 +205,17 @@ func _on_quit_application_pressed() -> void:
 
 
 func _refresh_startup_layout() -> void:
-	if size.x <= 0.0 or size.y <= 0.0:
+	var available: Vector2 = _usable_size()
+	if available.x <= 0.0 or available.y <= 0.0:
 		return
-	var layout_profile: int = GuiLayoutProfileScript.classify(size, _layout_profile_override)
+	var layout_profile: int = GuiLayoutProfileScript.classify(available, _layout_profile_override)
 	var phone_layout: bool = GuiLayoutProfileScript.is_phone(layout_profile)
-	var is_portrait: bool = size.y / size.x >= PORTRAIT_ASPECT_RATIO_THRESHOLD
+	_background.color = (
+		Color("075c35")
+		if _poker_table.visible and layout_profile == GuiLayoutProfileScript.Kind.PHONE_PORTRAIT
+		else Color(0.035, 0.09, 0.07, 1.0)
+	)
+	var is_portrait: bool = available.y / available.x >= PORTRAIT_ASPECT_RATIO_THRESHOLD
 	var full_width_guidance: bool = phone_layout and is_portrait
 	var guidance_parent: Node = _startup_form if full_width_guidance else _guidance_field_parent
 	if _phone_player_count_guidance.get_parent() != guidance_parent:
@@ -206,11 +244,14 @@ func _refresh_startup_layout() -> void:
 	_quit_application_button.text = "Quit" if phone_layout else "Quit game"
 	var is_compact_landscape: bool = (
 		not is_portrait
-		and size.x < COMPACT_LANDSCAPE_MAX_WIDTH
-		and size.y <= COMPACT_LANDSCAPE_MAX_HEIGHT
+		and available.x < COMPACT_LANDSCAPE_MAX_WIDTH
+		and available.y <= COMPACT_LANDSCAPE_MAX_HEIGHT
 	)
-	var is_compact_portrait: bool = is_portrait and (size.x < 960.0 or size.y < 1200.0)
+	var is_compact_portrait: bool = is_portrait and (available.x < 960.0 or available.y < 1200.0)
 	var compact_form: bool = is_compact_landscape or is_compact_portrait
+	_brand_logo.custom_minimum_size.y = (
+		(80.0 if is_portrait else 64.0) if phone_layout else clampf(available.y * 0.18, 64.0, 128.0)
+	)
 	var form_margin := _startup_form_panel.get_node("Margin") as MarginContainer
 	var compact_margin: int = 8 if phone_layout else (14 if compact_form else 28)
 	for side: StringName in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
@@ -223,28 +264,44 @@ func _refresh_startup_layout() -> void:
 	_startup_fields.add_theme_constant_override("h_separation", 6 if phone_layout else 24)
 	if is_compact_landscape:
 		_startup_form_panel.custom_minimum_size.x = (
-			size.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
+			available.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
 		)
 		_set_startup_form_font_sizes(COMPACT_FONT_SCALE)
 	elif is_portrait:
 		_startup_form_panel.custom_minimum_size.x = (
-			size.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
+			available.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
 		)
 		var portrait_scale: float = (
 			COMPACT_FONT_SCALE
 			if is_compact_portrait
-			else clampf(minf(size.x / 960.0, size.y / 1920.0), 1.0, PORTRAIT_FONT_SCALE)
+			else clampf(minf(available.x / 960.0, available.y / 1920.0), 1.0, PORTRAIT_FONT_SCALE)
 		)
 		_set_startup_form_font_sizes(portrait_scale)
 	else:
 		_startup_form_panel.custom_minimum_size.x = clampf(
-			size.x * DESKTOP_FORM_WIDTH_RATIO,
+			available.x * DESKTOP_FORM_WIDTH_RATIO,
 			DESKTOP_FORM_MIN_WIDTH,
 			DESKTOP_FORM_MAX_WIDTH,
 		)
 		_set_startup_form_font_sizes(1.0)
+	_fit_startup_header(available)
 	if _number_keypad != null and _number_keypad.visible:
-		_number_keypad.refresh_layout(GuiMobileTableLayoutScript.content_scale(size))
+		_number_keypad.refresh_layout(GuiMobileTableLayoutScript.content_scale(available))
+
+
+func _fit_startup_header(available: Vector2) -> void:
+	var height: float = maxf(0.0, available.y - 24.0)
+	# Keep every field and action; optional header copy yields before the logo.
+	if _startup_form_panel.get_minimum_size().y > height:
+		_description.hide()
+	if _startup_form_panel.get_minimum_size().y > height:
+		_title.hide()
+	var overflow: float = maxf(0.0, _startup_form_panel.get_minimum_size().y - height)
+	_brand_logo.custom_minimum_size.y = maxf(24.0, _brand_logo.custom_minimum_size.y - overflow)
+	for container: Container in [
+		_startup_panel, _startup_form_panel, _startup_form.get_parent(), _startup_form
+	]:
+		container.queue_sort()
 
 
 ## Supplies explicit device evidence to presentation tests and platform adapters.
@@ -257,7 +314,9 @@ func set_layout_profile_override(profile_override: int) -> void:
 
 
 func _phone_player_count_is_valid() -> bool:
-	var layout_profile: int = GuiLayoutProfileScript.classify(size, _layout_profile_override)
+	var layout_profile: int = GuiLayoutProfileScript.classify(
+		_usable_size(), _layout_profile_override
+	)
 	if not GuiLayoutProfileScript.is_phone(layout_profile):
 		return true
 	var candidate: String = _player_count_input.text.strip_edges()
@@ -348,12 +407,17 @@ func _configure_startup_control_visuals() -> void:
 func show_numeric_keypad(input: LineEdit) -> void:
 	if input == null or _number_keypad == null:
 		return
+	var geometry: GuiViewportGeometry = _viewport_adapter.get_geometry()
+	if geometry.valid:
+		_number_keypad.set_usable_rect(get_global_transform_with_canvas() * geometry.usable_rect)
 	var maximum: int = (
 		ConfigResolver.MAX_PLAYER_COUNT
 		if input == _player_count_input
 		else ConfigResolver.MAX_STARTUP_CHIPS
 	)
-	_number_keypad.open_number(input, GuiMobileTableLayoutScript.content_scale(size), maximum)
+	_number_keypad.open_number(
+		input, GuiMobileTableLayoutScript.content_scale(_usable_size()), maximum
+	)
 
 
 func _on_numeric_input_gui_input(event: InputEvent, input: LineEdit) -> void:

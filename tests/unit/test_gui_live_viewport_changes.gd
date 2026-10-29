@@ -122,7 +122,7 @@ func test_phone_wager_draft_survives_rotation_and_is_cancelled_on_desktop_exit()
 	var original_input: String = (table.get_node("%WagerInput") as LineEdit).text
 
 	table.show_wager_keypad()
-	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	keypad.get_action_control(&"2").emit_signal("pressed")
 	var draft_value: String = keypad.get_node("Content/Value").text
 	await _burst_phone_resize(harness, table)
 	assert_true(keypad.visible)
@@ -216,7 +216,7 @@ func test_real_keypads_and_dialogs_survive_resize_open_close_cycles() -> void:
 	var startup_fixture: Dictionary = await _render(&"startup", Vector2i(390, 844), 2)
 	var startup_harness = startup_fixture.harness
 	var main: Control = startup_fixture.rendered.root
-	var startup_keypad := main.get_node("StartupNumberKeypad") as PopupPanel
+	var startup_keypad := main.get_node("StartupNumberKeypad") as WagerKeypad
 	main.call("show_numeric_keypad", main.get_node("%PlayerCountInput"))
 	assert_true(startup_keypad.visible)
 	var startup_value: String = startup_keypad.get_node("Content/Value").text
@@ -225,7 +225,7 @@ func test_real_keypads_and_dialogs_survive_resize_open_close_cycles() -> void:
 	assert_true(startup_keypad.visible)
 	assert_eq(startup_keypad.get_node("Content/Value").text, startup_value)
 	_assert_embedded_popup(startup_fixture.rendered.viewport, startup_keypad)
-	startup_keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	startup_keypad.get_action_control(&"2").emit_signal("pressed")
 	assert_eq((main.get_node("%PlayerCountInput") as LineEdit).text, "6")
 	assert_eq(startup_keypad.get_node("Content/Value").text, "6")
 	startup_keypad.hide()
@@ -234,7 +234,7 @@ func test_real_keypads_and_dialogs_survive_resize_open_close_cycles() -> void:
 	var table_fixture: Dictionary = await _render(&"wager-entry", Vector2i(390, 844), 6)
 	var table_harness = table_fixture.harness
 	var table: PokerTableController = table_fixture.rendered.table
-	var wager_keypad := table.get_node("WagerKeypad") as PopupPanel
+	var wager_keypad := table.get_node("WagerKeypad") as WagerKeypad
 	table.show_wager_keypad()
 	assert_true(wager_keypad.visible)
 	var wager_value: String = wager_keypad.get_node("Content/Value").text
@@ -245,7 +245,7 @@ func test_real_keypads_and_dialogs_survive_resize_open_close_cycles() -> void:
 	assert_eq(wager_keypad.get_node("Content/Value").text, wager_value)
 	assert_eq(wager_keypad.get_node("Content/Range").text, wager_range)
 	_assert_embedded_popup(table_fixture.rendered.viewport, wager_keypad)
-	wager_keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	wager_keypad.get_action_control(&"2").emit_signal("pressed")
 	assert_eq((table.get_node("%WagerInput") as LineEdit).text, "75")
 	assert_eq(wager_keypad.get_node("Content/Value").text, "752")
 	wager_keypad.hide()
@@ -374,8 +374,12 @@ func _assert_phone_plan_applied(table: PokerTableController, player_count: int) 
 		if seat == table._bound_view.hero_seat:
 			continue
 		var visual_seat: int = posmod(seat - table._bound_view.hero_seat, player_count)
-		var seat_control := surface.get_node("Seats/Seat%d" % seat) as Control
-		assert_eq(seat_control.get_rect(), plan.seat_rects[visual_seat])
+		var snapshot: GuiLayoutSnapshot = table.get_layout_snapshot()
+		var complete_footprint: Rect2 = (
+			surface.get_global_transform_with_canvas().affine_inverse()
+			* snapshot.seats[seat].footprint
+		)
+		_assert_rect_almost_eq(complete_footprint, plan.seat_rects[visual_seat])
 
 
 func _assert_standard_seat_spacing(table: PokerTableController, player_count: int) -> void:

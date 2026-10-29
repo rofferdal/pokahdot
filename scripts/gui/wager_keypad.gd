@@ -2,7 +2,6 @@ class_name WagerKeypad
 extends PopupPanel
 
 signal confirmed
-signal quit_requested
 
 const GUI_MINIMUM_FONT_SIZE: int = 20
 const KEYPAD_WIDTH: float = 280.0
@@ -10,6 +9,7 @@ const KEYPAD_HEIGHT: float = 360.0
 const KEY_WIDTH: float = 80.0
 const TOUCH_TARGET_HEIGHT: float = 48.0
 const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
+const PopupPlacement := preload("res://scripts/gui/platform/gui_popup_placement.gd")
 
 var _target_input: LineEdit
 var _content: VBoxContainer
@@ -17,15 +17,21 @@ var _value_label: Label
 var _range_label: Label
 var _title: Label
 var _keys_grid: GridContainer
+var _body: BoxContainer
+var _actions: VBoxContainer
+var _utilities_grid: GridContainer
 var _keys: Array[Button] = []
+var _key_controls: Dictionary[String, Button] = {}
 var _minimum_button: Button
 var _pot_button: Button
 var _done_button: Button
-var _quit_button: Button
 var _cancel_button: Button
 var _layout_generation: int = 0
 var _requested_popup_size := Vector2i.ZERO
 var _requested_usable_size := Vector2i.ZERO
+var _geometry_usable_rect := Rect2()
+var _requested_usable_rect := Rect2()
+var _last_content_scale: float = 1.0
 var _draft_value: String = ""
 var _transactional: bool = false
 var _bottom_sheet: bool = false
@@ -65,39 +71,62 @@ func _init() -> void:
 	_range_label = Label.new()
 	_range_label.name = "Range"
 	_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_range_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_range_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	_content.add_child(_range_label)
+	_body = BoxContainer.new()
+	_body.name = "Body"
+	_body.vertical = true
+	_body.add_theme_constant_override("separation", 6)
+	_content.add_child(_body)
 	_keys_grid = GridContainer.new()
 	_keys_grid.name = "Keys"
 	_keys_grid.columns = 3
 	_keys_grid.add_theme_constant_override("h_separation", 6)
 	_keys_grid.add_theme_constant_override("v_separation", 6)
-	_content.add_child(_keys_grid)
+	_keys_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_keys_grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_body.add_child(_keys_grid)
 	for key_text: String in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
 		_add_key(_keys_grid, key_text, _append_digit.bind(key_text))
-	_add_key(_keys_grid, "Clear", _clear_input)
+	var zero_spacer := Control.new()
+	zero_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_keys_grid.add_child(zero_spacer)
 	_add_key(_keys_grid, "0", _append_digit.bind("0"))
-	_add_key(_keys_grid, "Back", _erase_digit)
-	_minimum_button = _add_key(_keys_grid, "Min", _replace_with_minimum)
-	_pot_button = _add_key(_keys_grid, "Pot", _replace_with_pot)
+	zero_spacer = Control.new()
+	zero_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_keys_grid.add_child(zero_spacer)
+	_actions = VBoxContainer.new()
+	_actions.name = "Actions"
+	_actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_body.add_child(_actions)
+	_utilities_grid = GridContainer.new()
+	_utilities_grid.name = "Utilities"
+	_utilities_grid.columns = 2
+	_utilities_grid.add_theme_constant_override("h_separation", 6)
+	_actions.add_child(_utilities_grid)
+	_add_key(_utilities_grid, "Clear", _clear_input)
+	_add_key(_utilities_grid, "Back", _erase_digit)
+	_minimum_button = _add_key(_utilities_grid, "Min", _replace_with_minimum)
+	_pot_button = _add_key(_utilities_grid, "Pot", _replace_with_pot)
 	_done_button = Button.new()
 	_done_button.name = "Done"
 	_done_button.text = "Done"
 	_done_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	_done_button.pressed.connect(_confirm)
-	_content.add_child(_done_button)
+	_done_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cancel_button = Button.new()
 	_cancel_button.name = "Cancel"
 	_cancel_button.text = "Cancel"
 	_cancel_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	_cancel_button.pressed.connect(_cancel)
-	_content.add_child(_cancel_button)
-	_quit_button = Button.new()
-	_quit_button.name = "Quit"
-	_quit_button.text = "Quit"
-	_quit_button.hide()
-	_quit_button.pressed.connect(func() -> void: quit_requested.emit())
-	_keys_grid.add_child(_quit_button)
+	_cancel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_utilities_grid.add_child(_cancel_button)
+	_utilities_grid.add_child(_done_button)
+	_key_controls["done"] = _done_button
+	_key_controls["cancel"] = _cancel_button
+	for action: String in ["clear", "back", "min", "pot", "cancel", "done"]:
+		_key_controls[action].size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_keypad_styles()
 
 
@@ -114,7 +143,7 @@ func _apply_keypad_styles() -> void:
 		key.add_theme_stylebox_override(
 			"pressed", GuiTableStyleScript.action_control_box(Color("0b1d15"), Color("d9b56d"), 2)
 		)
-	for button: Button in [_done_button, _cancel_button, _quit_button]:
+	for button: Button in [_done_button, _cancel_button]:
 		button.add_theme_stylebox_override(
 			"normal", GuiTableStyleScript.action_control_box(Color("164c35"), Color("e7d39b"), 2)
 		)
@@ -144,10 +173,10 @@ func open(
 	_value_label.text = _draft_value if not _draft_value.is_empty() else "—"
 	_range_label.text = "Min %d  •  Max %d" % [minimum, maximum]
 	_range_label.show()
-	_minimum_button.visible = bottom_sheet
+	_minimum_button.show()
 	_minimum_button.text = "Min %d" % minimum
 	_minimum_button.set_meta("wager_value", minimum)
-	_pot_button.visible = bottom_sheet
+	_pot_button.show()
 	_pot_button.text = "Pot %d" % maxi(0, pot_contribution)
 	_pot_button.set_meta("wager_value", pot_wager_total)
 	_pot_button.disabled = pot_wager_total < minimum or pot_wager_total > maximum
@@ -170,8 +199,12 @@ func open_number(input: LineEdit, content_scale: float = 1.0, maximum: int = 999
 	_refresh_popup_layout(scale)
 
 
-func set_quit_available(available: bool) -> void:
-	_quit_button.visible = available
+func get_cancel_control() -> Button:
+	return _cancel_button
+
+
+func get_action_control(action: StringName) -> Button:
+	return _key_controls.get(String(action))
 
 
 func _input(event: InputEvent) -> void:
@@ -182,7 +215,7 @@ func _input(event: InputEvent) -> void:
 		_cancel()
 	elif event.is_action_pressed("ui_focus_next") or event.is_action_pressed("ui_focus_prev"):
 		var controls: Array[Button] = []
-		for button: Button in _keys + [_done_button, _cancel_button, _quit_button]:
+		for button: Button in _keys + [_done_button, _cancel_button]:
 			if button.is_visible_in_tree() and not button.disabled:
 				controls.append(button)
 		var index: int = controls.find(get_viewport().gui_get_focus_owner())
@@ -198,6 +231,14 @@ func refresh_layout(content_scale: float = 1.0, usable_size: Vector2i = Vector2i
 	_refresh_popup_layout(scale, usable_size)
 
 
+func set_usable_rect(usable: Rect2) -> void:
+	if _geometry_usable_rect == usable:
+		return
+	_geometry_usable_rect = usable
+	if visible:
+		_refresh_popup_layout(_last_content_scale)
+
+
 func cancel() -> void:
 	_cancel()
 
@@ -208,17 +249,40 @@ func is_bottom_sheet() -> bool:
 
 func _refresh_popup_layout(scale: float, usable_size: Vector2i = Vector2i.ZERO) -> void:
 	_layout_generation += 1
+	_last_content_scale = scale
 	_apply_content_scale(scale)
 	var viewport_size: Vector2i = (
 		usable_size if usable_size != Vector2i.ZERO else _owner_viewport_size()
 	)
+	_requested_usable_rect = Rect2(Vector2.ZERO, Vector2(viewport_size))
+	if _geometry_usable_rect.size.x > 0.0 and _geometry_usable_rect.size.y > 0.0:
+		_requested_usable_rect = _geometry_usable_rect
+		viewport_size = Vector2i(_geometry_usable_rect.size.floor())
 	_requested_usable_size = viewport_size
 	var sheet_height: float = KEYPAD_HEIGHT + TOUCH_TARGET_HEIGHT + 6.0
 	var compact_height: bool = viewport_size.y <= roundi(sheet_height * scale)
+	var popup_style := get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	popup_style.content_margin_top = 2.0 if compact_height else 5.0
+	popup_style.content_margin_bottom = 2.0 if compact_height else 5.0
+	add_theme_stylebox_override("panel", popup_style)
+	if compact_height:
+		_value_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
 	_title.visible = not compact_height
 	_content.add_theme_constant_override("separation", 0 if compact_height else 6)
-	_keys_grid.columns = 5 if compact_height else 3
 	_keys_grid.add_theme_constant_override("v_separation", 0 if compact_height else 6)
+	_utilities_grid.add_theme_constant_override("v_separation", 0 if compact_height else 6)
+	_actions.add_theme_constant_override("separation", 0 if compact_height else 6)
+	var horizontal_minimum: float = (
+		_keys_grid.get_combined_minimum_size().x
+		+ _actions.get_combined_minimum_size().x
+		+ _body.get_theme_constant("separation")
+		+ popup_style.get_minimum_size().x
+	)
+	_body.vertical = not (
+		viewport_size.x > viewport_size.y
+		and compact_height
+		and viewport_size.x >= horizontal_minimum
+	)
 	var requested_size := Vector2i(roundi(KEYPAD_WIDTH * scale), roundi(sheet_height * scale))
 	if _bottom_sheet:
 		requested_size.x = viewport_size.x
@@ -227,28 +291,26 @@ func _refresh_popup_layout(scale: float, usable_size: Vector2i = Vector2i.ZERO) 
 	_requested_popup_size = requested_size
 	min_size = Vector2i(requested_size.x, 0) if _bottom_sheet else Vector2i.ZERO
 	popup_centered(requested_size)
+	_place_popup()
 	call_deferred("_recenter_if_current", _layout_generation)
 
 
 func _recenter_if_current(generation: int) -> void:
 	if generation != _layout_generation or not visible:
 		return
-	size = _requested_popup_size
+	_place_popup()
 	call_deferred("_recenter_after_container_if_current", generation)
 
 
 func _recenter_after_container_if_current(generation: int) -> void:
 	if generation != _layout_generation or not visible:
 		return
-	var viewport_size: Vector2i = _requested_usable_size
-	size = _requested_popup_size
-	position = Vector2i(
-		maxi(0, (viewport_size.x - size.x) / 2),
-		(
-			maxi(0, viewport_size.y - size.y)
-			if _bottom_sheet
-			else maxi(0, (viewport_size.y - size.y) / 2)
-		),
+	_place_popup()
+
+
+func _place_popup() -> void:
+	PopupPlacement.apply(
+		self, get_parent(), _requested_usable_rect, _requested_popup_size, _bottom_sheet
 	)
 
 
@@ -266,6 +328,7 @@ func _add_key(keys: GridContainer, key_text: String, callback: Callable) -> Butt
 	key.pressed.connect(callback)
 	keys.add_child(key)
 	_keys.append(key)
+	_key_controls[key_text.to_lower()] = key
 	return key
 
 
@@ -277,12 +340,17 @@ func _apply_content_scale(content_scale: float) -> void:
 	for key: Button in _keys:
 		key.custom_minimum_size = Vector2(KEY_WIDTH * scale, TOUCH_TARGET_HEIGHT * scale)
 		key.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
-	_done_button.custom_minimum_size = Vector2(0.0, TOUCH_TARGET_HEIGHT * scale)
+	_done_button.custom_minimum_size = Vector2(KEY_WIDTH * scale, TOUCH_TARGET_HEIGHT * scale)
 	_done_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
-	_cancel_button.custom_minimum_size = Vector2(0.0, TOUCH_TARGET_HEIGHT * scale)
+	_cancel_button.custom_minimum_size = Vector2(KEY_WIDTH * scale, TOUCH_TARGET_HEIGHT * scale)
 	_cancel_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
-	_quit_button.custom_minimum_size = Vector2(KEY_WIDTH * scale, TOUCH_TARGET_HEIGHT * scale)
-	_quit_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
+	var cell_width: float = KEY_WIDTH * scale
+	for action: String in ["clear", "back", "min", "pot", "cancel", "done"]:
+		var button: Button = _key_controls[action]
+		if button.visible:
+			cell_width = maxf(cell_width, button.get_combined_minimum_size().x)
+	for action: String in ["clear", "back", "min", "pot", "cancel", "done"]:
+		_key_controls[action].custom_minimum_size.x = cell_width
 
 
 func _append_digit(digit: String) -> void:

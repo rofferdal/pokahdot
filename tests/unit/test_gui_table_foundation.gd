@@ -48,7 +48,7 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 	main.size = Vector2(1920, 3840)
 	main._refresh_startup_layout()
 
-	var panel: PanelContainer = main.get_node("Center/Panel")
+	var panel: PanelContainer = main.get_node("%Panel")
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 1612.8))
 	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 128)
 	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 64)
@@ -154,10 +154,10 @@ func test_startup_numeric_inputs_use_the_same_in_canvas_number_keypad_as_the_tab
 	assert_true(keypad.visible)
 	assert_eq(keypad.get_node("Content/Title").text, "Enter number")
 	assert_false(keypad.get_node("Content/Range").visible)
-	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	keypad.get_action_control(&"2").emit_signal("pressed")
 	assert_eq(player_count_input.text, "6")
 	assert_eq(keypad.get_node("Content/Value").text, "6")
-	keypad.get_node("Content/Done").emit_signal("pressed")
+	keypad.get_action_control(&"done").emit_signal("pressed")
 	assert_eq(player_count_input.text, "6")
 
 
@@ -190,7 +190,7 @@ func test_startup_touch_to_keyboard_transition_cancels_only_the_draft() -> void:
 	main.set_layout_profile_override(GuiLayoutProfileScript.Kind.DESKTOP)
 
 	input.gui_input.emit(_touch_press())
-	keypad.get_node("Content/Keys/Key2").emit_signal("pressed")
+	keypad.get_action_control(&"2").emit_signal("pressed")
 	assert_eq(input.text, "6")
 	assert_eq(keypad.get_node("Content/Value").text, "6")
 

@@ -10,7 +10,7 @@ const GuiTableStyleScript := preload("res://scripts/gui/gui_table_style.gd")
 const OPPONENT_AVATAR_SIZE := Vector2(112, 112)
 const HERO_AVATAR_SIZE := Vector2(128, 128)
 const OPPONENT_CARD_SIZE := Vector2(60, 76)
-const PHONE_CARD_SIZE := Vector2(18, 26)
+const PHONE_CARD_SIZE := Vector2(18, 30)
 const PHONE_SHOWDOWN_CARD_SIZE := Vector2(46, 30)
 const PHONE_SHOWDOWN_CARD_GAP: float = 2.0
 const GUI_MINIMUM_FONT_SIZE: int = GuiTableStyle.MINIMUM_FONT_SIZE
@@ -200,6 +200,7 @@ func create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
 		var card: Control
 		if player_view.folded or player_view.busted:
 			var empty_field := Label.new()
+			empty_field.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 			empty_field.name = "HoleCardField%d" % (index + 1)
 			(
 				empty_field
@@ -224,6 +225,7 @@ func create_phone_opponent_hole_cards(player_view: PlayerView) -> Control:
 			)
 		else:
 			var card_back := Label.new()
+			card_back.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 			card_back.name = "CardBack%d" % (index + 1)
 			(
 				card_back

@@ -1,149 +1,109 @@
 class_name GuiPhoneMatrixContract
 extends RefCounted
 
-## Phone-only checks retained independently of the shared matrix traversal.
-const GuiPhoneSeatLayoutScript := preload("res://scripts/gui/gui_phone_seat_layout.gd")
+## Phone-specific semantic content and privacy checks, independent of node trees.
 const OPPONENT_ACTION_PADDING: float = 12.0
 const HERO_ACTION_PADDING: float = 4.0
+const MAX_SUPPORTED_PLAYER_COUNT: int = 7
 
 
 static func validate(rendered: Dictionary, context: String, failures: PackedStringArray) -> void:
-	var table: PokerTableController = rendered.table
-	if table == null:
+	var snapshot: GuiLayoutSnapshot = rendered.root.get_layout_snapshot()
+	if snapshot.seats.is_empty():
 		return
-	var view: GameView = rendered.descriptor.view
-	var surface := table.get_node("TableMargin/Felt/TableSurface") as Control
-	var expected_rects: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(
-		surface.size, view.seats.size()
-	)
+	var reference_check: Callable = rendered.get("reference_geometry_check", Callable())
+	if reference_check.is_valid():
+		reference_check.call(snapshot, context, failures)
 	var found_long_name: bool = false
-	for player_view: PlayerView in view.seats:
-		if player_view.seat == view.hero_seat:
+	for seat_id: int in snapshot.seats:
+		var seat: GuiSeatSnapshot = snapshot.seats[seat_id]
+		if seat.hero:
 			continue
-		var visual_seat: int = posmod(player_view.seat - view.hero_seat, view.seats.size())
-		var panel := surface.get_node("Seats/Seat%d" % player_view.seat) as PanelContainer
-		var expected_rect: Rect2 = expected_rects[visual_seat]
-		var actual_rect: Rect2 = panel.get_rect()
-		if not (
-			actual_rect.position.is_equal_approx(expected_rect.position)
-			and actual_rect.size.is_equal_approx(expected_rect.size)
-		):
-			failures.append(
-				(
-					"%s: density-tier rectangle mismatch for seat %d: %s != %s"
-					% [context, player_view.seat, actual_rect, expected_rect]
-				)
-			)
-		var name_label := panel.find_child("Name", true, false) as Label
-		if name_label == null or name_label.text.is_empty():
-			failures.append(
-				"%s: seat %d has no assigned display name" % [context, player_view.seat]
-			)
+		var name: GuiLayoutElement = seat.fields[&"name"]
+		if not name.present or name.text.is_empty():
+			failures.append("%s: seat %d has no assigned display name" % [context, seat_id])
 			continue
-		found_long_name = found_long_name or name_label.text.length() >= 8
-		if _rendered_width(name_label) > name_label.size.x:
-			failures.append("%s: seat %d display name is clipped" % [context, player_view.seat])
-		var stack_label := panel.find_child("Stack", true, false) as Label
-		if stack_label == null or not stack_label.text.is_valid_int():
-			failures.append("%s: seat %d has no numeric stack" % [context, player_view.seat])
-		elif _rendered_width(stack_label) > stack_label.size.x:
-			failures.append("%s: seat %d stack is clipped" % [context, player_view.seat])
-		var detail_button := panel.find_child("DetailsButton", true, false) as Button
-		if detail_button == null or name_label.text not in detail_button.tooltip_text:
-			failures.append(
-				"%s: seat %d detail does not retain its full name" % [context, player_view.seat]
-			)
-		var hole_cards := panel.find_child("HoleCards", true, false) as Control
-		if hole_cards == null or hole_cards.get_child_count() != 2:
-			failures.append(
-				"%s: seat %d does not show two hole-card fields" % [context, player_view.seat]
-			)
-			continue
-		var action_badge := panel.find_child("ActionBadge", true, false) as Label
-		if action_badge != null and action_badge.visible:
-			if _rendered_width(action_badge) + OPPONENT_ACTION_PADDING > action_badge.size.x:
-				failures.append(
-					"%s: seat %d action content lacks padding" % [context, player_view.seat]
-				)
-			var state_badge := panel.find_child("Badge", true, false) as Label
-			for required_field: Control in [name_label, stack_label, state_badge, hole_cards]:
-				if (
-					required_field != null
-					and action_badge.get_global_rect().intersects(required_field.get_global_rect())
-				):
-					failures.append(
-						(
-							"%s: seat %d action badge covers %s"
-							% [context, player_view.seat, required_field.name]
-						)
-					)
-		if player_view.folded or player_view.busted:
-			if panel.find_child("HoleCardField1", true, false) == null:
-				failures.append("%s: seat %d omits empty card fields" % [context, player_view.seat])
-			continue
-		var has_revealed_cards: bool = view.revealed_hole_cards.has(player_view.seat)
-		var first_card_back := panel.find_child("CardBack1", true, false)
-		var second_card_back := panel.find_child("CardBack2", true, false)
-		var first_card_face := panel.find_child("ShowdownCard1", true, false)
-		var second_card_face := panel.find_child("ShowdownCard2", true, false)
-		if (
-			has_revealed_cards
-			and (
-				first_card_face == null
-				or second_card_face == null
-				or first_card_back != null
-				or second_card_back != null
-			)
-		):
-			failures.append(
-				"%s: seat %d revealed-card presentation is incorrect" % [context, player_view.seat]
-			)
-		elif (
-			not has_revealed_cards
-			and (
-				first_card_back == null
-				or second_card_back == null
-				or first_card_face != null
-				or second_card_face != null
-			)
-		):
-			failures.append(
-				"%s: seat %d exposes or omits private cards" % [context, player_view.seat]
-			)
-	if (
-		view.seats.size() == GuiPhoneSeatLayoutScript.MAX_SUPPORTED_PLAYER_COUNT
-		and not found_long_name
-	):
+		found_long_name = found_long_name or name.text.length() >= 8
+		if name.required_size.x > name.allocated_size.x:
+			failures.append("%s: seat %d display name is clipped" % [context, seat_id])
+		var stack: GuiLayoutElement = seat.fields[&"stack"]
+		if not stack.present or not stack.text.is_valid_int():
+			failures.append("%s: seat %d has no numeric stack" % [context, seat_id])
+		elif stack.required_size.x > stack.allocated_size.x:
+			failures.append("%s: seat %d stack is clipped" % [context, seat_id])
+		var details: GuiLayoutElement = seat.fields[&"details"]
+		if not details.present or name.text not in details.tooltip:
+			failures.append("%s: seat %d detail does not retain its full name" % [context, seat_id])
+		if not seat.fields[&"cards"].present or seat.cards.size() != 2:
+			failures.append("%s: seat %d does not show two hole-card fields" % [context, seat_id])
+			# Do not skip privacy checks: an injected third face is itself a defect.
+		_validate_action_content(seat, context, failures)
+		_validate_cards(seat, context, failures)
+	if snapshot.seats.size() == MAX_SUPPORTED_PLAYER_COUNT and not found_long_name:
 		failures.append(
 			"%s: seven-player fixture does not exercise an eight-character name" % context
 		)
-	var hero_action := table.get_node("%PhoneHeroActionBadge") as Label
+	var hero_action: GuiLayoutElement = snapshot.elements[&"hero_action"]
 	if hero_action.visible:
-		if _rendered_width(hero_action) + HERO_ACTION_PADDING > hero_action.size.x:
+		if hero_action.required_size.x + HERO_ACTION_PADDING > hero_action.allocated_size.x:
 			failures.append("%s: hero action content lacks padding" % context)
-		for hero_field: Control in [
-			table.get_node("%PhoneHeroCards") as Control,
-			table.get_node("%PhoneHeroStack") as Control,
-		]:
-			if hero_action.get_global_rect().intersects(hero_field.get_global_rect()):
-				failures.append("%s: hero action covers %s" % [context, hero_field.name])
-	var more_button := table.get_node("%PhoneMoreButton") as Button
-	if more_button.size.x < 48.0 or more_button.size.y < 48.0:
+		for role: StringName in [&"hero_cards", &"hero_stack"]:
+			if hero_action.rect.intersects(snapshot.elements[role].rect):
+				failures.append("%s: hero action covers %s" % [context, role])
+	var more: GuiLayoutElement = snapshot.elements[&"more"]
+	if more.rect.size.x < 48.0 or more.rect.size.y < 48.0:
 		failures.append("%s: More touch target is below 48 x 48" % context)
 
 
-static func _rendered_width(label: Label) -> float:
-	return (
-		label
-		. get_theme_font("font")
-		. get_string_size(
-			label.text,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1.0,
-			label.get_theme_font_size("font_size"),
+static func _validate_action_content(
+	seat: GuiSeatSnapshot, context: String, failures: PackedStringArray
+) -> void:
+	var action: GuiLayoutElement = seat.fields[&"action"]
+	if not action.visible:
+		return
+	if action.required_size.x + OPPONENT_ACTION_PADDING > action.allocated_size.x:
+		failures.append("%s: seat %d action content lacks padding" % [context, seat.seat_id])
+	for role: StringName in [&"name", &"stack", &"badge", &"cards"]:
+		var required: GuiLayoutElement = seat.fields[role]
+		if required.present and action.rect.intersects(required.rect):
+			failures.append("%s: seat %d action badge covers %s" % [context, seat.seat_id, role])
+
+
+static func _validate_cards(
+	seat: GuiSeatSnapshot, context: String, failures: PackedStringArray
+) -> void:
+	var expected: GuiCardSnapshot.Kind = GuiCardSnapshot.Kind.BACK
+	if seat.folded or seat.busted:
+		expected = GuiCardSnapshot.Kind.EMPTY
+	elif seat.face_authorized:
+		expected = GuiCardSnapshot.Kind.FACE
+	var correct: bool = seat.cards.size() == 2
+	for card: GuiCardSnapshot in seat.cards:
+		if (
+			card.element.visible
+			and (
+				not card.element.rect.has_area()
+				or not seat.fields[&"cards"].rect.encloses(card.element.rect)
+				or not seat.panel.rect.encloses(card.element.rect)
+			)
+		):
+			failures.append(
+				(
+					"%s: seat %d card field %s escapes its container or panel"
+					% [context, seat.seat_id, card.element.role]
+				)
+			)
+		correct = (
+			correct and card.kind == expected and card.element.present and card.element.visible
 		)
-		. x
-	)
+	if correct:
+		return
+	var problem: String = "exposes or omits private cards"
+	if expected == GuiCardSnapshot.Kind.EMPTY:
+		problem = "omits empty card fields"
+	elif expected == GuiCardSnapshot.Kind.FACE:
+		problem = "revealed-card presentation is incorrect"
+	failures.append("%s: seat %d %s" % [context, seat.seat_id, problem])
 
 
 static func view_signature(view: GameView) -> String:

@@ -1,6 +1,7 @@
 GODOT ?= godot
 WEB_TEST_PYTHON ?= .venv/bin/python
 WEB_TEST_OUTPUT ?= localtmp/web-input
+WEB_GEOMETRY_OUTPUT ?= localtmp/web-geometry
 WEB_LAN_PYTHON ?= python3
 WEB_LAN_OUTPUT ?= localtmp/web-lan
 WEB_LAN_BIND ?= 0.0.0.0
@@ -21,6 +22,7 @@ check:
 	$(MAKE) --no-print-directory web-lan-test
 	$(MAKE) --no-print-directory web-layout-test
 	$(MAKE) --no-print-directory cli-process-test
+	$(MAKE) --no-print-directory gui-layout-characterization
 	$(GDLINT) scripts tests
 	$(GDFORMAT) --check scripts tests
 	$(GUT_COMMAND)
@@ -60,6 +62,10 @@ web-lan-test:
 .PHONY: web-input-test
 web-input-test:
 	$(WEB_TEST_PYTHON) tools/run_web_input_tests.py --godot "$(GODOT)" --output "$(WEB_TEST_OUTPUT)"
+
+.PHONY: web-geometry-test
+web-geometry-test:
+	$(WEB_TEST_PYTHON) tools/run_web_geometry_tests.py --godot "$(GODOT)" --output "$(WEB_GEOMETRY_OUTPUT)"
 
 gui-visual-invariant-gate:
 	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_invariant_matrix_runner.gd -gexit
@@ -143,3 +149,10 @@ web-layout-test:
 cli-process-test:
 	$(GODOT) --headless --path . --import
 	GODOT="$(GODOT)" python3 -B -m unittest discover -s tests/cli -t . -v
+
+.PHONY: gui-layout-characterization gui-layout-sweep
+gui-layout-characterization:
+	$(GODOT) --headless --path . --script tests/manual/gui_layout_sweep_runner.gd -- --step 80
+
+gui-layout-sweep:
+	$(GODOT) --headless --path . --script tests/manual/gui_layout_sweep_runner.gd -- --step 20 --diagnostic --output res://localtmp/gui-layout-sweep/report.json

@@ -1,0 +1,8 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://resources/gui_logo.gdshader" id="1_logo_shader"]
+
+[resource]
+shader = ExtResource("1_logo_shader")
+shader_parameter/embossed = true
+shader_parameter/ink_color = Color(0.018, 0.2, 0.105, 1)

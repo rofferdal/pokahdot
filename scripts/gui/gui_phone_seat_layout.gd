@@ -23,6 +23,7 @@ const RECOMMENDED_PHONE_PLAYER_COUNT: int = 4
 const EDGE_MARGIN: float = 8.0
 const SLOT_GAP: float = 8.0
 const PORTRAIT_ROW_GAP: float = 8.0
+const PORTRAIT_EDGE_MARGIN: float = 4.0
 const PORTRAIT_TOKEN_HEIGHT: float = 60.0
 
 
@@ -35,16 +36,25 @@ static func density_for(player_count: int) -> Density:
 
 
 static func seat_rects(
-	usable_size: Vector2, player_count: int, portrait_token_height: float = PORTRAIT_TOKEN_HEIGHT
+	usable_size: Vector2,
+	player_count: int,
+	portrait_token_height: float = PORTRAIT_TOKEN_HEIGHT,
+	portrait_columns: int = 0,
 ) -> Dictionary[int, Rect2]:
 	var rects: Dictionary[int, Rect2] = {}
 	if not _has_valid_inputs(usable_size, player_count):
 		return rects
 
 	var token_size: Vector2 = _token_size(
-		usable_size, density_for(player_count), player_count, portrait_token_height
+		usable_size,
+		density_for(player_count),
+		player_count,
+		portrait_token_height,
+		portrait_columns
 	)
-	var opponent_slots: Array[Rect2] = _opponent_slots(usable_size, token_size, player_count)
+	var opponent_slots: Array[Rect2] = _opponent_slots(
+		usable_size, token_size, player_count, portrait_columns
+	)
 	var opponent_count: int = player_count - 1
 	for opponent_index: int in range(opponent_count):
 		var slot_index: int = floori(
@@ -102,9 +112,21 @@ static func _has_valid_inputs(usable_size: Vector2, player_count: int) -> bool:
 
 
 static func _token_size(
-	usable_size: Vector2, density: Density, player_count: int, portrait_token_height: float
+	usable_size: Vector2,
+	density: Density,
+	player_count: int,
+	portrait_token_height: float,
+	portrait_columns: int = 0,
 ) -> Vector2:
 	var portrait: bool = usable_size.y > usable_size.x
+	if portrait and portrait_columns > 0:
+		return Vector2(
+			(
+				(usable_size.x - PORTRAIT_EDGE_MARGIN * 2.0 - SLOT_GAP * (portrait_columns - 1))
+				/ portrait_columns
+			),
+			portrait_token_height
+		)
 	var preferred_width: float = 168.0 if portrait else 160.0
 	var height: float
 	match density:
@@ -129,8 +151,10 @@ static func _token_size(
 
 
 static func _opponent_slots(
-	usable_size: Vector2, token_size: Vector2, player_count: int
+	usable_size: Vector2, token_size: Vector2, player_count: int, portrait_columns: int = 0
 ) -> Array[Rect2]:
+	if usable_size.y > usable_size.x and portrait_columns > 0:
+		return _portrait_grid_slots(token_size, player_count - 1, portrait_columns)
 	var available_width: float = usable_size.x - EDGE_MARGIN * 2.0 - token_size.x
 	var top_y: float = EDGE_MARGIN if usable_size.y > usable_size.x else 0.0
 	if player_count <= MAX_SUPPORTED_PLAYER_COUNT:
@@ -196,3 +220,38 @@ static func _supported_portrait_slots(
 	for level: int in range(first_right_level, lowest_level + 1):
 		slots.append(Rect2(Vector2(right_x, top_y + row_step * level), token_size))
 	return slots
+
+
+static func _portrait_grid_slots(
+	token_size: Vector2, opponents: int, _columns: int
+) -> Array[Rect2]:
+	var result: Array[Rect2] = []
+	var side_rows: int = opponents / 2
+	var odd: bool = opponents % 2 == 1
+	var first_side_row: int = 1 if odd else 0
+	var last_side_row: int = side_rows if odd else side_rows - 1
+	var step: float = token_size.y + 4.0
+	for row: int in range(last_side_row, first_side_row - 1, -1):
+		result.append(
+			Rect2(Vector2(PORTRAIT_EDGE_MARGIN, PORTRAIT_EDGE_MARGIN + row * step), token_size)
+		)
+	if odd:
+		result.append(
+			Rect2(
+				Vector2(
+					PORTRAIT_EDGE_MARGIN + (token_size.x + SLOT_GAP) * 0.5, PORTRAIT_EDGE_MARGIN
+				),
+				token_size
+			)
+		)
+	for row: int in range(first_side_row, last_side_row + 1):
+		result.append(
+			Rect2(
+				Vector2(
+					PORTRAIT_EDGE_MARGIN + token_size.x + SLOT_GAP,
+					PORTRAIT_EDGE_MARGIN + row * step
+				),
+				token_size
+			)
+		)
+	return result

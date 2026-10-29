@@ -12,18 +12,33 @@ blanket acceptance of the current build.
 
 ## Display geometry and layout ownership
 
-The project uses Compatibility rendering, `canvas_items` stretch, `expand`
-aspect, and a 1920 × 1080 native base viewport. On Web,
-`GuiWebViewportGeometry` normalizes backing-window dimensions using screen
-scale; `StartupConfigController` applies the logical size to the root window.
-Actual usable CSS geometry, DPR, safe-area insets, browser chrome, and keyboard
-behavior still require device evidence (GUI-05). Do not infer them from a
-screenshot raster or assume safe areas were measured automatically.
+The project uses Compatibility rendering, `canvas_items` stretch and `expand`
+aspect, retaining its default 1920 × 1080 client window. `GuiViewportAdapter`
+owns the runtime virtual base: actual canvas CSS extent on Web and client
+pixels/current-window UI scale on native platforms. The old startup-owned
+backing/DPR inference is no longer the app's normalization path.
+
+Immutable `GuiViewportGeometry` snapshots preserve the usable origin and size.
+Canvas/layout/visual rectangles and CSS safe-area insets intersect once;
+native mobile safe rectangles convert through the client origin and actual
+logical/backing ratios. Startup, table and popups consume the same rectangle.
+Headless/SubViewport/explicit fixture roots inject local geometry and never
+normalize the host Window. Sensor orientation enables native rotation; the
+replacement's portrait/landscape compositions remain upcoming tasks.
+
+Historical dimensions are regression samples. Component/container minimums
+determine feasible layouts, with explicit guidance when space cannot fit them.
+Physical browser/device acceptance remains separate from these measurements.
+See the [geometry contract](ARCHITECTURE.md#gui-adapter).
 
 `GuiLayoutProfile.classify()` selects phone portrait, phone landscape, tablet,
 small desktop, or desktop from usable size/aspect. Explicit overrides require
 recorded device evidence. OS flags do not determine layout by themselves.
-Phone landscape remains deferred despite diagnostic regression fixtures.
+The reference GUI's phone landscape remains diagnostic. The replacement now
+targets phone portrait and landscape, plus both tablet orientations, per the
+user's 2026-10-28 clarification. Historical dimensions are regression samples;
+container/content minimums determine fit. Physical-keyboard and touch handling
+remain independent of size and orientation.
 
 Use containers and anchors for ordinary content. Calculated table regions
 must have one layout owner that assigns parent and child rectangles from the
@@ -33,11 +48,39 @@ Do not add a competing container or controller for those rectangles.
 
 ## Typography, input, and assets
 
-All player-facing text has a 20 px minimum and touch targets a 48 × 48 logical
-pixel minimum. Reflow when space is tight. Required content must pass text-fit
+Use the shared passive `BrandLogo.tscn` and transparent PNG on Start and under
+the table content. Start uses the original logo on its dark background without
+a light rectangle. The table's shader applies subtle alpha-derived relief;
+branding may be obscured by game content and must not intercept input or
+change layout minimums. No Start-screen scrolling is allowed: measured header
+fit yields optional copy/logo allocation before essential controls, retaining
+font/target floors and normal container geometry.
+
+The reference retains its 20 px text floor except the reviewed 18 px event-log
+body. The replacement permits seat copy
+(names, stacks, markers and action/showdown band) to scale to 18 logical/CSS px;
+card ranks and other GUI text retain 20 px, except event-log body text at
+18 px (preview feedback, 2026-10-29). Log headings/actions still use 20 px.
+Touch targets remain at least
+48 × 48 logical pixels. Measure the complete seat footprint, including the
+permanently reserved band beneath the visible panel. Winning hand/result
+copy uses bold, bright yellow emphasis. Reflow when space is tight. Required content must pass text-fit
 checks, including ellipsis and overlay text. Passing a matrix is evidence for
 its fixtures, not proof that every device is clear. The ordinary numeric-bound
 regressions supplement canonical layout coverage.
+
+The replacement uses reusable action-button and input-field components.
+Buttons, including Quit, have rounded corners, dark-green backgrounds and white
+text. Number/text fields have sharp corners, white backgrounds and dark-green
+text. Keep this distinction through focus, disabled/read-only and error states,
+including touch fields that open a keypad. RG-30/RG-39 implement these styles.
+Total wager entry is the later user-approved exception: light-grey text on a
+dark-green field, sharp corners, and a slightly shorter face vertically centered
+beside Raise. Preserve its full 48 px interactive height; RG-11R4 draws a
+40 px face inside that allocation through -4 px top/bottom StyleBox expansion.
+Other fields retain the white/dark-text palette. Future theme variations own
+this distinction rather than global field recoloring.
+Total's latest text grey is `#B8C3BB`, slightly darker than the button labels.
 
 The theme is `resources/gui_theme.tres`. Keep the plain non-serif face across
 startup, table, keypad, and overlays. Avoid post-render scaling of desktop
@@ -55,9 +98,33 @@ Opening and draft edits preserve the original field text, including invalid,
 blank and whitespace input. Cancel/dismissal keeps it unchanged; only Done
 commits. Startup and wager entry share this transaction behavior.
 
+Keep keypad digits in three ordered columns (`1 2 3 / 4 5 6 / 7 8 9`) with
+`0` directly below `8`, including compact landscape. Place utility controls
+separately instead of changing digit columns. Preserve 48 px targets and draft
+transactions. Docked event log, human panel and action area share both top and
+bottom edges. Seat allocation also clears the curved felt border; a rectangle
+inside the felt's bounding box can still intersect a rounded corner.
+Replacement layouts contain no more than three player seats in any horizontal
+row, on every screen and orientation. Phone portrait has the stricter maximum
+of two opponent seats per row, including short portrait screens. An odd
+opponent count starts with one centered, equal-width seat above paired rows.
+Preserve clockwise seat identities;
+some existing small-desktop/nine-seat reference paths still violate this new
+contract and require replacement in RG-12/42/50–52.
+The accepted compact side-by-side keypad is landscape-only; portrait stacks
+utilities below digits even if a future theme's minima could fit them beside.
+
+Keypad utility buttons form an aligned rectangle with uniform cells in both
+orientations and entry modes. Preserve the approved digit grid and explicit
+wager limits. Cancel discards the draft, Done commits the draft for adapter validation. Tournament
+Quit is outside number entry; cancel/close the keypad and use table/menu Quit.
+
 ## Phone composition and acceptance
 
 Phone startup supports 2–7 players, defaults to 6, and may recommend 4.
+Treat seven-player phone fit in both orientations as an early design stress
+case, preserving readability and 48×48 action targets. Tablet/desktop layouts
+must also verify nine players; phone geometry is not a scaled desktop layout.
 Tablet, small-desktop, desktop, CLI, and core retain 2–9 support. Never clamp
 an active tournament when its viewport changes. Phone densities are standard
 for 2–4, compact for 5–6, and minimal for 7 players.
@@ -74,11 +141,14 @@ and latest public action within the owned token regions. More/detail and
 summary overlays expose recipient-safe details. Completed phone hands name all
 pot winners in the existing status region; Pots opens exact award details
 without navigating More. Keep the revealed cards visible and return the button
-to More on the next hand. Phone layouts have no event
-history surface; non-phone layouts retain the event log. One table overlay is
+to More on the next hand. The reference phone omits event history; the
+replacement provides a reachable Log action/menu whenever its dock is hidden,
+including phones and completed-hand states. Docked and overlay log views share
+one recipient-safe history model. One table overlay is
 active at a time. Modal input blocks underlying actions, focus stays inside,
-and advancement waits until the overlay closes. Close/Cancel and Quit remain
-reachable; see the [modal contract](ARCHITECTURE.md#gui-adapter) for focus,
+and advancement waits until the overlay closes. Close/Cancel remains reachable;
+tournament Quit is reached outside number entry, after cancelling/closing the
+keypad. See the [modal contract](ARCHITECTURE.md#gui-adapter) for focus,
 Escape, engine-back and browser-history distinctions.
 
 Run `make check gui-current-invariant-gate` after layout changes and review

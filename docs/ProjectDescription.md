@@ -387,6 +387,23 @@ cards were actually shown.
   small blind, and big blind, prefilled with defaults. Starting without edits
   is valid. Explain invalid input and do not begin a hand until all values are
   valid.
+- Place the Pokahdot logo above the Start-screen form. Use the transparent
+  `assets/images/Pokahdot_logo.png` derived from the supplied JPEG; preserve
+  its aspect ratio and keep all controls reachable without reducing text or
+  touch-target sizes. The logo has no light-colored backing panel. The Start
+  screen must fit its essential controls without scrollbars; adapt optional
+  explanatory copy and logo allocation on short screens.
+- Render the same logo subtly into the game screen's felt, with an embossed
+  cloth treatment behind all controls. Partial obscuring by game content is
+  allowed. Branding is decorative and must not intercept input or affect
+  seat/card geometry or visibility.
+- Phone portrait uses an edge-to-edge green game background without the table
+  rim or perimeter margins. Place the community-card/pot/wager group directly
+  above the human seat/action area. Opponent seats use clear measured-content
+  rows without overlapping names, stacks, markers, cards or action/showdown
+  text. Phone portrait has at most two opponent seats per row. For an odd
+  opponent count, the top row contains one centered seat with the same width
+  as seats in paired rows. Other layouts retain the maximum of three seats.
 - Show board, pots, stacks, blinds, the acting player through an enhanced seat
   frame, the human's cards,
   active/eliminated players, and the tournament winner.
@@ -432,10 +449,47 @@ cards were actually shown.
   event log is scrollable, high contrast, and cannot cover seats or their
   reserved status bands. At showdown, show each revealed player's best hand in
   that player's shared below-seat status band.
-- All player-facing text is at least 20 px and uses Godot's built-in plain
-  non-serif UI font. Compact layouts reflow or simplify rather than shrinking
-  below the minimum.
+- Player-facing text uses Godot's built-in plain non-serif UI font. Seat copy
+  (names, stacks, markers, actions and the reserved showdown/status band) may
+  scale with the seat to a minimum of **18 logical/CSS px**. Card ranks and all
+  other GUI text retain a **20 logical/CSS px** minimum, except event-log body
+  text, which uses **18 logical/CSS px** to show more history lines. Density conversion
+  must preserve these displayed sizes; touch targets remain at least 48 × 48.
+- A seat's layout footprint includes its visible panel and the permanently
+  reserved status band beneath it. Winning hand/result descriptions are bold
+  and bright yellow, including split/side-pot recipients; fold wins retain
+  the exact `Winner` text with the same winning emphasis.
+- When the docked event log is hidden to free space, keep a clearly reachable
+  Log action or menu item in every composition, including phones and completed
+  hands. It opens the same recipient-safe history in a scrollable view without
+  covering required table content outside that intentional overlay.
+- Visible action buttons, including Quit, use a consistent rounded-corner
+  presentation with white text on dark-green backgrounds. Number/text input
+  fields use sharp corners and dark-green text on white backgrounds, visibly
+  lighter than buttons. Focus, disabled/read-only and validation states keep
+  these two control families distinct; touch entry fields keep field styling.
+  The Total wager-entry field is a user-approved palette exception: light-grey
+  text on dark green, still with sharp corners. Draw its face slightly shorter
+  than adjacent action buttons and vertically center it with Raise. Preserve
+  a 48×48 minimum interactive area even where the drawn field is shorter.
+  Its muted grey text must be visibly darker than action-button text.
+- Numeric keypads retain a three-column digit grid: `1 2 3`, `4 5 6`, `7 8 9`,
+  then `0` directly below `8`. Compact landscape layouts reflow utility controls
+  separately; they do not change the digit arrangement or reduce touch targets.
+  The compact side-by-side keypad composition is landscape-only; portrait
+  keeps utilities beneath the digit grid.
+  Utility actions form a neat filled rectangle with aligned, uniform cells.
+  Keep explicit permitted-value limits visible for wager entry. Cancel discards
+  the draft without changing the committed field; Done commits the draft for adapter validation.
+  Tournament Quit belongs outside number entry: close/cancel the keypad first,
+  then use the table or menu Quit action.
 - Containers, anchors, and responsive margins are the default layout tools.
+  Keep seats clear of the surrounding felt's rounded border. Where the event
+  log is docked beside the human panel and action area, align all three at
+  both their top and bottom edges.
+  Every horizontal row contains at most three player seats on every screen,
+  in both orientations and at every supported player count; include the human
+  when sharing a row. Preserve clockwise core-seat order when using more rows.
   A documented single layout owner may assign explicit rectangles to a
   specialized region, provided no `Container` competes for those child
   rectangles. Mobile touch targets are at least 48 × 48 px; horizontal text

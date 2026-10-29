@@ -146,7 +146,7 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
                 assert page.evaluate("window.pokahdotInput.history_count") == history
             original = page.evaluate("window.pokahdotInput.input")
             click("open")
-            wait("window.pokahdotInput.popup")
+            wait("window.pokahdotInput.popup && !window.pokahdotInput.keypad_has_quit")
             click("KeyClear")
             click("Key2")
             wait("window.pokahdotInput.draft === '2'")
@@ -155,6 +155,21 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
             wait("!window.pokahdotInput.popup")
             assert page.evaluate("window.pokahdotInput.input") == original
             if fixture == "table":
+                # Explicitly discard keypad edits, then use the tournament menu.
+                click("open")
+                wait("window.pokahdotInput.popup && !window.pokahdotInput.keypad_has_quit")
+                click("KeyClear")
+                click("Key2")
+                click("Cancel")
+                wait("!window.pokahdotInput.popup")
+                assert page.evaluate("window.pokahdotInput.input") == original
+                click("PhoneMoreButton")
+                wait("window.pokahdotInput.menu")
+                click("PhoneMenuQuitButton")
+                wait("window.pokahdotInput.quit_confirmation && !window.pokahdotInput.menu")
+                page.keyboard.press("Escape")
+                wait("!window.pokahdotInput.quit_confirmation && window.pokahdotInput.more_focus")
+                assert page.evaluate("window.pokahdotInput.input") == original
                 page.set_viewport_size({"width": 1280, "height": 720})
                 click("input")
                 wait("window.pokahdotInput.popup")
@@ -198,7 +213,7 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
                 wait("window.pokahdotInput.input === '250'")
                 page.set_viewport_size({"width": 390, "height": 844})
             click("open")
-            wait("window.pokahdotInput.popup")
+            wait("window.pokahdotInput.popup && !window.pokahdotInput.keypad_has_quit")
             click("KeyClear")
             click("Key2")
             click("Key5")

@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/poker_table_controller.gd" id="1_controller"]
 [ext_resource type="Theme" path="res://resources/gui_theme.tres" id="2_theme"]
 [ext_resource type="Resource" path="res://resources/gui_action_timing_config.tres" id="3_timing"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/BrandLogo.tscn" id="4_logo"]
+[ext_resource type="Material" path="res://resources/gui_table_logo_material.tres" id="5_logo_material"]
 
 [node name="PokerTable" type="Control"]
 layout_mode = 3
@@ -34,6 +36,16 @@ theme_override_constants/margin_bottom = 4
 [node name="Felt" type="Panel" parent="TableMargin"]
 layout_mode = 2
 mouse_filter = 2
+
+[node name="BrandLogo" parent="TableMargin/Felt" instance=ExtResource("4_logo")]
+material = ExtResource("5_logo_material")
+layout_mode = 1
+anchor_left = 0.1
+anchor_top = 0.08
+anchor_right = 0.9
+anchor_bottom = 0.62
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="TableSurface" type="Control" parent="TableMargin/Felt"]
 layout_mode = 1

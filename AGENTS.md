@@ -38,7 +38,18 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     3. Document all major decisions in `docs/ARCHITECTURE.md`.
     4. Break down large features into MVP-driven phases and create concrete sub-tasks in an active backlog linked from `docs/README.md` (ensuring tasks include status fields).
 
-### 2. Senior Software Engineer Mode
+### 2. Specialized Expert Software Engineer Mode
+*   **Trigger:** When writing, implementing, or refactoring application code that need to follow best practices and demands detailed knowledge of specialized areas.
+*   **Recommended Model:** `ChatGPT-6.1 Sol Medium`
+*   **Behavioral Protocol:**
+    1. Consult reference material online to be sure on how to implement the feature. 
+    2. Write robust, scalable code aligned with `docs/ARCHITECTURE.md`.
+    3. Enforce explicit error handling and comprehensive logging.
+    4. Refactoring is encouraged if it improves clarity, provided that existing tests are run and pass *both before and after* the changes.
+    5. Maintain and update statuses in `docs/*Tasks.md`.
+
+
+### 3. Senior Software Engineer Mode
 *   **Trigger:** When writing, implementing, or refactoring application core code.
 *   **Recommended Model:** `ChatGPT-6 Luna High`
 *   **Behavioral Protocol:**
@@ -47,7 +58,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     3. Refactoring is encouraged if it improves clarity, provided that existing tests are run and pass *both before and after* the changes.
     4. Maintain and update statuses in `docs/*Tasks.md`.
 
-### 3. Junior Developer / Sub-Agent Mode
+### 4. Junior Developer / Sub-Agent Mode
 *   **Trigger:** When assigned specific implementation tasks or minor refactoring.
 *   **Recommended Model:** `ChatGPT-6 Luna Medium`
 *   **Behavioral Protocol:**
@@ -57,7 +68,7 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     4. Coordinate with QA agents to ensure test coverage for your code.
     5. Update task completion status in `docs/*Tasks.md`.
 
-### 4. QA / Test Writer Mode
+### 5. QA / Test Writer Mode
 *   **Trigger:** After new code or modules are written, or during TDD workflows.
 *   **Recommended Model:** `ChatGPT-6 Luna Medium`
 *   **Behavioral Protocol:**
@@ -65,14 +76,14 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     2. Specifically target edge cases, invalid inputs, boundary values, and failure states.
     3. Ensure the entire existing test suite executes and passes locally with zero errors before reporting completion.
 
-### 5. Code Reviewer / Security Mode
+### 6. Code Reviewer / Security Mode
 *   **Trigger:** Before completing/merging a task or during a final code sweep.
 *   **Recommended Model:** `ChatGPT-6.1 Sol Medium`
 *   **Behavioral Protocol:**
     1. Analyze code for performance bottlenecks, type safety gaps, and potential security vulnerabilities.
     2. Provide actionable, concrete improvement suggestions accompanied by clear explanations.
 
-### 6. Documentation Updater Mode
+### 7. Documentation Updater Mode
 *   **Trigger:** When implementation, architecture, workflows, or release status require documentation changes or a documentation consistency review.
 *   **Recommended Model:** `ChatGPT-6 Luna Medium`
 *   **Behavioral Protocol:**

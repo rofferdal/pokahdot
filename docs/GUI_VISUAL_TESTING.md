@@ -12,6 +12,62 @@ they do not require the replacement to retain internal node paths, exact
 legacy geometry or a past visual defect. Snapshot/observer migration precedes
 legacy deletion.
 
+Branding and phone-portrait review (2026-10-29, RG-11R5/6): confirm genuine
+alpha in `Pokahdot_logo.png`, a transparent Start-screen logo on the dark
+background, and subtle table-cloth relief without an opaque rectangle. Test
+startup at portrait, landscape and reduced heights with all essential controls
+fully visible and no scrollbar; preserve text/target floors. Desktop embossed
+previews were accepted. The phone-portrait redesign must use edge-to-edge green
+without a rim, clear measured seat/status footprints and a community group
+directly above the human/action area; review six and seven players, long chip
+values and showdown states. Earlier scrolling/cream-header and phone layouts
+are rejected prototype evidence, not accepted replacement constraints.
+The user accepted all no-scroll `rg11-review6-startup` captures and all five
+`rg11-review7-*` two-column phone captures on 2026-10-29. Keep their local
+metadata as review evidence; this acceptance does not complete later device
+testing or the replacement component migration.
+Also exercise a seven-way split with maximum supported chip values and long
+names at 360×640. Preserve every winner name, card rank and reserved status
+line. The last compact candidate may stack revealed card pairs vertically;
+verify that resize/rebinding restores ordinary horizontal cards when space
+allows, and that previously accepted compositions remain unchanged.
+
+Preview-review requirements (2026-10-29, RG-11R): event-log body text uses a
+dedicated 18 logical/CSS px floor; its headings/actions and other non-seat text
+retain 20 px. Verify that smaller log text exposes more complete lines while
+the docked log, human panel and action area retain matching top/bottom edges.
+Check seat clearance against the rounded felt border, not only its rectangular
+bounds. Keypad digit positions remain `1 2 3 / 4 5 6 / 7 8 9` with centered
+`0` below `8`; compact layouts reflow utilities separately. Capture and inspect
+both revised previews before acceptance. Earlier five-column captures are
+rejected design evidence, even where their rectangular fit checks passed.
+Replacement row/slot tests must enforce at most three player seats per
+horizontal row for all supported counts/modes and both orientations.
+Phone portrait has a stricter two-opponent-seat maximum. For odd opponent
+counts, verify one centered, equal-width seat in the top row and pairs below,
+including reduced-height portrait and the single-opponent case. A
+six-player preview cannot establish compliance for the legacy small-desktop
+or nine-player paths, which still contain four-seat rows.
+
+Keypad review refinement (2026-10-29, RG-11R2): preserve the approved digit grid
+and explicit wager limits; utility buttons form a neat filled rectangle with
+uniform cells in portrait/compact landscape and plain-number/wager modes.
+No tournament Quit button belongs in number entry. Verify Cancel preserves
+the exact committed field and game state; closing entry then using table/menu
+Quit retains confirmation and modal/focus behavior.
+
+Latest acceptance (2026-10-29): both portrait keypads are accepted, and the
+compact 618×302 keypad is accepted for landscape aspect ratios only. Verify
+portrait utilities below digits and compact landscape utilities beside them.
+The table preview is accepted apart from a further Total-field revision:
+light-grey text on dark green, sharp corners, with a face slightly shorter than
+the neighboring actions and vertically centered beside Raise. Measure drawn
+face and interactive allocation separately: RG-11R4 draws 40 px inside a
+48 px input hit area; generic 48 px target checks remain unchanged. Generic
+fields keep their earlier white/dark-text palette; this exception is Total only.
+The final table capture also checks that Quit is visibly a rounded, bordered
+button, with normal/hover/pressed/focus/disabled styling matching Raise.
+
 ## Current support and acceptance
 
 This document owns GUI evidence terminology. The product specification owns
@@ -20,7 +76,7 @@ player limits; active acceptance checkboxes stay in their owning backlog.
 | Profile | Product scope | Automated coverage | Physical/browser acceptance |
 | --- | --- | --- | --- |
 | Phone portrait | 2–7 players; default 6 | Dedicated phone v2 matrix, including reduced height and summary overlays | Archived [phone acceptance record](arkiv/OptimizingPhoneGuiTasks.md); open recorded checks are not completed by archive placement |
-| Phone landscape | Emergency reflow and state preservation | Diagnostic phone fixtures | Deferred; diagnostic passes do not establish landscape support |
+| Phone landscape | Reference emergency reflow; replacement responsive composition planned | Diagnostic reference fixtures | Replacement landscape implementation and acceptance required; historical passes establish no device support |
 | Tablet/iPad | 2–9 players; landscape primary, portrait regression | Dedicated iPad matrix, including explicit observed-device override | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
 | Small desktop/desktop | 2–9 players | Dedicated desktop matrix and historical M3 fixtures | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
 
@@ -189,7 +245,7 @@ Modal interaction regressions in `test_gui_modal_interaction.gd` use a real
 390 x 844 `SubViewport` and delivered touch/key events, including an unblocked
 positive control. They cover reading past hand timers, exclusive surfaces,
 focus cycling/restoration, synthetic engine back dismissal, profile cleanup,
-and keypad-to-native-quit transitions. Exported Web input tests also exercise
+and keypad cancellation followed by table/menu Quit confirmation. Exported Web input tests also exercise
 touch on an underlying Fold while a menu is open, Tab focus containment,
 menu-to-quit switching, outside-keypad touch, and Escape cancellation. Synthetic back coverage does
 not establish physical Android or browser-history navigation acceptance.
@@ -199,6 +255,135 @@ hidden core state or reproduce poker rules inside the presentation harness.
 When a fixture needs a modal, its manifest entry identifies that modal as an
 intentional overlap exception; exceptions belong to named controls and states,
 not to an entire viewport or assertion class.
+
+## Semantic layout observations
+
+RG-01 adds `get_layout_snapshot()` to the table and startup controllers.
+It returns detached typed measurements with semantic region/action roles,
+core-seat IDs, full seat/status footprints, actual card visibility and
+text/target metadata. Rectangles use root-viewport logical coordinates,
+including usable origins and popup embedding offsets. Local text metrics and
+allocated sizes remain explicitly separate from transformed rectangles.
+See the [GUI adapter contract](ARCHITECTURE.md#gui-adapter).
+
+The focused `test_gui_layout_snapshot.gd` suite exercises startup, wide,
+phone and modal observations plus deliberate privacy/content/geometry
+mutations. Shared assertions, phone content checks and Web observers now
+consume those values. `GuiSceneHarness.set_fixture_driver()` lets a replacement
+composition supply setup independently of the reference tree. The reference
+driver retains its exact density-plan comparison; replacement drivers omit it.
+Settling requires readiness, no pending layout and two stable snapshot geometry
+frames within a 16-frame bound. Snapshot readiness alone does not establish
+rendered or device acceptance.
+
+Exported layout reports use `exported_web_layout_evidence_v2`: `regions`,
+`root_rect`, `surface_rect` and `usable_rect` share viewport logical coordinates;
+labels identify semantic `role` values such as `seat/1/name`. The Python checker
+uses the surface origin when checking seat order and retains every raw engine
+failure. Input observations use snapshot focus/modal/keypad roles and exact
+field values, including empty or whitespace-only input. Reference setup helpers
+are separate from these read-only observers and absent from production exports.
+
+## Replacement presentation acceptance additions
+
+The current reference continues its existing styles while the component tasks
+land. Replacement review must verify the user-confirmed contracts: reusable
+cards across board/hero/opponents; a complete seat footprint including its
+reserved below-panel action/showdown band; bold bright-yellow winning result
+copy; seat text scaling to at least 18 logical/CSS px while card ranks and
+other text remain at least 20 (18 for event-log body); and 48×48 touch targets. Hidden log docks retain
+a reachable Log action/menu in every layout and completed-hand state.
+
+Action buttons, including Quit and keypad keys, have rounded corners, dark-green
+backgrounds and white text. Number/text fields have sharp corners, white
+backgrounds and dark-green text. Check focus, disabled/read-only and validation
+states as well as ordinary appearance. These component/style requirements are
+implemented and reviewed in RG-20/30/31/39–45; viewport correction alone does
+not claim their completion.
+
+## Real-window geometry evidence
+
+The development-only scene
+`tests/performance/gui_geometry_fixture.tscn` measures the actual native root
+Window under the reference and explicit runtime normalization experiments. It
+records Window/DisplayServer/image size, screen scale, virtual base, final
+transform, all visible text/target output sizes and screenshots. It does not
+change product settings. For example:
+
+```sh
+/Applications/Godot.app/Contents/MacOS/Godot --path . --always-on-top \
+  --rendering-method gl_compatibility --rendering-driver opengl3 \
+  --audio-driver Dummy tests/performance/gui_geometry_fixture.tscn \
+  -- --app-adapter --output res://localtmp/viewport-adapter-native
+```
+
+Use a fresh output path and select a screen explicitly when comparing native
+scales. `--app-adapter` measures the production adapter; the fixture's default
+reference policies are explicit injected experiments for comparison. The Web layout observer also reports read-only Window and transformed
+geometry. Compare actual DOM canvas CSS bounds/backing size with those engine
+measurements. Pair x/y output transforms with the corresponding CSS/backing
+ratios; nominal DPR alone misses fractional shell rounding. See the
+[RG-10 unit and minimum-size decision](ARCHITECTURE.md#gui-adapter).
+These experiments establish measurement facts; replacement visual/device
+acceptance remains a separate review.
+
+## Viewport adapter gate
+
+`make web-geometry-test WEB_GEOMETRY_OUTPUT=localtmp/geometry-review-01`
+exports an isolated read-only observer and checks 24 actual browser cases at
+DPR 1/2/2.625/3. It verifies actual CSS/backing/Window conversions, nonzero and
+asymmetric insets, safe-area/visual-viewport intersection, and popup frames
+inside the usable rectangle. Displayed fonts use paired logical-scale/output/
+CSS axes; targets retain 48×48 with only 1e-4 numeric transform tolerance.
+Finite preset selection happens during test bootstrap; there is no live
+JavaScript geometry/input mutator in the observer or production export.
+
+The new geometry/integration tests also cover fractional native safe-edge
+roundtrips, immutable detached values, invalid-to-valid recovery, pending-frame
+readiness, translated/scaled roots, headless host isolation and keypad
+focus/draft preservation. A 618×302 landscape safe area contains the compact
+keypad and every visible child at the current 20/48 floors. These tests cover
+viewport correctness; later component tests apply the approved 18 px seat-copy
+allowance and the new card/button/field/log/winner presentation contracts.
+
+## Policy and fit characterization
+
+`make gui-layout-characterization` checks the exact step-80 reference registry
+in [`gui_layout_sweep_known_failures.json`](../tests/fixtures/gui_layout_sweep_known_failures.json).
+It is included in `make check` after measuring approximately 0.5 seconds of pure
+probes and 2.8 seconds for the bounded scene/resize matrix. New failures,
+unexpected passes, changed input sets and changed policy observations all
+require review; the runner never updates the registry during a check.
+
+The 9,994 canonical inputs combine 9,884 pure plan/policy probes and 110
+rendered/resize observations. The inclusive base grid spans widths 320–2560,
+heights 320–1600 and all counts 2–9; boundary ±1, orientation/aspect transitions
+and meaningful large-value variants add coverage. Phone plans and wide
+primitive allocations are explicitly distinguished from final rendered layouts.
+Injected primitive minima do not prove actual text or child-minimum fit.
+Scene cases exercise actual controls, public card/privacy content, modals,
+large values, all counts at 650×900 and 1250×700, and repeated same-widget
+resizes without changing the complete recipient-safe view.
+
+The registry records 1,101 observed failing probe inputs: 1,070 pure inputs
+and 31 scene/resize observations. Within the pure observations, 468 reject an
+attempted alternative six-seat plan and 94 flag raw ring-anchor ordering in
+primitive paths that final layout can override. The remaining 508 concern phone
+plan collisions/minima. Primitive reports describe attempted allocations;
+actual GUI diagnoses come from rendered observations. No recorded failure
+establishes accepted product behavior. Observed 650×900 layouts fail; the tested
+1250×700 cases pass; eight-player 1920×1080 layouts have seat/status overlaps.
+Phone counts 8–9, deferred landscape and insufficient-space cases retain separate
+scope labels. RG-10/RG-12 will define final feasible support envelopes.
+
+`make gui-layout-sweep` samples step 20 without imposing the step-80 registry on
+new inputs. Its 73,537 observations identify each additional sample explicitly
+and write a diagnostic report to `localtmp/gui-layout-sweep/report.json`.
+Canonical reports go to `localtmp/gui-layout-characterization/report.json`.
+The registry stores explicit failure signatures/input IDs and source checksums;
+full raw measurements stay in ignored reports. To review a deliberate baseline
+change, inspect both the raw report and fixture diff before explicitly running
+the runner with `--step 80 --record`. Never use recording to mask a regression.
 
 ## Milestone gates
 
@@ -274,6 +459,8 @@ the editor binary is not on `PATH`, for example
 
 | Command | Purpose and evidence status |
 | --- | --- |
+| `make gui-layout-characterization` | Compare step-80 policy/plan and bounded scene observations with the exact reviewed failure registry; part of `check`, not visual acceptance. |
+| `make gui-layout-sweep` | Run additional step-20 diagnostic samples, retaining observed failures and scope labels under `localtmp/`; not an acceptance gate. |
 | `make gui-visual-capture-smoke` | Render only the 1280 x 720, six-player `human-turn-preflop` case. It accepts a dirty tree, writes development-only output, and checks the renderer/capture pipeline without running the complete matrix or ordinary test suite. It is never acceptance evidence. |
 | `make gui-visual-invariant-gate` | Run the historical Milestone 3 tablet, small-desktop, and desktop matrix through the reusable scene harness and invariant assertions under GUT. It writes no screenshot evidence. |
 | `make gui-phone-invariant-gate` | Run the distinct 406-case phone v2 matrix across canonical portrait, landscape, and reduced-height fixtures at 2, 4, 6, and 7 players. It verifies full bot names, numeric stacks, two hole-card fields, separate bare-table and summary-overlay states, absent event history, and resize cycles. |

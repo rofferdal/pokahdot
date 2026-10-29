@@ -24,10 +24,10 @@ def footprint(seat: dict) -> list[float]:
 
 
 def clockwise_order(snapshot: dict) -> list[int]:
-    _, _, width, height = snapshot["surface_rect_global"]
+    origin_x, origin_y, width, height = snapshot["surface_rect"]
     def angle(seat: dict) -> float:
         x, y, w, h = seat["rect"]
-        return math.atan2(x + w / 2 - width / 2, height / 2 - y - h / 2)
+        return math.atan2(x + w / 2 - origin_x - width / 2, origin_y + height / 2 - y - h / 2)
     origin = angle(next(seat for seat in snapshot["seats"] if seat["seat"] == 0))
     return [seat["seat"] for seat in sorted(snapshot["seats"],
             key=lambda seat: (angle(seat) - origin) % math.tau)]
@@ -36,7 +36,7 @@ def clockwise_order(snapshot: dict) -> list[int]:
 def geometry_failures(snapshot: dict) -> list[str]:
     failures = []
     seats = snapshot["seats"]
-    regions = snapshot["regions_surface_local"]
+    regions = snapshot["regions"]
     for index, seat in enumerate(seats):
         complete = footprint(seat)
         for other in seats[index + 1:]:
@@ -65,18 +65,18 @@ def order_failures(snapshot: dict) -> list[str]:
 def identity_failures(snapshot: dict) -> list[str]:
     """Require actual visible identity/role labels to match the public fixture.
 
-    Observer labels contain only visible controls. Complete shaping/fit remains
+    Observer labels contain visible semantic roles, independent of node names. Complete shaping/fit remains
     independently checked by the engine, including labels that enable ellipsis.
     """
     failures = []
     for seat in snapshot["seats"]:
-        prefix = f"/Seats/Seat{seat['seat']}/"
+        prefix = f"seat/{seat['seat']}/"
         labels = [label for label in snapshot["labels"]
-                  if prefix in "/" + label["path"]]
-        expected = {"Name": {seat["name"]},
-                    "Stack": {str(seat["stack"]), f"{seat['stack']} chips"}}
+                  if label["role"].startswith(prefix)]
+        expected = {"name": {seat["name"]},
+                    "stack": {str(seat["stack"]), f"{seat['stack']} chips"}}
         for field, values in expected.items():
-            candidates = [label for label in labels if label["path"].endswith("/" + field)]
+            candidates = [label for label in labels if label["role"] == prefix + field]
             if len(candidates) != 1 or candidates[0]["text"] not in values:
                 failures.append(f"required-content: seat_{seat['seat']} {field} expected "
                                 f"{sorted(values)}, got {[label['text'] for label in candidates]}")
@@ -89,7 +89,7 @@ def identity_failures(snapshot: dict) -> list[str]:
                            for part in markers.split())
         allowed_markers = {markers, compact}
         candidates = [label for label in labels
-                      if label["path"].rsplit("/", 1)[-1] in ("Marker", "Badge")]
+                      if label["role"] in (prefix + "marker", prefix + "badge")]
         actual = [label["text"] for label in candidates]
         if ((markers and (len(actual) != 1 or actual[0] not in allowed_markers))
                 or (not markers and any(actual))):

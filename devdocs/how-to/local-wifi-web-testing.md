@@ -5,11 +5,7 @@ an iPad or an Android phone without pushing or merging. The completed server wor
 [`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). GUI device-review evidence and
 remaining acceptance limitations are recorded in the archived
 [`OptimizingPhoneGuiTasks.md`](../../docs/arkiv/OptimizingPhoneGuiTasks.md)
-<<<<<<< HEAD
-and section 5 of [`AstraSuggestionTasks.md`](../../docs/arkiv/AstraSuggestionTasks.md).
-=======
 and section 5 of the archived [`AstraSuggestionTasks.md`](../../docs/arkiv/AstraSuggestionTasks.md).
->>>>>>> main
 
 Install the [normal development dependencies](../../README.md#development-checks)
 and Godot 4.7.2 with matching Web export templates. The CLI uses Python 3's
@@ -62,6 +58,9 @@ build. While building or after failure, the root returns HTTP 503; already
 pinned successful builds remain available. After a failure, fix the reported
 error and rebuild successfully before reopening the root. The release preset,
 clean release gate and Pages deployment are separate.
+The builder rejects engine/script error lines even if checks exit successfully.
+Expected negative-test diagnostics are captured inside their tests; an error
+in the outer check log still blocks publication.
 
 ## First-time setup or starting a stopped server
 

@@ -119,6 +119,7 @@ func test_desktop_action_controls_have_distinct_focus_and_disabled_states() -> v
 		^"%PotRaiseButton",
 		^"%AllInButton",
 		^"%WagerButton",
+		^"%QuitButton",
 	]:
 		var button := table.get_node(path) as Button
 		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
@@ -129,11 +130,66 @@ func test_desktop_action_controls_have_distinct_focus_and_disabled_states() -> v
 		assert_gt(focus.border_width_left, normal.border_width_left, str(path))
 		assert_ne(_style_signature(focus), _style_signature(normal), str(path))
 		assert_ne(_style_signature(disabled), _style_signature(normal), str(path))
+	var quit_button := table.get_node("%QuitButton") as Button
+	var wager_button := table.get_node("%WagerButton") as Button
+	for state: StringName in [&"normal", &"hover", &"pressed", &"focus", &"disabled"]:
+		var quit_style := quit_button.get_theme_stylebox(state) as StyleBoxFlat
+		var action_style := wager_button.get_theme_stylebox(state) as StyleBoxFlat
+		assert_eq(_style_signature(quit_style), _style_signature(action_style), str(state))
+		assert_gt(quit_style.corner_radius_top_left, 0, "Quit keeps a rounded rectangle")
+		assert_gt(quit_style.border_width_left, 0, "Quit keeps a visible border")
 	var wager_input := table.get_node("%WagerInput") as LineEdit
 	assert_ne(
 		_style_signature(wager_input.get_theme_stylebox("focus") as StyleBoxFlat),
 		_style_signature(wager_input.get_theme_stylebox("normal") as StyleBoxFlat),
 	)
+	for state: StringName in [&"normal", &"focus", &"read_only"]:
+		var field := wager_input.get_theme_stylebox(state) as StyleBoxFlat
+		var expected_background := Color("1b4933") if state == &"focus" else Color("102d21")
+		if state == &"read_only":
+			expected_background = Color("0a1711")
+		assert_eq(field.bg_color, expected_background, "Total keeps its dark-green surface")
+		assert_eq(field.expand_margin_top, -4.0)
+		assert_eq(field.expand_margin_bottom, -4.0)
+		for corner: int in range(4):
+			assert_eq(field.get_corner_radius(corner), 0, "input corners stay sharp")
+		for side: int in range(4):
+			assert_eq(field.get_content_margin(side), 2.0, "field padding preserves allocation")
+	for role: StringName in [&"font_color", &"caret_color", &"font_uneditable_color"]:
+		assert_eq(wager_input.get_theme_color(role), Color("b8c3bb"), str(role))
+	assert_eq(wager_input.get_theme_color("font_placeholder_color"), Color("b8c3bb"))
+	assert_lt(
+		wager_input.get_theme_color("font_color").v,
+		wager_button.get_theme_color("font_color").v,
+		"Total's grey stays darker than the action-button text"
+	)
+	var raise_style := table.get_node("%WagerButton").get_theme_stylebox("normal") as StyleBoxFlat
+	assert_eq(raise_style.bg_color, Color("102d21"), "Raise remains an action")
+	assert_gt(raise_style.corner_radius_top_left, 0)
+	var compact := PokerTableScene.instantiate() as PokerTableController
+	add_child_autofree(compact)
+	compact.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	compact.size = Vector2(1280, 720)
+	compact.bind_view(_hero_table_view(6), _avatar_assignments(6))
+	for frame: int in range(4):
+		await get_tree().process_frame
+	var total := compact.get_node("%WagerInput") as LineEdit
+	var raise_button := compact.get_node("%WagerButton") as Button
+	assert_gte(total.size.x, 48.0)
+	assert_eq(total.size.y, 48.0, "Total retains its full touch target")
+	assert_eq(raise_button.size.y, 48.0)
+	assert_gte(total.get_theme_font_size("font_size"), 20)
+	for state: StringName in [&"normal", &"focus", &"read_only"]:
+		var field := total.get_theme_stylebox(state) as StyleBoxFlat
+		# StyleBoxFlat::draw/get_draw_rect apply exactly this expansion to the allocation.
+		var face: Rect2 = total.get_global_rect().grow_individual(
+			field.expand_margin_left,
+			field.expand_margin_top,
+			field.expand_margin_right,
+			field.expand_margin_bottom
+		)
+		assert_eq(face.size.y, 40.0, "%s field face stays shorter than Raise" % state)
+		assert_almost_eq(face.get_center().y, raise_button.get_global_rect().get_center().y, 0.01)
 
 
 func test_desktop_empty_board_slots_are_neutral_and_event_log_follows_latest_row() -> void:
@@ -186,7 +242,7 @@ func test_startup_form_collapses_empty_errors_and_uses_visible_input_controls() 
 
 	var form := main.get_node("%Form") as VBoxContainer
 	var fields := main.get_node("%Fields") as GridContainer
-	var panel := main.get_node("Center/Panel") as PanelContainer
+	var panel := main.get_node("%Panel") as PanelContainer
 	assert_true(Rect2(Vector2.ZERO, main.size).encloses(panel.get_rect()))
 	assert_eq(form.get_theme_constant("separation"), 18)
 	assert_eq(fields.columns, 2)

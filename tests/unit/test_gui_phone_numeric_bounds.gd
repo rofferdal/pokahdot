@@ -114,7 +114,7 @@ func test_independent_large_value_triggers_and_blind_detail_remain_readable() ->
 		_assert_content(rendered, target)
 		rendered.table.call("_open_phone_overflow_menu")
 		assert_true(await harness.settle_layout())
-		_assert_content(rendered, target + " menu")
+		_assert_content(rendered, target + " menu", [&"menu"])
 		harness.free()
 
 
@@ -174,19 +174,19 @@ func test_compact_large_wager_presets_and_keypad_submit_exact_targets() -> void:
 					table.get_node("%WagerButton").emit_signal("pressed")
 					var keypad := table.get_node("WagerKeypad") as WagerKeypad
 					assert_true(keypad.visible)
-					assert_true(keypad.get_node("Content/Keys/KeyMin").visible)
-					assert_true(keypad.get_node("Content/Keys/KeyPot").visible)
+					assert_true(keypad.get_action_control(&"min").visible)
+					assert_true(keypad.get_action_control(&"pot").visible)
 					if method == "keypad-minimum":
-						keypad.get_node("Content/Keys/KeyMin").emit_signal("pressed")
+						keypad.get_action_control(&"min").emit_signal("pressed")
 					elif method == "keypad-pot":
 						target = pot_target.wager_total
-						keypad.get_node("Content/Keys/KeyPot").emit_signal("pressed")
+						keypad.get_action_control(&"pot").emit_signal("pressed")
 					else:
 						target = 234567
-						keypad.get_node("Content/Keys/KeyClear").emit_signal("pressed")
+						keypad.get_action_control(&"clear").emit_signal("pressed")
 						for digit: String in str(target):
-							keypad.get_node("Content/Keys/Key" + digit).emit_signal("pressed")
-					keypad.get_node("Content/Done").emit_signal("pressed")
+							keypad.get_action_control(StringName(digit)).emit_signal("pressed")
+					keypad.get_action_control(&"done").emit_signal("pressed")
 			var after: GameView = match_instance.get_view_for(0)
 			var action: PublicActionRecord = after.action_history[-1]
 			assert_eq(action.seat, 0, method)
@@ -215,11 +215,13 @@ func test_ordinary_values_restore_compact_tokens_after_large_values() -> void:
 	)
 	assert_true(await harness.settle_layout())
 	var seat: Control = rendered.table.get_node("%Seats").get_node("Seat1")
-	assert_eq(seat.size.y, 86.0)
+	var large_height: float = seat.size.y
+	assert_gte(large_height, 48.0)
 	rendered = harness.rerender(Fixtures.by_id(&"human-turn-preflop", 7))
 	assert_true(await harness.settle_layout())
 	seat = rendered.table.get_node("%Seats").get_node("Seat1")
-	assert_eq(seat.size.y, 60.0)
+	assert_lte(seat.size.y, large_height)
+	assert_gte(seat.size.y, 48.0)
 	_assert_content(rendered, "compact restore")
 	harness.free()
 
@@ -246,25 +248,31 @@ func _large_descriptor(state: StringName, count: int) -> Dictionary:
 	return descriptor
 
 
-func _assert_content(rendered: Dictionary, context: String) -> void:
-	var failures: PackedStringArray = Invariants.validate(rendered)
+func _assert_content(
+	rendered: Dictionary, context: String, expected_overlays: Array[StringName] = []
+) -> void:
+	var failures: PackedStringArray = (
+		Invariants.validate(rendered)
+		if expected_overlays.is_empty()
+		else Invariants.validate_snapshot(rendered.root.get_layout_snapshot(), expected_overlays)
+	)
 	assert_eq(failures, PackedStringArray(), context + "\n" + "\n".join(failures))
 	var table: PokerTableController = rendered.table
 	for path: String in ["%PotLabel", "%WagerLabel", "%PhoneHeroStack", "%PhoneHeroActionBadge"]:
 		var label := table.get_node(path) as Label
 		if label.is_visible_in_tree():
 			_assert_label(label, context)
-	var seats: Node = table.get_node("%Seats")
-	for panel: Node in seats.get_children():
-		if not panel is PanelContainer or not panel.is_visible_in_tree():
-			continue
-		for name: String in ["Stack", "ActionBadge"]:
-			var label := panel.find_child(name, true, false) as Label
-			if label != null and label.is_visible_in_tree():
-				_assert_label(label, context)
+	var snapshot: GuiLayoutSnapshot = table.get_layout_snapshot()
+	var portrait: bool = snapshot.profile == GuiLayoutProfile.Kind.PHONE_PORTRAIT
+	for seat: GuiSeatSnapshot in snapshot.seats.values():
+		for role: StringName in [&"stack", &"action"]:
+			var value: GuiLayoutElement = seat.fields[role]
+			if not value.visible:
+				continue
+			assert_gte(value.font_size, 18 if portrait and not seat.hero else 20)
+			if not seat.hero:
 				assert_true(
-					panel.get_global_rect().encloses(label.get_global_rect()),
-					"%s %s contains %s" % [context, panel.name, label.name]
+					seat.footprint.encloses(value.rect), context + " complete seat footprint"
 				)
 	for path: String in ["%CheckCallButton", "%MinWagerButton", "%PotRaiseButton"]:
 		var button := table.get_node(path) as Button

@@ -95,6 +95,51 @@ func test_fit_uses_actual_content_minima_and_rejects_impossible_geometry() -> vo
 	)
 
 
+func test_corner_clearance_reserves_complete_upper_footprints_without_moving_lower_rail() -> void:
+	var original := Plan.new()
+	var inset := Plan.new()
+	assert_true(
+		original.configure(
+			Vector2(1216, 664),
+			Vector2(520, 198),
+			Vector2(200, 133),
+			Vector2(306, 128),
+			Vector2(72, 48)
+		)
+	)
+	assert_true(
+		inset.configure(
+			Vector2(1216, 664),
+			Vector2(520, 198),
+			Vector2(200, 133),
+			Vector2(306, 128),
+			Vector2(72, 48),
+			Vector2(160, 102),
+			68.0
+		)
+	)
+	assert_eq(inset.hero_rect, original.hero_rect)
+	assert_eq(inset.event_rect, original.event_rect)
+	assert_eq(inset.action_rect, original.action_rect)
+	for pair: Vector2i in [Vector2i(2, 1), Vector2i(4, 5)]:
+		var upper: Rect2 = inset.seat_rects[pair.x].merge(inset.status_rects[pair.x])
+		var lower: Rect2 = inset.seat_rects[pair.y].merge(inset.status_rects[pair.y])
+		assert_gte(upper.position.y, 68.0)
+		assert_false(upper.intersects(lower), "reserved showdown bands must clear lower seats")
+	assert_false(
+		inset.configure(
+			Vector2(1216, 664),
+			Vector2(520, 198),
+			Vector2(200, 133),
+			Vector2(306, 128),
+			Vector2(72, 48),
+			Vector2(160, 102),
+			200.0
+		),
+		"impossible corner clearance must fail instead of overlapping complete footprints"
+	)
+
+
 func test_selected_density_configures_at_the_same_measured_contract_boundaries() -> void:
 	for width: int in [1200, 1216, 1305, 1376, 1599, 1600]:
 		for height: int in range(620, 681):

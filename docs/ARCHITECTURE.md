@@ -297,9 +297,9 @@ Trace detail does not change outcome digests or provenance checks.
 | Separate presentation RNG streams | GUI name selection uses `gui_names` and avatar selection uses `gui_avatars`; neither may perturb the other or any game RNG stream. |
 | Keep GUI action pacing in a Resource | Per-seat action pauses and the shared completed-hand pause for showdown or a pre-showdown winner are configurable without putting timers or presentation policy in poker rules. |
 | Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
-| Enforce a 20 px minimum for player-facing GUI text | Controls may reflow for compact screens, but readable text must not be reduced below the desktop opponent-name baseline. |
+| Enforce role-specific GUI text floors | Seat copy may scale to 18 logical/CSS px; card ranks and other GUI text retain 20 px, with 48×48 touch targets. |
 | Use responsive Control layout guidance | `canvas_items` with `expand`, containers, anchors, and responsive margins govern layout adaptation; font and texture crispness is not assumed from stretch mode alone. |
-| Normalize the Web root to CSS-pixel geometry | Godot's full-window Web loader keeps a device-pixel-ratio-sized backing canvas for crisp rendering. The GUI composition root divides that backing size by `DisplayServer.screen_get_scale()` and assigns the result to the root Window's `content_scale_size`, so layout profiles and touch targets use CSS/logical pixels instead of the high-density backing store. Native windows retain the project base-size behavior. |
+| Give GUI geometry one owner | `GuiViewportAdapter` normalizes the real root Window to actual canvas CSS geometry on Web and client/current-window scale on native platforms. Startup, table and popups consume the same usable rectangle; fixture roots remain isolated. |
 | Classify GUI layout from usable geometry with explicit supplemental overrides | Phone portrait, phone landscape, tablet, small-desktop, and desktop profiles derive from the canvas remaining after browser chrome and safe areas. Known device evidence may override ambiguous geometry; in particular, the observed 2388 x 1450 iPad fixture declares a tablet override instead of making every desktop window of that size a tablet. |
 | Give manually positioned GUI regions one layout owner | The central board/pot/wager stack uses a plain `Control`; `PokerTableController` atomically assigns its centered bounds and its three child panel rectangles. A Godot `Container` must not compete with those explicit rectangles or resize the stack from late child minimum-size notifications. |
 | Preserve mobile usability targets | Interactive controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows. |
@@ -734,14 +734,349 @@ is permitted; existing GUI code is reusable only where it fits that design.
 The descriptions below remain the implemented baseline. Product behavior,
 privacy, input transactions and useful verification coverage must survive;
 legacy node structure and exact geometry are not architectural constraints.
-No replacement implementation or device acceptance is claimed by this decision.
+No full replacement cutover or device acceptance is claimed by this decision.
+
+Retirement decision (2026-10-28): build the replacement directly; do not continue
+extracting legacy builders or layout helpers. RG-13 may provide a small temporary
+policy bridge, while replacement compositions consume the unified policy
+directly. The [backlog retirement map](RestructureGuiTasks.md#transitional-size-and-retirement-plan--2026-10-28)
+names the old scenes, factories, geometry/style helpers and reference-specific
+snapshot producers to remove at RG-54 after independent replacement coverage.
+Keep the detached semantic snapshot API and useful independent pure services;
+do not retain wrappers solely to keep old trees alive. Delete associated `.uid`
+files only after references are removed. Compare production lines, custom layout
+ownership and runtime construction at cutover; more reusable authored scenes
+alone do not imply more custom code.
+
+Planned control components (user clarification, 2026-10-28): `ActionButton`
+provides shared rounded dark-green/white-text presentation for every visible
+action, including Quit and keypad keys. `InputField` provides sharp-cornered
+white/dark-green-text presentation for number/text entry and value surfaces.
+Theme states retain that distinction. RG-30/RG-39 implement these reusable
+views; input transactions, numeric validation and game submission stay in
+controllers/adapters. This future contract supersedes the reference's visually
+similar button/field styling.
+
+Branding decision (2026-10-29, RG-11R5): `BrandLogo.tscn` is a reusable,
+passive `TextureRect` backed by `gui_logo_texture.tres`.
+`assets/images/Pokahdot_logo.png` is the transparent cutout of the supplied JPEG,
+created with built-in image editing. The Atlas crops meaningful alpha bounds
+with padding. A shared Compatibility `canvas_item` shader renders source RGBA
+on Start and derives a restrained directional relief from alpha for the felt;
+it does not remove a checkerboard at runtime. The table material and anchors
+keep branding behind game content without changing component minimums or input.
+
+The Start-screen logo is directly above the form on the dark background, with
+no light backing panel and no scrollbar. A `CenterContainer`/box/grid hierarchy
+owns geometry. Measured header fit yields optional description/title copy and
+logo height before reducing essential content; fields/actions retain 20 px
+text and 48 px targets. Normal Container re-sorting applies new minima without
+manual child positioning. An earlier scroll prototype was rejected and removed,
+including its unneeded clipping-observation extension.
+
+Total text now uses a slightly darker muted grey (`#B8C3BB`) than the action
+labels, while retaining its sharp, shorter dark-green face and 48 px hit area.
+The table snapshot producer registers the actual table surface as `surface`;
+unknown descendant diagnostics remain observable without inheriting a changed
+child index when a decorative background is inserted. The recorded failure
+registry receives only the explicitly reviewed role-prefix migration.
+
+Phone-portrait redesign selected by the user (RG-11R6): full-screen green with
+no felt rim/perimeter margins, measured clean opponent-seat rows, and the
+community-card/pot/wager group directly above the human/action area. Preserve
+clockwise identities, complete reserved status footprints, at most two opponent
+seats per portrait row, recipient privacy and the approved 18 px seat-copy / 20 px card/other
+text floors. Desktop branding remains as accepted. This is a selected visual
+increment; authored replacement components and device acceptance remain in
+their owning later tasks. The latest portrait review requires an odd opponent
+count to start with one centered seat, equal in width to seats in paired rows;
+this also applies to short portrait screens. Other compositions retain the
+general maximum of three seats per row.
+The reviewed implementation uses measured name/stack/card rows and permanently
+reserved two-line status bands, with an 18 px fallback limited to seat copy.
+Short-screen fit reduces internal padding and row gaps; card text stays at
+20 px and interactive targets at 48 px. Actions share one row only when their
+complete measured labels fit. The user accepted the review7 portrait captures
+on 2026-10-29; this is visual acceptance of the current increment, not completion
+of the later replacement or physical-device checks.
+For a long seven-way winner summary that exhausts short-screen height, the
+last measured seat candidate places the two revealed cards vertically beside
+name/stack/role copy. It retains their 46×30 size and readable ranks, both
+reserved status lines, and every named winner. Horizontal candidates keep
+priority and are evaluated against the actual community/hero allocation.
+
+Total-field refinement (2026-10-29, latest user review): Total uses light-grey
+text/caret/placeholder on dark green, overriding the earlier white Total-field
+palette only. Generic `InputField`/`NumberField` retain their white/dark-text
+contract. Keep zero-radius corners and vertically center the field with Raise;
+the drawn face is slightly shorter than neighboring actions. RG-11R4 uses
+`StyleBoxFlat` vertical expansion margins of -4 per edge: a 48-unit allocated
+field draws a centered 40-unit face while retaining its 48-unit hit area,
+container allocation and font. No competing child-position owner or wrapper is
+needed. Future RG-30/RG-39 represent this as a `WagerTotalField` theme variation.
+The table Quit control now participates in `GuiTableActionControls`' existing
+action-button style application, using the same rounded border and all five
+interaction-state styles as Raise. It remains a tournament control in the
+table/controller, not part of numeric entry.
+The compact keypad's accepted side-by-side composition is explicitly
+landscape-only, in addition to measured width/height fit; portrait retains its
+accepted stacked utilities. This is not a fixed screen-dimension constraint.
+
+Keypad utility refinement (2026-10-29): digits and explicit wager limits are
+user-approved; editing/preset/Cancel/Done controls form a uniform, filled
+rectangle. Tournament exit is not a responsibility of number entry. Remove
+the keypad's Quit button, exit signal and table wiring (RG-11R2); retain the
+table/menu exit flow. Cancel restores the exact committed field without
+submission, while Done commits the draft for adapter validation. The keypad remains modal until
+closed; tournament exit is reached after cancelling/closing it. RG-39/45
+preserve these boundaries in the authored presentation replacement.
+
+Preview-review contract (2026-10-29): event-log body text uses a dedicated
+18 logical/CSS px typography role; headings, fields and action controls retain
+20 px. This is a log-only exception to general non-seat text floors. Preserve
+top and bottom alignment of the docked log, human panel and action area. Seat
+geometry must clear the rounded felt border, including upper corner seats;
+rectangular surface containment alone is insufficient. Numeric keypads keep
+the digit grid `1 2 3 / 4 5 6 / 7 8 9` with `0` centered directly below `8`
+in all orientations. Utility controls compose separately; do not reflow digits
+into five columns. RG-11R implements the selected preview corrections before
+continuing; replacement components/containers inherit these requirements in
+RG-30/31/39/44/45/50/51. Revised implementation evidence belongs in the backlog.
+
+Seat-row cap (2026-10-29, user confirmed): all replacement layouts enforce at
+most three player seats per horizontal row on every screen/orientation and
+supported count, including the hero when sharing that row. Pure slot plans
+also enforce the later, stricter two-opponent cap in phone portrait, with a
+centered single top seat for odd opponent counts. They
+record row membership and preserve clockwise seat IDs; cosmetic staggering
+does not satisfy the limit. Existing small-desktop and nine-seat wide/tablet
+reference paths contain four-seat rows. They remain a documented legacy gap,
+not accepted replacement behavior; implement the cap in RG-12/42/50–52 rather
+than adding further legacy geometry owners.
+
+The user reaffirmed on 2026-10-29 that legacy layout must not limit the new GUI
+on any screen. Replacement containers may change positions, compositions,
+breakpoints and node structure freely to meet the visual and responsive-fit
+contracts. Retain independent behavior, privacy and input checks; migrate
+incidental coordinate/hierarchy tests. Reference defects are neither target
+constraints nor a prerequisite repair project before replacement work.
+
+Phone fit is the priority constraint (user clarification, 2026-10-29): retain
+the 2–7-player phone target in both orientations and 2–9 on tablets/desktops.
+Use seven-player phone and nine-player wide fixtures early when measuring
+component minima and action flow. Fit must preserve text floors, 48×48 targets
+and the three-seat row cap. An infeasible viewport shows guidance without
+changing active participants; the design is not a scaled-down desktop layout.
+
+Additional presentation decisions (user clarification, 2026-10-28): a seat's
+layout footprint includes its drawn panel and a permanently reserved below-panel
+action/showdown band. The outer component/container minimum includes both.
+Winning hand/result copy is bold and bright yellow (`#FFFF00`), including
+split/side-pot recipients; emphasis comes from public award data, never rules
+inside a view. Seat copy may scale to 18 logical/CSS px; card ranks and other
+GUI text retain 20 px (except the later-approved 18 px log body), with 48×48
+touch targets. The original reference used 20 px throughout; RG-20/30/31/41 implement the new role-aware
+component contract.
+
+The replacement may collapse a docked log when space is tight, while retaining
+a reachable Log action/menu in every composition and completed-hand state.
+Docked and overlay views share the same recipient-safe log model. RG-43–45
+provide the trigger, reusable scrollable component and modal host, preserving
+history, pause/focus behavior and privacy. The reference phone's omitted log
+surface remains legacy behavior pending this implementation.
+
+Planned card-component contract (user clarification, 2026-10-28):
+`PlayingCard` is a standalone authored presentation scene with face, back and
+empty states, backed by `CardFace`/`CardBack` scenes and a recipient-safe
+`CardViewModel`. `CardRow` composes the same component for community, hero and
+opponent cards. Board/seat/phone components use that public rendering API;
+card views contain no game-rule or hidden-card visibility decisions. RG-20 and
+RG-40 implement and test this boundary; the current factory remains reference
+code pending that work.
+
+Decision (2026-10-28, RG-01): `PokerTableController.get_layout_snapshot()`
+and `StartupConfigController.get_layout_snapshot()` expose detached,
+strongly typed `GuiLayoutSnapshot` values. Producers adapt the reference GUI;
+consumers use semantic roles rather than widget paths. The API measures the
+rendered tree without changing it or advancing a match. RG-02 shared invariant and browser observers consume this contract.
+
+- All rectangle fields use the owning root viewport's logical coordinates.
+  Control/canvas transforms and popup embedding origins are applied; usable
+  geometry now comes from RG-11's shared app-root-local snapshot and is
+  transformed into viewport space. The felt surface remains a separate nested
+  rectangle. Standalone table fixtures use their full root rectangle; native
+  popup coordinates convert through both popup and parent Window transforms.
+- `elements` identifies center, board, pot, wager, action, event, quit, More,
+  hero fields and action targets, including minimum Bet/Raise. `seats` is
+  keyed by core seat ID and includes panel/status footprints, content fields,
+  visual slots and actual card observations. Startup and modal observations
+  have typed child snapshots. A measured descendant collection preserves
+  diagnostics for unexpected children as well as registered semantic roles.
+- Text measurements retain complete required copy, wrapping/line limits,
+  font metrics and allocated local sizes. Rectangle coordinates, local
+  text metrics, logical scale, effective font size and output font size are
+  distinct values; RG-10 decides their physical/CSS interpretation. No new
+  font is introduced.
+- Card observations inspect actual children, including unexpected faces,
+  rather than deriving visible cards from expected state. Unauthorized rank,
+  suit text and tooltips are redacted throughout semantic and generic
+  observations. Snapshots retain no nodes, fonts, textures, card resources,
+  `GameView` or mutable core objects.
+- Readiness requires mounted, valid geometry and no pending table layout;
+  an unmounted/unbound table returns a nonready snapshot. Bounded multiframe
+  settling remains a harness responsibility. Snapshots remain valid after
+  rerendering or freeing their source scene.
+
+Decision (2026-10-28, RG-02): shared invariant assertions, phone content
+contracts, bounded harness settling and exported browser observers consume
+semantic snapshots. `GuiSceneHarness` accepts an implementation-specific
+fixture driver; the reference driver owns legacy scene setup and its exact
+phone-density oracle. Replacement drivers supply their own bootstrap and
+omit that reference-only pixel comparison. Overlay exceptions use semantic
+kinds and remain fixture-specific. Capture manifests retain original case IDs
+and fingerprint the reference driver and snapshot assertion helpers.
+
+Browser observations serialize viewport-coordinate regions and semantic label
+roles, and retain complete raw engine failures. Input checks read exact input
+values, drafts, focus and modal targets through the same contract; their
+reference-scene setup is isolated from observation. Test observers and fixture
+drivers remain excluded from production exports. These checks do not establish
+physical-device acceptance.
+
+Decision (2026-10-28, RG-03): reference policy/fit characterization has a
+step-80 exact registry and a separate step-20 diagnostic. Pure injected-surface
+phone/grid/ring/six-seat probes do not claim to reproduce the final wide
+controller's minimum-size/correction passes. A bounded real-scene and resize
+matrix verifies actual text/minimum propagation, public-card privacy, core-seat
+identity and complete safe-view immutability. The registry rejects changed
+failure sets in both directions and fingerprints policy observations/input
+identity. Known defects are recorded without accepting overlap, clipping or
+unsupported sizes. Final support policy remains RG-10/RG-12 work.
+
+Decision (2026-10-28, RG-10): responsive layout uses measured content and
+available logical space, with desktop keyboard input and tablet/phone touch in
+both orientations. Existing screen dimensions remain reproducible samples.
+Phone landscape is an explicit replacement target per the user's clarification;
+legacy diagnostic labels do not defer its implementation or acceptance.
+The normalization below is implemented by RG-11; startup no longer owns
+Window normalization.
+
+**Units and scaling contract**
+
+| Space | Meaning and conversion |
+| --- | --- |
+| Backing/client pixels | Native `Window.size` and DisplayServer client size; on Web, canvas backing width/height. Keep these separate from UI coordinates. |
+| Web CSS pixels | Measure the actual canvas bounding rectangle. Browser requested size, visual viewport, nominal DPR and backing size remain independent evidence. |
+| Native UI units | Client pixels divided by the current window's valid platform UI scale. macOS scales 1 and 2 were measured. Unavailable/invalid scale falls back to 1 with explicit provenance; this establishes no unmeasured platform density claim. |
+| Root logical units | One CSS/native UI unit, with conservative integer virtual-base quantization of at most one unit per axis. Positive extents round down to avoid shrinking typography/targets below their floor. Preserve `canvas_items`, `expand`, scale factor 1 and the product's initial 1920×1080 client window. |
+| Usable logical rectangle | Root geometry reduced once by measured insets/chrome constraints. Preserve its origin and convert into each layout's coordinates through transforms. |
+
+The adapter owns runtime `Window.content_scale_size`; a design viewport never
+substitutes for measured available space. Web uses actual canvas CSS extent,
+not backing pixels divided by nominal DPR when those disagree. Native uses
+current-window scale rather than physical DPI or an arbitrary screen index.
+SubViewport/headless fixtures inject logical geometry and never normalize the
+host application's Window. CLI and simulation composition paths remain untouched.
+
+The reference's 20-unit theme font and 48×48 target are UI-space floors after
+transforms. The replacement uses 18 units for seat copy, 20 for card/other text
+and the same 48×48 targets.
+Font size denotes the font em, not its glyph ink bounding box. Reflow content
+instead of shrinking these floors. Native output is converted back through the
+reported platform scale; Web output pairs each final-transform axis with that
+axis's actual CSS/backing ratio. Combining unrelated scalar minima would
+misstate fractional-DPR output. Normal floating-point transform noise has a
+small numeric tolerance; the measured 0.05 CSS-pixel deficit below is a defect.
+Input modality controls keypad/native editing independently of composition.
+
+Measured examples (Godot 4.7.2, real Compatibility windows and Chromium 140):
+
+- At a scale-1 1280×720 client window, the fixed 1920×1080 baseline produces
+  minimum visible text of 14 backing pixels and a 46×32.67 Fold target.
+  Matching virtual geometry to the window restores a 20-unit text floor and
+  targets at least 48 units high.
+- On the measured Retina display, the 1920×1080 client window divided by
+  scale 2 yields 960×540 UI units. The density-normalized experiment renders
+  minimum text at 40 backing pixels / 20 scale-derived points and targets at
+  least 96 backing pixels / 48 points. A 1280×720 client window yields 640×360;
+  the replacement must adapt its landscape composition to that logical space.
+  Native OS frame bounds were unavailable; point sizes are derived from the
+  reported scale, not independently measured frame coordinates.
+- Web 1280×720 at DPR 2.625 has 3360×1890 backing pixels and 1280×720 logical
+  CSS units: a 20-unit font renders at 52.5 backing pixels / 20 CSS pixels.
+- A requested Web 390×844 at DPR 2.625 produces a 389×843 CSS canvas and
+  1023×2215 backing pixels. The existing inferred 390×844 base shrinks text
+  to about 19.95 CSS pixels and a target to 47.94 CSS pixels. The isolated
+  actual-CSS-base experiment restores 20 CSS-pixel text and 48 CSS-pixel
+  targets across rotation and resizing. RG-11 must close this measured gap.
+
+Implemented ownership (RG-11): `GuiViewportAdapter`, authored under the main
+GUI scene, owns runtime normalization and publishes immutable
+`GuiViewportGeometry` values from pure Web/native/injected factories.
+Startup's Center and the table root receive the same usable origin/extent;
+startup retains its internal 12-unit margin. Snapshot producers transform that
+available rectangle into root-viewport coordinates separately from the felt.
+Pending geometry invalidates readiness until the new rectangle is applied.
+
+The Web probe measures canvas/layout/visual rectangles and CSS `env()` insets,
+then intersects those constraints once. Export metadata adds `viewport-fit=cover`.
+Native mobile safe rectangles convert from global client pixels through the
+window origin and actual quantized logical/backing axes; desktop client space
+is already unobstructed. Window resize, display movement/density changes and
+Web viewport events refresh the same source. Native handheld orientation uses
+Godot's sensor setting; replacement landscape acceptance remains pending.
+
+The supported GUI explicitly uses embedded subwindows
+(`window/subwindows/embed_subwindows = true`). `GuiPopupPlacement` maps the same
+usable rectangle into embedded popup coordinates and honors actual content
+minimums; visible separate native popups are rejected. Read-only native
+coordinate conversion remains available for diagnostics. A forced separate
+native `PopupPanel` experiment clipped child controls on Retina and is broken,
+unaccepted evidence, not a production rendering promise. RG-45 replaces legacy
+popup presentation with the in-canvas overlay host. Keypad geometry updates preserve drafts
+and focus; existing layout-profile exit cancellation remains unchanged.
+The compact keypad uses smaller spacing and a 20-unit draft font, preserving
+all controls/targets within a measured 302-unit safe height. Headless,
+SubViewport and explicitly sized fixture roots do not modify the host Window;
+CLI and simulation never instantiate this adapter.
+
+**Content-driven minimums**
+
+Minimum feasible dimensions are functions of count, density, required copy,
+component minimums, selected action flow and safe areas. They are not device
+resolution constants. Let `T` be the measured complete opponent token footprint,
+`B` the board/pot/wager minimum, `H` the hero minimum, `A` the action minimum,
+and `G` the applicable measured gaps/margins. Evaluate finite container plans:
+
+| Composition / counts | Minimum feasibility definition |
+| --- | --- |
+| Phone portrait, 2–7 | Choose a fitting token-column count. Width contains each complete row plus `B`, `H` and `A`; height contains `ceil((count−1)/columns)` token rows plus `B + H + A + G`. Standard/compact/minimal densities change spacing and row plans; font/target floors remain constant. |
+| Phone landscape, 2–7 | Evaluate horizontal board/opponent and action/hero regions. Width contains both region minima plus gaps; height contains the larger of opponent-grid-plus-board and action-flow-plus-hero minima. Choose columns and action rows from measured fit. |
+| Wide, 2–9, either orientation | The seat-ring Container derives its minimum from complete seat/status footprints, center and lower regions, theme gaps and the count's template. Compact/regular density and action flow are finite measured candidates. Tablet portrait and landscape consume the same available-space contract. |
+| Infeasible or invalid space | Preserve tournament/configuration state and show explicit resize/rotate guidance. Phone counts 8–9 require a feasible wider composition. Never hide required copy, clamp seat counts or scale text below its floor. |
+
+The replacement must retain a feasible candidate as space grows, even when a
+preferred size class changes. Component minimum-size propagation and Container
+sorting own actual allocations. RG-12 and RG-40–52 implement and verify these
+functions; no table of historical screen sizes replaces them. The reference
+fit probe's 64 passing cases at 950×532 and 1250×700 demonstrate feasible logical
+allocations for counts 2–9 and ordinary/large content; they are regression
+samples. The recorded 650×900 and eight-player 1920×1080 defects remain open.
+
+This policy follows [Godot's scaling guidance](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html),
+using the documented [Window virtual base](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window-property-content-scale-size)
+and [current-screen scale](https://docs.godotengine.org/en/stable/classes/class_displayserver.html#class-displayserver-method-screen-get-scale).
+Renderer compatibility and the default font remain unchanged. Local raw evidence:
+`localtmp/restructure_rg10/native/`, `web/` and `web-candidate/`.
 
 1. Show a startup panel prefilled with 6 participants, 1000 chips, small blind 5, and big blind 10; starting immediately without editing is valid.
 2. Validate edits locally for immediate feedback, then create a fresh validated match configuration and construct `TournamentMatch`; do not create players, chips, or cards while the input is invalid.
 3. Call `start()` and render the returned human `GameView`: board, pots, stacks, current blinds, level progress, acting seat, hero cards, active/eliminated participants, and final winner when applicable. Opponent cards remain hidden unless the view explicitly reveals them.
 4. Enable only actions listed in `legal_actions`; expose Fold, Check/Call, minimum Bet/Raise, an exact Pot bet/raise target, All-in, and free-entry amounts as applicable. The Pot control is a No Limit convenience preset. It displays contribution `P` and submits the paired street-total target `T = H + P`, where `P` is the bound view's pre-action pot and `H` is the hero's existing street wager. Thus it adds `P` chips and leaves a pot of `2P`; it is disabled unless that exact target is a legal bet or raise the hero can cover. The ordinary wager-validation path remains authoritative.
 5. On a button press, create `PlayerAction`, submit it, and render the next result.
-6. Keep `Quit` available at all times; confirm in the GUI and then call `request_quit()`.
+6. Keep tournament `Quit` reachable from the table/menu; confirm in the GUI and
+   then call `request_quit()`. Close/cancel number entry before using that route;
+   numeric keypads do not contain tournament-exit controls.
 
 The startup panel and table are views in one scalable `Control`-based main scene with `canvas_items` stretch mode and `expand` aspect. Layouts use containers, anchors, and responsive margins rather than fixed pixel positioning. Stretch mode scales the 2D layout but does not by itself guarantee crisp text or textures; those depend on viewport configuration and source assets. Starting a new tournament returns to the startup panel so new values can be chosen.
 
@@ -775,22 +1110,22 @@ introduce persistent caching of recipient views.
 
 `GuiActionTimingConfig` at `resources/gui_action_timing_config.tres` controls nonblocking GUI pacing. Its default action pause is two seconds; `pause_seconds_by_seat` can override the duration for each bot seat (or the human seat) independently. The same pause is used after each community-card reveal. Milestone 3 requires the completed-hand presentation pause to use `showdown_pause_seconds`, which defaults to five seconds, both after showdown and when one player wins before showdown because every opponent folded. `GuiActionPacer` uses a scene-tree timer, then asks `TournamentMatch` for exactly one further automatic action. The core exposes that boundary but owns every deal, betting, settlement, and tournament transition; it contains no GUI timer dependency.
 
-The default native game viewport is 1920 by 1080, while the `Control` layout must
-reflow without overlap at supported desktop and mobile aspect ratios. On Web,
-`GuiWebViewportGeometry` converts the device-pixel-ratio-sized canvas backing
-store to CSS-pixel dimensions. `StartupConfigController` applies that result as
-the root Window's virtual content base on startup and whenever the browser
-window changes size. Both startup and table controls therefore receive the
-same normalized logical geometry while the backing canvas remains high
-resolution. The human recipient is visually anchored at the bottom; this is a
+The initial native client window is 1920 by 1080, while the `Control` layout must
+reflow without overlap at supported desktop and mobile aspect ratios. The
+app-owned `Main/ViewportAdapter` Node applies the current measured logical base
+and usable rectangle to startup and table; startup no longer normalizes the
+Window. Web uses actual canvas CSS bounds, while the backing canvas remains
+high resolution. `GuiWebViewportGeometry` is a legacy helper pending retirement.
+The human recipient is visually anchored at the bottom; this is a
 presentation mapping only and must not alter core seat identities or poker
 positions. Desktop seat panels use equal wide dimensions across 2–9 seats,
 with mirrored left/right placement where applicable; compact layouts may
 change dimensions but retain readable names, stacks, markers, and cards. Tall
 mobile portrait surfaces are detected from normalized size and aspect ratio,
 then scale seats, cards, table zones, and action controls from the available
-surface. Event history remains visible on non-phone layouts but has no phone
-field, drawer, menu entry, or capture state.
+surface. In the reference implementation, event history remains visible on
+non-phone layouts but has no phone field, drawer, menu entry, or capture state.
+The planned replacement log-access contract above supersedes that omission.
 
 Phone startup supports 2–7 participants and does not alter the resolved product
 default of 6. Startup may show non-binding guidance that 4 participants are
@@ -815,9 +1150,10 @@ badge. The controller derives all action copy from recipient-safe public action
 history, and no presentation timer may expire it. A deliberate
 tap opens a closeable detail panel whose selection is stored as a core seat ID,
 not a node reference, so rerenders cannot attach details to the wrong player.
-The phone composition does not instantiate or expose event history; the
-underlying recipient-safe history remains unchanged for core state and larger
-profiles. Numeric entry is selected from the actual input event: touch opens
+The reference phone composition does not instantiate or expose event history;
+the underlying recipient-safe history remains unchanged. The replacement must
+expose it through a Log action/menu whenever undocked. Numeric entry is selected
+from the actual input event: touch opens
 the transactional in-canvas keypad on every profile. Opening and draft edits
 leave the original field text untouched, including invalid and whitespace-only
 text; Cancel/dismissal preserves it exactly and only Done commits the draft.
@@ -886,13 +1222,15 @@ usable-table backdrop intercepts underlying pointer/touch input, keyboard focus
 cycles within the active surface, and stray underlying action submissions are
 rejected by the adapter. Closing restores the previous live focus target, with
 More or the visible wager button as a fallback after a seat rebuild/profile
-change. Every surface provides Close/Cancel and a visible Quit route.
+change. Every surface provides Close/Cancel. Number entry contains no tournament
+Quit action; cancel/close it before using the table/menu Quit route. Other
+reading/menu surfaces retain their explicit exit routes.
 
 Presentation timers may expire while a modal is open, but their next core
 advancement callback is retained until the last modal closes. It resumes once,
 after the closing input event; switching surfaces never advances the hand.
 Thus a completed-hand summary remains readable indefinitely. Confirmed quit
-cancels held advancement. The same guard keeps table keypads and native quit
+cancels held advancement. The same guard keeps table keypads and embedded quit
 confirmation exclusive on larger profiles without adding pause state to core.
 Escape dismisses the active surface without committing a keypad draft. The
 engine's go-back notification follows the same dismissal path; automatic
@@ -902,8 +1240,9 @@ they are not certified by synthetic engine-notification tests.
 
 The phone More control occupies reserved space in the bottom action region,
 never a perimeter seat slot. Phone quit confirmation uses a bounded in-canvas
-panel with two explicit 48 px actions; desktop retains the native confirmation
-dialog. The phone center plan owns the complete board, pot, and current-wager
+panel with two explicit 48 px actions; desktop retains Godot's embedded
+`ConfirmationDialog`, not a separate native OS window. The phone center plan
+owns the complete board, pot, and current-wager
 stack so its declared rectangle cannot hide child-panel overlap.
 Profile changes rebuild the presentation from the unchanged `GameView`; full
 desktop and tablet panels are restored when the current usable viewport is no
@@ -913,7 +1252,11 @@ geometry classification, player limits, core seat IDs, or poker position.
 
 `resources/gui_theme.tres` uses Godot's built-in plain non-serif UI font for both the startup screen and the table. Startup labels, numeric inputs, validation feedback, and the on-canvas keypad inherit that face, as do table labels and controls; presentation code must not introduce a serif face. Desktop table typography and line-art are configured at their source sizes rather than post-render scaled.
 
-The shared theme may adapt font sizes to the viewport, but all player-facing text remains at least 20 px. Compact layouts reflow or simplify content instead of shrinking text below that threshold. Mobile controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows.
+The reference theme adapts sizes with a 20 px floor, except event-log body
+at 18 px after RG-11R. The
+replacement permits seat copy to scale to 18 logical/CSS px; card ranks and
+other GUI text retain 20 px, with the same log exception. Reflow uses measured minimums at those role-specific
+floors. Mobile controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows.
 
 The sixteen `assets/avatars/*.png` sources are 64 × 64 pixels. Full seat
 panels use base avatar regions of 112 × 112 logical pixels for opponents and
@@ -1589,7 +1932,8 @@ Tests extend GUT's `GutTest`, run headless, and instantiate core classes directl
 - GUI seat rendering uses assigned bot names and the exact human label at 2-,
   6-, and 9-seat tables; mappings remain stable across refresh and layout
   changes, and longest permitted names fit desktop and compact layouts without
-  reducing player-facing text below 20 px.
+  reducing text below the role-specific 18 px seat-copy / 20 px card/other
+  floors, with the dedicated 18 px event-log body exception.
 
 ### 13.2 Integration tests
 

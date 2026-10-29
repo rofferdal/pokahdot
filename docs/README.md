@@ -12,9 +12,14 @@
 This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
-- [`RestructureGuiTasks.md`](RestructureGuiTasks.md) — proposed GUI replacement:
+- [`RestructureGuiTasks.md`](RestructureGuiTasks.md) — GUI replacement in progress:
   unified geometry/classification, pure presentation models, component scenes,
-  themes and container-owned responsive layouts. First task: RG-00 baseline.
+  themes and container-owned responsive layouts. RG-00–RG-11, including
+  RG-11R–RG-11R6 follow-ups, implemented and verified. Keypads, revised Start
+  and review7 phone previews accepted; final short-phone and seven-way-winner
+  boundary previews await review. Stopped before RG-12 at the user's request.
+  The subsequent RG-11R7 LAN diagnostic regression is fixed and verified by
+  a successful rebuild; RG-12 remains untouched.
 
 
 ## Archived task records

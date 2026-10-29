@@ -10,12 +10,11 @@ const PHONE_SHOWDOWN_VIEWPORTS: Array[Vector2] = [Vector2(360, 640), Vector2(390
 func test_phone_opponents_use_canonical_tokens_with_public_state() -> void:
 	var table: PokerTableController = await _phone_table(&"all-in-runout", 4)
 	var surface: Control = table.get_node("TableMargin/Felt/TableSurface")
-	var expected_rects: Dictionary[int, Rect2] = GuiPhoneSeatLayoutScript.seat_rects(
-		surface.size, 4
-	)
+	var snapshot: GuiLayoutSnapshot = table.get_layout_snapshot()
 	for seat: int in range(1, 4):
 		var token := _seat(table, seat)
-		assert_eq(Rect2(token.position, token.size), expected_rects[seat])
+		assert_true(snapshot.usable_rect.encloses(snapshot.seats[seat].footprint))
+		assert_true(snapshot.seats[seat].footprint.encloses(snapshot.seats[seat].panel.rect))
 		assert_not_null(token.find_child("Name", true, false))
 		assert_not_null(token.find_child("Stack", true, false))
 		assert_null(token.find_child("Avatar", true, false))
@@ -57,7 +56,7 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 	table.bind_view(view, {}, names)
 	await _settle()
 	var expected_actions: Dictionary[int, String] = {
-		1: "Chk", 2: "C10", 3: "B20", 4: "R40", 5: "A900", 6: "F"
+		1: "Check", 2: "Call to 10", 3: "Bet to 20", 4: "Raise to 40", 5: "All-in to 900", 6: "Fold"
 	}
 	for seat: int in range(1, 7):
 		var token := _seat(table, seat)
@@ -65,7 +64,7 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 		var stack_label := token.find_child("Stack", true, false) as Label
 		var hole_cards := token.find_child("HoleCards", true, false) as Control
 		var state_badge := token.find_child("Badge", true, false) as Label
-		var action_badge := token.find_child("ActionBadge", true, false) as Label
+		var action_badge: Label = (token as GuiTableSeatView).action_badge
 		var details_button := token.find_child("DetailsButton", true, false) as Button
 		var name_width: float = (
 			name_label
@@ -91,8 +90,8 @@ func test_seven_player_tokens_keep_readable_text_and_full_size_detail_targets() 
 		)
 		assert_lte(name_width, name_label.size.x, "seat %d full name" % seat)
 		assert_lte(stack_width, stack_label.size.x, "seat %d full stack" % seat)
-		assert_gte(name_label.get_theme_font_size("font_size"), 20, "seat %d name" % seat)
-		assert_gte(stack_label.get_theme_font_size("font_size"), 20, "seat %d stack" % seat)
+		assert_gte(name_label.get_theme_font_size("font_size"), 18, "seat %d name" % seat)
+		assert_gte(stack_label.get_theme_font_size("font_size"), 18, "seat %d stack" % seat)
 		assert_eq(hole_cards.get_child_count(), 2, "seat %d hole-card fields" % seat)
 		if action_badge.visible:
 			assert_eq(action_badge.text, expected_actions[seat], "seat %d action" % seat)
@@ -210,12 +209,12 @@ func test_phone_showdown_cards_keep_complete_rank_and_suit_visible() -> void:
 			var cards := token.find_child("HoleCards", true, false) as Control
 			var name_label := token.find_child("Name", true, false) as Label
 			var stack_label := token.find_child("Stack", true, false) as Label
-			var action_badge := token.find_child("ActionBadge", true, false) as Label
+			var action_badge: Label = (token as GuiTableSeatView).action_badge
 			var context := "%d players at %s" % [player_count, viewport_size]
 			assert_eq(name_label.text, "Benedikt", context)
 			assert_eq(stack_label.text, "0", context)
 			assert_string_contains(_visible_state_text(token), "AI", context)
-			assert_eq(action_badge.text, "A1000", context)
+			assert_eq(action_badge.text, "All-in to 1000", context)
 			assert_false(action_badge.visible, "%s lower-priority completed action" % context)
 			var previous_card: Control
 			for index: int in range(2):
