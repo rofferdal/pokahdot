@@ -1,12 +1,16 @@
 class_name GuiSnapshotMeasurement
 extends RefCounted
 
-## Presentation-only measurement shared by legacy snapshot producers.
+## Presentation-only measurement shared by GUI producers and reusable components.
 ## The returned values never retain controls or font resources.
 
 
 static func rect(control: Control, root: Control) -> Rect2:
 	return _control_transform(control, root) * Rect2(Vector2.ZERO, control.size)
+
+
+static func local_rect(control: Control, root: Control, local: Rect2) -> Rect2:
+	return _control_transform(control, root) * local
 
 
 static func _control_transform(control: Control, root: Control) -> Transform2D:
@@ -124,6 +128,15 @@ static func _measure_text(control: Control, value: GuiLayoutElement, redact: boo
 			text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, value.font_size
 		)
 		value.line_count = 1 if not text.is_empty() else 0
+		if control is Button and "\n" in text:
+			var paragraph := TextParagraph.new()
+			paragraph.break_flags = TextServer.BREAK_MANDATORY
+			paragraph.add_string(text, control.get_theme_font("font"), value.font_size)
+			value.required_size = paragraph.get_size()
+			value.line_count = paragraph.get_line_count()
+			value.required_size.y += (
+				maxi(0, value.line_count - 1) * control.get_theme_constant("line_spacing")
+			)
 	elif control is RichTextLabel:
 		value.text_kind = &"rich_text"
 		var rich := control as RichTextLabel

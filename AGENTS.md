@@ -45,17 +45,17 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     1. Consult reference material online to be sure on how to implement the feature. 
     2. Write robust, scalable code aligned with `docs/ARCHITECTURE.md`.
     3. Enforce explicit error handling and comprehensive logging.
-    4. Refactoring is encouraged if it improves clarity, provided that existing tests are run and pass *both before and after* the changes.
+    4. Refactoring is encouraged if it improves clarity, provided that relevant existing tests are run and pass *both before and after* the changes.
     5. Maintain and update statuses in `docs/*Tasks.md`.
 
 
 ### 3. Senior Software Engineer Mode
 *   **Trigger:** When writing, implementing, or refactoring application core code.
-*   **Recommended Model:** `ChatGPT-6 Luna High`
+*   **Recommended Model:** `ChatGPT-6.1 Terra Medium`
 *   **Behavioral Protocol:**
     1. Write robust, scalable code aligned with `docs/ARCHITECTURE.md`.
     2. Enforce explicit error handling and comprehensive logging.
-    3. Refactoring is encouraged if it improves clarity, provided that existing tests are run and pass *both before and after* the changes.
+    3. Refactoring is encouraged if it improves clarity, provided that relevant existing tests are run and pass *both before and after* the changes.
     4. Maintain and update statuses in `docs/*Tasks.md`.
 
 ### 4. Junior Developer / Sub-Agent Mode
@@ -106,7 +106,7 @@ Every agent must follow this 3-step loop for every task execution:
 ### Step 2: Implement & Test (Atomic Changes)
 *   Adopt the appropriate mode. Make **one modification at a time**. 
 *   If practicing TDD, write the test first. Otherwise, ensure the feature is immediately followed by a test suite run.
-*   Verify that all existing tests pass alongside the new ones.
+*   If at a milestone, completing a section of tasks or need the user to build and run the application, verify that all existing tests pass alongside the new ones. 
 
 ### Step 3: Document & Commit Status
 *   If the architecture or data model was modified, update `docs/ARCHITECTURE.md` or relevant markdown files immediately.

@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=29 format=3]
+[gd_resource type="Theme" load_steps=40 format=3]
 
 [sub_resource type="FontVariation" id="WinnerBold"]
 variation_embolden = 0.8
@@ -445,6 +445,176 @@ content_margin_top = 3.0
 content_margin_right = 6.0
 content_margin_bottom = 3.0
 
+[sub_resource type="StyleBoxFlat" id="TotalInvalid"]
+bg_color = Color(0.062745098, 0.176470588, 0.129411765, 1)
+border_color = Color(0.890196078, 0.486274510, 0.439215686, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+expand_margin_top = -4.0
+expand_margin_bottom = -4.0
+
+[sub_resource type="StyleBoxFlat" id="TotalInvalidFocus"]
+bg_color = Color(0, 0, 0, 0)
+border_color = Color(0.890196078, 0.486274510, 0.439215686, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+expand_margin_top = -4.0
+expand_margin_bottom = -4.0
+draw_center = false
+
+[sub_resource type="StyleBoxFlat" id="CardEmptyNormal"]
+bg_color = Color(0.02, 0.13, 0.08, 0.3)
+border_color = Color(0.46, 0.79, 0.6, 0.45)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="SeatTokenNormal"]
+bg_color = Color(0.063,0.176,0.129,1)
+border_color = Color(0.459,0.788,0.604,1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="TokenActing"]
+bg_color = Color(0.063,0.176,0.129,1)
+border_color = Color(1,1,1,1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="TokenFocused"]
+bg_color = Color(0.063,0.176,0.129,1)
+border_color = Color(0.906,0.827,0.608,1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="TokenFolded"]
+bg_color = Color(0.141,0.141,0.141,1)
+border_color = Color(0.467,0.467,0.467,1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+content_margin_left = 4.0
+content_margin_top = 4.0
+content_margin_right = 4.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxFlat" id="TokenDealerFace"]
+bg_color = Color(1,1,1,1)
+border_color = Color(0.79,0.83,0.8,1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 15
+corner_radius_top_right = 15
+corner_radius_bottom_left = 15
+corner_radius_bottom_right = 15
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="TokenBlindFace"]
+bg_color = Color(0.07,0.235,0.16,1)
+border_color = Color(0.459,0.788,0.604,1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_left = 4
+corner_radius_bottom_right = 4
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="NumberInlineFace"]
+bg_color = Color(1, 1, 1, 1)
+border_color = Color(0.486274510, 0.600000000, 0.533333333, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+expand_margin_top = -8.0
+expand_margin_bottom = -8.0
+
+[sub_resource type="StyleBoxFlat" id="NumberInlineFocus"]
+bg_color = Color(0, 0, 0, 0)
+border_color = Color(0.850980392, 0.709803922, 0.427450980, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+expand_margin_top = -8.0
+expand_margin_bottom = -8.0
+draw_center = false
+
 [resource]
 default_font_size = 29
 ActionButton/base_type = &"Button"
@@ -486,6 +656,18 @@ WagerTotalField/colors/caret_color = Color(0.721568627, 0.764705882, 0.733333333
 WagerTotalField/styles/normal = SubResource("TotalNormal")
 WagerTotalField/styles/focus = SubResource("TotalFocus")
 WagerTotalField/styles/read_only = SubResource("TotalReadOnly")
+WagerTotalFieldInvalid/base_type = &"WagerTotalField"
+WagerTotalFieldInvalid/styles/normal = SubResource("TotalInvalid")
+WagerTotalFieldInvalid/styles/read_only = SubResource("TotalInvalid")
+WagerTotalFieldInvalid/styles/focus = SubResource("TotalInvalidFocus")
+InputFieldKeypad/base_type = &"InputField"
+InputFieldKeypad/styles/read_only = SubResource("FieldNormal")
+InputFieldInvalidKeypad/base_type = &"InputFieldInvalid"
+InputFieldInvalidKeypad/styles/read_only = SubResource("FieldInvalid")
+WagerTotalFieldKeypad/base_type = &"WagerTotalField"
+WagerTotalFieldKeypad/styles/read_only = SubResource("TotalNormal")
+WagerTotalFieldInvalidKeypad/base_type = &"WagerTotalFieldInvalid"
+WagerTotalFieldInvalidKeypad/styles/read_only = SubResource("TotalInvalid")
 Felt/base_type = &"Panel"
 Felt/styles/panel = SubResource("FeltNormal")
 Zone/base_type = &"PanelContainer"
@@ -550,3 +732,66 @@ BlindMarker/colors/font_color = Color(0.905882353, 0.827450980, 0.607843137, 1)
 BlindMarker/styles/normal = SubResource("BlindBadge")
 WinnerStar/base_type = &"WinningHandText"
 WinnerStar/font_sizes/font_size = 44
+CardEmpty/base_type = &"PanelContainer"
+CardEmpty/styles/panel = SubResource("CardEmptyNormal")
+CardGlyphs/constants/glyph_separation = 4
+CardBackMark/base_type = &"Label"
+CardBackMark/font_sizes/font_size = 20
+CardBackMark/colors/font_color = Color(0.75, 0.82, 0.80, 1)
+CenterTotals/base_type = &"HFlowContainer"
+CenterTotals/constants/h_separation = 16
+CenterTotals/constants/v_separation = 4
+SeatPanel/constants/avatar_size = 64
+HeroPanel/constants/avatar_size = 80
+HeroPanelActing/base_type = &"HeroPanel"
+HeroPanelActing/styles/panel = SubResource("SeatActing")
+HoleCards/base_type = &"AspectRatioContainer"
+HoleCards/constants/gap_percent = 6
+SeatBlindMarker/base_type = &"BlindMarker"
+SeatBlindMarker/font_sizes/font_size = 20
+SeatWinnerStar/base_type = &"WinnerStar"
+SeatWinnerStar/font_sizes/font_size = 64
+CardRow/base_type = &"BoxContainer"
+CardRow/constants/separation = 4
+SeatTokenFrame/base_type = &"PanelContainer"
+SeatTokenFrame/styles/panel = SubResource("SeatTokenNormal")
+SeatTokenActing/base_type = &"SeatTokenFrame"
+SeatTokenActing/styles/panel = SubResource("TokenActing")
+SeatTokenFocused/base_type = &"SeatTokenFrame"
+SeatTokenFocused/styles/panel = SubResource("TokenFocused")
+SeatTokenFolded/base_type = &"SeatTokenFrame"
+SeatTokenFolded/styles/panel = SubResource("TokenFolded")
+TokenDealer/base_type = &"PanelContainer"
+TokenDealer/styles/panel = SubResource("TokenDealerFace")
+TokenDealerText/base_type = &"DealerText"
+TokenDealerText/font_sizes/font_size = 18
+TokenBlind/base_type = &"BlindMarker"
+TokenBlind/font_sizes/font_size = 18
+TokenBlind/styles/normal = SubResource("TokenBlindFace")
+TokenWinnerStar/base_type = &"WinnerStar"
+TokenWinnerStar/font_sizes/font_size = 28
+TokenText/base_type = &"SeatText"
+TokenText/font_sizes/font_size = 18
+TokenWinningText/base_type = &"WinningHandText"
+TokenWinningText/font_sizes/font_size = 18
+TokenColumn/base_type = &"BoxContainer"
+TokenColumn/constants/separation = 2
+ActionRows/base_type = &"BoxContainer"
+ActionRows/constants/separation = 4
+OverlayArea/base_type = &"MarginContainer"
+OverlayArea/constants/margin_left = 8
+OverlayArea/constants/margin_right = 8
+OverlayArea/constants/margin_top = 8
+OverlayArea/constants/margin_bottom = 8
+SummaryBody/base_type = &"RichTextLabel"
+SummaryBody/font_sizes/normal_font_size = 20
+SummaryBody/font_sizes/bold_font_size = 20
+SummaryBody/font_sizes/italics_font_size = 20
+SummaryBody/font_sizes/bold_italics_font_size = 20
+SummaryBody/font_sizes/mono_font_size = 20
+SummaryBody/fonts/bold_font = SubResource("WinnerBold")
+SummaryBody/colors/default_color = Color(0.96,0.94,0.86,1)
+NumberFieldInline/base_type = &"InputFieldKeypad"
+NumberFieldInline/styles/normal = SubResource("NumberInlineFace")
+NumberFieldInline/styles/read_only = SubResource("NumberInlineFace")
+NumberFieldInline/styles/focus = SubResource("NumberInlineFocus")

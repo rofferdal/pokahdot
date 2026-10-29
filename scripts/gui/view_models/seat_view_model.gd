@@ -15,6 +15,7 @@ var is_dealer: bool = false
 var is_small_blind: bool = false
 var is_big_blind: bool = false
 var badge_text: String = ""
+var state_text: String = ""
 var token_badge_text: String = ""
 var acting: bool = false
 var folded: bool = false
@@ -108,6 +109,7 @@ static func build(
 	)
 	if result.status_text.is_empty():
 		result.status_text = "Winner" if result.pre_showdown_winner else result.latest_action_text
+	result.status_text = result.status_text.replace("All-in", "All In")
 	result.winner_emphasis = result.pre_showdown_winner
 	for award: PotAward in view.pot_awards:
 		if player.seat in award.winner_seats:
@@ -179,23 +181,29 @@ static func format_compact_action(
 
 func _build_badges() -> void:
 	var detail: Array[String] = []
+	var state: Array[String] = []
 	if not markers.is_empty():
 		detail.append(markers)
 	if acting:
 		detail.append("Turn")
+		state.append("Turn")
 	var token: Array[String] = []
 	if not markers.is_empty() and not busted:
 		token.append(markers.replace(" ", ""))
 	if folded:
 		detail.append("Fold")
+		state.append("Fold")
 		token.append("F")
 	elif all_in:
 		detail.append("AI")
+		state.append("All In")
 		token.append("AI")
 	elif busted:
 		detail.append("Out")
+		state.append("Out")
 		token.append("Out")
 	elif acting:
 		token.append("T")
 	badge_text = " ".join(detail)
+	state_text = " ".join(state)
 	token_badge_text = "".join(token) if all_in else " ".join(token)

@@ -15,14 +15,16 @@ var _saved_quit_on_back: bool
 var _owns_back_policy: bool = false
 
 
-func configure(host: Control, surface: Control) -> void:
+func configure(host: Control, surface: Control, backdrop: Control = null) -> void:
 	_host = host
-	_backdrop = Control.new()
-	_backdrop.name = "ModalBackdrop"
+	_backdrop = backdrop if backdrop != null else Control.new()
+	if backdrop == null:
+		_backdrop.name = "ModalBackdrop"
 	_backdrop.z_index = 499
 	_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	_backdrop.hide()
-	surface.add_child(_backdrop)
+	if _backdrop.get_parent() == null:
+		surface.add_child(_backdrop)
 	_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
@@ -114,6 +116,11 @@ func _notification(what: int) -> void:
 		_dismiss.call()
 	elif what == NOTIFICATION_EXIT_TREE:
 		_restore_back_policy()
+
+
+func _unhandled_input(_event: InputEvent) -> void:
+	if is_active():
+		_host.get_viewport().set_input_as_handled()
 
 
 func _restore_back_policy() -> void:

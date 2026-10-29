@@ -25,7 +25,12 @@ func test_all_action_kinds_keep_exact_amounts_and_explicit_compact_variants() ->
 				model.latest_action_text,
 				full[kind] if density == DENSITY.FULL else full[kind].replace(" to ", " ")
 			)
-			assert_eq(model.status_text, model.latest_action_text)
+			var expected_status: String = model.latest_action_text
+			if kind == PlayerAction.Kind.ALL_IN:
+				expected_status = (
+					"All In to 1234567" if density == DENSITY.FULL else "All In 1234567"
+				)
+			assert_eq(model.status_text, expected_status)
 			assert_eq(model.compact_action_text, compact[kind])
 			assert_eq(model.compact_action_exact_text, compact[kind])
 	var thousands := PublicActionRecord.new(1, PlayerAction.Kind.ALL_IN, 1000000)

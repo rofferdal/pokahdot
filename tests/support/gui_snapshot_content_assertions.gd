@@ -118,7 +118,7 @@ static func validate_phone_seat(
 		var context := "seat-content: seat_%d %s" % [seat.seat_id, card.element.role]
 		_require(seat.fields[&"cards"].rect.encloses(card.element.rect), context, failures)
 		_require(seat.panel.rect.encloses(card.element.rect), context, failures)
-		_validate_face(card, context, failures)
+		validate_card(card, context, failures)
 		if previous != null:
 			_require(
 				not previous.element.rect.intersects(card.element.rect),
@@ -143,9 +143,11 @@ static func validate_compact_marker(seat: GuiSeatSnapshot, failures: PackedStrin
 	_no_overlap(marker, seat.fields[&"identity"], seat.seat_id, failures)
 
 
-static func _validate_face(
+static func validate_card(
 	card: GuiCardSnapshot, context: String, failures: PackedStringArray
 ) -> void:
+	if card.kind != GuiCardSnapshot.Kind.FACE:
+		return
 	_require(card.rank.present and card.suit.present, "%s omits rank or suit" % context, failures)
 	_require(
 		card.rank.visible and card.suit.visible, "%s omits visible rank or suit" % context, failures
@@ -158,9 +160,7 @@ static func _validate_face(
 	_require(card.element.rect.encloses(card.rank.rect), context, failures)
 	_require(card.element.rect.encloses(card.suit.rect), context, failures)
 	_require(
-		card.rank.rect.end.x <= card.suit.rect.position.x,
-		"%s rank intersects suit" % context,
-		failures
+		not card.rank.rect.intersects(card.suit.rect), "%s rank intersects suit" % context, failures
 	)
 	_require(
 		card.rank.required_size.x <= card.rank.allocated_size.x,

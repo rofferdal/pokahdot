@@ -157,6 +157,47 @@ Verify the rendering and capture pipeline with one development-only case:
 make gui-visual-capture-smoke
 ```
 
+Preview the reusable replacement controls for RG-39 review:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_shared_controls_capture.gd
+```
+
+This saves `localtmp/gui-elements/rg39-shared-controls.png` and source/geometry
+metadata. It shows actual component scenes with fixture-only simultaneous
+hover/focus previews. It does not certify final table layouts or device support.
+
+Preview the reusable cards, shared hand rows and wide/compact center boards:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_card_components_capture.gd
+```
+
+This saves `localtmp/gui-elements/rg40-card-components.png` and source/geometry
+metadata. Compact examples include maximum legal chip values; final table and
+device acceptance remain in the GUI backlog.
+
+Preview the complete seat and human panels, including folded and winner states:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_seat_components_capture.gd
+```
+
+This saves `localtmp/gui-elements/rg41-seat-panels-review2.png` and source/geometry
+metadata. The panel footprint includes its status band even when blank; this
+component review does not complete final table/device acceptance.
+
+Preview the combined RG-42–RG-45 components and overlay variants:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_phase4_capture.gd
+```
+
+This saves seven `rg42-rg45-review4-*.png`/JSON pairs under
+`localtmp/gui-elements`: the revised component gallery, history at two box sizes,
+menu, summary, portrait number entry and two landscape number-entry sizes. Metadata records
+geometry checks and source hashes. These are component review artifacts; final table/device acceptance remains in the GUI backlog.
+
 Run all current regression matrices, including historical Milestone 3 and
 the dedicated phone, iPad, and desktop gates, without producing screenshots:
 

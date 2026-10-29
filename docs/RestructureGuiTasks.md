@@ -11,8 +11,17 @@ verified and committed at `122f344`. RG-20 presentation models are implemented
 and verified. RG-21 coverage migration is verified. The RG-30 theme review
 candidate is authored, verified and user-accepted. RG-31 typography is implemented
 and verified, including user-selected removal of reference font scaling.
-RG-39 is next, after the commit/push and reference-typography review checkpoint.
-Replacement component styling remains pending in its ordered tasks.
+RG-39 reusable controls are implemented, verified and user-accepted.
+RG-40 card components are implemented, verified and user-accepted.
+RG-41 seat and human-panel components are implemented and verified;
+the user provisionally accepted review2 and authorized RG-42. The RG-31 checkpoint is committed at `4ae83cd`,
+matching the locally recorded `origin/gui-restructure` branch.
+RG-42–RG-45 and their RG-45R/R2/R3 review corrections are implemented.
+The user accepted the component galleries, bot-seat arrangement, history scaling,
+menu, summary, portrait keypad arrangement and revised compact landscape keypad.
+Combined Phase 4 component design review is complete. The final RG-45R3 check is
+recorded below; final table integration and device acceptance remain in their
+ordered tasks.
 Reviewed: 2026-10-27 against source commit
 `0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
 This documentation review is not RG-00 baseline execution or device acceptance.
@@ -39,6 +48,18 @@ as requirements, do not wait on their open tasks, and do not update them from
 this work. If one of them conflicts with this document, follow this document,
 the product specification and the architecture. Device acceptance for the
 restructured GUI is tracked in Phase 8 below.
+
+## RG-41 panel review refinements — 2026-10-29
+
+The user requested closer hole-card pairs with the same proportional gap for
+opponents and the human; upper-left avatars; a larger winner star; SB/BB controls
+matching the dealer button's height and width; full `All In` wording; and removal
+of the redundant state line beneath the display name. Full panels now contain
+three copy lines (name, stack, wager), with action/result copy in the permanently
+reserved status band. Responsive fit may use larger preferred fonts or a lower
+body while preserving the existing text/card floors and complete footprint.
+RG-41 review2 implements these refinements before RG-42. Visual acceptance is
+pending; this review does not authorize moving to the next task.
 
 ## Execution scope clarified by the user — 2026-10-28
 
@@ -393,8 +414,9 @@ helpers. The ordinary paths still call clearance/intersection resolvers;
 the constrained six-seat desktop plan instead reserves complete footprints
 before placement. Preserve that deterministic behavior while replacing all
 paths with one container owner, not merely moving the old collision loops.
-Phone token content has a finite measured-row plan now; preserve its exact
-content and visibility rules rather than rebuilding them from old offsets.
+The reference phone token has a finite measured-row plan. Preserve its exact
+content and visibility rules; RG-45R explicitly replaces the variable replacement
+arrangements with the user-selected fixed corners and measured native minimum.
 
 A layout outside its declared minimum cannot fit arbitrarily many seats while
 retaining the role-appropriate 18/20 px text floors and 48 px controls. Define feasible envelopes and an
@@ -933,8 +955,9 @@ Build each component as `scenes/gui/components/<Name>.tscn` with a typed
 script, `render(model)`, signals, theme variations only, and a component test
 that renders all states at its minimum size and runs the snapshot invariants.
 
-- [ ] **RG-39 — Shared `ActionButton` and `InputField` presentation scenes.**
-  Status: Not started. Mode: Senior. Author typed reusable controls with public
+- [x] **RG-39 — Shared `ActionButton` and `InputField` presentation scenes.**
+  Status: Implemented, verified and user-accepted (2026-10-29).
+  Mode: Senior. Author typed reusable controls with public
   render/edit signals and theme variations. Route all visible actions through
   the button family, including startup, Quit, confirmation, menus, Log,
   More/Pots, wagering and keypad keys. Use rounded dark-green buttons with
@@ -948,8 +971,9 @@ that renders all states at its minimum size and runs the snapshot invariants.
   emit UI intent; controllers/adapters own numeric validation, keypad
   transactions and game actions. Tests cover visual/state distinctions,
   keyboard activation/editing, touch dispatch and exact draft preservation.
-- [ ] **RG-40 — Reusable card presentation and `CenterBoard`.**
-  Status: Not started. Mode: Senior. Author `PlayingCard.tscn` with the public
+- [x] **RG-40 — Reusable card presentation and `CenterBoard`.**
+  Status: Implemented, verified and user-accepted (2026-10-29).
+  Mode: Senior. Author `PlayingCard.tscn` with the public
   `render(CardViewModel)` contract, composed of `CardFace.tscn` and
   `CardBack.tscn`, plus an empty reserved-slot state. Author a reusable
   `CardRow.tscn` container for community, hero and opponent cards; those
@@ -969,7 +993,7 @@ that renders all states at its minimum size and runs the snapshot invariants.
   at minimum sizes, verify reuse across contexts, complete rank/suit fit and
   private-card redaction. This makes the user's 2026-10-28 card-component
   clarification explicit; implementation remains pending.
-- [ ] **RG-41 — `SeatPanel` and `HeroPanel`** as complete layout components.
+- [x] **RG-41 — `SeatPanel` and `HeroPanel`** as complete layout components.
   Their outer container owns the visible framed panel plus a permanently
   reserved band beneath it for the latest active-round action and showdown
   hand text. The drawn panel rectangle is only a sub-region; the component's
@@ -988,32 +1012,41 @@ that renders all states at its minimum size and runs the snapshot invariants.
   winners and exact `Winner` fold-win copy. Seat copy can scale to 18 px;
   embedded card ranks remain at least 20 px. Migrate or replace
   `GuiTableSeatFactory`/`GuiTableSeatView` with authored typed handles.
-  Status: Not started. Mode: Senior.
-- [ ] **RG-42 — `SeatToken`** (phone) using a `GridContainer`/box layout with
-  finite measured-content rows preserving `GuiPhoneTokenContentPlan` behavior
-  and reusing the same card presentation components,
+  Status: Implemented, verified and provisionally user-accepted (2026-10-29).
+  Mode: Senior.
+- [x] **RG-41R — Apply full-panel review refinements.** Status: Implemented
+  and verified; provisionally user-accepted (2026-10-29). Mode: Senior + QA.
+  Use one proportional close-pair gap for opponent/human hole cards, upper-left
+  avatars, a larger winner star and 40×40 SB/BB markers matching the dealer.
+  Keep only name/stack/wager inside the panel and full `All In` copy in the
+  reserved status band. Preserve full-copy floors and exact minimum recovery
+  after large allocations in compact/regular typography. Show revised panels
+  for acceptance before RG-42.
+- [x] **RG-42 — `SeatToken`** (phone) using native box layouts preserving
+  complete content and visibility from `GuiPhoneTokenContentPlan`, with the
+  fixed-corner arrangement selected in RG-45R and shared card components,
   replacing manual offsets without ellipsis, clipping or hidden required copy.
   Own the reserved action/showdown band within the token's complete measured
   footprint; apply the same 18 px seat-copy floor and bold bright-yellow
   winning-description variation as the full seat components.
-  Status: Not started. Mode: Senior.
-- [ ] **RG-43 — `ActionBar`** with one or two rows chosen by available width
+  Status: Implemented, verified and user-accepted (2026-10-29). Mode: Senior.
+- [x] **RG-43 — `ActionBar`** with one or two rows chosen by available width
   (`HFlowContainer` or explicit row model), keypad trigger and inline input by
   modality, phone hero summary as a sub-component, using the shared RG-39
   buttons and distinct input fields. Keep a Log action or a
   reachable menu entry whenever the docked log is hidden, including completed
-  hand/Pots states. Status: Not started.
-  Mode: Senior.
-- [ ] **RG-44 — `EventLog`** as a reusable scrollable presentation component
+  hand/Pots states. Status: Implemented, verified and user-accepted
+  (2026-10-29). Mode: Senior.
+- [x] **RG-44 — `EventLog`** as a reusable scrollable presentation component
   over the shared recipient-safe log model. Dock it where space permits and
   reuse it in an accessible log overlay/menu view when the dock is hidden,
   including phones in both orientations. Preserve full public history, empty
   state and exact copy; no hidden-card or bot-private data. Test docked and
   overlay renderings against the same model. Use 18 px log-body text to retain
   more visible lines; headings and controls keep the 20 px floor. Docked log,
-  hero panel and action area share top and bottom edges. Status: Not started.
-  Mode: Junior.
-- [ ] **RG-45 — `OverlayHost`** that owns menu, hand summary, seat detail,
+  hero panel and action area share top and bottom edges. Status: Implemented
+  and verified; design user-accepted (2026-10-29). Mode: Junior.
+- [x] **RG-45 — `OverlayHost`** that owns menu, hand summary, seat detail,
   quit confirmation, event log and keypad on one full-rect layer with a backdrop and
   integrates `GuiModalGuard`. Keep this host outside replaceable layout scenes.
   Prefer in-canvas confirmation across profiles; explicitly record any retained
@@ -1021,7 +1054,8 @@ that renders all states at its minimum size and runs the snapshot invariants.
   the current cancel-without-commit behavior. Opening a log from More/Pots or
   another menu remains reachable, blocks underlying actions, pauses progression
   and restores focus on close; hidden docks never discard log data. Reuse or replace
-  `GuiTableOverlayViews` ownership. Status: Not started. Mode: Senior.
+  `GuiTableOverlayViews` ownership. Status: Implemented and verified
+  (2026-10-29); component design user-accepted. Mode: Senior.
   Keypad digits retain three ordered columns (`1 2 3 / 4 5 6 / 7 8 9`) and
   centered `0` beneath `8` in every orientation; utility controls reflow
   separately. Fit compact landscape without changing digit order or targets.
@@ -1029,9 +1063,34 @@ that renders all states at its minimum size and runs the snapshot invariants.
   belong to the number-entry component. Cancel discards, Done commits, and
   visible limits explain the permitted value range.
 
+- [x] **RG-45R — Standardize opponent tokens and resize event history.**
+  Status: Implemented, verified and user-accepted (2026-10-29).
+  Keep the accepted palette. Use one opponent arrangement: name with winner star
+  at upper left, dealer/SB/BB at upper right, numeric stack and wager at left,
+  horizontal hole-card pair at bottom right. Reduce excess box height while
+  preserving card size, three complete text lines and no overlaps. Keep yellow
+  winning text below the box. Event history must resize with its allocation.
+  Verify resizing and all seat states, then show a revised component preview.
+
+- [x] **RG-45R2 — Clarify and align numeric entry.** Status: Implemented
+  and verified (2026-10-29); portrait accepted, landscape refinement
+  accepted in RG-45R3. User-selected review correction before RG-50. Distinguish
+  deleting a digit from cancelling the draft, align landscape utility keys with
+  digit rows (Clear beside 3), and display the exact Pot preset amount. Preserve
+  digit order, readable copy, target floors and transactional behavior. Show a
+  revised landscape preview before continuing.
+
+- [x] **RG-45R3 — Compact numeric-entry header.** Status: Implemented,
+  verified and user-accepted (2026-10-29). User-selected correction before RG-50.
+  Use a one-line-height value field directly right of Raise total; show Min and Max together on one
+  line below. Preserve full legal values, aligned key rows, Pot amounts and
+  draft/cancel behavior. Show the revised landscape preview.
+
 Done for Phase 4: every component has a test over all states; components are
 tested independently and ready for replacement layouts. Integration into the
 legacy tree is optional; do not distort the component API merely to fit it.
+
+- [ ] Commit all changes to the current branch and push
 
 ### Phase 5 — Layouts and switching
 
@@ -1086,6 +1145,8 @@ legacy tree is optional; do not distort the component API merely to fit it.
   and explained, and the existing native/Web profiler verifies no material
   regression. No blanket cache is introduced merely to meet a node-count test.
 
+- [ ] Commit all changes to the current branch and push
+
 ### Phase 6 — Tests and tooling
 
 - [ ] **RG-60 — Replace implementation-coupled tests.** Status: Not started.
@@ -1131,6 +1192,8 @@ legacy tree is optional; do not distort the component API merely to fit it.
   gates pass on the identified candidate and Section 5 size/ownership targets
   are met. Record performance and visual review before physical acceptance.
 
+- [ ] Commit all changes to the current branch and push
+
 ### Phase 7 — Documentation
 
 - [ ] **RG-70 — Update current documentation.** Status: Not started. Mode:
@@ -1143,6 +1206,8 @@ legacy tree is optional; do not distort the component API merely to fit it.
   `docs/*Tasks.md` files unchanged.
   Done: no stale references to removed scripts in current docs; docs check
   passes.
+
+- [ ] Commit all changes to the current branch and push
 
 ### Phase 8 — Device acceptance
 
@@ -1946,3 +2011,505 @@ These still use reference layouts/cards/markers, not completed replacement
 components or device acceptance. Show these visible typography changes for
 review before proceeding to RG-39. The accepted replacement gallery remains
 `localtmp/gui-elements/rg31-markers-winners-review3-1280x980.png`.
+
+
+### RG-39 reusable control implementation — 2026-10-29
+
+Cleared all `localtmp/` contents before starting, as requested. Historical
+capture paths above remain historical records. The RG-31 checkpoint is committed
+at `4ae83cd`; the locally recorded remote branch matches that commit. The user
+requested continuation with acceptance pauses for newly visible designs.
+
+Authored `ActionButton.tscn` and `InputField.tscn`, typed detached presentation
+models and intent/edit/submit/entry signals. Both scenes inherit native palette/
+metric Themes from their composition ancestor. Native Button activation serves
+all action roles, including Quit and keypad keys. Fields retain exact drafts,
+leading zeroes, spaces and invalid strings for adapter validation; equal-value
+renders preserve caret/selection without emitting edits. The adapter owns
+commit/cancel and numeric validation. Null models fail closed with explicit
+errors, covered as expected errors in tests.
+
+Total normal/focus/disabled/error states preserve the sharp dark surface, grey
+copy and 40-unit face within a 48-unit target. Enabled keypad fields keep their
+normal surface instead of adopting disabled styling. Actual touch requests
+entry independently of viewport size; keypad-only surfaces additionally accept
+pointer/keyboard entry requests. Emulated mouse events cannot duplicate one
+physical tap. Models set native accessible labels. No core rules, reference
+layout positions, matrix inputs or characterization records were changed.
+RG-43/45/51–54 compose these controls and retire reference builders; RG-39 does
+not claim that the running reference startup/table/keypad already uses them.
+
+Independent preview: `localtmp/gui-elements/rg39-shared-controls.png`, with
+source/geometry metadata in `rg39-shared-controls.json` and independent hash/
+floor verification in `rg39-verification.json`. All 21 sampled controls meet
+20-unit text and 48×48 targets; no controls escape the capture. Simultaneous
+hover/pressed/focus samples use fixture-only style previews. The image is a
+component review, not table/device acceptance.
+
+Focused verification passes 15 tests / 650 assertions. Read-only review caught
+and resolved duplicate touch requests, keypad disabled appearance, local Theme
+shadowing and accessible-label assignment. Final `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check` passes
+130 GUT scripts / 875 tests / 121,560 assertions, plus Python, lint, formatting,
+documentation, policy and exact characterization checks. All four current GUI
+invariant matrices pass. Their definitions and known-failure registry are
+unchanged. Logs: `localtmp/restructure_rg39/check-final.log`,
+`invariants-final.log`, `shared-controls-final.log`, `capture-final.log` and
+`docs-final.log`. Only the two deliberately asserted null-model errors occur;
+there are no unexpected engine/script errors or warnings in final checks.
+RG-39's implementation checkbox is complete; this does not grant design
+acceptance or authorize skipping the review pause.
+Visual acceptance is pending; stop here before starting RG-40.
+
+
+### RG-39 design acceptance — 2026-10-29
+
+The user accepted the shared-control preview and authorized continuation.
+This accepts the RG-39 controls; RG-40 card components follow next.
+
+
+### RG-40 reusable cards and center-board implementation — 2026-10-29
+
+Authored `CardFace.tscn`, `CardBack.tscn`, `PlayingCard.tscn`, `CardRow.tscn`
+and `CenterBoard.tscn`, with typed model bindings and inherited theme roles.
+The same card scene serves community, human and opponent rows. Back/empty
+bindings clear identity-bearing glyph and accessible text; snapshot text is
+redacted unless the caller explicitly authorizes it. Models are copied into
+view state rather than retained as core objects. No game rules or recipient
+visibility decisions were added to views.
+
+All three states reserve equal measured minima for every rank/suit at 20 px.
+Native aspect fitting uses a slightly broader 3:4 ratio, preserving actual
+width/height at least 5:7 despite integer rounding. The production glyph painter
+measures visible ink with the built-in font, uses equal rank/suit font sizes
+and finds the largest measured fit from the actual allocation. It corrects
+baselines and retains safe theme padding. Invalid zero-ink copy logs an explicit
+error and clears rather than looping. Native Container propagation required
+explicit measured custom minima on every surface, not a script virtual alone.
+
+The center uses the model's full pot/current-wager and blind-level strings,
+flowing totals and wrapped blind copy. Initial wrapped text waits for the first
+native container allocation, preventing a zero-width label from latching an
+inflated ancestor minimum. Removal/reentry during deferred binding is guarded.
+Maximum legal pot/wager/blind copy fits tested 320×350 and 844×240 component
+allocations; these are component checks, not completed seven-player tables.
+
+Shared face-content validation now checks non-intersection rather than forcing
+horizontal glyph order. Existing containment, font floors, full-copy checks,
+legacy suit allocation minima and deliberate-defect rejection remain. New
+snapshots distinguish each visible ink rectangle from the actual shared glyph
+Control allocation. The exact reference characterization remains 9,994 ordered
+inputs / 1,098 observed failures with the same registry; no reference defect
+was reclassified or accepted. Existing snapshot/card tests passed before the
+assertion adaptation (21 tests / 703 assertions).
+
+Review image: `localtmp/gui-elements/rg40-card-components.png`, with source,
+rectangles and font metadata in `rg40-card-components.json`. The independent
+`rg40-verification.json` checks source/image hashes, all 22 card surfaces and
+font floors. Captured face fonts range from 38 to 104 px. Native rendering
+reports zero escaped controls and zero save errors. The gallery shows a wide
+and constrained center, every suit, hidden/empty slots and shared hand rows.
+
+Final `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check` passes
+131 GUT scripts / 888 tests / 123,446 assertions, plus Python, lint, formatting,
+documentation, policy and exact characterization checks. All four GUI regression
+matrices pass. Focused card coverage passes 13 tests / 1,875 assertions; the
+card/snapshot/reference-card batch passes 34 tests / 2,578 assertions. Seven
+typography tests also pass with the new inherited roles. Explicit null/invalid
+model and zero-ink errors are asserted by GUT; there are no unexpected errors
+or warnings in final checks. Logs: `localtmp/restructure_rg40/check-final.log`,
+`invariants-final.log`, `focused-final.log`, `typography-card-final.log`,
+`characterization-final.log`, `capture-final.log` and `docs-final.log`.
+Source commit is `4ae83cd`; the capture and independent verification JSON
+record relevant source hashes and a source fingerprint. The user's existing
+`AGENTS.md` edits were preserved.
+
+RG-40's implementation checkbox is complete. Design acceptance is pending;
+stop before RG-41. The running reference table and device acceptance are unchanged.
+
+
+### RG-40 design acceptance — 2026-10-29
+
+The user accepted the reusable-card/center-board preview and authorized
+continuation to RG-41. This accepts the components, not final table/device fit.
+
+
+### RG-41 full seat and human-panel implementation — 2026-10-29
+
+Authored `SeatPanel.tscn` and inherited `HeroPanel.tscn`, with typed bindings and
+complete detached seat snapshots. Native containers own the framed body and
+permanently reserved below-panel band. Blank/action/two-line result states keep
+the same band height and panel-aligned edges. Reservation includes actual
+normal/bold font metrics, native line spacing and Copy container separation.
+Human avatars measure 80×80 versus 64×64, with larger preferred identity copy
+and a larger complete minimum. Assigned textures preserve aspect and identity
+through resize/density changes; missing assets clear the old avatar with an error.
+
+The shared CardRow expands with available width and keeps RG-40's card/ink
+contracts. D and SB/BB use separate upper-right allocations. Every winner uses
+the independent 44 px themed star at lower right and bold bright-yellow status,
+including split/side pots and exact fold-win `Winner` copy. The folded root's
+shared grayscale material propagates through all descendants, including avatar,
+cards and status. No runtime style cloning or replacement viewport classifier
+was added. Five explicit copy labels fit between 18 px and ancestor preferred
+metrics using the existing bounded fitter; card text remains at least 20 px.
+
+Added pure `SeatViewModel.state_text` for Turn/Fold/AI/Out without repeating
+D/SB/BB in identity copy. Legacy badge/token strings are unchanged. Per-card
+snapshot authorization and expected badge text detach from the supplied safe
+model; direct child mutations cannot authorize an unrevealed face. Invalid/null
+models clear stale identity/cards/markers/material/avatar and log an error.
+The active reference factory/view remain until the planned RG-51–54 composition
+and cutover; RG-41 supplies their authored successors without changing reference
+layouts or game rules.
+
+Review image: `localtmp/gui-elements/rg41-seat-panels.png`, with source/geometry
+metadata in `rg41-seat-panels.json`. Eight samples use two seats per row and
+cover normal, acting, folded, all-in, split/side/fold winners and human prominence.
+Native rendering reports zero escaped controls and zero save errors. Independent
+PNG/channel and source-hash checks are recorded in `rg41-verification.json`:
+folded-avatar RGB channel difference is 0, active-avatar difference is 231;
+status edges, complete footprints, human prominence and card font/proportion
+floors pass. These are component samples, not final table/device acceptance.
+
+Final `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check` passes
+132 GUT scripts / 903 tests / 124,100 assertions, plus Python, lint, formatting,
+documentation, policy and exact characterization checks. All four current GUI
+invariant matrices pass. Focused component coverage passes 15 tests / 651
+assertions; the component/model/typography batch passes 29 tests / 1,419 assertions.
+Existing relevant coverage passed before changes: 27 tests / 2,640 assertions.
+Reference characterization retains the same 9,994 inputs / 1,098 observed
+failures and unchanged registry. Final logs under `localtmp/restructure_rg41/`:
+`check-final.log`, `invariants-final.log`, `focused-final.log`,
+`seat-components-final.log`, `before.log`, `capture-final.log` and `docs-final.log`.
+Only deliberate GUT-asserted invalid-model/missing-avatar errors occur; there
+are no unexpected engine/script errors or warnings. Source commit remains
+`4ae83cd`; metadata records relevant current source hashes/fingerprint. Existing
+user edits to `AGENTS.md` were preserved.
+
+RG-41's implementation checkbox is complete. Visual acceptance is pending;
+stop before RG-42.
+
+
+### RG-41R panel review2 implementation — 2026-10-29
+
+Applied the user's requested refinement before RG-42. Both full-seat scenes now
+contain exactly three copy lines (name, stack, wager); action/result information
+remains in the permanent status band. Seat state and status copy spell `All In`
+in full. Legacy compact badge/token strings and the existing action-format
+helper retain their prior contracts. Avatars align to the upper-left content
+inset. SB/BB markers use centered 20 px copy in the same 40×40 allocation as
+D. The separate seat winner-star role grows from 44 to 64 px; all winner kinds
+retain their bold yellow result and independent star allocation.
+
+`HoleCards.tscn` fits each complete pair around the existing shared CardRow and
+PlayingCard scenes. Equal cells and the pair aspect yield the same visible gap
+of 6% of card width for bot and human cards, including faces, backs and empty
+slots. Native HBox separation stays zero so scaled spacing cannot inflate an
+intrinsic minimum. Floor card measurements own the stable pair minimum.
+Community-card rows retain their RG-40 composition. Full seat copy likewise
+has complete measured 18 px intrinsic widths, independent of fitted display
+fonts; independent text/allocation invariants still require every glyph to fit.
+This fixes a grow-then-shrink boundary defect exposed by the added regression.
+
+The revised gallery uses regular ancestor metrics: bot names render at 22 px,
+human copy at 26 px. Compact typography and the 18 px floor remain available;
+three lines allow larger preferred copy or a lower body where the native
+marker/star/avatar minimums permit. A larger star still reserves real space.
+The preview is `localtmp/gui-elements/rg41-seat-panels-review2.png`, with source/
+geometry metadata in `rg41-seat-panels-review2.json` and independently verified
+hashes/geometry in `rg41-review2-verification.json`. It retains eight samples
+in two columns. All samples have three body-copy lines, 40×40 markers, upper-left
+avatars and 64 px stars. Visible gaps measure 5.75 px for 96.75 px cards in both
+bot and human samples (5.94%, within logical-pixel rounding). Rendering reports
+zero escaped controls or save errors. The original RG-41 image remains a
+historical first candidate; it is not this revision's evidence.
+
+Relevant existing checks passed before refactoring: 35 tests / 2,792 assertions.
+Expanded focused coverage passes 47 tests / 4,264 assertions across panel,
+card, seat-model and typography tests. Twenty panel cases / 1,612 assertions
+include exact native-container recovery through minimum → 1800×800 → the exact
+original minimum, for compact/regular metrics, both roles and normal/winner/
+folded states. The test does not mask latching with `max(current_minimum)`.
+Old-code failure evidence is `localtmp/restructure_rg41_review/minimum-recovery-before.log`;
+the final focused log is `focused-final.log` in the same directory.
+Final `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check` passes
+132 GUT scripts / 908 tests / 125,068 assertions, plus Python, lint, formatting,
+documentation, policy and exact characterization checks. All four current GUI
+matrices pass. Characterization retains 9,994 ordered inputs / 1,098 observed
+failures with the same registry. Final logs under `localtmp/restructure_rg41_review/`:
+`check-final.log`, `invariants-final.log`, `focused-final.log`, `capture-final.log`
+and `docs-final.log`. Deliberate invalid-model/missing-avatar errors remain
+GUT-asserted; final checks have no unexpected engine/script errors or warnings.
+The revision implementation checkbox is complete. RG-41R visual acceptance
+remains pending; RG-42 has not started.
+
+
+### RG-41/R review2 provisional acceptance — 2026-10-29
+
+The user accepted the revised panels as looking OK for now and authorized
+continuation, noting that actual gameplay will better reveal what works.
+Record this as provisional component-design acceptance, not final gameplay,
+layout or device acceptance. RG-42 is the next ordered implementation task.
+
+
+### RG-42 phone-token implementation — 2026-10-29
+
+Authored SeatToken with measured native column/row alternatives, pooled shared
+PlayingCard/HoleCards views and a permanently reserved compact-status band.
+The replacement row planner pins name/stack to the first two rows and assigns
+remaining complete fields across at most five rows; it imports no reference
+layout helpers. The token shows exact numeric stacks/wagers, separate matching
+30×30 passive phone markers, full All In copy and bold yellow winning results.
+Avatars are omitted in this constrained component. The shared card row now uses
+native BoxContainer orientation, retaining the prior horizontal separation roles;
+vertical pairs keep the same proportional card gap without allocation-dependent
+minimums. A canonical column-fit minimum remains stable across mode changes.
+Touch/pointer/keyboard intent selects seat details; recipient authorization is
+copied from safe models and stale identity clears on invalid binding.
+
+Relevant pre-change checks passed 35 tests / 3,603 assertions. The final focused
+batch passes 53 tests / 5,451 assertions across token, cards, full seats and
+typography. It includes a six-opponent two-column component fixture, mode and
+orientation changes, exact minimum recovery, semantic containment/fonts/card
+fit, private-face mutation rejection and removal/reentry. Logs:
+`localtmp/restructure_rg42/before.log`, `card-orientation.log` and
+`focused-final.log`. Final whole-Phase-4 verification and a combined visual
+review follow RG-45; no final table/device support is claimed here.
+
+The user explicitly requested RG-42 through RG-45 before another design review.
+That instruction supersedes the per-component review pause for this batch;
+continue with RG-43 in order and present the combined result after RG-45.
+
+
+### RG-43 action bar implementation — 2026-10-29
+
+Authored ActionBar, shared-control wager unit and HeroActionSummary. A pure
+one/two-row partition measures complete action units; native boxes reparent
+existing controls and a stable canonical minimum recovers after wide allocation.
+Input modality is an explicit API independent of width. Keyboard input keeps
+Total beside Raise/Bet; keypad mode uses that action as an entry trigger. Drafts,
+caret/selection and every digit survive model refreshes and modality changes.
+Views emit intent only; adapters retain parsing, numeric validation and poker
+submission. `ActionBarViewModel.can_continue` supplies public completed-hand
+availability without inspecting status strings in the view. More/Pots remains
+reachable after hands and tournament closure; RG-45's menu includes Log and Quit.
+The phone hero summary reuses safe card components and exact identity/value copy.
+
+Existing model/shared-control checks passed 26 tests / 896 assertions before
+composition. Action-bar component tests pass 13 / 581 assertions; the focused
+bar/model/shared-control/token batch passes 54 tests (the final component run
+adds explicit modality visibility/editability checks). Logs:
+`localtmp/restructure_rg43/before.log`, `focused-final.log` and
+`action-component-final.log`. Review also isolated the replacement phone frame's
+resource ID from legacy PhoneToken and made focus visible in folded/acting
+states; the expanded token regression suite passes. Both metric themes now
+author the token/action-specific gaps explicitly. Final Phase-4 whole-suite
+verification and combined design review remain after RG-45. RG-44 follows next.
+
+
+### RG-44 reusable event-history implementation — 2026-10-29
+
+Authored EventLog with one detached plain-text history model for docked/overlay
+use, 18 px scrollable log body and 20 px heading/empty copy. BBCode-like input
+stays literal. Empty/history transitions retain the same measured minimum;
+long history scrolls rather than inflating the component. Repeated equal models
+preserve selection/reader position. New events follow the end only if the reader
+was already there; coalesced updates, hidden views and tree reentry retain intent.
+Native wheel/keyboard and touch dragging are covered. Null binding clears with
+an explicit error. No core/private-card filtering is implemented in the view;
+the adapter supplies public history as established by the model boundary.
+
+Baseline existing checks passed 4 tests / 34 assertions. New component coverage
+passes 12 / 189 assertions; combined final coverage passes 16 / 223. Logs:
+`localtmp/restructure_rg44/before.log` and `focused-final.log`. Lint, format,
+documentation/policy checks pass. Final whole-Phase-4 checks and combined visual
+review follow RG-45. RG-45 is next; the user requested no earlier review pause.
+
+
+### RG-45 overlay host and Phase 4 verification — 2026-10-29
+
+Implemented the persistent in-canvas OverlayHost for menu, public hand summary,
+seat detail, event history, quit confirmation and numeric entry. It composes
+shared controls and GuiModalGuard with an authored backdrop. Focus is trapped
+and restored; pending progression stays paused across panel switches and resumes
+once on close. Quit cancels pending advancement. Controllers must check modal
+activity before handling their own input or advancement.
+
+NumericKeypad preserves a local raw draft and visible limits. Cancel and mode
+exit discard without committing; Done emits the draft once for adapter validation.
+Digits keep their ordered three-column grid and centered zero. Uniform utility
+grids reflow independently for portrait and short landscape. Focused button Enter
+activates that button; entry Enter commits. All replacement confirmations are
+in-canvas, with no retained native-dialog exception. Insufficient space presents
+recoverable guidance; teardown cancels pending work and reentry starts inactive.
+
+Verification: the complete `make check` passes **137 GUT scripts, 979 tests and
+129,778 assertions**, plus Python, LAN, Web layout, CLI process, lint/format,
+documentation/policy and exact characterization checks. All four current GUI
+invariant matrices pass. The reference registry remains **9,994 inputs / 1,098
+observed known failures**; these are characterized reference cases, not newly
+accepted replacement behavior. Logs: `localtmp/restructure_rg45/check-final.log`
+and `invariants-final.log`. Independent overlay tests pass 15/15 (670 assertions).
+
+Combined preview: `localtmp/gui-elements/rg42-rg45-components.png`, plus menu,
+summary, portrait-number and landscape-number PNG/JSON pairs. All five captures
+save successfully, report no geometry/font/card failures and match recorded
+source hashes. These are component previews, not finished table or device
+acceptance. RG-42–RG-45 are complete; pause for the requested combined design
+review before RG-50. Default gameplay remains on the reference GUI until the
+ordered integration and cutover tasks.
+
+
+### RG-45R standard opponent layout and resizable history — 2026-10-29
+
+The user accepted the palette and requested one standard opponent arrangement
+based on Emiliano. Replaced the variable row/column token branches with authored
+Header/Body boxes: name and adjacent winner star at upper left, dealer/SB/BB at
+upper right, stack/wager at left and the horizontal pair at bottom right.
+Markers retain separate 30×30 cells. Cards keep their intrinsic pair size and
+6% proportional visible gap at both minimum and expanded allocations. The
+previous content-dependent replacement planner is removed. Reference layouts
+remain unchanged. The first review box is now 99 px tall instead of 132 px;
+its pair remains 94×59 px. Winners retain the yellow status text and star.
+Complete copy and fixed corners determine the new token minimum; RG-52 must
+respect that width when composing the phone table.
+
+EventLog now authors expansion on both axes and resizes its body with the parent
+allocation. Body text remains 18 px; long history scrolls rather than enlarging
+the intrinsic minimum. Resize preserves either end-following or an earlier
+reader offset. The gallery no longer forces a 700×500 minimum on the log.
+
+Focused verification passes 15 token tests / 3,190 assertions, and 32 event-log,
+overlay and font-policy tests / 966 assertions. Six PNG/JSON pairs under
+`localtmp/gui-elements/rg42-rg45-review2-*` save successfully with no reported
+geometry/font/card failures and matching recorded source hashes. The components
+and history-resize previews were visually inspected. Historical previews remain
+available. Revised visual acceptance is pending before RG-50; no whole-table
+or device acceptance is claimed.
+
+The complete post-revision `make check` passes **137 GUT scripts, 981 tests and
+131,475 assertions**, with Python, LAN, Web layout, CLI process, lint/format,
+documentation/policy and exact characterization checks also passing. Reference
+characterization remains 9,994 inputs / 1,098 observed known failures. Evidence:
+`localtmp/restructure_rg45_review/check-final.log`. RG-45R is checked off for
+implementation and verification; pause for the user's revised design review.
+
+
+### RG-45R2 numeric-entry review correction — 2026-10-29
+
+Back and Cancel have separate behavior: Back deletes the selected digits or the
+last digit, while Cancel discards the whole draft and closes the keypad. Renamed
+the deletion key to ⌫ and added its deletion tooltip. Cancel remains explicit.
+Top-aligned digit and utility grids now place Clear beside 3, Min beside 6 and
+Cancel beside 9, using matching 48 px heights. Pot displays its exact preset
+amount. No numeric parsing or game-rule computation was added to the view.
+
+Measured candidates retain full captions and uniform utility cells. Portrait
+can use two-line Pot copy when needed; compact landscape can put a horizontal
+header above both aligned grids. The input reserves enough width for legal
+values so its leading digit stays visible. Long invalid drafts still scroll.
+Failed fitting restores the displayed caption and sizes. Snapshot measurement
+now recognizes mandatory line breaks in Button captions instead of measuring
+the whole string as one line.
+
+Baseline keypad/overlay tests: 29/29 (2,296 assertions). Revised focused tests:
+30/30 (3,245 assertions), including maximum Pot values at 272×592, 796×282 and
+592×282, exact row alignment, repeated reflow, failed-fit recovery and existing
+backspace/cancel/commit behavior. Evidence is under
+`localtmp/restructure_keypad_review/`. Seven new PNG/JSON pairs use the prefix
+`localtmp/gui-elements/rg42-rg45-review3-`; historical previews are preserved.
+Revised design acceptance remains pending before RG-50.
+
+Complete verification of the final source passes `make check`: **137 GUT scripts,
+982 tests and 132,426 assertions**, plus Python, LAN, Web layout, CLI process,
+lint/format, documentation/policy and exact characterization checks. Reference
+characterization remains 9,994 inputs / 1,098 observed known failures. Log:
+`localtmp/restructure_keypad_review/check-verified.log`. All seven captures report
+no geometry/font/card failures and match recorded source hashes. Landscape,
+compact-landscape and portrait keypads were visually inspected. RG-45R2 is
+checked off for implementation/verification; pause for design acceptance.
+
+
+### RG-45 menu design acceptance — 2026-10-29
+
+The user accepted `localtmp/gui-elements/rg42-rg45-menu.png` as OK. Record
+visual acceptance for the menu component only. The revised opponent/history
+and numeric-entry previews and the hand-summary design retain their pending
+review status. This menu acceptance does not complete table/device acceptance
+or authorize proceeding past the outstanding component review.
+
+
+### Phase 4 component review acceptances — 2026-10-29
+
+The user accepted these specific previews:
+
+- `rg42-rg45-review2-components.png`: component gallery, explicitly including
+  the bot-player seat areas.
+- `rg42-rg45-review2-history-resize.png`: event-history scaling examples.
+- `rg42-rg45-review2-summary.png`: hand-summary design.
+- `rg42-rg45-portrait-number.png`: portrait number-entry arrangement, subject
+  to clarifying Back/Cancel and showing the Pot amount (implemented in RG-45R2).
+
+The menu acceptance remains recorded above. The user subsequently preferred
+`rg42-rg45-review3-compact-landscape-number.png` with a further header refinement:
+Raise total followed immediately by a shorter input, and one Min/Max line below.
+This selects the compact landscape variant for refinement and resolves the
+pending scrolling-versus-landscape question; no scrolling change is requested.
+Revised keypad design acceptance remains pending for RG-45R3. These are component
+acceptances, not final table/gameplay/device acceptance.
+
+
+Additional acceptance: the user also accepted `rg42-rg45-review3-components.png`
+and `rg42-rg45-review3-history-resize.png`, including event-history scaling.
+The explicit response to the layout question selected the compact landscape
+arrangement when needed. Prefer the accepted portrait arrangement when it fits;
+use the revised compact header for shorter allocations.
+
+The user also accepted `rg42-rg45-review3-summary.png` as the hand-summary design.
+
+
+### RG-45R3 implementation and visual acceptance — 2026-10-29
+
+Compact landscape now has an authored two-row header: Raise total followed
+immediately by the value, then Min and Max together on one line below. The
+NumberFieldInline theme draws a 32 px white face within the 48 px selectable
+input allocation. Native rows pack the header and keys without extra vertical
+gaps, fitting a 280 px keypad inside the short landscape envelope. Text remains
+20 px and every key retains its 48 px target. Portrait retains its stacked
+arrangement and is preferred whenever its complete footprint fits. The unused
+side-header landscape branch is removed. Invalid fit attempts restore prior
+appearance, and editing/reflow preserve native controls and draft semantics.
+
+Focused baseline: 30 tests / 3,245 assertions. Revised keypad/overlay suite:
+31 tests / 3,639 assertions, including direct title/value adjacency, shared
+vertical alignment, one-line Min/Max copy, visual insets with retained targets,
+portrait recovery and styling after edits. Seven `rg42-rg45-review4-*` PNG/JSON
+pairs save with no reported geometry/font/card failures and matching recorded
+source hashes. The compact and wider landscape previews were visually inspected.
+
+The user accepted `rg42-rg45-review4-compact-landscape-number.png`. This completes
+the pending Phase 4 component design review together with the specific gallery,
+history, menu, summary and portrait-arrangement acceptances above. No final table,
+gameplay or physical-device acceptance is implied. The Phase 4 commit/push
+checkpoint and RG-50 remain unchecked.
+
+Final RG-45R3 verification passes `make check`: **137 GUT scripts, 983 tests,
+132,823 assertions**, plus Python, LAN, Web layout, CLI process, lint/format,
+documentation/policy and exact characterization checks. Reference characterization
+remains 9,994 inputs / 1,098 observed known failures. Evidence:
+`localtmp/restructure_keypad_header/check-final.log`. All seven refreshed captures
+match final source hashes. Documentation links/policy and whitespace checks pass.
+
+
+### Review4 gallery and history acceptance — 2026-10-29
+
+The user also accepted `rg42-rg45-review4-components.png` and
+`rg42-rg45-review4-history-resize.png`. These confirm the latest gallery and
+history-scaling previews, alongside the accepted review4 compact keypad.
+Phase 4 component design review remains complete.
+
+The user also accepted `rg42-rg45-review4-landscape-number.png`, confirming
+the wider landscape preview of the RG-45R3 keypad header.
+
+The user also accepted `rg42-rg45-review4-menu.png`, confirming the latest
+menu preview.

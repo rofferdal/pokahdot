@@ -20,9 +20,19 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   RG-30 theme palette/review3 is verified and user-accepted. RG-31 compact/regular
   typography and reference font-scaling removal are verified; the dealer/blind
   markers, winner-star appearance/placement and status alignment are user-accepted.
-  RG-39 reusable controls are next after the requested commit/push checkpoint
-  and reference-typography preview. Replacement component composition remains
-  in its ordered tasks.
+  RG-39 reusable controls are implemented, verified and user-accepted.
+  RG-40 cards and center board are implemented, verified and user-accepted.
+  RG-41 seats and human panels and RG-41R review refinements are implemented
+  and verified; review2 is provisionally user-accepted, with gameplay review
+  remaining in the final acceptance milestones. RG-42–RG-45 phone tokens, action
+  controls, event history and in-canvas overlays/keypads are implemented and
+  verified by the complete check and all four GUI matrices. Combined component
+  design review is complete. The user accepted the RG-45R opponent
+  layout, component galleries, event-history scaling, menu and summary designs.
+  The portrait keypad arrangement is accepted with clarified deletion/Cancel
+  and Pot amounts; compact landscape is selected when needed. RG-45R3 refines
+  its inline value and single-line limits header; this design is user-accepted.
+  Replacement table composition remains in its ordered tasks.
 
 - [`RulesInGameTasks.md`](RulesInGameTasks.md) — planned, independent workstream:
   a concise Pokahdot tournament-rules reference from the GUI Start screen and

@@ -52,3 +52,14 @@ Logs live under ignored `localtmp/restructure_rg21/`.
 Full default checks and all four GUI matrices are required before RG-21 is
 checked off in [the owning backlog](RestructureGuiTasks.md). The exact legacy
 characterization registry and matrix definitions were not changed.
+
+
+## RG-41 seat-state extension
+
+`SeatViewModel.state_text` supplies marker-free Turn/Fold/All In/Out copy;
+the reviewed full panels use only name/stack/wager inside the box, with state
+and action/result information in their status band. Legacy `badge_text` and
+token formatting retain their existing contracts. `test_gui_seat_components.gd` verifies this field from real
+model builds with dealer/small-blind flags, along with full typed panel snapshots,
+reserved bands, card redaction, state rebinding and inherited typography.
+No RG-21 cases were removed or reclassified by this component work.

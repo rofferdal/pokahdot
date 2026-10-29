@@ -49,6 +49,16 @@ container/content minimums guide responsive fit. The replacement components and
 presentation requirements remain tracked in the [GUI backlog](docs/RestructureGuiTasks.md).
 Table copy, card visibility models and action availability now use pure
 presentation models; the current controller still renders the reference layouts.
+Reusable action-button and input-field scenes are implemented for the replacement;
+their shared-control design is user-accepted. Reusable cards and the center board
+are user-accepted. Full seat and human panels are provisionally user-accepted. Phone tokens, action
+controls, event history and in-canvas overlays/keypads are implemented and verified;
+opponents now share one fixed corner layout and the event-history box resizes
+with its allocation. The keypad distinguishes backspace from Cancel, aligns
+landscape rows and displays the Pot amount. Component galleries, opponent seats,
+history scaling, menu and summary designs are user-accepted. The compact keypad
+header is user-accepted. Phase 4 component design review is complete; table
+composition follows in the GUI backlog.
 
 ## Start headless (terminal)
 

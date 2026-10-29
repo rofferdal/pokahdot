@@ -6,6 +6,7 @@ var valid: bool = false
 var error: String = ""
 var is_human_turn: bool = false
 var can_wager: bool = false
+var can_continue: bool = false
 var fold_enabled: bool = false
 var check_call_enabled: bool = false
 var minimum_enabled: bool = false
@@ -54,6 +55,7 @@ static func build(
 		result.error = "An action model requires a recipient-safe view."
 		return result
 	result.valid = true
+	result.can_continue = view.hand_complete and view.tournament_status != &"finished"
 	result.is_human_turn = view.acting_seat == view.hero_seat
 	var legal: Array[PlayerAction.Kind] = []
 	if result.is_human_turn:

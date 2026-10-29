@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/gui/components/gui_input_field.gd" id="1"]
+
+[node name="InputField" type="LineEdit"]
+custom_minimum_size = Vector2(48, 48)
+theme_type_variation = &"InputField"
+virtual_keyboard_enabled = false
+expand_to_text_length = true
+script = ExtResource("1")
+
+[connection signal="text_changed" from="." to="." method="_on_text_changed"]
+[connection signal="text_submitted" from="." to="." method="_on_text_submitted"]
