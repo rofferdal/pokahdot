@@ -5,6 +5,20 @@ extends RefCounted
 ## The returned values never retain controls or font resources.
 
 
+static func profile_for_mode(mode: GuiSizeClass.LayoutMode) -> int:
+	# Diagnostic enum compatibility only; geometry classification stays in policy.
+	match mode:
+		GuiSizeClass.LayoutMode.PHONE:
+			return GuiLayoutProfile.Kind.PHONE_PORTRAIT
+		GuiSizeClass.LayoutMode.PHONE_LANDSCAPE:
+			return GuiLayoutProfile.Kind.PHONE_LANDSCAPE
+		GuiSizeClass.LayoutMode.WIDE_COMPACT:
+			return GuiLayoutProfile.Kind.SMALL_DESKTOP
+		GuiSizeClass.LayoutMode.WIDE:
+			return GuiLayoutProfile.Kind.DESKTOP
+	return -1
+
+
 static func rect(control: Control, root: Control) -> Rect2:
 	return _control_transform(control, root) * Rect2(Vector2.ZERO, control.size)
 

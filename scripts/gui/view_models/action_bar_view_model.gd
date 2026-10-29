@@ -4,6 +4,8 @@ extends RefCounted
 ## Detached action copy and availability from the recipient-safe legal-action list.
 var valid: bool = false
 var error: String = ""
+var legal_actions: Array[int] = []
+var action_roles: Dictionary[int, Array] = {}
 var is_human_turn: bool = false
 var can_wager: bool = false
 var can_continue: bool = false
@@ -60,6 +62,17 @@ static func build(
 	var legal: Array[PlayerAction.Kind] = []
 	if result.is_human_turn:
 		legal = view.legal_actions
+	for kind: PlayerAction.Kind in legal:
+		result.legal_actions.append(kind)
+		match kind:
+			PlayerAction.Kind.FOLD:
+				result.action_roles[kind] = [&"fold"]
+			PlayerAction.Kind.CHECK, PlayerAction.Kind.CALL:
+				result.action_roles[kind] = [&"check_call"]
+			PlayerAction.Kind.BET, PlayerAction.Kind.RAISE:
+				result.action_roles[kind] = [&"wager", &"minimum", &"pot"]
+			PlayerAction.Kind.ALL_IN:
+				result.action_roles[kind] = [&"all_in"]
 	result.can_wager = PlayerAction.Kind.BET in legal or PlayerAction.Kind.RAISE in legal
 	result.fold_enabled = PlayerAction.Kind.FOLD in legal
 	result.check_call_enabled = PlayerAction.Kind.CHECK in legal or PlayerAction.Kind.CALL in legal

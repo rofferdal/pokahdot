@@ -13,6 +13,7 @@ var _original: String = ""
 var _draft: String = ""
 var _minimum_preset: String = ""
 var _pot_preset: String = ""
+var _pot_display_value: String = ""
 var _pot_label: String = "Pot"
 var _compact_header: bool = false
 var _limits_multiline: String = ""
@@ -49,6 +50,7 @@ func render(model: NumberEntryViewModel) -> void:
 		str(model.minimum) if model.minimum_preset.is_empty() else model.minimum_preset
 	)
 	_pot_preset = model.pot_preset
+	_pot_display_value = model.pot_display_value
 	_pot_label = model.pot_label
 	_show_presets = _active and model.show_presets
 	_pot_enabled = _active and model.pot_enabled and not model.pot_preset.is_empty()
@@ -71,6 +73,17 @@ func render(model: NumberEntryViewModel) -> void:
 		view.keypad = true
 		view.enabled = _active and (role != &"pot" or _pot_enabled)
 		button.render(view)
+		if (
+			role == &"back"
+			and not (
+				GuiCardInk
+				. bounds(
+					button.get_theme_font("font"), "⌫", button.get_theme_font_size("font_size")
+				)
+				. has_area()
+			)
+		):
+			button.text = "Delete"
 		button.visible = role not in [&"minimum", &"pot"] or _show_presets
 	_buttons[&"back"].tooltip_text = "Delete selected digits or the last digit"
 	_sync_value()
@@ -230,9 +243,10 @@ func _input(event: InputEvent) -> void:
 
 
 func _pot_caption(stacked: bool) -> String:
-	if _pot_preset.is_empty():
+	var amount: String = _pot_display_value if not _pot_display_value.is_empty() else _pot_preset
+	if amount.is_empty():
 		return _pot_label
-	return _pot_label + ("\n" if stacked else " ") + _pot_preset
+	return _pot_label + ("\n" if stacked else " ") + amount
 
 
 func _utility_cell(pot_caption: String) -> Vector2:

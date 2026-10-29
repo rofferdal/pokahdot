@@ -19,9 +19,7 @@ var _required_badge_text: String = ""
 
 func _ready() -> void:
 	_inherit_material(self)
-	for path: String in [
-		"Panel/Body/Copy/Name", "Panel/Body/Copy/Stack", "Panel/Body/Copy/Wager", "Status"
-	]:
+	for path: String in ["%Name", "%Stack", "%Wager", "Status"]:
 		(get_node(path) as Label).resized.connect(_queue_fit)
 	_refresh_metrics()
 	_queue_fit()
@@ -61,15 +59,19 @@ func render(model: SeatViewModel) -> void:
 		)
 	)
 	_reset_copy_fonts()
-	(get_node("Panel/Body/Copy/Name") as Label).text = model.display_name
+	(get_node("%Name") as Label).text = model.display_name
 	var badge_parts: Array[String] = []
 	if model.is_small_blind:
 		badge_parts.append("SB")
 	if model.is_big_blind:
 		badge_parts.append("BB")
 	_required_badge_text = " ".join(badge_parts)
-	(get_node("Panel/Body/Copy/Stack") as Label).text = model.stack_text
-	(get_node("Panel/Body/Copy/Wager") as Label).text = model.wager_text
+	(get_node("%Stack") as Label).text = (
+		model.stack_value_text
+		if not hero_presentation and not model.stack_value_text.is_empty()
+		else model.stack_text
+	)
+	(get_node("%Wager") as Label).text = model.wager_text
 	(get_node("Status") as Label).text = model.status_text
 	(get_node("Status") as Label).theme_type_variation = (
 		(&"HeroWinningHandText" if hero_presentation else &"WinningHandText")
@@ -81,15 +83,13 @@ func render(model: SeatViewModel) -> void:
 	if model.cards != null:
 		for card: CardViewModel in model.cards.cards:
 			_authorized_faces.append(card != null and card.state == CardViewModel.State.FACE)
-	(get_node("Panel/Body/Cards") as GuiHoleCards).render(model.cards)
-	(get_node("Panel/Body/Right/Markers/Dealer") as Control).modulate.a = (
-		1.0 if model.is_dealer else 0.0
-	)
-	(get_node("Panel/Body/Right/Markers/Blinds/SB") as Label).visible = model.is_small_blind
-	(get_node("Panel/Body/Right/Markers/Blinds/BB") as Label).visible = model.is_big_blind
-	(get_node("Panel/Body/Right/Winner") as Control).modulate.a = (
-		1.0 if model.winner_emphasis else 0.0
-	)
+	(get_node("%Cards") as GuiHoleCards).render(model.cards)
+	(get_node("%Dealer") as Control).modulate.a = (1.0 if model.is_dealer else 0.0)
+	(get_node("%SB") as Label).visible = model.is_small_blind
+	(get_node("%BB") as Label).visible = model.is_big_blind
+	(get_node("%Dealer") as Control).visible = model.is_dealer
+	(get_node("%SB").get_parent() as Control).visible = (model.is_small_blind or model.is_big_blind)
+	(get_node("%Winner") as Control).modulate.a = (1.0 if model.winner_emphasis else 0.0)
 	_refresh_metrics()
 	_inherit_material(self)
 	_queue_fit()
@@ -104,16 +104,16 @@ func _clear() -> void:
 	_busted = false
 	_status_emphasis = false
 	material = null
-	for path: String in [
-		"Panel/Body/Copy/Name", "Panel/Body/Copy/Stack", "Panel/Body/Copy/Wager", "Status"
-	]:
+	for path: String in ["%Name", "%Stack", "%Wager", "Status"]:
 		(get_node(path) as Label).text = ""
 	_bind_avatar("")
-	(get_node("Panel/Body/Cards") as GuiHoleCards).render(CardRowViewModel.new())
-	(get_node("Panel/Body/Right/Markers/Dealer") as Control).modulate.a = 0.0
-	(get_node("Panel/Body/Right/Markers/Blinds/SB") as Label).visible = false
-	(get_node("Panel/Body/Right/Markers/Blinds/BB") as Label).visible = false
-	(get_node("Panel/Body/Right/Winner") as Control).modulate.a = 0.0
+	(get_node("%Cards") as GuiHoleCards).render(CardRowViewModel.new())
+	(get_node("%Dealer") as Control).modulate.a = 0.0
+	(get_node("%SB") as Label).visible = false
+	(get_node("%BB") as Label).visible = false
+	(get_node("%Dealer") as Control).visible = false
+	(get_node("%SB").get_parent() as Control).visible = false
+	(get_node("%Winner") as Control).modulate.a = 0.0
 	(get_node("Panel") as PanelContainer).theme_type_variation = (
 		&"HeroPanel" if hero_presentation else &"SeatPanel"
 	)
@@ -121,7 +121,7 @@ func _clear() -> void:
 
 
 func _bind_avatar(path: String) -> void:
-	var avatar: TextureRect = get_node("Panel/Body/Avatar")
+	var avatar: TextureRect = get_node("%Avatar")
 	if path == _avatar_path and (path.is_empty() or avatar.texture != null):
 		return
 	_avatar_path = path
@@ -146,7 +146,7 @@ func _refresh_metrics() -> void:
 	if _preferred() != _last_preferred:
 		_last_preferred = _preferred()
 		_reset_copy_fonts()
-	var avatar: TextureRect = get_node("Panel/Body/Avatar")
+	var avatar: TextureRect = get_node("%Avatar")
 	var role: StringName = &"HeroPanel" if hero_presentation else &"SeatPanel"
 	var extent: float = get_theme_constant("avatar_size", role)
 	avatar.custom_minimum_size = Vector2(extent, extent)
@@ -162,23 +162,21 @@ func _refresh_metrics() -> void:
 	)
 	# Model status may contain two explicit lines; blank and filled share this band.
 	status.custom_minimum_size.y = reserved.y
-	var body: HBoxContainer = get_node("Panel/Body")
+	var body: HBoxContainer = get_node("%Body")
 	body.custom_minimum_size.y = maxf(
 		extent,
 		(
 			ceilf(normal.get_height(_preferred())) * 3.0
-			+ 2.0 * (get_node("Panel/Body/Copy") as VBoxContainer).get_theme_constant("separation")
+			+ 2.0 * (get_node("%Copy") as VBoxContainer).get_theme_constant("separation")
 		)
 	)
-	for path: String in ["Panel/Body/Copy/Name", "Panel/Body/Copy/Stack", "Panel/Body/Copy/Wager"]:
+	for path: String in ["%Name", "%Stack", "%Wager"]:
 		(get_node(path) as Label).theme_type_variation = (
 			&"HeroText" if hero_presentation else &"SeatText"
 		)
-	# The full-copy floor owns intrinsic width; a fitted larger display font must
-	# not latch a larger minimum after a wide allocation and block recovery.
-	for path: String in [
-		"Panel/Body/Copy/Name", "Panel/Body/Copy/Stack", "Panel/Body/Copy/Wager", "Status"
-	]:
+	# Fixed name/star and amount groups reserve preferred theme metrics for
+	# both presentations; fitting cannot latch a prior allocation's minimum.
+	for path: String in ["%Name", "%Stack", "%Wager", "Status"]:
 		var label: Label = get_node(path)
 		label.custom_minimum_size.x = (
 			GuiSeatTextFit
@@ -186,18 +184,31 @@ func _refresh_metrics() -> void:
 				[GuiSeatTextRun.new(label.text, path == "Status" and _status_emphasis)],
 				normal,
 				bold,
-				18,
+				18 if path == "Status" else _preferred(),
 				0.0
 			)
 			. x
 		)
+	if not hero_presentation:
+		var digits: int = maxi(0, get_theme_constant("amount_digits", &"SeatPanel"))
+		var amount: String = "8".repeat(digits)
+		for name: String in ["Stack", "Wager"]:
+			var label: Label = get_node("%" + name)
+			var reserve: String = "Bet " + amount if name == "Wager" else amount
+			var reserve_width: float = (
+				GuiSeatTextFit
+				. measure([GuiSeatTextRun.new(reserve)], normal, bold, _preferred(), 0.0)
+				. x
+			)
+			label.custom_minimum_size.x = maxf(label.custom_minimum_size.x, reserve_width)
+	for name: String in ["Name", "Stack", "Wager"]:
+		var label: Label = get_node("%" + name)
+		label.custom_minimum_size.y = ceilf(normal.get_height(_preferred()))
 	_queue_fit()
 
 
 func _reset_copy_fonts() -> void:
-	for path: String in [
-		"Panel/Body/Copy/Name", "Panel/Body/Copy/Stack", "Panel/Body/Copy/Wager", "Status"
-	]:
+	for path: String in ["%Name", "%Stack", "%Wager", "Status"]:
 		(get_node(path) as Label).add_theme_font_size_override("font_size", 18)
 
 
@@ -213,9 +224,7 @@ func _fit_copy() -> void:
 		return
 	var normal: Font = get_theme_font("font", &"HeroText" if hero_presentation else &"SeatText")
 	var bold: Font = get_theme_font("font", &"WinningHandText")
-	for path: String in [
-		"Panel/Body/Copy/Name", "Panel/Body/Copy/Stack", "Panel/Body/Copy/Wager", "Status"
-	]:
+	for path: String in ["%Name", "%Stack", "%Wager", "Status"]:
 		var label: Label = get_node(path)
 		var fit: GuiSeatTextFit = GuiSeatTextFit.resolve(
 			[GuiSeatTextRun.new(label.text, path == "Status" and _status_emphasis)],
@@ -227,6 +236,26 @@ func _fit_copy() -> void:
 		if fit.status == GuiSeatTextFit.Status.FIT:
 			if label.get_theme_font_size("font_size") != fit.font_size:
 				label.add_theme_font_size_override("font_size", fit.font_size)
+
+
+func get_field(role: StringName) -> Control:
+	var names: Dictionary[StringName, String] = {
+		&"name": "Name",
+		&"stack": "Stack",
+		&"action": "Wager",
+		&"avatar": "Avatar",
+		&"cards": "Cards",
+		&"marker": "D",
+		&"badge_row_2": "SB",
+		&"badge_row_3": "BB",
+		&"winner": "Winner",
+		&"markers": "Markers",
+		&"dealer": "Dealer",
+		&"body": "Body",
+		&"copy": "Copy",
+		&"status": "Status"
+	}
+	return get_node("%" + names[role]) as Control if names.has(role) else null
 
 
 func get_seat_snapshot(root: Control) -> GuiSeatSnapshot:
@@ -245,20 +274,20 @@ func get_seat_snapshot(root: Control) -> GuiSeatSnapshot:
 	)
 	value.footprint = GuiSnapshotMeasurement.rect(self, root)
 	var paths: Dictionary[StringName, String] = {
-		&"name": "Panel/Body/Copy/Name",
-		&"stack": "Panel/Body/Copy/Stack",
-		&"action": "Panel/Body/Copy/Wager",
-		&"avatar": "Panel/Body/Avatar",
-		&"cards": "Panel/Body/Cards",
-		&"marker": "Panel/Body/Right/Markers/Dealer/D",
-		&"badge_row_2": "Panel/Body/Right/Markers/Blinds/SB",
-		&"badge_row_3": "Panel/Body/Right/Markers/Blinds/BB",
+		&"name": "%Name",
+		&"stack": "%Stack",
+		&"action": "%Wager",
+		&"avatar": "%Avatar",
+		&"cards": "%Cards",
+		&"marker": "%D",
+		&"badge_row_2": "%SB",
+		&"badge_row_3": "%BB",
 	}
 	for role: StringName in paths:
 		value.fields[role] = GuiSnapshotMeasurement.element(
 			get_node(paths[role]), root, StringName("seat/%d/%s" % [_seat, role])
 		)
-	for card: GuiPlayingCard in (get_node("Panel/Body/Cards") as GuiHoleCards).cards:
+	for card: GuiPlayingCard in (get_node("%Cards") as GuiHoleCards).cards:
 		value.cards.append(
 			card.get_card_snapshot(
 				root,

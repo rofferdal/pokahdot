@@ -19,7 +19,12 @@ func _apply_blind_copy() -> void:
 	if not is_inside_tree():
 		_blind_queued = false
 		return
-	await get_tree().process_frame
+	# Bound frame callbacks disconnect automatically if this node is freed.
+	if not get_tree().process_frame.is_connected(_finish_blind_copy):
+		get_tree().process_frame.connect(_finish_blind_copy, CONNECT_ONE_SHOT)
+
+
+func _finish_blind_copy() -> void:
 	_blind_queued = false
 	if not is_inside_tree():
 		return

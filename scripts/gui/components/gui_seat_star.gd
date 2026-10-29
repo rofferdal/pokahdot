@@ -19,6 +19,15 @@ func _draw() -> void:
 	var font: Font = get_theme_font("font")
 	var font_size: int = get_theme_font_size("font_size")
 	var ink: Rect2 = GuiCardInk.bounds(font, "★", font_size)
+	var fallback: Texture2D = GuiCardInk.symbol_fallback_texture(font, "★", font_size)
+	if fallback != null:
+		draw_texture_rect_region(
+			fallback,
+			Rect2(((size - ink.size) * 0.5).floor(), ink.size),
+			GuiCardInk.symbol_texture_region("★"),
+			get_theme_color("font_color")
+		)
+		return
 	font.draw_string(
 		get_canvas_item(),
 		((size - ink.size) * 0.5).floor() - ink.position,

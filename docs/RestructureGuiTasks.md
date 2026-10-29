@@ -21,7 +21,12 @@ The user accepted the component galleries, bot-seat arrangement, history scaling
 menu, summary, portrait keypad arrangement and revised compact landscape keypad.
 Combined Phase 4 component design review is complete. The final RG-45R3 check is
 recorded below; final table integration and device acceptance remain in their
-ordered tasks.
+ordered tasks. RG-50 seat-ring container/templates are implemented and verified;
+RG-50R lowers the human and aligns its action rail; revised six-seat ring
+placement is user-accepted, and review4 nine-seat placement is now accepted.
+RG-50S reconciles the wide interiors and applies the requested human card corner.
+Its refreshed six/nine-seat previews are accepted. RG-51 is verified; complete
+RG-53 before requesting another design review.
 Reviewed: 2026-10-27 against source commit
 `0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
 This documentation review is not RG-00 baseline execution or device acceptance.
@@ -1093,10 +1098,15 @@ legacy tree is optional; do not distort the component API merely to fit it.
 - [x] Commit all changes to the current branch and push — Phase 4 implementation
   committed at `aa34d96` and pushed to `origin/gui-restructure` (2026-10-29).
 
+User review gate (2026-10-29): finish RG-50S and obtain its design acceptance
+first. After that approval, implement RG-51, RG-52 and RG-53 sequentially before
+requesting another design verification. Keep individual implementation/check
+statuses current and present the combined integrated result after RG-53.
+
 ### Phase 5 — Layouts and switching
 
-- [ ] **RG-50 — `SeatRingContainer` and `SeatSlotTemplate`.** Status: Not
-  started. Mode: Senior. Custom `Container` that reserves the center and
+- [x] **RG-50 — `SeatRingContainer` and `SeatSlotTemplate`.** Status:
+  Implemented and verified (2026-10-29); layout design acceptance pending. Mode: Senior. Custom `Container` that reserves the center and
   lower regions and places seat footprints with `fit_child_in_rect()` in
   `NOTIFICATION_SORT_CHILDREN`; slots come from `.tres` templates for 2–9
   players with mirrored construction and hero-at-bottom mapping (preserve the
@@ -1114,28 +1124,57 @@ legacy tree is optional; do not distort the component API merely to fit it.
   full containment after actual child minima are applied; infeasible allocations
   produce explicit guidance without any collision-resolution pass.
 
-- [ ] **RG-51 — `WideTableLayout.tscn`** for tablet, small desktop and
+- [x] **RG-50R — Lower the hero and align the action area.** Status:
+  Implemented, verified and user-accepted for ring placement (2026-10-29). Lower the human footprint by 72 px
+  after the second review request (one button height plus another half), align
+  action status to its left edge, and center each action row beneath it. Center
+  the top pair inward for a table-like ring, with at least an avatar-width gap. Preserve explicit row membership,
+  complete footprints, rounded containment and infeasible plans. Show revised
+  six/nine-seat previews before RG-51.
+
+- [x] **RG-50S — Reconcile wide interiors with the accepted design.**
+  Status: Implemented, verified and user-accepted (2026-10-29). Bot name/star,
+  markers, amounts and cards use the approved fixed-corner structure with
+  upper-left avatars. Configurable seven-digit amount columns reserve useful
+  standard width while longer actual copy can expand. Human cards also occupy
+  the lower-right corner, retaining larger avatar/star and full stack wording.
+  Native preferred-font minima recover after wide allocations. Absent marker
+  wrappers do not leave empty space beyond visible upper-right markers.
+
+- [x] **RG-51 — `WideTableLayout.tscn`** for tablet, small desktop and
   desktop, composed of containers, `SeatRingContainer`, `CenterBoard`,
   `HeroPanel`, `ActionBar` and an adaptively docked `EventLog`; a hidden dock
-  retains a reachable Log action/menu. Status: Not started. Mode: Senior.
+  retains a reachable Log action/menu. Status: Complete (2026-10-29). Mode: Senior + QA.
+  Reuse the approved transparent BrandLogo with gui_table_logo_material on
+  the felt behind game content; preserve aspect, passive input, and unchanged
+  component minima. Verify actual branding in the replacement capture.
   Done: supported wide fixtures and fit/boundary sweeps pass in the replacement
   scene; infeasible sizes show the defined guidance. A temporary selector may
   expose reference/replacement scenes for comparison.
 
-- [ ] **RG-52 — `PhoneTableLayout.tscn`** using a container-owned phone plan
+- [x] **RG-52 — `PhoneTableLayout.tscn`** using a container-owned phone plan
   (reuse or replace `GuiPhoneSeatLayout`), with `SeatToken`s, `CenterBoard`,
   `ActionBar`,
   More/Pots and reachable Log access, with safe-area margins from `ViewportAdapter`. Phone
   landscape uses a height-aware container composition with the same content
   and input contracts. Opponent/hero rows never exceed three seats. Status:
-  Not started. Mode: Senior.
+  Complete: revised layouts verified and user-accepted (2026-10-29).
+  Mode: Senior + QA.
+  Landscape places the human at bottom center, community directly above,
+  actions to the human's right, and opponents symmetrically around the vertical
+  center line (two opponents occupy the upper corners). Portrait centers the
+  human panel with a width only slightly above the bot panels, expanding when
+  actual content requires it.
+  Preserve the same approved embossed table branding behind phone content;
+  branding never displaces required copy/targets or raises the layout minimum.
   Done: supported portrait and landscape phone fixtures and fit/boundary sweeps pass in the
   replacement scene; unsupported counts/sizes preserve state and show guidance.
 
-- [ ] **RG-53 — Controller orchestration.** Status: Not started. Mode:
-  Senior. Reduce `PokerTableController` to binding, pacing, model building,
-  layout-mode switching (free/instantiate on change, never mutate), overlay
-  routing and the snapshot API. Apply the explicit RG-45 draft/focus policy
+- [x] **RG-53 — Controller orchestration.** Status: Complete (2026-10-29). Mode:
+  Senior. Implement `GuiReplacementTableController` with `GuiTableSession` for
+  binding, pacing and model building, plus layout-mode switching
+  (free/instantiate on change, never mutate), overlay routing and the snapshot
+  API. Retain reference `PokerTableController` until RG-54. Apply the explicit RG-45 draft/focus policy
   across switches; update the documented current cancellation rule only after
   that decision. Define ownership/lifetimes for the new component scenes and
   their subcontent; persistent scenes rendering fresh models are permitted.
@@ -2522,3 +2561,300 @@ Committed the accepted reusable GUI components, verification, documentation and
 existing user edits to AGENTS.md as `aa34d96` and pushed successfully to
 `origin/gui-restructure`. Session captures/logs remain ignored under `localtmp/`.
 The last complete check passed 983 tests / 132,823 assertions. RG-50 is next.
+
+
+### RG-50 seat-ring implementation — 2026-10-29
+
+Implemented GuiSeatSlotTemplate Resources for 2–9 seats, the detached
+GuiSeatRingPlan and authored SeatRingContainer scene. Explicit rows preserve
+clockwise recipient mapping regardless of input/child order, including sparse
+ID ranks; the hero occupies bottom center. Rows cap at three seats, including
+the hero's row (six: 1/2/3; nine: 2/2/2/3). Measured complete seat footprints,
+center and optional lower region determine the minimum. Native sorting calls
+fit_child_in_rect without any collision pass. A conservative rounded-corner
+inset accounts for the actual felt radius/border and theme margins.
+
+Invalid/infeasible plans publish no partial geometry. Parent-imposed local
+allocation limits show guidance and hide all owned seats/regions together;
+restoring space reuses the same controls and state. Rebinding cleans measurement
+signals and respects controls moved to another parent. Resources are configured
+before binding; changing their geometry requires rebinding. Reference position
+tables remain active only in the reference GUI and are marked for RG-54 removal.
+
+Baseline component checks: 48 tests / 6,679 assertions. New pure/property suite:
+8 tests / 80,752 assertions across all counts/recipients, explicit row oracles,
+reordered/sparse IDs, rounded-corner containment, minimum−1 and growth sweeps,
+optional lower region, invalid schema, non-finite/overflow values and detached
+results. Native container suite: 6 tests / 4,194 assertions, including actual
+SeatPanel/HeroPanel/CenterBoard minima in both densities, reentry, minimum recovery,
+freed/reparented controls and guidance recovery. Independent review found and
+resolved stale-owner hiding during rebind.
+
+Standalone previews: `localtmp/gui-elements/rg50-seat-ring-6.png` and
+`rg50-seat-ring-9.png`, each with measured JSON evidence and source fingerprints.
+Their measured sample minimums are 1140×851 and 1140×1033 respectively; they are
+not universal device thresholds. Both save successfully with zero content/font/
+card/containment failures. These samples reserve a 600-unit lower action region.
+Logs are under `localtmp/restructure_rg50/`. Design acceptance is pending; stop
+before RG-51. This is not controller cutover or final gameplay/device acceptance.
+
+
+Final RG-50 verification: `make check` passes **139 GUT scripts, 997 tests and
+217,778 assertions**, with Python, LAN, Web layout, CLI process, lint/format,
+documentation/policy and exact characterization checks passing. Reference
+characterization remains 9,994 inputs / 1,098 observed known failures. Evidence:
+`localtmp/restructure_rg50/check-final.log`; editor import reports no errors or
+warnings. Both previews were visually inspected and their recorded source hashes
+verified. RG-50 is checked off for implementation/verification; pause for layout
+acceptance before RG-51. RG-50 work remains local for review; the prior Phase 4
+checkpoint is already pushed.
+
+
+### RG-50R ring placement review — 2026-10-29
+
+The user provisionally accepted the original six/nine-seat arrangement subject
+to lowering the human by about a button height, aligning action status with the
+human's left edge and centering buttons below it. After review2, the user asked
+for the human to be even lower. The final theme offset is 72 px: the original
+48 plus another half-button. This reserves real minimum height; it does not
+clip status bands, reduce fonts or fake row-count compliance. The human remains
+in its explicit bottom row even when vertically offset from its bot neighbours.
+
+The top pair (Freya/Sofia in nine seats) now forms one measured centered group
+with the themed gap, bringing both inward while preserving their IDs, row,
+clockwise order and complete footprint. This rule applies consistently to any
+two-seat apex. Other bot columns retain their geometry. At corresponding
+old/new minimums, bots/board stay in place while the human and footer descend.
+
+The optional action rail aligns its native MarginContainer status frame to the
+human footprint and centers each HBox action row. A Control measurement boundary
+keeps these allocation-dependent margins out of intrinsic width, preventing
+minimum latching after resize. Status height is measured using the aligned width
+before first feasibility, including long copy and initially insufficient space.
+The default unaligned ActionBar API remains available to other compositions.
+
+Focused checks pass 12 pure tests / 125,485 assertions and 23 action-bar/container
+tests / 5,112 assertions. New tests cover 72 px offsets at all apex counts,
+centered unequal-width pairs, exact/minimum−1 fit, native aligned row centering,
+status-edge alignment, reset/resize recovery and long status in a constrained
+initial layout. Baseline action-bar/container suite passed 21 / 4,792 assertions.
+
+Previews: `localtmp/gui-elements/rg50-seat-ring-review3-6.png` and
+`rg50-seat-ring-review3-9.png` with matching JSON. Measured sample minima are
+1140×923 and 1140×1105; the larger height includes the requested offset. Both
+captures save successfully with no reported failures. Logs are under
+`localtmp/restructure_rg50_revision/`.
+
+The user accepted **six-seat ring placement** in review3 and explicitly stated
+that seat interiors are outside this review. These captures use the earlier full
+SeatPanel and do not supersede the approved fixed interior from RG-45R. Track
+that renderer mismatch in RG-50S before wide integration. Revised nine-seat
+placement still awaits review; pause before RG-51.
+
+
+Further RG-50R review: six-seat `rg50-seat-ring-review3-6.png` placement is
+confirmed accepted. The user requested at least an avatar-width gap between the
+topmost pair in nine seats; review3's pair was too close. The next revision uses
+the measured opponent avatar-size theme metric for that minimum separation,
+without changing the accepted six-seat arrangement or re-approving interiors.
+
+
+### RG-50R final spacing and placement acceptance — 2026-10-29
+
+The top-pair gap is now at least the widest opponent avatar-size theme metric
+(currently 64 px), while the complete pair stays centered. The pure apex_gap
+parameter participates in both minimum measurement and placement. The six-seat
+review4 PNG is byte-identical to the accepted review3 six-seat image.
+
+The user accepted both `rg50-seat-ring-review4-6.png` and
+`rg50-seat-ring-review4-9.png` for ring placement, then authorized continuation.
+Seat-interior approval remains separate; RG-50S is the next ordered task.
+
+Final checks pass **139 GUT scripts, 1,005 tests and 299,137 assertions**, plus
+Python, LAN, Web layout, CLI process, lint/format, documentation/policy and exact
+characterization. The pure suite passes 14 tests / 161,791 assertions; the native
+action/container suite passes 23 / 5,114. Reference characterization remains
+9,994 inputs / 1,098 observed known failures. Final log:
+`localtmp/restructure_rg50_revision/check-apex-final.log`. Both review4 captures
+report no failures and match recorded source hashes. RG-50R is checked off.
+
+
+Review pacing update — 2026-10-29: the user explicitly requested completing
+RG-51, RG-52 and RG-53 as one review batch after RG-50S is approved. RG-50S
+acceptance is still required first. Intermediate design-review stops within
+that batch are deferred; implementation order and verification remain atomic.
+
+
+Further RG-50S steering — 2026-10-29: the user accepted the corrected bot-panel
+structure, then requested wider standard bot boxes in both ring samples so
+larger stacks and bets have room. Reserve a seven-digit presentation budget in
+the bot amount columns; keep real copy and allow additional content to expand
+the width. The user also requested the human pair in the lower-right corner.
+This supersedes the earlier plan to keep the entire human hierarchy unchanged;
+retain its distinct avatar/star/text roles and full stack copy while fixing the
+card corner. RG-50S still requires approval before the RG-51–53 review batch.
+
+
+### RG-50S implementation, verification and acceptance — 2026-10-29
+
+Both authored full panels now use upper-left avatars, name-line winner stars,
+upper-right packed 40×40 markers and an intrinsic horizontal pair at lower right.
+Bots render numeric stack_value_text (fallback stack_text for manual models),
+three copy lines and the 28 px name-line star. Their amount_digits theme budget
+(default 7) reserves measured '8888888'/'Bet 8888888' width without displaying
+synthetic copy or calculating game limits. Larger actual values/names still win
+the measurement. Human keeps 80 px avatar, 64 px star and full stack text, while its
+cards follow the same requested corner. Both reserve preferred text metrics to
+prevent minimum latching after display-font growth. Shared semantic get_field
+handles replace deep hierarchy coupling; snapshots/card authorization remain
+compatible. HeroPanel is authored separately to preserve its distinct roles.
+
+Focused baseline 55/11,094; final seat/card/token/ring batch 55/13,896 assertions.
+The complete final `make check` passes 139 GUT scripts, **1,005 tests and 301,949
+assertions**, plus Python, LAN, Web layout, CLI process, lint/format,
+documentation/policy and exact characterization. Reference registry stays 9,994
+inputs / 1,098 observed known failures. Log:
+`localtmp/restructure_rg50s/check-verified.log`.
+
+The user approved `rg50s-seat-panels.png`, requested the final human card corner,
+then accepted **both** `rg50s-seat-ring-review2-6.png` and
+`rg50s-seat-ring-review2-9.png` and authorized continuation. All three PNG/JSON
+pairs save successfully, report no failures and match current source hashes.
+Their native minimums are 947×927 and947×1073 for these synthetic ring samples.
+These are component/composition measurements, not new device breakpoints.
+The refreshed footprints differ from the earlier ring captures and are now
+explicitly accepted. RG-50S is checked off. Continue RG-51→RG-52→RG-53 with
+individual verification/status updates, then request the next combined design
+review as instructed; no intermediate review stop is required.
+
+
+Branding traceability clarification — 2026-10-29: RG-11R5 already owns the
+transparent shared asset/BrandLogo and its Start/felt acceptance; the replacement
+requirements map that work to RG-51/52. Their task bullets now explicitly require
+the existing embossed table material, passive/aspect-preserving placement behind
+content, no effect on minimums, and rendered verification. RG-53/54 must retain
+the accepted Start presentation and shared asset through controller/cutover work.
+
+RG-51 completion — 2026-10-29: the native wide composition, optional external
+history dock, embossed logo, detached diagnostics and schema-2 invariant contract
+are implemented. Measured fit supports both wide modes; hidden history remains
+reachable through More. The white history body aligns with the human/action
+span without increasing the undocked minimum. Draft/caret/selection retention,
+invalid binding, fit boundaries and recovery are verified. Four `rg51-wide-*`
+PNG/JSON pairs under `localtmp/gui-elements` have zero capture failures.
+`make check` passes: 141 scripts, 1,031 tests, 308,051 assertions; the historical
+registry remains 9,994 inputs / 1,098 known observed failures. Evidence:
+`localtmp/restructure_rg51/check-final.log`. Continue RG-52 then RG-53 before
+asking for the next combined design acceptance, per the user's batch request.
+
+RG-52 completion — 2026-10-29: native portrait/landscape compositions, measured
+one/two-column plans, complete token footprints, embossed branding and explicit
+fit/capacity guidance are implemented. Actual physical band limits are verified
+independently of row metadata. Fresh-small and grown-first measurements agree;
+ordinary refresh remains visible, concealed measurement blocks input, and stale
+bindings cannot publish a candidate. Four `rg52-phone-*` PNG/JSON pairs under
+`localtmp/gui-elements` have zero failures and matching source hashes.
+`make check` passes: 142 scripts, 1,044 tests, 309,171 assertions. Evidence:
+`localtmp/restructure_rg52/check-final.log`; exact default/large-value fit outcomes:
+`localtmp/restructure_rg52/capability.json`. Current 390×844 ordinary fixtures fit
+two through five seats; six/seven need 991 px. At 844×390, two/three fit;
+four/five need 537 px and six/seven 696 px. Larger public amounts can also require
+more width/height. These are measured limitations to review after RG-53, not
+physical-phone acceptance or a changed tournament player limit. Continue RG-53
+before requesting the combined design review.
+
+Design acceptance — 2026-10-29: the user accepted
+`localtmp/gui-elements/rg51-wide-2-docked.png`. This approves that two-seat wide
+layout and dock appearance; remaining integrated RG-51–53 review items are
+tracked separately. Final RG-53 verification continues before the combined gate.
+
+Design acceptance — 2026-10-29: the user also accepted
+`localtmp/gui-elements/rg51-wide-6-docked.png`, approving that six-seat wide
+layout and dock appearance. This is separate from the remaining integrated
+RG-53 screenshots and final gameplay/device acceptance.
+
+Design acceptance — 2026-10-29: the user accepted
+`localtmp/gui-elements/rg51-wide-6-hidden-log.png` and
+`localtmp/gui-elements/rg51-wide-9-docked.png`. Together with the previously
+accepted two/six-seat docked previews, all four RG-51 wide previews are accepted.
+The integrated RG-53 and phone review remains separately tracked.
+
+Phone design revision — 2026-10-29: the user rejected the asymmetry in
+`rg52-phone-landscape-3.png`. Place the human at bottom center, community directly
+above, actions to the right, and the two opponents in the upper corners; retain
+symmetry around the vertical center line generally. The user considers
+`rg52-phone-portrait-4-large.png` otherwise acceptable but requests a human panel
+only slightly wider than bot panels. RG-52 is reopened for these concrete changes;
+its earlier verification remains historical evidence. Finish this revision and
+RG-53 verification before the next combined design gate. All four RG-51 wide
+previews remain accepted.
+
+Phone review — 2026-10-29: the user accepted the arrangement in
+`rg52-phone-portrait-4.png`; preserve it while applying the separately requested
+human-panel width refinement. The user finds `rg52-phone-portrait-6.png` visually
+acceptable but questions its aspect ratio. Its 390×1100 allocation is explicitly
+a measured-fit canvas, not a claimed or tested device profile. Current six-seat
+content needs approximately 991 px; 390×844 shows guidance. Revised examples
+must distinguish minimum-fit evidence from ordinary viewport/device acceptance.
+
+Combined review acceptances — 2026-10-29: the user accepted the following
+integrated artifacts under `localtmp/gui-elements`:
+
+- `rg53-phone-6-guidance.png`
+- `rg53-phone-menu.png`
+- `rg53-phone-number.png`
+- `rg53-phone-portrait-4.png`
+- `rg53-web-final-four-suits.png`
+- `rg53-web-final-keypad.png`
+- `rg53-web-four-suits.png`
+- `rg53-web-input-suits.png`
+- `rg53-web-keypad.png`
+- `rg53-wide-6.png`
+- `rg53-wide-9.png`
+
+The earlier Web artifacts remain historical; the corrected final Web suit,
+back/star and Delete fallbacks are separately verified and their final gallery
+/keypad are accepted. The user rejected `rg53-phone-landscape-2.png` and directs
+the same symmetric arrangement requested for `rg52-phone-landscape-3.png`.
+Outstanding design revisions are landscape symmetry and the portrait human-panel
+width refinement; preserve the accepted arrangements and overlays otherwise.
+
+Phone revision acceptance — 2026-10-29: the user accepted
+`rg52-review2-phone-portrait-4-large.png`, confirming the narrower human panel.
+The user also accepted `rg52-review2-web-landscape-keypad.png`,
+`rg52-review2-web-landscape-safe.png` and
+`rg52-review2-web-landscape-symbols.png`, confirming the symmetric landscape
+presentation with safe insets and the retained keypad/symbol presentation.
+These files are under `localtmp/gui-elements`; final revision verification and
+any remaining preview-specific review are tracked separately.
+
+Phone revision acceptance complete — 2026-10-29: the user accepted
+`rg53-review2-phone-landscape-2.png`, `rg53-review2-phone-landscape-3.png`,
+`rg53-review2-phone-landscape-safe-3.png`, `rg53-review2-phone-portrait-4.png`
+and `rg53-review2-phone-portrait-6.png`. Together with the accepted large-value
+portrait and Web landscape examples, all requested phone design corrections
+are accepted. No Phase 5 design approval remains pending. Complete final
+verification and the Phase 5 commit/push checkpoint without requesting duplicate
+confirmation. Gameplay/physical-device acceptance remains in its later tasks.
+
+Execution boundary — 2026-10-29: the user requests stopping before RG-60.
+Finish final Phase 5 verification and its commit/push checkpoint, then stop.
+RG-60 implementation and subsequent tasks remain unstarted.
+
+Final Phase 5 verification — 2026-10-29: `make check` passed on the accepted
+source: 149 GUT scripts, 1,102 tests, 323,843 assertions, plus documentation,
+Python, CLI process, lint and formatting gates. The exact historical layout
+characterization remains 9,994 inputs / 1,098 known observed failures; no
+replacement result rebases that registry. Full log:
+`localtmp/restructure_rg53/check-accepted-final.log`.
+
+The final native/Web profiler passed 24 workloads × 120 samples (2,880 total),
+with zero engine/privacy/core errors and zero live probes afterward. Matching
+visible-operation p95 improved in all eight comparisons; guidance is measured
+separately. All 554 production files match the accepted safe-landscape Web
+export. Results: `localtmp/restructure_rg53_profiles_final5`, using
+`replacement-native-phone2-retry` for the native phone group. The initial
+launch timeout and successful bounded diagnostic remain recorded separately.
+Architecture records the authoritative metrics and scope. RG-52/RG-53 are
+complete; all Phase 5 designs are accepted. Physical-device and gameplay
+acceptance remain later tasks. Stop before RG-60 after the checkpoint.

@@ -929,6 +929,15 @@ propagation takes precedence over a script virtual minimum. Actual ink bounds
 are measured with the built-in font through TextLine/TextServer; rank and suit
 share the largest fitting integer font, corrected baselines and safe padding.
 The allocation supplies the search bound; no gallery-size font cap is used.
+Shaped glyph RIDs are checked before low-level metrics calls. When the
+embedded font has no usable suit glyph, existing SVG artwork supplies cropped
+alpha masks tinted with the same theme color. Available native system glyphs
+retain their original rendering. Four suit masks and the fixed diamond/star
+assets are bounded asset resources, not a scene/view cache. Unsupported browser
+back/star symbols use the same artwork, and the keypad uses the readable
+`Delete` caption when its backspace glyph is unavailable. These paths require
+no installed system font or downloaded font asset. Native tests disable system
+fallback and exercise every face, redaction, empty/back state and decorations.
 Zero-ink malformed text clears with an explicit error rather than stalling.
 
 `get_card_snapshot()` observes the actual fitted surface and separate visible
@@ -1065,9 +1074,11 @@ Measured examples (Godot 4.7.2, real Compatibility windows and Chromium 140):
 Implemented ownership (RG-11): `GuiViewportAdapter`, authored under the main
 GUI scene, owns runtime normalization and publishes immutable
 `GuiViewportGeometry` values from pure Web/native/injected factories.
-Startup's Center and the table root receive the same usable origin/extent;
-startup retains its internal 12-unit margin. Snapshot producers transform that
-available rectangle into root-viewport coordinates separately from the felt.
+Startup's Center retains its internal 12-unit margin within the usable extent.
+The reference table receives that usable origin/extent directly. The replacement
+opts into `GuiViewportAdapter.bind(..., full_table_viewport = true)`, occupies
+the full viewport, and lets `CompositionHost` apply the usable origin once.
+Its overlays receive the same root-local usable rectangle independently.
 Pending geometry invalidates readiness until the new rectangle is applied.
 
 The Web probe measures canvas/layout/visual rectangles and CSS `env()` insets,
@@ -1169,10 +1180,10 @@ Use the clean replacement path permitted by the retirement decision.
 by `GuiCompositionHost`. The application composition root registers authored
 `GuiTableComposition` scenes by mode and supplies one geometry value, stable
 clockwise IDs and measured candidates to `present()`. No scene path, platform
-flag or legacy helper chooses layout inside the host. Finished phone/wide table
-registrations remain RG-51/52; match/model/overlay orchestration remains RG-53.
-There are no empty replacement table scenes or new reference layout wrappers.
-Independent authored container fixtures exercise the real host meanwhile.
+flag or legacy helper chooses layout inside the host. RG-51/52 supply the
+finished phone/wide scenes; the RG-53 replacement controller registers them
+and owns match/model/overlay orchestration. Independent authored container
+fixtures continue to exercise the routing contract.
 
 `GuiCompositionState` carries geometry, the fit result, selected mode, explicit
 seat rows, density and action flow. Density (`FULL`, `COMPACT`, `MINIMAL`) and
@@ -1247,72 +1258,274 @@ shares and semantic summary lines. `EventLogViewModel` is the same detached
 history body whether docked or presented in an overlay; the adapter still
 matches recipient-safe events/actions through the existing pure formatter.
 
-The current controller, action controls and seat factory consume these models
+The reference controller, action controls and seat factory consume these models
 through `get_table_view_model()` and typed adapter calls. The reference adapter
 retains its existing geometry-dependent choice of copy variants and font
 measurement for wrapping winner names; new components consume selected density
 directly. Reference card factories still accept permitted CardData while their
-replacement scenes remain RG-40–42. This integration changes ownership, not
+replacement scenes are implemented in RG-40–42. This integration changes ownership, not
 legacy geometry or accepted appearance. RG-21 migrates pure presentation test
 cases, with the [coverage map](GuiModelCoverage.md) recording each migration
 and retained integration contract. RG-39–54 finish component rendering and
 retire reference builders.
 
-**Complete seat components (RG-41, 2026-10-29)**
+**Complete seat components (RG-41, reconciled in RG-50S)**
 
-`SeatPanel.tscn` is an authored VBox containing the framed Panel and the Status
-Label beneath it. `HeroPanel.tscn` inherits that scene with the human presentation
-flag; both expose typed `render(SeatViewModel)` and detached `get_seat_snapshot()`.
-Native box containers own avatar, copy, shared CardRow, upper-right D/SB/BB and
-lower-right winner-star allocations. Panel and status fill the same outer width;
-minimums and snapshots include the entire band even when blank. Its reservation
-measures two normal/bold preferred-font lines plus actual native line spacing.
-Body minima use the Copy container's actual separation, including regular metrics.
+SeatPanel and HeroPanel are authored VBox scenes with separate framed bodies
+and reserved status bands. Native avatar/header/lower boxes own geometry:
+upper-left avatar; name and adjacent winner star; upper-right D/SB/BB; stack and
+wager left; close horizontal hole-card pair at bottom right. Markers pack against
+the inset even in dealer-only/blind-only states. The human uses its own authored
+scene with 80 px avatar, 64 px name-line star and full stack wording; bots use 64 px
+avatars, the later approved 28 px name-line star and numeric stack_value_text when
+supplied. Every position marker remains40×40 with 20 px text. Both panels expose
+render, semantic get_field handles and detached typed snapshots, including full
+status footprint and copied face authorization.
 
-Four explicit seat-copy labels (name, stack, wager and status) fit through
-`GuiSeatTextFit` between 18 px and
-the ancestor Theme's preferred size; scoped font-size overrides do not alter
-font resources, palette, card fonts or input targets. Binding begins at the
-floor before native layout and fits upward within actual allocations. Label
-width minima use full-copy 18 px measurements and native `clip_text` to decouple
-font-driven minimum propagation. Independent required-text/allocation assertions
-verify that every glyph remains visible. Growing display fonts therefore cannot
-prevent recovery to the original minimum after a wide allocation. Root and
-label resize notifications queue a bounded fit pass; theme density changes
-refresh preferred metrics. Cards share horizontal expansion with copy and keep
-the RG-40 aspect/ink contracts. `HoleCards.tscn` fits each pair as one native
-aspect group around the shared CardRow, removing unused inter-cell space. Its
-visible separation is 6% of card width, subject to logical-pixel rounding,
-using the same rule for opponents and human cards without altering community
-rows. Equal native cells contain half a gap on each side of each fitted card;
-the pair aspect creates the visible gap with zero HBox separation. Intrinsic
-minimums depend on floor card metrics and pair aspect, never prior allocation. The passive star draws 64 px themed glyph ink through the `SeatWinnerStar` role
-in an independent allocation rather than occupying a name/status line. Separate
-SB/BB controls use the `SeatBlindMarker` role at 20 px inside the same 40×40
-allocation as the dealer button, centered on both axes. The three body-copy
-lines allow larger preferred text or a smaller body where measured fit permits.
+Label width/height minima reserve preferred theme font metrics while scoped
+GuiSeatTextFit fitting starts at 18 px. Status reserves two normal/bold preferred
+lines with actual native spacing and full-copy 18 px width. Thus display-font
+growth cannot latch a larger body minimum on resize recovery. Bot amount_digits
+(default 7) reserves character-budget width for stacks and 'Bet' amounts; actual
+longer copy still expands. This is presentation spacing, not game-limit logic.
+No synthetic digits enter displayed/model text. Shared HoleCards keeps intrinsic
+pair size and the 6%-of-card-width gap at its bottom-right allocation. Cards keep
+the RG-40 aspect/ink/privacy contracts. All state variants reuse these corners.
 
-The human avatar measures 80×80 versus 64×64 for opponents, with larger preferred
-copy and a larger complete minimum. Avatars align to the upper-left content inset. TextureRect ignores source image size for
-minimum propagation and preserves the assigned texture's aspect ratio. Resizing
-never reselects or reloads an unchanged valid assignment. Missing assets clear
-the old texture and log an explicit error. The folded root selects the shared
-grayscale material, inherited through every descendant, including avatar,
-cards and status. Acting states use authored strong-frame theme variations.
+Avatars preserve aspect and ignore source texture size for minimum propagation.
+Missing assets clear/log; unchanged valid assignments do not reload. Folded root
+material is inherited by every descendant, including avatar/cards/status; acting
+frames use palette variations. Only name/stack/wager remain inside, with full
+All In and action/result copy beneath. All winning recipients receive bold yellow
+copy. Null/invalid models clear the bound state with explicit diagnostics. The
+user accepted the RG-50S panel and refreshed ring previews on 2026-10-29; whole-game
+integration/device acceptance remain later. The active reference factory remains
+until RG-54.
 
-`SeatViewModel.state_text` contains only Turn/Fold/All In/Out presentation,
-leaving D/SB/BB for the separate corner controls. The reviewed full panels remove
-the redundant interior state line and show action/result copy in the reserved
-status band. All-in status spells `All In` in full. Existing legacy `badge_text`,
-token copy and action-format helper are unchanged. The view binds the supplied
-status and winner emphasis;
-it contains no core rule/visibility logic. Null/invalid models clear identity,
-cards, markers, material and avatar with an error. Snapshot authorization is
-copied per card from the safe model on binding; direct child mutations cannot
-silently authorize a hidden card. Badge expectations are detached from the model,
-not reconstructed from potentially changed control text. The user provisionally
-accepted RG-41/R review2 on 2026-10-29; gameplay review remains pending. Full table composition and deletion of the active reference seat
-factory/view remain in RG-51–54; this component task adds their authored successors.
+**Seat ring and slot resources (RG-50)**
+
+`SeatRingContainer.tscn` is a custom native Container. Bind a detached dictionary
+of seat IDs to distinct direct child Controls, a recipient ID, the center board
+and an optional lower region. Assign felt/template Resources before `bind()`;
+rebind after changing them. The component measures every complete child minimum,
+including each seat's reserved status band. It never reads viewport classes,
+game rules or reference coordinate helpers. Child-minimum/theme changes queue
+native minimum invalidation and sorting. Sorting calls `fit_child_in_rect()`
+once per reserved footprint, with no collision-resolution pass.
+
+Eight `resources/gui_seat_slots/seats_*.tres` Resources describe explicit
+left/center/right columns and row membership in clockwise visual-slot order.
+The recipient maps to the bottom-center slot, preserving the prior modulo
+mapping for contiguous core IDs. Sorted ID rank also supports nonconsecutive
+IDs independently of dictionary/child order. Rows contain at most three seats,
+including the recipient's lower row. Nine seats use rows of 2/2/2/3; six seats
+use 1/2/3. A two-seat apex is centered as one measured group with a gap at
+least the widest opponent avatar-size theme metric (currently 64); its slots/clockwise IDs remain unchanged. These are ring topologies,
+independent of device breakpoints.
+
+`GuiSeatRingPlan` is a detached measured plan with separate valid/feasible flags,
+explicit rows and a truthful minimum. It reserves the middle band for the board,
+flanks it with complete side seats and reserves a disjoint optional lower band.
+For a felt radius r and border b, a common inset of
+`b + ceil(max(0, r-b) * (1 - 1/sqrt(2)))`, plus theme margins, keeps every
+rectangle corner inside the rounded inner felt. Minimum dimensions also allow
+the full radius. Invalid or infeasible plans expose no placement rectangles.
+The theme supplies rounded SeatRingFelt styling and density-specific gaps.
+
+Native minimum reporting remains content-driven. A parent may impose a smaller
+local allocation limit: seats/regions then hide together and explicit guidance
+replaces stale geometry, while their state and minimum remain intact. Clearing
+the bound restores the same Controls. Rebinding disconnects previous measurement
+signals and hides only children still owned by the ring; moved/freed children
+invalidate the plan instead of being repositioned by the former owner.
+RG-50R adds a nonnegative hero_drop parameter to the pure plan; SeatRing theme
+roles currently supply 72 units after user review. It reserves matching height
+in the minimum and lowers only the human within its explicit bottom row. The
+optional lower region remains below the complete human footprint. The ring
+aligns GuiActionBar to the human minimum width before measuring feasibility.
+ActionBar's status uses a native margin frame within a Control measurement
+boundary, so centering insets cannot latch a wider minimum; native action HBoxes
+center their contents. Status height uses the smaller canonical/hero width and
+therefore remains valid when the root is initially constrained or resized.
+
+The user reviewed original RG-50 captures for placement only. RG-50S subsequently
+reconciled their interiors with the approved fixed structure and applied the
+requested human card corner; its refreshed six/nine-seat previews are accepted.
+
+Reference TableSeatLayout position tables are retired from the replacement path
+and remain only for the active reference GUI until RG-54. Wide/phone/controller
+integration is implemented in the RG-51–53 opt-in path. Standalone six/nine-seat previews do not claim
+final table or device acceptance.
+
+**Wide replacement composition (RG-51)**
+
+`WideTableLayout.tscn` binds recipient-safe presentation models to persistent
+native seat, center and action components. `SeatRingContainer` owns the felt
+geometry; the passive shared embossed `BrandLogo` sits behind its content.
+The optional history dock is outside the felt. Its white body aligns with the
+human seat's top and the action rail's bottom, with the heading above that span.
+Docking depends on measured available space and never increases the undocked
+minimum. More/Pots retains Log and Quit access when history is hidden.
+
+Fit candidates report actual settled native component minima for both wide
+modes. Content that cannot fit shows guidance and retains its model and raw
+wager draft. Refresh reuses seats by public ID; recipient-role changes replace
+only the affected seat scenes. Keyboard selection and caret survive ordinary
+refresh, and keypad modality is explicit rather than inferred from width.
+
+Replacement snapshots use schema 2, including actual layout mode, explicit
+seat rows, guidance and menu routes. The invariant dispatcher preserves schema 1
+for the historical reference fixtures and validates schema 2 independently.
+Legacy profile values in schema 2 are diagnostic compatibility labels only;
+`GuiSizeClass` remains the classifier. Detached legal-action diagnostics map core
+availability to semantic button roles without retaining the source game view.
+
+**Phone replacement compositions (RG-52)**
+
+`PhoneTableLayout.tscn` and `PhoneLandscapeLayout.tscn` are distinct authored
+orientations of one typed composition. Portrait stacks native opponent rows,
+center board, a centered recipient token and actions. The recipient panel is
+two theme gaps wider than the bot cells unless intrinsic copy requires more;
+one-column allocation preserves that budget within the available width.
+`GuiPhoneTablePlan` compares complete measured portrait one/two-column envelopes.
+Landscape uses `GuiPhoneLandscapePlan` and `GuiPhoneLandscapeContainer`: opponents
+form mirrored pairs at the sides, an odd opponent count reserves a centered
+apex, the board sits directly above the bottom-center human, and actions sit
+to the right of the shared center column. All minima come from native content.
+A landscape-only two-pixel center-board separation retains all fonts/card/target
+sizes while allowing the three-seat layout in a 756×369 usable rectangle.
+Both plans support two through seven seats. Portrait has at most two
+opponents per row; no horizontal band exceeds three complete seat footprints,
+including the recipient. It does not reuse the reference phone position tables.
+
+All seats use the approved tokens and their detached semantic snapshots. Counts
+eight and nine retain their models and show capacity guidance. Available space
+never clamps tournament configuration. Both phone scenes retain the passive
+embossed logo on edge-to-edge felt; the host supplies safe-area allocation once.
+Raw drafts, selection and keyed seat identity survive ordinary refreshes.
+
+Initial measurement gives wrapped text real native widths before publishing a
+minimum. Concealed measurement disables recursive mouse/focus input and remains
+pending; epoch checks discard superseded bindings. Ordinary settled refreshes
+retain opacity while measuring. This prevents both inflated first-layout minima
+and repeated action-time flicker. Schema-2 invariants check physical horizontal
+bands as well as declared rows, so staggering seats cannot evade capacity checks.
+
+Current measured fixture limits are explicit: at 390×844, ordinary two-to-five
+player examples fit, while six/seven require 991 px height. Symmetric landscape
+fits three ordinary seats at 844×390 (minimum 694×368), including a representative
+756×369 safe allocation. Two/four seats require 527 px height, five require 473,
+and six/seven require 632. The centered single-opponent apex accounts for the
+heads-up height requirement. Larger values can require more space. Unsupported
+short landscape advises portrait mode or a larger screen and preserves the
+match. These are content measurements, not viewport breakpoints or device
+acceptance. A six-seat 480×1040 test canvas is used for review; the earlier
+390×1100 sample was only a minimum-fit illustration, not a device profile.
+
+**Replacement orchestration and lifetime (RG-53)**
+
+`ReplacementPokerTable.tscn` owns a persistent `CompositionHost`, `OverlayHost`
+and guidance menu rail. `GuiReplacementTableController` coordinates binding,
+measured routing, input, overlays and detached snapshots. `GuiTableSession` owns
+one adopted `TournamentMatch`, copied name/avatar assignments, recipient-safe
+views, public event/action history and presentation pacing. It delegates actions,
+Pot targets and progression to the core; match construction remains in the
+existing startup adapter/factory. The reference controller stays isolated until
+cutover rather than being constructed behind the replacement.
+
+Startup instantiates exactly one selected controller before child readiness.
+`use_replacement_gui` or `--replacement-gui` enables the replacement; normal
+launch retains the reference until RG-54. Startup snapshot routing calls the
+selected controller's public contract without a reference-specific cast.
+The approved Start-screen logo remains above the form on the dark background.
+
+Geometry-only updates retain the active composition when its selected mode
+remains usable. Mode changes free/instantiate the authored scene. Ordinary
+content updates first measure the active native composition; a fitting result
+avoids new probes. Alternative measurements use disposable compositions in an
+input/render-disabled SubViewport with an explicit Palette parent, matching
+active font, padding and style inheritance. Candidate/model values are scoped to
+the current content generation and modality. No scene cache is retained.
+
+Exact raw wager drafts survive refresh and reconstruction. Keyboard caret,
+selection and semantic focus are restored where the new input remains available.
+Numeric entry cancels without committing when its composition exits, including
+loss of fit; a live More fallback receives focus after settlement. Other modal
+panels persist and reflow. Rebinding closes old transactions/details and cancels
+held advancement before adopting a new session. Rejected bindings clear private
+presentation payloads and do not leave readiness pending indefinitely.
+
+Session epochs invalidate delayed or externally held callbacks after an accepted
+human action, rebind, manual next-hand, stop or Quit. Rejected wagers preserve
+prior progression. A callback released by modal close cannot skip the fresh
+pause belonging to a newly committed wager. Modal close resumes held progression once;
+confirmed Quit cancels it. A completed tournament returns directly to Start.
+Guidance retains menu/Quit access outside failed content minima and blocks game
+intents while the host has no ready composition.
+
+Deferred component layout uses owner-bound one-shot frame callbacks, guarded
+against duplicate connections. Godot disconnects freed targets. The controller's
+asynchronous resolution awaits its own frame signal, so freeing the controller
+cannot resume a dead script through an external SceneTree signal. Immediate
+probe destruction is supported without a grace-period scene cache. Native
+regressions free components/controllers during pending work and verify both
+private-data clearing and release of their child nodes.
+
+**Replacement performance evidence (RG-53, 2026-10-29)**
+
+The final serialized native/Web comparison covers 24 workloads with 120 samples
+each (2,880 samples), matching two-player phone and nine-player desktop rosters
+across turns, all-in runouts and resizing. All cases passed with zero engine,
+privacy or core-step errors and zero live probes at completion. The eight
+benchmark aggregates share execution-source SHA
+`ae8cff00b70a6fa5aa4c08ba5ce0bdda514f4a28e8ec212cf39b421ec7daddb0`.
+All 554 production files match the final safe-landscape Web visual/input export
+byte for byte; its earlier broader fingerprint predates launcher-only cleanup.
+
+Whole-operation CPU p95 for matching visible-content sample indices:
+
+| Runtime/workload | Reference | Replacement |
+| --- | ---: | ---: |
+| Native phone turns | 3.84 ms | 3.27 ms |
+| Native phone runouts | 3.69 ms | 3.36 ms |
+| Native desktop turns | 7.10 ms | 6.24 ms |
+| Native desktop runouts | 6.85 ms | 6.75 ms |
+| Web phone turns | 4.8 ms | 2.6 ms |
+| Web phone runouts | 4.8 ms | 2.8 ms |
+| Web desktop turns | 12.5 ms | 5.2 ms |
+| Web desktop runouts | 15.4 ms | 8.4 ms |
+
+Nine native desktop runout guidance samples are excluded from that visible
+comparison. No visible synchronous operation regression was observed in these
+workloads. Hook-level refresh costs
+have different scopes and are not compared as equivalent work. These p95 values
+remain below the 16.7 ms investigation threshold, without establishing a frame
+rate or physical-device guarantee.
+
+Visible-action settled-draw latency p95 is 44–78 ms native and 65–104 ms Web,
+with seven drawn frames for phone and three for desktop. This includes deferred
+layout and differs from CPU time or first-paint latency. Ordinary turns create
+no probes or compositions. The phone resize workload has 80 expected mode-change
+mounts and zero new probes; nine-seat desktop resizing reuses its composition.
+Forty desktop resize samples fit at 1920×1080; 80 show guidance at 1024×768 and
+1377×777. Guidance costs cannot establish visible-content performance. Runout
+fallback measurements may create transient probes; all are released.
+Across the 1,440 replacement samples, 1,271 render content and 169 show guidance.
+Native desktop runout guidance transitions reach 19 drawn frames and an
+all-outcome p95 of 256 ms; these are excluded from visible-action latency.
+Their 36 transient probes are all freed. Phone resize settles in six frames;
+desktop resize settles in two, with no new probes or mounts.
+
+Raw samples, environments and scope labels are under
+`localtmp/restructure_rg53_profiles_final5`; the native phone replacement uses
+`replacement-native-phone2-retry`. The initial native launch timed out; owned
+process-group cleanup completed, a bounded diagnostic passed, and the unchanged
+retry passed all three scenarios. Failed launch logs remain separate from the
+successful measurements. Exported Chromium input/visual checks
+also verify four minimum-size suit faces, back/star fallbacks, readable Delete,
+menu interaction and keypad Cancel preserving the exact draft/history. The
+reference lifetime measurements above remain a historical result; this new
+replacement decision permits keyed component reuse and bounded transient probes.
 
 **Phone seat token (RG-42)**
 
@@ -1382,8 +1595,9 @@ geometry; deferred settling reapplies that rectangle after minimum changes.
 Insufficient-space guidance retains the requested panel and recovers on resize.
 Same-panel reflow preserves descendant focus. Mode exit cancels numeric entry
 without commit, while other modal panels reflow. Teardown cancels drafts and
-pending progression; reentry starts inactive. Controller integration follows in
-RG-53; the reference GUI remains active until cutover.
+pending progression; reentry starts inactive. RG-53 integrates this host outside
+the replaceable composition. The reference GUI remains the normal-launch default
+until RG-54.
 
 `NumericKeypad.tscn` renders NumberEntryViewModel and maintains an exact raw local
 draft. Cancel returns the original value, and Done emits the draft once; adapters
@@ -1403,8 +1617,11 @@ RG-45R3 header is user-accepted (2026-10-29). The value field reserves the measu
 legal range width; arbitrary invalid drafts retain native scrolling. Failed
 fit attempts restore the current caption and minimums without altering the draft.
 The backspace key is labelled ⌫ with a deletion tooltip; Cancel discards the
-whole draft. NumberEntryViewModel.pot_label is a caption prefix, and pot_preset
-is appended exactly without numeric conversion. Snapshot measurement handles
+whole draft. `NumberEntryViewModel.pot_preset` is the submitted street-total
+payload; optional `pot_display_value` supplies the visible contribution. The
+replacement controller supplies `actions.pot_total` and `actions.pot_contribution`
+respectively. Generic callers that omit the display value retain the exact
+preset caption without numeric conversion. Snapshot measurement handles
 mandatory button line breaks with native paragraph metrics.
 Buttons retain 48-unit targets and visible minimum/maximum copy. Native focused
 button Enter activates its action; entry Enter commits. Quit belongs to the host,
@@ -1503,15 +1720,16 @@ Typography tests compare normal/bold measurement with native Label/VBox
 minimums over preferred sizes 18–26 and multiple allocations, including a
 reserved blank band. Layout roots select metrics from resolved density;
 per-component seat fitting remains bounded and never changes touch allocations.
-Full replacement compositions and device acceptance remain in later tasks.
+Full replacement compositions are implemented in the opt-in path; physical-device
+acceptance remains in later tasks.
 
 The accepted marker review adds a white circular `DealerButton` with dark-green
 D, distinct `BlindMarker` SB/BB badges and yellow `WinnerStar`. Heads-up D and
 SB remain separate. Replacement stars follow `SeatViewModel.winner_emphasis`
 for every awarded winner, including split/side pots and fold wins. The reference
 path's main-pot-only star behavior remains unchanged until migration. The
-gallery demonstrates these roles; RG-41 binds the full seats and RG-42 will
-bind the phone tokens.
+gallery demonstrates these roles; RG-41 binds the full seats and RG-42 binds
+the phone tokens.
 
 The user accepted the dealer/blind appearance and requested upper-right
 placement plus a larger star independent of the name line. The review2 gallery
@@ -1566,7 +1784,8 @@ The startup panel and table are views in one scalable `Control`-based main scene
 
 The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer and blind markers. The reference acting player is identified by a white seat frame three times thicker than an ordinary frame (the replacement theme review increases this to six), without a redundant textual `ACT` marker. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to the GUI presentation layer and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
 
-Decision (2026-10-27, CODE-01): `PokerTableController` coordinates recipient-safe
+Reference-path decision (2026-10-27, CODE-01; retained until RG-54):
+`PokerTableController` coordinates recipient-safe
 binding, public-action lifetime, input submission and pacing. Presentation work
 has typed component boundaries:
 
@@ -1808,7 +2027,8 @@ One `GuiInvariantMatrixRunner` drives all four diagnostic suites, retaining the
 additional `GuiPhoneMatrixContract` checks and historical entry points. The
 [visual evidence contract](GUI_VISUAL_TESTING.md) owns case/version policy.
 
-Refresh lifetime decision (2026-10-27): retain disposable seat/card widgets
+Reference-path refresh lifetime decision (2026-10-27; superseded for the
+replacement by RG-53 below): retain disposable seat/card widgets
 and recipient-safe view binding. A test-only subclass and shared native/Web
 fixture measure seeded turns, all-in runouts and cross-profile resizes with
 real avatars, long names and maximum chip values. Across 120 samples in each

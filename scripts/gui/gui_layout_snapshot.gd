@@ -7,6 +7,12 @@ extends RefCounted
 ## size additionally includes the viewport final transform. Neither claims CSS parity.
 var schema_version: int = 1
 var profile: int = -1
+## Schema2 records actual replacement mode, explicit rows and native menu routes.
+## Reference producers retain schema1 and their existing region contract.
+var layout_mode: int = 0
+var menu_routes: Dictionary[StringName, StringName] = {}
+var seat_rows: Array[PackedInt32Array] = []
+var fit_guidance: String = ""
 var root_rect := Rect2()
 var viewport_rect := Rect2()
 var surface_rect := Rect2()

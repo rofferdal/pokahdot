@@ -1,7 +1,6 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/startup_config_controller.gd" id="1_controller"]
-[ext_resource type="PackedScene" path="res://scenes/poker_table.tscn" id="2_table"]
 [ext_resource type="Theme" path="res://resources/gui_theme.tres" id="3_theme"]
 [ext_resource type="Script" path="res://scripts/gui/platform/gui_viewport_adapter.gd" id="4_adapter"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/BrandLogo.tscn" id="5_logo"]
@@ -201,6 +200,3 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.55, 1, 0.67, 1)
 autowrap_mode = 2
 horizontal_alignment = 1
-
-[node name="PokerTable" parent="." instance=ExtResource("2_table")]
-visible = false

@@ -332,6 +332,45 @@ func test_maximum_copy_and_two_row_layout_keep_all_targets_and_full_numbers_insi
 	_assert_visible_controls(bar, root)
 
 
+func test_hero_alignment_centers_rows_and_keeps_status_inset_out_of_intrinsic_width() -> void:
+	var root: Control = _root()
+	var bar: GuiActionBar = BarScene.instantiate()
+	root.add_child(bar)
+	bar.position = Vector2(23, 31)
+	var model: ActionBarViewModel = _model()
+	model.status_text = "Your turn — Flop."
+	bar.render(model)
+	assert_true(bar.align_with_hero(378.0))
+	await wait_process_frames(7)
+	var minimum: Vector2 = bar.get_combined_minimum_size()
+	for allocation: Vector2 in [Vector2(600, 280), Vector2(1800, 400), minimum]:
+		bar.size = allocation.max(minimum)
+		await wait_process_frames(7)
+		assert_eq(bar.get_combined_minimum_size(), minimum)
+		var status: Control = bar.get_control(&"status")
+		var inset: float = maxf(0.0, (bar.size.x - 378.0) * 0.5)
+		assert_almost_eq(status.global_position.x, bar.global_position.x + inset, 0.5)
+		for path: String in ["Body/Rows/First", "Body/Rows/Second"]:
+			var row: Control = bar.get_node(path)
+			if not row.visible:
+				continue
+			var span := Rect2()
+			var first: bool = true
+			for child: Control in row.get_children():
+				if not child.visible:
+					continue
+				span = child.get_global_rect() if first else span.merge(child.get_global_rect())
+				first = false
+			assert_false(first)
+			assert_almost_eq(span.get_center().x, bar.get_global_rect().get_center().x, 0.5)
+		_assert_visible_controls(bar, root)
+	assert_false(bar.align_with_hero(NAN))
+	assert_push_error_count(1)
+	assert_true(bar.align_with_hero(0.0))
+	await wait_process_frames(6)
+	assert_eq(bar.get_control(&"status").global_position.x, bar.global_position.x)
+
+
 func test_hero_summary_binds_exact_identity_values_and_shared_card_views_then_clears() -> void:
 	var root: Control = _root()
 	var bar: GuiActionBar = BarScene.instantiate()

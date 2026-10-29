@@ -39,6 +39,7 @@ var _runout: bool = false
 var _profile: String
 var _selected_layouts: Array[Dictionary] = []
 var _avatar_checks: int = 0
+var _operation_cpu: Array[int] = []
 
 
 func _ready() -> void:
@@ -59,6 +60,9 @@ func _run() -> void:
 		_fail("Unsupported profiling profile/scenario.")
 		return
 	_sample_count = int(_options.get("samples", 120))
+	if _options.has("players") and (int(_options.players) < 2 or int(_options.players) > 9):
+		_fail("Profiling players must be in 2..9.")
+		return
 	if _sample_count < 20 or _sample_count > 2000:
 		_fail("Profiling samples must be in 20..2000.")
 		return
@@ -86,6 +90,7 @@ func _run() -> void:
 	_table.set("visual_usec", [] as Array[int])
 	_table.set("layout_usec", [] as Array[int])
 	_table.set("counter_samples", [] as Array[Dictionary])
+	_operation_cpu.clear()
 	_phase("active")
 	var measured: Dictionary = await _sample_frames(
 		_sample_count, true, scenario == "resize", profile
@@ -111,7 +116,7 @@ func _run() -> void:
 		"scenario": scenario,
 		"samples_requested": _sample_count,
 		"starting_stack": 1000000,
-		"initial_player_count": 7 if profile == "phone" else 9,
+		"initial_player_count": _player_count(profile),
 		"names": NAMES,
 		"seed_start": 42000,
 		"tournaments_constructed": _seed_offset,
@@ -123,6 +128,7 @@ func _run() -> void:
 		"idle": idle,
 		"active": measured,
 		"refresh_usec": _table.get("refresh_usec"),
+		"operation_cpu_usec": _operation_cpu,
 		"widget_refresh_usec": _table.get("visual_usec"),
 		"layout_usec": _table.get("layout_usec"),
 		"node_census": _table.get("node_churn"),
@@ -136,6 +142,8 @@ func _run() -> void:
 			"pacing": "Test pacing only is suppressed; product handlers run one step/sample.",
 			"frame_wall":
 			"Step to first post_draw plus one settle-frame interval; wall, not GPU duration.",
+			"operation_cpu":
+			"Synchronous intent/advance or resize request including core/model; excludes deferred work.",
 			"process_monitor":
 			"Engine TIME_PROCESS may lag up to 1s; not independent per-frame OS CPU.",
 			"node_census":
@@ -175,6 +183,8 @@ func _sample_frames(count: int, active: bool, resizing: bool, profile: String) -
 				_apply_size(_resize_size(index))
 			else:
 				_drive_step(profile)
+		if active:
+			_operation_cpu.append(Time.get_ticks_usec() - started)
 		await RenderingServer.frame_post_draw
 		wall.append(Time.get_ticks_usec() - started)
 		var first_draw: int = Time.get_ticks_usec()
@@ -233,7 +243,7 @@ func _drive_step(profile: String) -> void:
 
 
 func _new_match(profile: String) -> void:
-	var count: int = 7 if profile == "phone" else 9
+	var count: int = _player_count(profile)
 	var agents: Dictionary[int, Agent] = {0: HumanAgent.new()}
 	var roles: Dictionary[int, StringName] = {0: &"human"}
 	var names: Dictionary[int, String] = {0: "Human"}
@@ -258,6 +268,10 @@ func _new_match(profile: String) -> void:
 	for seat: int in range(count):
 		avatars[seat] = paths[seat]
 	_table.bind_match(_match, 0, avatars, names)
+
+
+func _player_count(profile: String) -> int:
+	return int(_options.get("players", 7 if profile == "phone" else 9))
 
 
 func _resize_size(index: int) -> Vector2i:

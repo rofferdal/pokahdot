@@ -9,6 +9,166 @@ const Content := preload("res://tests/support/gui_snapshot_content_assertions.gd
 const IndependentInk := preload("res://tests/visual/gui_card_glyph_sample.gd")
 
 
+func test_missing_suit_font_uses_visible_safe_ink_without_invalid_textserver_calls() -> void:
+	var font := ThemeDB.fallback_font.duplicate() as FontFile
+	font.allow_system_fallback = false
+	assert_false(font.has_char("♠".unicode_at(0)))
+	var ink: Rect2 = GuiCardInk.bounds(font, "♠", 20)
+	assert_true(ink.has_area())
+	assert_gte(ink.size.y, 20.0)
+
+
+func test_all_faces_remain_readable_with_only_the_embedded_font_and_vector_suit_fallback() -> void:
+	var root: Control = _root()
+	var host := Control.new()
+	host.size = root.size
+	host.theme = Theme.new()
+	var font := ThemeDB.fallback_font.duplicate() as FontFile
+	font.allow_system_fallback = false
+	host.theme.set_font("font", &"CardRank", font)
+	host.theme.set_font("font", &"CardRankRed", font)
+	root.add_child(host)
+	var card: GuiPlayingCard = CardScene.instantiate()
+	host.add_child(card)
+	card.render(CardViewModel.empty())
+	await wait_process_frames(3)
+	var minimum: Vector2 = card.get_combined_minimum_size()
+	assert_same(card.get_theme_font("font", &"CardRank"), font)
+	for rank: int in range(2, 15):
+		for suit: int in 4:
+			var model: CardViewModel = CardViewModel.face(CardData.new(rank, suit))
+			card.render(model)
+			card.size = minimum
+			await wait_process_frames(2)
+			var snapshot: GuiCardSnapshot = card.get_card_snapshot(root, &"card", true)
+			assert_eq(card.get_combined_minimum_size(), minimum)
+			assert_eq(snapshot.rank.text, model.rank_text)
+			assert_eq(snapshot.suit.text, model.suit_text)
+			assert_true(snapshot.suit.texture_present)
+			assert_gte(snapshot.suit.rect.size.y, 20.0)
+			_assert_face(snapshot)
+			var redacted: GuiCardSnapshot = card.get_card_snapshot(root, &"card", false)
+			assert_eq(redacted.rank.text, "")
+			assert_eq(redacted.suit.text, "")
+	for model: CardViewModel in [CardViewModel.back(), CardViewModel.empty()]:
+		card.render(model)
+		await wait_process_frames(3)
+		var snapshot: GuiCardSnapshot = card.get_card_snapshot(root, &"card", false)
+		assert_eq(card.get_combined_minimum_size(), minimum)
+		assert_eq(snapshot.rank.text, "")
+		assert_eq(snapshot.suit.text, "")
+		assert_false(snapshot.rank.visible)
+		assert_false(snapshot.suit.visible)
+	assert_push_error_count(0)
+
+
+func test_vector_suit_masks_preserve_alpha_shape_and_take_the_exact_theme_color() -> void:
+	var font := ThemeDB.fallback_font.duplicate() as FontFile
+	font.allow_system_fallback = false
+	for copy: String in ["♣", "♦", "♥", "♠"]:
+		var texture: Texture2D = GuiCardInk.suit_fallback_texture(font, copy, 20)
+		assert_not_null(texture)
+		var image: Image = texture.get_image()
+		assert_true(GuiCardInk.suit_texture_region(copy).has_area())
+		assert_true(
+			Rect2(Vector2.ZERO, image.get_size()).encloses(GuiCardInk.suit_texture_region(copy))
+		)
+		var visible: int = 0
+		for y: int in image.get_height():
+			for x: int in image.get_width():
+				var pixel: Color = image.get_pixel(x, y)
+				if pixel.a > 0.0:
+					assert_eq(Vector3(pixel.r, pixel.g, pixel.b), Vector3.ONE)
+					visible += 1
+		assert_gt(visible, 0)
+
+
+func test_available_native_shaped_suits_keep_the_original_glyph_ink() -> void:
+	var font: Font = ThemeDB.fallback_font
+	for copy: String in ["♣", "♦", "♥", "♠"]:
+		var line := TextLine.new()
+		assert_true(line.add_string(copy, font, 20))
+		var available: bool = true
+		for glyph: Dictionary in TextServerManager.get_primary_interface().shaped_text_get_glyphs(
+			line.get_rid()
+		):
+			available = available and (glyph.font_rid as RID).is_valid()
+		if available:
+			assert_null(GuiCardInk.suit_fallback_texture(font, copy, 20))
+			assert_eq(GuiCardInk.bounds(font, copy, 20), IndependentInk.ink_bounds(font, copy, 20))
+
+
+func test_embedded_font_decorations_keep_readable_stars_and_card_backs_without_tofu() -> void:
+	var root: Control = _root()
+	var host := Control.new()
+	host.theme = Theme.new()
+	var font := ThemeDB.fallback_font.duplicate() as FontFile
+	font.allow_system_fallback = false
+	for role: StringName in [
+		&"CardRank", &"CardRankRed", &"CardBackMark", &"TokenWinnerStar", &"SeatWinnerStar"
+	]:
+		host.theme.set_font("font", role, font)
+	root.add_child(host)
+	for size: int in [28, 64]:
+		var star := GuiSeatStar.new()
+		star.theme_type_variation = &"TokenWinnerStar" if size == 28 else &"SeatWinnerStar"
+		star.add_theme_font_size_override("font_size", size)
+		host.add_child(star)
+		star.size = star.get_combined_minimum_size()
+		assert_gte(star.size.y, float(size))
+		assert_gt(star.size.x, 0.0)
+		assert_not_null(GuiCardInk.symbol_fallback_texture(star.get_theme_font("font"), "★", size))
+		assert_eq(star.get_theme_color("font_color"), Color.YELLOW)
+	var card: GuiPlayingCard = CardScene.instantiate()
+	host.add_child(card)
+	card.render(CardViewModel.back())
+	card.size = card.get_combined_minimum_size()
+	await wait_process_frames(3)
+	var back: GuiCardBack = card.get_node("Back")
+	assert_false((back.get_node("Mark") as Label).visible)
+	assert_true(GuiCardInk.bounds(font, "◆", 20).has_area())
+	assert_not_null(GuiCardInk.symbol_fallback_texture(font, "◆", 20))
+	var snapshot: GuiCardSnapshot = card.get_card_snapshot(root, &"back")
+	assert_eq(snapshot.kind, GuiCardSnapshot.Kind.BACK)
+	assert_eq(snapshot.rank.text, "")
+	assert_eq(snapshot.suit.text, "")
+	host.material = load("res://resources/gui_grayscale_material.tres") as ShaderMaterial
+	GuiSeatPanel._inherit_material(host)
+	for descendant: Node in host.find_children("*", "CanvasItem", true, false):
+		assert_true((descendant as CanvasItem).use_parent_material)
+	assert_push_error_count(0)
+
+
+func test_available_native_star_and_back_mark_keep_their_glyph_and_label_path() -> void:
+	var font: Font = ThemeDB.fallback_font
+	for copy: String in ["★", "◆"]:
+		var line := TextLine.new()
+		assert_true(line.add_string(copy, font, 28))
+		var available: bool = true
+		for glyph: Dictionary in TextServerManager.get_primary_interface().shaped_text_get_glyphs(
+			line.get_rid()
+		):
+			available = available and (glyph.font_rid as RID).is_valid()
+		if available:
+			assert_null(GuiCardInk.symbol_fallback_texture(font, copy, 28))
+			assert_eq(GuiCardInk.bounds(font, copy, 28), IndependentInk.ink_bounds(font, copy, 28))
+	var root: Control = _root()
+	var card: GuiPlayingCard = CardScene.instantiate()
+	root.add_child(card)
+	card.render(CardViewModel.back())
+	await wait_process_frames(3)
+	var mark := card.get_node("Back/Mark") as Label
+	assert_eq(
+		mark.visible,
+		(
+			GuiCardInk.symbol_fallback_texture(
+				mark.get_theme_font("font"), "◆", mark.get_theme_font_size("font_size")
+			)
+			== null
+		)
+	)
+
+
 func test_all_faces_fit_at_the_same_minimum_with_complete_rank_and_suit() -> void:
 	var root: Control = _root()
 	var card: GuiPlayingCard = CardScene.instantiate()

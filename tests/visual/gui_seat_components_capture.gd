@@ -5,7 +5,7 @@ const SeatScene := preload("res://scenes/gui/components/SeatPanel.tscn")
 const HeroScene := preload("res://scenes/gui/components/HeroPanel.tscn")
 const Palette := preload("res://resources/gui_theme.tres")
 const Invariants := preload("res://tests/support/gui_invariant_assertions.gd")
-const OUTPUT: String = "res://localtmp/gui-elements/rg41-seat-panels-review2"
+const OUTPUT: String = "res://localtmp/gui-elements/rg50s-seat-panels"
 
 var _seats: Array[GuiSeatPanel] = []
 var _states: Array[String] = []
@@ -45,7 +45,7 @@ func _capture() -> void:
 	grid.add_theme_constant_override("v_separation", 20)
 	stack.add_child(grid)
 	var titles: Dictionary = {
-		"normal": "Normal · hidden opponent cards",
+		"normal": "Normal · dealer-only position marker",
 		"acting": "Acting · separate dealer and small blind",
 		"folded": "Folded · complete surface and avatar in grayscale",
 		"all-in": "All In · exact wager copy",
@@ -98,11 +98,11 @@ func _capture() -> void:
 			inherited = inherited and (node as CanvasItem).use_parent_material
 		if state == "folded" and not inherited:
 			failures.append("folded material inheritance: %s" % state)
-		var avatar: TextureRect = seat.get_node("Panel/Body/Avatar")
-		var star: Control = seat.get_node("Panel/Body/Right/Winner")
-		var dealer: Control = seat.get_node("Panel/Body/Right/Markers/Dealer")
-		var sb: Label = seat.get_node("Panel/Body/Right/Markers/Blinds/SB")
-		var name_label: Label = seat.get_node("Panel/Body/Copy/Name")
+		var avatar: TextureRect = seat.get_node("%Avatar")
+		var star: Control = seat.get_node("%Winner")
+		var dealer: Control = seat.get_node("%Dealer")
+		var sb: Label = seat.get_node("%SB")
+		var name_label: Label = seat.get_node("%Name")
 		var card_observations: Array[Dictionary] = []
 		for card: GuiCardSnapshot in snapshot.cards:
 			if card.element.rect.size.x / card.element.rect.size.y < 5.0 / 7.0:
@@ -137,16 +137,10 @@ func _capture() -> void:
 				"dealer_opacity": dealer.modulate.a,
 				"small_blind": _rect(sb.get_global_rect()),
 				"small_blind_visible": sb.visible,
-				"big_blind":
-				_rect(
-					(
-						(seat.get_node("Panel/Body/Right/Markers/Blinds/BB") as Control)
-						. get_global_rect()
-					)
-				),
+				"big_blind": _rect((seat.get_node("%BB") as Control).get_global_rect()),
 				"marker_font": sb.get_theme_font_size("font_size"),
 				"star_font": star.get_theme_font_size("font_size"),
-				"copy_lines": seat.get_node("Panel/Body/Copy").get_child_count(),
+				"copy_lines": 3,
 				"folded_material": seat.material != null,
 				"all_materials_inherit": inherited,
 				"cards": card_observations
@@ -211,6 +205,8 @@ func _model(state: String, index: int) -> SeatViewModel:
 	][index]
 	model.avatar_path = "res://assets/avatars/avatar_%02d.png" % (index % 4 + 1)
 	model.stack_text = "1000000" if state == "normal" else "940 chips"
+	model.stack_value_text = "1000000" if state == "normal" else "940"
+	model.is_dealer = state == "normal"
 	model.wager_text = "Bet 60"
 	model.cards = CardRowViewModel.new()
 	model.cards.cards = [CardViewModel.back(), CardViewModel.back()]
@@ -230,6 +226,7 @@ func _model(state: String, index: int) -> SeatViewModel:
 			model.all_in = true
 			model.state_text = "All In"
 			model.stack_text = "0 chips"
+			model.stack_value_text = "0"
 			model.wager_text = "Bet 1000000"
 			model.status_text = "All In to 1000000"
 		"split-winner", "side-winner":

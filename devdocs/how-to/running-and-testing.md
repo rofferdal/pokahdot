@@ -183,7 +183,7 @@ Preview the complete seat and human panels, including folded and winner states:
 godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_seat_components_capture.gd
 ```
 
-This saves `localtmp/gui-elements/rg41-seat-panels-review2.png` and source/geometry
+This saves `localtmp/gui-elements/rg50s-seat-panels.png` and source/geometry
 metadata. The panel footprint includes its status band even when blank; this
 component review does not complete final table/device acceptance.
 
@@ -197,6 +197,54 @@ This saves seven `rg42-rg45-review4-*.png`/JSON pairs under
 `localtmp/gui-elements`: the revised component gallery, history at two box sizes,
 menu, summary, portrait number entry and two landscape number-entry sizes. Metadata records
 geometry checks and source hashes. These are component review artifacts; final table/device acceptance remains in the GUI backlog.
+
+Preview the RG-50 seat ring with six and nine complete seats:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_seat_ring_capture.gd
+```
+
+This saves `localtmp/gui-elements/rg50s-seat-ring-review2-{6,9}.png` and matching JSON
+with explicit seat rows, measured minimums, source hashes and content checks.
+These are standalone ring-container samples using synthetic recipient-safe
+fixtures. The finished wide/phone compositions and controller are available in
+the opt-in replacement path:
+
+```bash
+godot --path . -- --replacement-gui
+```
+
+Normal launch retains the reference table until RG-54. Startup creates one
+selected controller and adopts its existing validated match. To capture the
+combined RG-51–53 review fixtures:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_table_capture.gd
+```
+
+This saves seven `localtmp/gui-elements/rg53-*.png`/JSON pairs: wide six/nine,
+portrait four, landscape two, phone menu, phone number entry and six-player
+phone guidance. The original short heads-up landscape size now shows guidance
+under the accepted symmetric plan; use `--review2` below for the current accepted
+phone previews. Metadata records actual mode/rows, strict invariants and source
+hashes. These explicit recipient-safe synthetic fixtures do not establish
+physical-device acceptance. Current ordinary six/seven-seat portrait content
+needs 991 px height; 390×844 shows guidance with menu/Quit access.
+
+Generate the phone review corrections without replacing accepted captures:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_table_capture.gd -- --review2
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_phone_table_capture.gd -- --review2
+```
+
+The first command saves five `rg53-review2-*` PNG/JSON pairs: symmetric
+three-player landscape, the same layout with representative safe insets,
+heads-up compact landscape at 1024×768, and four/six-player portrait. The
+six-player portrait canvas is 480×1040. The second command saves the large-value
+`rg52-review2-phone-portrait-4-large` example. The narrower human panel preserves
+its intrinsic copy minimum. Unsupported short landscape advises trying portrait
+mode or a larger screen; no player count or active match is changed.
 
 Run all current regression matrices, including historical Milestone 3 and
 the dedicated phone, iPad, and desktop gates, without producing screenshots:
@@ -364,6 +412,28 @@ two modes sequentially without other heavy checks. Defaults collect 120 active
 samples for turns, all-in runouts and resize transitions at phone, tablet and
 desktop sizes, with seeded matches, real avatars, long names and maximum chip
 values. `--samples`, `--profiles` and `--scenarios` select smaller investigations.
+
+`--implementation reference|replacement` selects the measured path; reference
+remains the default. `--players 2..9` overrides only the profiling roster.
+Unspecified rosters retain seven players for phone and nine otherwise. Use
+matching explicit counts and run implementations/runtimes sequentially:
+
+```bash
+PLAYWRIGHT_BROWSERS_PATH="$PWD/localtmp/playwright-browsers" python3 tools/profile_gui_refresh.py --mode web --implementation replacement --players 2 --profiles phone --samples 20 --output localtmp/gui-profile-replacement-phone
+```
+
+Replacement reports synchronous whole-operation CPU separately from model/bind
+hook CPU, deferred step-to-settled-draw latency and frame count. It also records
+input modality, mount/probe counters, transient object samples and ready versus
+guidance outcomes. Compare matching visible workloads; guidance cost cannot
+establish visible-table performance. Resize assignments exclude deferred layout
+CPU, and historical refresh hooks have different scopes. Reference phone input
+modality follows its selected legacy profile; replacement phone profiling keeps
+explicit keypad evidence through resizing, so intermediate controls can differ.
+Pacing delays are disabled only in the fixture; production retains its normal
+pauses. Census resets settle before measurement, and census runs separately
+from active timing samples. Any engine error still fails the run; bounded error
+summaries retain full console details under the ignored output directory.
 
 The test-only observer suppresses pacing delays and drives production action
 handlers. `results.json` retains raw measurements, nearest-rank percentiles,

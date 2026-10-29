@@ -6,6 +6,22 @@ const Wide := preload("res://tests/fixtures/gui_compositions/wide.tscn")
 const MODE := GuiSizeClass.LayoutMode
 
 
+func test_snapshot_diagnostic_profiles_map_modes_without_geometry_classification() -> void:
+	assert_eq(
+		GuiSnapshotMeasurement.profile_for_mode(MODE.PHONE), GuiLayoutProfile.Kind.PHONE_PORTRAIT
+	)
+	assert_eq(
+		GuiSnapshotMeasurement.profile_for_mode(MODE.PHONE_LANDSCAPE),
+		GuiLayoutProfile.Kind.PHONE_LANDSCAPE
+	)
+	assert_eq(
+		GuiSnapshotMeasurement.profile_for_mode(MODE.WIDE_COMPACT),
+		GuiLayoutProfile.Kind.SMALL_DESKTOP
+	)
+	assert_eq(GuiSnapshotMeasurement.profile_for_mode(MODE.WIDE), GuiLayoutProfile.Kind.DESKTOP)
+	assert_eq(GuiSnapshotMeasurement.profile_for_mode(MODE.NOT_READY), -1)
+
+
 func test_selected_fit_routes_independent_phone_orientations_and_nine_player_wide() -> void:
 	var host: GuiCompositionHost = _host()
 	for fixture: Dictionary in [

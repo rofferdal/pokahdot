@@ -1,0 +1,58 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/gui/compositions/gui_wide_table_layout.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/gui/layouts/SeatRingContainer.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/EventLog.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/SpaceGuidance.tscn" id="4"]
+[ext_resource type="Theme" path="res://resources/gui_theme.tres" id="5"]
+
+[ext_resource type="PackedScene" path="res://scenes/gui/components/BrandLogo.tscn" id="6"]
+[ext_resource type="Material" path="res://resources/gui_table_logo_material.tres" id="7"]
+
+[node name="WideTableLayout" type="MarginContainer"]
+mouse_filter = 2
+theme = ExtResource("5")
+theme_type_variation = &"TableComposition"
+script = ExtResource("1")
+
+[node name="Boundary" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Ring" parent="Boundary" instance=ExtResource("2")]
+layout_mode = 0
+
+[node name="BrandLogo" parent="Boundary/Ring" instance=ExtResource("6")]
+material = ExtResource("7")
+layout_mode = 1
+anchor_left = 0.1
+anchor_top = 0.08
+anchor_right = 0.9
+anchor_bottom = 0.62
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dock" type="Control" parent="Boundary"]
+visible = false
+layout_mode = 0
+mouse_filter = 2
+
+[node name="Frame" type="MarginContainer" parent="Boundary/Dock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="EventLog" parent="Boundary/Dock/Frame" instance=ExtResource("3")]
+layout_mode = 2
+
+[node name="Guidance" parent="Boundary" instance=ExtResource("4")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

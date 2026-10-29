@@ -12,6 +12,7 @@ var layout_rows: int = 1
 var _keypad: bool = false
 var _can_wager: bool = false
 var _status_copy: String = ""
+var _hero_width: float = 0.0
 var _pending: bool = false
 var _status_pending: bool = false
 var _buttons: Dictionary[StringName, GuiActionButton] = {}
@@ -32,6 +33,7 @@ func _ready() -> void:
 	field.submitted.connect(func(value: String) -> void: wager_submitted.emit(value))
 	field.entry_requested.connect(func(value: String) -> void: entry_requested.emit(value))
 	(get_node("Body") as Control).resized.connect(_queue_layout)
+	(get_node("StatusArea") as Control).resized.connect(_align_status)
 	_queue_layout()
 
 
@@ -137,12 +139,30 @@ func get_wager_draft() -> String:
 	return (get_node("%Total") as LineEdit).text
 
 
+func align_with_hero(width: float) -> bool:
+	if not is_finite(width) or width < 0.0:
+		push_error("ActionBar hero alignment requires a finite nonnegative width.")
+		return false
+	if not is_equal_approx(_hero_width, width):
+		_hero_width = width
+		_queue_layout()
+	return true
+
+
+func _align_status() -> void:
+	var area: Control = get_node("StatusArea")
+	var frame: MarginContainer = get_node("StatusArea/Frame")
+	var inset: float = maxf(0.0, (area.size.x - _hero_width) * 0.5) if _hero_width > 0.0 else 0.0
+	frame.add_theme_constant_override("margin_left", floori(inset))
+	frame.add_theme_constant_override("margin_right", ceili(inset))
+
+
 func get_control(role: StringName) -> Control:
 	_init_controls()
 	if role == &"total":
 		return get_node("%Total") as Control
 	if role == &"status":
-		return get_node("Status") as Control
+		return get_node("%Status") as Control
 	if role == &"hero":
 		return get_node("Hero") as Control
 	return _buttons.get(role)
@@ -190,6 +210,10 @@ func _layout() -> void:
 	layout_rows = plan.row_count
 	var first: HBoxContainer = get_node("Body/Rows/First")
 	var second: HBoxContainer = get_node("Body/Rows/Second")
+	first.alignment = (
+		BoxContainer.ALIGNMENT_CENTER if _hero_width > 0.0 else BoxContainer.ALIGNMENT_BEGIN
+	)
+	second.alignment = first.alignment
 	second.visible = layout_rows == 2
 	for index: int in _units.size():
 		var target: HBoxContainer = first if index < plan.split else second
@@ -197,12 +221,13 @@ func _layout() -> void:
 			_units[index].reparent(target, false)
 		target.move_child(_units[index], index if index < plan.split else index - plan.split)
 	_measure_status(plan.minimum_width)
+	_align_status()
 
 
 func _measure_status(width: float) -> void:
-	var status: Label = get_node("Status")
+	var status: Label = get_node("%Status")
 	var paragraph := TextParagraph.new()
-	paragraph.width = width
+	paragraph.width = minf(width, _hero_width) if _hero_width > 0.0 else width
 	paragraph.break_flags = (
 		TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE | TextServer.BREAK_MANDATORY
 	)
@@ -217,6 +242,8 @@ func _measure_status(width: float) -> void:
 		)
 	)
 
+	(get_node("StatusArea") as Control).custom_minimum_size.y = status.custom_minimum_size.y
+
 
 func _queue_status() -> void:
 	if not _status_pending and is_inside_tree():
@@ -228,7 +255,12 @@ func _apply_status() -> void:
 	if not is_inside_tree():
 		_status_pending = false
 		return
-	await get_tree().process_frame
+	# Bound frame callbacks disconnect automatically if this node is freed.
+	if not get_tree().process_frame.is_connected(_finish_status_copy):
+		get_tree().process_frame.connect(_finish_status_copy, CONNECT_ONE_SHOT)
+
+
+func _finish_status_copy() -> void:
 	_status_pending = false
 	if is_inside_tree():
-		(get_node("Status") as Label).text = _status_copy
+		(get_node("%Status") as Label).text = _status_copy

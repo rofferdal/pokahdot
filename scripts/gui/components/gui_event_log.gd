@@ -115,7 +115,12 @@ func _restore_scroll() -> void:
 	if not is_inside_tree():
 		_scroll_pending = false
 		return
-	await get_tree().process_frame
+	# Bound frame callbacks disconnect automatically if this node is freed.
+	if not get_tree().process_frame.is_connected(_finish_scroll_restore):
+		get_tree().process_frame.connect(_finish_scroll_restore, CONNECT_ONE_SHOT)
+
+
+func _finish_scroll_restore() -> void:
 	_scroll_pending = false
 	if not is_inside_tree():
 		return

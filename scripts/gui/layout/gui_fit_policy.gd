@@ -52,7 +52,7 @@ static func resolve(
 			):
 				continue
 			result.status = Status.TOO_SMALL
-			result.guidance = "More space is needed. Enlarge the window or rotate the screen."
+			result.guidance = insufficient_space_message(result.size_class.mode)
 			if _contains(result.size_class.usable_size, candidate.minimum):
 				result.status = Status.FIT
 				result.selected = candidate
@@ -74,3 +74,11 @@ static func _eligible(candidate: GuiFitCandidate, ids: PackedInt32Array, recipie
 
 static func _contains(available: Vector2, minimum: Vector2) -> bool:
 	return available.x >= minimum.x and available.y >= minimum.y
+
+
+static func insufficient_space_message(mode: GuiSizeClass.LayoutMode) -> String:
+	return (
+		"More space is needed. Try portrait mode or use a larger screen."
+		if mode == GuiSizeClass.LayoutMode.PHONE_LANDSCAPE
+		else "More space is needed. Enlarge the window or rotate the screen."
+	)

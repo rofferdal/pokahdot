@@ -32,7 +32,16 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   The portrait keypad arrangement is accepted with clarified deletion/Cancel
   and Pot amounts; compact landscape is selected when needed. RG-45R3 refines
   its inline value and single-line limits header; this design is user-accepted.
-  Replacement table composition remains in its ordered tasks.
+  The Phase 4 checkpoint is committed and pushed. RG-50 seat-ring templates and
+  native container are implemented. RG-50R lowers the human seat, aligns its
+  action rail and centers the upper pair with avatar-width spacing. Revised
+  six/nine-seat placement and RG-50S interiors are accepted (1,005 tests pass).
+  RG-51 wide previews and all revised RG-52/53 phone previews are user-accepted.
+  Symmetric landscape placement and the narrower centered portrait human panel
+  are implemented and verified (1,102 tests pass). RG-51–RG-53 are complete;
+  the Phase 5 checkpoint follows. The user requests stopping before RG-60,
+  which remains unstarted. No design approval is pending for this batch.
+  Default cutover remains RG-54.
 
 - [`RulesInGameTasks.md`](RulesInGameTasks.md) — planned, independent workstream:
   a concise Pokahdot tournament-rules reference from the GUI Start screen and

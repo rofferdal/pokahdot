@@ -54,6 +54,22 @@ func test_constrained_landscape_can_use_a_smaller_measured_content_plan() -> voi
 		assert_lte(row.size(), 2, "reserve the third seat in any band for the hero rail")
 
 
+func test_landscape_space_guidance_advises_portrait_without_changing_the_candidate() -> void:
+	var candidate: GuiFitCandidate = _candidate(MODE.PHONE_LANDSCAPE, 3)
+	candidate.minimum = Vector2(900, 500)
+	var before: PackedInt32Array = candidate.seats.clockwise_ids.duplicate()
+	var result: GuiFitPolicy = _resolve(Vector2(844, 390), 3, [candidate])
+	assert_eq(result.status, GuiFitPolicy.Status.TOO_SMALL)
+	assert_true(result.guidance.contains("Try portrait mode"))
+	assert_null(result.selected)
+	assert_eq(candidate.minimum, Vector2(900, 500))
+	assert_eq(candidate.seats.clockwise_ids, before)
+	var capacity: GuiFitPolicy = _resolve(Vector2(844, 390), 9, [])
+	assert_eq(capacity.status, GuiFitPolicy.Status.PHONE_CAPACITY)
+	assert_true(capacity.guidance.contains("larger"))
+	assert_false(capacity.guidance.contains("Try portrait"))
+
+
 func test_preference_cannot_discard_a_fitting_lower_density_plan() -> void:
 	var compact: GuiFitCandidate = _candidate(MODE.PHONE, 7)
 	var regular: GuiFitCandidate = _candidate(MODE.WIDE, 7)

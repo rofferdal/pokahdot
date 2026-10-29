@@ -193,6 +193,57 @@ func test_native_done_emits_the_raw_draft_once_without_numeric_or_range_coercion
 	assert_eq(model.value, " 00042 invalid ")
 
 
+func test_embedded_font_without_delete_glyph_keeps_a_readable_functional_delete_key() -> void:
+	var root: Control = _input_root()
+	var font := ThemeDB.fallback_font.duplicate() as FontFile
+	font.allow_system_fallback = false
+	var palette := root.theme.duplicate(true) as Theme
+	palette.default_font = font
+	root.theme = palette
+	var keypad: GuiNumericKeypad = KeypadScene.instantiate()
+	root.add_child(keypad)
+	var model: NumberEntryViewModel = _model(true)
+	keypad.render(model)
+	assert_true(keypad.fit_available(Vector2(796, 282)))
+	watch_signals(keypad)
+	await wait_process_frames(5)
+	var back := keypad.get_control(&"back") as Button
+	assert_eq(back.text, "Delete")
+	assert_gte(back.get_theme_font_size("font_size"), 20)
+	assert_gte(back.size.x, 48.0)
+	assert_gte(back.size.y, 48.0)
+	await _click(back.get_global_rect().get_center())
+	assert_eq(keypad.get_draft(), "0004")
+	assert_signal_not_emitted(keypad, "committed")
+	assert_eq(model.value, "00042")
+
+
+func test_pot_caption_can_show_contribution_while_preset_keeps_the_street_total() -> void:
+	var root: Control = _input_root()
+	var keypad: GuiNumericKeypad = KeypadScene.instantiate()
+	root.add_child(keypad)
+	var model: NumberEntryViewModel = _model(true)
+	model.pot_preset = "55"
+	model.pot_display_value = "45"
+	keypad.render(model)
+	assert_true(keypad.fit_available(Vector2(796, 282)))
+	watch_signals(keypad)
+	await wait_process_frames(5)
+	assert_eq((keypad.get_control(&"pot") as Button).text.replace("\n", " "), "Pot 45")
+	await _click(keypad.get_control(&"pot").get_global_rect().get_center())
+	assert_eq(keypad.get_draft(), "55")
+	assert_signal_not_emitted(keypad, "committed")
+	keypad.commit()
+	assert_signal_emitted_with_parameters(keypad, "committed", ["55"])
+	assert_eq(model.pot_preset, "55")
+	assert_eq(model.pot_display_value, "45")
+	model.pot_display_value = ""
+	keypad.render(model)
+	assert_true(keypad.fit_available(Vector2(796, 282)))
+	await wait_process_frames(5)
+	assert_eq((keypad.get_control(&"pot") as Button).text.replace("\n", " "), "Pot 55")
+
+
 func test_presets_keep_exact_strings_and_disabled_pot_never_edits_or_commits() -> void:
 	var root: Control = _input_root()
 	var keypad: GuiNumericKeypad = KeypadScene.instantiate()

@@ -16,6 +16,7 @@ var _configured: bool = false
 var _switching: bool = false
 var _closing: bool = false
 var _summary_available: bool = false
+var _quit_confirmation_required: bool = true
 var _panels: Dictionary[StringName, Control] = {}
 var _controls: Dictionary[StringName, GuiActionButton] = {}
 
@@ -103,6 +104,10 @@ func render_summary(model: HandSummaryViewModel) -> void:
 					body.add_text("\n")
 	_init_controls()
 	_controls[&"menu_summary"].disabled = not _summary_available
+
+
+func set_quit_confirmation_required(required: bool) -> void:
+	_quit_confirmation_required = required
 
 
 func open_menu() -> void:
@@ -193,7 +198,12 @@ func on_layout_mode_changed() -> void:
 func _restore_mode_fallback() -> void:
 	if not is_inside_tree():
 		return
-	await get_tree().process_frame
+	# Bound frame callbacks disconnect automatically if this node is freed.
+	if not get_tree().process_frame.is_connected(_finish_mode_fallback):
+		get_tree().process_frame.connect(_finish_mode_fallback, CONNECT_ONE_SHOT)
+
+
+func _finish_mode_fallback() -> void:
 	if is_inside_tree() and not is_active() and is_instance_valid(_fallback):
 		if (
 			_fallback.is_inside_tree()
@@ -304,7 +314,12 @@ func _settle_area() -> void:
 	if not is_inside_tree():
 		_area_pending = false
 		return
-	await get_tree().process_frame
+	# Bound frame callbacks disconnect automatically if this node is freed.
+	if not get_tree().process_frame.is_connected(_finish_area):
+		get_tree().process_frame.connect(_finish_area, CONNECT_ONE_SHOT)
+
+
+func _finish_area() -> void:
 	_area_pending = false
 	if is_inside_tree():
 		# Native min invalidation follows the child mode/visibility update.
@@ -327,7 +342,12 @@ func _on_action(role: StringName) -> void:
 			if _summary_available:
 				_activate(&"summary")
 		&"menu_quit":
-			open_quit()
+			if _quit_confirmation_required:
+				open_quit()
+			else:
+				cancel_advance()
+				close()
+				quit_confirmed.emit()
 		&"quit_confirm":
 			cancel_advance()
 			close()

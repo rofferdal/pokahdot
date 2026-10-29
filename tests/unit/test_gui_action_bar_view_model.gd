@@ -285,6 +285,33 @@ func test_null_view_is_explicit_and_no_model_retains_input_resources() -> void:
 		assert_false(value is GameView or value is PlayerView or value is CardData)
 
 
+func test_legal_action_diagnostics_are_detached_and_point_to_native_semantic_roles() -> void:
+	var view: GameView = _view()
+	var model: ActionBarViewModel = ActionBarViewModel.build(view)
+	assert_eq(
+		model.legal_actions,
+		[
+			PlayerAction.Kind.FOLD,
+			PlayerAction.Kind.CALL,
+			PlayerAction.Kind.RAISE,
+			PlayerAction.Kind.ALL_IN
+		]
+	)
+	assert_eq(model.action_roles[PlayerAction.Kind.FOLD], [&"fold"])
+	assert_eq(model.action_roles[PlayerAction.Kind.CALL], [&"check_call"])
+	assert_eq(model.action_roles[PlayerAction.Kind.RAISE], [&"wager", &"minimum", &"pot"])
+	assert_eq(model.action_roles[PlayerAction.Kind.ALL_IN], [&"all_in"])
+	model.legal_actions.clear()
+	model.action_roles[PlayerAction.Kind.RAISE].clear()
+	assert_eq(view.legal_actions.size(), 4)
+	var rebound: ActionBarViewModel = ActionBarViewModel.build(view)
+	assert_eq(rebound.action_roles[PlayerAction.Kind.RAISE], [&"wager", &"minimum", &"pot"])
+	view.acting_seat = 1
+	var waiting: ActionBarViewModel = ActionBarViewModel.build(view)
+	assert_true(waiting.legal_actions.is_empty())
+	assert_true(waiting.action_roles.is_empty())
+
+
 func _view() -> GameView:
 	var view := GameView.new()
 	view.hero_seat = 0

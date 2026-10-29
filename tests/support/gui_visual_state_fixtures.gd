@@ -120,6 +120,12 @@ static func _ui_descriptor(state_id: StringName, kind: StringName, ui: Dictionar
 	}
 
 
+## Replacement review counts do not expand the historical matrix registry.
+static func replacement_flop(player_count: int) -> Dictionary:
+	assert(player_count >= 2 and player_count <= 9, "Replacement fixture count must be 2–9.")
+	return _table_descriptor(&"human-turn-flop", _human_turn_view(player_count, &"flop"))
+
+
 static func _table_descriptor(
 	state_id: StringName,
 	view: GameView,

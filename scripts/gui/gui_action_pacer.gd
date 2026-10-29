@@ -27,6 +27,7 @@ func schedule_delay(pause_seconds: float, advance_callback: Callable) -> void:
 	_request_id += 1
 	var request_id: int = _request_id
 	if pause_seconds <= 0.0:
+		_is_waiting = false
 		advance_callback.call()
 		return
 	_is_waiting = true

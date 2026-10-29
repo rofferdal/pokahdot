@@ -48,7 +48,9 @@ through one viewport adapter. Startup, table and popups share safe-area bounds;
 container/content minimums guide responsive fit. The replacement components and
 presentation requirements remain tracked in the [GUI backlog](docs/RestructureGuiTasks.md).
 Table copy, card visibility models and action availability now use pure
-presentation models; the current controller still renders the reference layouts.
+presentation models. Normal launch selects the reference table; the replacement
+controller is available for review with `godot --path . -- --replacement-gui`.
+Startup creates one selected table and adopts the existing validated match.
 Reusable action-button and input-field scenes are implemented for the replacement;
 their shared-control design is user-accepted. Reusable cards and the center board
 are user-accepted. Full seat and human panels are provisionally user-accepted. Phone tokens, action
@@ -57,8 +59,19 @@ opponents now share one fixed corner layout and the event-history box resizes
 with its allocation. The keypad distinguishes backspace from Cancel, aligns
 landscape rows and displays the Pot amount. Component galleries, opponent seats,
 history scaling, menu and summary designs are user-accepted. The compact keypad
-header is user-accepted. Phase 4 component design review is complete; table
-composition follows in the GUI backlog.
+header is user-accepted. Phase 4 component design review is complete. The RG-50 seat-ring container and 2–9-seat
+templates now place complete component footprints with reserved center/lower
+regions. The human sits below neighbouring bots with an aligned action rail;
+six/nine-seat placement and reconciled interiors are user-accepted. Bot amount
+columns reserve seven digits; both human/bot pairs sit lower right. The RG-51 wide
+composition is verified, including adaptive history docking and the embossed
+logo. RG-52 phone composition and the RG-53 session/controller are implemented
+in the opt-in path, with all revised Phase 5 designs user-accepted and final
+verification passing (1,102 tests). Work stops before RG-60 as requested.
+The reference remains
+the default until RG-54. At 390×844 the current ordinary phone fixtures fit two
+through five players; six/seven need more height. Guidance preserves the match
+and retains menu/Quit access.
 
 ## Start headless (terminal)
 

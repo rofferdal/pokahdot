@@ -30,6 +30,8 @@ const STARTUP_DESCRIPTION := (
 
 ## Binds the startup controls to the GUI configuration adapter.
 
+@export var use_replacement_gui: bool = false
+
 var startup_adapter
 var _number_keypad: WagerKeypad
 var _layout_profile_override: int = GuiLayoutProfileScript.AUTOMATIC
@@ -64,13 +66,38 @@ var _guidance_field_parent: VBoxContainer
 @onready var _viewport_adapter: GuiViewportAdapter = $ViewportAdapter
 
 
+## Instantiate exactly one implementation before child readiness and bindings.
+func _enter_tree() -> void:
+	if has_node("PokerTable"):
+		return
+	use_replacement_gui = (
+		use_replacement_gui or OS.get_cmdline_user_args().has("--replacement-gui")
+	)
+	var path: String = (
+		"res://scenes/gui/ReplacementPokerTable.tscn"
+		if use_replacement_gui
+		else "res://scenes/poker_table.tscn"
+	)
+	var scene := load(path) as PackedScene
+	assert(scene != null, "The selected table scene must be available.")
+	var table := scene.instantiate() as Control
+	assert(table != null, "The selected table scene must be a Control.")
+	table.name = "PokerTable"
+	table.hide()
+	add_child(table)
+
+
+func get_table_controller() -> Control:
+	return get_node_or_null("PokerTable") as Control
+
+
 ## The active table delegates to its own public semantic measurement contract.
 func get_layout_snapshot() -> GuiLayoutSnapshot:
 	if not is_node_ready():
 		return GuiLayoutSnapshot.new()
 	if _poker_table.is_visible_in_tree():
 		var table_snapshot: GuiLayoutSnapshot = (
-			(_poker_table as PokerTableController).get_layout_snapshot()
+			_poker_table.call("get_layout_snapshot") as GuiLayoutSnapshot
 		)
 		table_snapshot.pending = table_snapshot.pending or _viewport_adapter.is_pending()
 		table_snapshot.ready = (
@@ -134,7 +161,7 @@ func _ready() -> void:
 	_quit_application_button.pressed.connect(_on_quit_application_pressed)
 	resized.connect(_refresh_startup_layout)
 	_viewport_adapter.geometry_changed.connect(_on_viewport_geometry_changed)
-	_viewport_adapter.bind(self, _startup_panel, _poker_table)
+	_viewport_adapter.bind(self, _startup_panel, _poker_table, use_replacement_gui)
 	call_deferred("_refresh_startup_layout")
 
 

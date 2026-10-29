@@ -173,7 +173,11 @@ func _apply_status() -> void:
 	if not is_inside_tree():
 		_status_queued = false
 		return
-	await get_tree().process_frame
+	if not get_tree().process_frame.is_connected(_commit_status):
+		get_tree().process_frame.connect(_commit_status, CONNECT_ONE_SHOT)
+
+
+func _commit_status() -> void:
 	_status_queued = false
 	if is_inside_tree():
 		(get_node("Status") as Label).text = _status_copy

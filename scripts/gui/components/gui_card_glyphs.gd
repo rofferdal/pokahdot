@@ -92,6 +92,15 @@ func _draw() -> void:
 	var copies: Array[String] = [rank_text, suit_text]
 	for index: int in 2:
 		var ink: Rect2 = GuiCardInk.bounds(font, copies[index], font_size)
+		var fallback: Texture2D = GuiCardInk.suit_fallback_texture(font, copies[index], font_size)
+		if fallback != null:
+			draw_texture_rect_region(
+				fallback,
+				rects[index],
+				GuiCardInk.suit_texture_region(copies[index]),
+				get_theme_color("font_color")
+			)
+			continue
 		font.draw_string(
 			get_canvas_item(),
 			rects[index].position - ink.position,
@@ -110,6 +119,13 @@ func get_layout_elements(root: Control, role: StringName, redact: bool) -> Array
 		var value: GuiLayoutElement = GuiSnapshotMeasurement.element(self, root, role, redact)
 		value.role = StringName("%s/%s" % [role, "rank" if index == 0 else "suit"])
 		value.text_kind = &"label"
+		value.texture_present = (
+			index == 1
+			and (
+				GuiCardInk.suit_fallback_texture(get_theme_font("font"), suit_text, font_size)
+				!= null
+			)
+		)
 		value.font_size = font_size
 		value.effective_font_size = font_size * minf(value.logical_scale.x, value.logical_scale.y)
 		var output_scale: Vector2 = root.get_viewport().get_final_transform().get_scale().abs()

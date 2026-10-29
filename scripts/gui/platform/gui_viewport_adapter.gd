@@ -10,6 +10,7 @@ const WebProbe := preload("res://scripts/gui/platform/gui_web_geometry_probe.gd"
 var _host: Control
 var _startup: Control
 var _table: Control
+var _full_table_viewport: bool = false
 var _geometry := GuiViewportGeometry.new()
 var _injected: GuiViewportGeometry
 var _pending: bool = false
@@ -18,10 +19,13 @@ var _generation: int = 0
 var _last_platform_signature: String = ""
 
 
-func bind(host: Control, startup_root: Control, table_root: Control) -> void:
+func bind(
+	host: Control, startup_root: Control, table_root: Control, full_table_viewport: bool = false
+) -> void:
 	_host = host
 	_startup = startup_root
 	_table = table_root
+	_full_table_viewport = full_table_viewport
 	_host.resized.connect(_queue_refresh)
 	_host.get_viewport().size_changed.connect(_queue_refresh)
 	if _host.get_viewport() == get_tree().root:
@@ -114,8 +118,10 @@ func _refresh() -> void:
 		var usable: Rect2 = _geometry.usable_rect
 		_startup.position = usable.position + Vector2(12, 12)
 		_startup.size = (usable.size - Vector2(24, 24)).max(Vector2.ZERO)
-		_table.position = usable.position
-		_table.size = usable.size
+		# Replacement hosts apply the usable origin internally; reference roots
+		# continue to occupy the usable rectangle directly.
+		_table.position = Vector2.ZERO if _full_table_viewport else usable.position
+		_table.size = _geometry.full_rect.size if _full_table_viewport else usable.size
 	_table.call("set_viewport_geometry", _geometry, _host.get_global_transform_with_canvas())
 	_pending = false
 	_table.call("set_viewport_geometry_pending", false)

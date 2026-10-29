@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=40 format=3]
+[gd_resource type="Theme" load_steps=41 format=3]
 
 [sub_resource type="FontVariation" id="WinnerBold"]
 variation_embolden = 0.8
@@ -615,6 +615,18 @@ expand_margin_top = -8.0
 expand_margin_bottom = -8.0
 draw_center = false
 
+[sub_resource type="StyleBoxFlat" id="SeatRingFelt"]
+bg_color = Color(0.027450980, 0.360784314, 0.207843137, 1)
+border_color = Color(0.070588235, 0.235294118, 0.160784314, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+corner_radius_top_left = 36
+corner_radius_top_right = 36
+corner_radius_bottom_left = 36
+corner_radius_bottom_right = 36
+
 [resource]
 default_font_size = 29
 ActionButton/base_type = &"Button"
@@ -742,6 +754,7 @@ CenterTotals/base_type = &"HFlowContainer"
 CenterTotals/constants/h_separation = 16
 CenterTotals/constants/v_separation = 4
 SeatPanel/constants/avatar_size = 64
+SeatPanel/constants/amount_digits = 7
 HeroPanel/constants/avatar_size = 80
 HeroPanelActing/base_type = &"HeroPanel"
 HeroPanelActing/styles/panel = SubResource("SeatActing")
@@ -795,3 +808,9 @@ NumberFieldInline/base_type = &"InputFieldKeypad"
 NumberFieldInline/styles/normal = SubResource("NumberInlineFace")
 NumberFieldInline/styles/read_only = SubResource("NumberInlineFace")
 NumberFieldInline/styles/focus = SubResource("NumberInlineFocus")
+SeatRing/base_type = &"Container"
+SeatRing/constants/separation = 8
+SeatRing/constants/margin = 8
+SeatRingFelt/base_type = &"Felt"
+SeatRingFelt/styles/panel = SubResource("SeatRingFelt")
+SeatRing/constants/hero_drop = 72

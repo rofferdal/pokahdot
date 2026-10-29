@@ -105,6 +105,29 @@ func test_menu_keeps_log_and_quit_reachable_without_a_summary_model() -> void:
 	assert_false(_host.is_active())
 
 
+func test_finished_tournament_menu_exit_skips_confirmation_and_discards_pending_advance() -> void:
+	_setup()
+	watch_signals(_host)
+	_host.set_quit_confirmation_required(false)
+	_host.open_menu()
+	await wait_process_frames(5)
+	assert_true(_host.hold_advance(func() -> void: _advanced += 1))
+	await _activate(_host.get_control(&"menu_quit"))
+	assert_false(_host.is_active())
+	assert_eq(_host.get_active_kind(), &"")
+	assert_signal_emit_count(_host, "quit_confirmed", 1)
+	assert_eq(_advanced, 0)
+	_host.close()
+	await wait_process_frames(3)
+	assert_eq(_advanced, 0)
+	_host.set_quit_confirmation_required(true)
+	_host.open_menu()
+	await wait_process_frames(3)
+	await _activate(_host.get_control(&"menu_quit"))
+	assert_eq(_host.get_active_kind(), &"quit")
+	assert_signal_emit_count(_host, "quit_confirmed", 1)
+
+
 func test_quit_confirmation_cancels_pending_advancement_and_emits_once() -> void:
 	_setup()
 	watch_signals(_host)

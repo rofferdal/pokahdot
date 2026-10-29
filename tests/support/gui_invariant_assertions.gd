@@ -7,6 +7,7 @@ const MINIMUM_TOUCH_SIZE := Vector2(48.0, 48.0)
 const Profiles := preload("res://scripts/gui/gui_layout_profile.gd")
 const Content := preload("res://tests/support/gui_snapshot_content_assertions.gd")
 const Regions := preload("res://tests/support/gui_snapshot_region_assertions.gd")
+const Replacement := preload("res://tests/support/gui_replacement_invariant_assertions.gd")
 
 
 static func validate(rendered: Dictionary) -> PackedStringArray:
@@ -36,6 +37,8 @@ static func validate(rendered: Dictionary) -> PackedStringArray:
 static func validate_snapshot(
 	snapshot: GuiLayoutSnapshot, expected_overlays: Array[StringName] = []
 ) -> PackedStringArray:
+	if snapshot != null and snapshot.schema_version == 2:
+		return Replacement.validate(snapshot, expected_overlays)
 	var failures := PackedStringArray()
 	if snapshot == null:
 		failures.append("layout-readiness: snapshot is missing")

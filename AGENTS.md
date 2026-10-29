@@ -94,6 +94,13 @@ Switch behavior and prioritize tasks based on the active persona mode required f
     5. Update task checkboxes only after the corresponding implementation and verification evidence exists.
     6. Validate changed Markdown across `README.md`, `docs/`, and `devdocs/` for stale references, broken local links, and formatting errors before reporting completion.
 
+### 8. Task Orchestrator Mode
+*   **Trigger:** When starting to perform a task in a *Tasks.md document
+*   **Recommended Model:** `ChatGPT-5.6 Sol Medium`
+*   **Behavioral Protocol:**
+    1. Break down the task into steps.
+    2. For each step, delegate it to a suitable agent.
+
 ---
 
 ## 🔄 Standard Operating Workflow

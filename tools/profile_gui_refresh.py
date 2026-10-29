@@ -16,8 +16,10 @@ import hashlib
 import http.server
 import json
 import math
+import os
 import platform
 import re
+import signal
 import subprocess
 import threading
 import time
@@ -31,6 +33,45 @@ FIXTURE_FILES = (
     "tests/performance/gui_refresh_fixture.gd",
     "tests/performance/gui_refresh_fixture.tscn",
 )
+REPLACEMENT_FIXTURE_FILES = (
+    "tests/performance/profiled_replacement_table.gd",
+    "tests/performance/gui_replacement_refresh_fixture.gd",
+    "tests/performance/gui_replacement_refresh_fixture.tscn",
+)
+
+
+def fixture_paths(implementation: str) -> tuple[str, str, tuple[str, ...]]:
+    """Select isolated observers without modifying the reference workload."""
+    if implementation == "replacement":
+        return ("tests/performance/gui_replacement_refresh_native.gd",
+                "res://tests/performance/gui_replacement_refresh_fixture.tscn",
+                REPLACEMENT_FIXTURE_FILES)
+    if implementation == "reference":
+        return ("tests/performance/gui_refresh_native.gd",
+                "res://tests/performance/gui_refresh_fixture.tscn", FIXTURE_FILES)
+    raise ValueError("Unknown GUI implementation: " + implementation)
+
+
+class WebErrorLog:
+    """Keep strict failure reporting bounded while retaining raw diagnostics."""
+
+    def __init__(self, path: Path | None = None):
+        self.count = 0
+        self.messages: list[str] = []
+        self._distinct: set[str] = set()
+        self.path = path
+
+    def add(self, message: str) -> None:
+        self.count += 1
+        if self.path is not None:
+            with self.path.open("a") as output:
+                output.write(message + "\n")
+        if message not in self._distinct and len(self.messages) < 12:
+            self._distinct.add(message)
+            self.messages.append(message[:500])
+
+    def __bool__(self) -> bool:
+        return self.count > 0
 
 
 def summarize(values: list[float]) -> dict:
@@ -72,6 +113,11 @@ def source_identity() -> dict:
 def enrich(result: dict) -> dict:
     metrics = {name: summarize(result[name]) for name in
                ("refresh_usec", "widget_refresh_usec", "layout_usec")}
+    for name in ("settled_latency_usec", "operation_cpu_usec"):
+        if name in result:
+            metrics[name] = summarize(result[name])
+    if "settled_frames" in result:
+        result["settled_frames_summary"] = summarize(result["settled_frames"])
     for phase in ("idle", "active"):
         for name, values in result[phase].items():
             metrics[f"{phase}.{name}"] = summarize(values)
@@ -94,6 +140,27 @@ def enrich(result: dict) -> dict:
             for name in ("objects", "nodes", "static_memory_bytes")})
     result["investigate_refresh_over_16_7ms"] = bool(
         metrics["refresh_usec"]["p95"] is not None and metrics["refresh_usec"]["p95"] > 16700)
+    if result.get("implementation") == "replacement":
+        presentations = result["presentation_samples"]
+        deferred = result.get("deferred_counter_samples", [])
+        metrics["deferred.engine_process_frame_usec"] = summarize([
+            row["engine_process_frame_usec"] for row in deferred])
+        result["deferred_counter_high_water"] = {
+            name: max((row["objects"][name] for row in deferred), default=None)
+            for name in result["counters_before"]}
+        result["presentation_summary"] = {
+            outcome: {
+                "samples": sum(row["outcome"] == outcome for row in presentations),
+                "settled_latency_usec": summarize([
+                    result["settled_latency_usec"][index]
+                    for index, row in enumerate(presentations) if row["outcome"] == outcome]),
+                "operation_cpu_usec": summarize([
+                    result["operation_cpu_usec"][index]
+                    for index, row in enumerate(presentations) if row["outcome"] == outcome]),
+            } for outcome in ("ready", "guidance")}
+        result["render_counter_change"] = {
+            name: result["render_counters_after"][name] - value
+            for name, value in result["render_counters_before"].items()}
     return result
 
 
@@ -102,8 +169,13 @@ def validate_result(result: dict, samples: int) -> None:
         raise RuntimeError("GUI profiling privacy/core failures: " + repr(result["failures"]))
     if len(result["active"]["step_to_post_draw_usec"]) != samples:
         raise RuntimeError("Profiling fixture returned incomplete samples")
+    if result.get("implementation", "reference") == "replacement":
+        validate_replacement_result(result, samples)
     if result["scenario"] == "resize":
-        if not result["layout_usec"] or len({row["profile"] for row in result["selected_layouts"]}) < 2:
+        guidance_only = (result.get("implementation") == "replacement" and
+                         all(row["outcome"] == "guidance" for row in result["presentation_samples"]))
+        if not result["layout_usec"] or (not guidance_only and
+                len({row["profile"] for row in result["selected_layouts"]}) < 2):
             raise RuntimeError("Resize fixture did not measure actual profile transitions")
         if len({tuple(row["requested"]) for row in result["selected_layouts"]}) < 3:
             raise RuntimeError("Resize fixture did not visit all three requested sizes")
@@ -118,20 +190,59 @@ def validate_result(result: dict, samples: int) -> None:
             raise RuntimeError("Runout fixture did not complete a real hand")
 
 
-def native_case(godot: str, work: Path, profile: str, scenario: str, samples: int) -> dict:
+def validate_replacement_result(result: dict, samples: int) -> None:
+    """Do not confuse deferred readiness, guidance and synchronous CPU cost."""
+    if result.get("input_modality") not in ("keypad", "keyboard"):
+        raise RuntimeError("Replacement profiling omitted its input modality")
+    for name in ("settled_latency_usec", "settled_frames", "operation_cpu_usec", "presentation_samples"):
+        if len(result.get(name, [])) != samples:
+            raise RuntimeError("Replacement profiling omitted settled samples: " + name)
+    for name in ("settled_latency_usec", "settled_frames", "operation_cpu_usec"):
+        if any(not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0
+               for value in result[name]):
+            raise RuntimeError("Replacement profiling returned invalid timing values: " + name)
+    for row in result["presentation_samples"]:
+        if row.get("pending") or row.get("outcome") not in ("ready", "guidance"):
+            raise RuntimeError("Replacement sample did not settle to content or guidance")
+        if row["outcome"] == "guidance" and not row.get("fit_guidance"):
+            raise RuntimeError("Guidance sample omitted its truthful reason")
+    required = {"composition_mounts", "probe_created", "probe_freed", "probe_live", "probe_peak_live"}
+    counters = result.get("render_counters_after", {})
+    if not required <= counters.keys() or any(not isinstance(counters[key], int) or counters[key] < 0
+                                              for key in required):
+        raise RuntimeError("Replacement render/probe counters are missing or invalid")
+    if counters["probe_created"] - counters["probe_freed"] != counters["probe_live"]:
+        raise RuntimeError("Replacement probe counters do not reconcile")
+    if counters["probe_peak_live"] < counters["probe_live"]:
+        raise RuntimeError("Replacement probe peak is below its live count")
+
+
+def native_case(godot: str, work: Path, profile: str, scenario: str, samples: int,
+                implementation: str = "reference", players: int | None = None) -> dict:
     name = f"native-{profile}-{scenario}"
     output = work / f"{name}.json"
+    script, _, _ = fixture_paths(implementation)
     arguments = [godot, "--path", str(ROOT), "--rendering-method", "gl_compatibility",
                  "--rendering-driver", "opengl3", "--audio-driver", "Dummy",
-                 "--script", "tests/performance/gui_refresh_native.gd", "--",
+                 "--script", script, "--",
                  "--profile", profile, "--scenario", scenario, "--samples", str(samples),
                  "--output", str(output)]
+    if players is not None:
+        arguments.extend(["--players", str(players)])
     time_flag = "-l" if platform.system() == "Darwin" else "-v"
     with (work / f"{name}.log").open("w") as log:
-        completed = subprocess.run(["/usr/bin/time", time_flag, *arguments], cwd=ROOT,
-                                   stdout=log, stderr=subprocess.STDOUT, timeout=180)
+        process = subprocess.Popen(["/usr/bin/time", time_flag, *arguments], cwd=ROOT,
+                                   stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            returncode = process.wait(timeout=180)
+        except subprocess.TimeoutExpired as error:
+            terminate_owned_process_group(process)
+            raise RuntimeError(f"Native profiling timed out: {name}.log; owned process group stopped") from error
+        except BaseException:
+            terminate_owned_process_group(process)
+            raise
     log_text = (work / f"{name}.log").read_text()
-    if completed.returncode or "ERROR:" in log_text:
+    if returncode or "ERROR:" in log_text:
         raise RuntimeError(f"Native profiling failed: {name}.log")
     result = json.loads(output.read_text())
     process = re.search(r"([\d.]+) real\s+([\d.]+) user\s+([\d.]+) sys", log_text)
@@ -141,6 +252,32 @@ def native_case(godot: str, work: Path, profile: str, scenario: str, samples: in
         "whole_process_peak_rss_bytes": int(rss[1]) if rss else None,
         "scope": "Whole fresh process including startup/warmup/idle/census/I/O; not per-frame CPU."}
     return result
+
+
+def terminate_owned_process_group(process: subprocess.Popen, grace_seconds: float = 2.0) -> None:
+    """Stop the session created by native_case, including the time wrapper's child."""
+    # start_new_session makes the launched PID its own PGID. Never look up or
+    # signal another Godot process (the user's editor may be running alongside).
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        process.wait(timeout=grace_seconds)
+        return
+    started = time.monotonic()
+    try:
+        process.wait(timeout=grace_seconds)
+    except subprocess.TimeoutExpired:
+        pass
+    # The wrapper can exit first while Godot remains alive. Allow its children
+    # the rest of the grace period, then kill only this same owned group.
+    remaining = grace_seconds - (time.monotonic() - started)
+    if remaining > 0:
+        time.sleep(remaining)
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait(timeout=grace_seconds)
 
 
 def renderer_process_sample(session, phase: str) -> dict:
@@ -161,14 +298,15 @@ def renderer_process_sample(session, phase: str) -> dict:
                            "rss_bytes": rss.get(row["id"])} for row in processes]}
 
 
-def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str], samples: int) -> list[dict]:
+def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str], samples: int,
+              implementation: str = "reference", players: int | None = None) -> list[dict]:
     from playwright.sync_api import sync_playwright
     from run_web_input_tests import QuietHandler, export_fixture
 
     export_work = work / "web-fixture"
     export_work.mkdir()
-    exported = export_fixture(godot, export_work,
-                              "res://tests/performance/gui_refresh_fixture.tscn", FIXTURE_FILES)
+    _, scene, fixture_files = fixture_paths(implementation)
+    exported = export_fixture(godot, export_work, scene, fixture_files)
     handler = functools.partial(QuietHandler, directory=str(exported))
     results: list[dict] = []
     with http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler) as server:
@@ -183,12 +321,13 @@ def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str],
                     context = browser.new_context(viewport={"width": width, "height": height},
                                                   device_scale_factor=1)
                     page = context.new_page()
-                    errors: list[str] = []
-                    page.on("pageerror", lambda error: errors.append(str(error)))
-                    page.on("console", lambda message: errors.append(message.text)
+                    errors = WebErrorLog(work / f"web-{profile}-{scenario}-errors.log")
+                    page.on("pageerror", lambda error: errors.add(str(error)))
+                    page.on("console", lambda message: errors.add(message.text)
                             if message.type == "error" else None)
                     page.goto(f"http://127.0.0.1:{server.server_port}/index.html?"
-                              f"profile={profile}&scenario={scenario}&samples={samples}")
+                              f"profile={profile}&scenario={scenario}&samples={samples}"
+                              + (f"&players={players}" if players is not None else ""))
                     deadline = time.monotonic() + 180
                     result = None
                     memory_samples = []
@@ -211,7 +350,9 @@ def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str],
                             page.evaluate("window.pokahdotProfileResize = null")
                         page.wait_for_timeout(10)
                     if result is None or errors:
-                        raise RuntimeError(f"Web profiling failed {profile}/{scenario}: {errors}")
+                        raise RuntimeError(
+                            f"Web profiling failed {profile}/{scenario}: {errors.count} errors; "
+                            f"first distinct messages: {errors.messages}; raw log: {errors.path}")
                     result["browser_renderer_process_samples"] = memory_samples
                     active_memory = [row["renderer_pool_rss_bytes"] for row in memory_samples
                                      if row["phase"] == "active"]
@@ -236,14 +377,22 @@ def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str],
     return results
 
 
-def main() -> None:
+def argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("native", "web", "both"), default="both")
+    parser.add_argument("--implementation", choices=("reference", "replacement"), default="reference")
+    parser.add_argument("--players", type=int, choices=range(2, 10), default=None,
+                        help="Explicit matched roster; omitted preserves profile defaults (phone7, other9)")
     parser.add_argument("--godot", default="/Applications/Godot.app/Contents/MacOS/Godot")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--samples", type=int, default=120)
     parser.add_argument("--profiles", nargs="+", choices=tuple(SIZES), default=list(SIZES))
     parser.add_argument("--scenarios", nargs="+", choices=SCENARIOS, default=list(SCENARIOS))
+    return parser
+
+
+def main() -> None:
+    parser = argument_parser()
     arguments = parser.parse_args()
     if not 20 <= arguments.samples <= 2000:
         parser.error("--samples must be in 20..2000")
@@ -254,17 +403,20 @@ def main() -> None:
     if arguments.mode in ("native", "both"):
         for profile in arguments.profiles:
             for scenario in arguments.scenarios:
-                results.append(native_case(arguments.godot, work, profile, scenario, arguments.samples))
+                results.append(native_case(arguments.godot, work, profile, scenario, arguments.samples,
+                                           arguments.implementation, arguments.players))
     if arguments.mode in ("web", "both"):
         results.extend(web_cases(arguments.godot, work, arguments.profiles, arguments.scenarios,
-                                 arguments.samples))
+                                 arguments.samples, arguments.implementation, arguments.players))
     if source_identity()["execution_source_sha256"] != identity["execution_source_sha256"]:
         raise RuntimeError("Execution sources changed during profiling; repeat the measurement")
     for result in results:
+        result.setdefault("implementation", arguments.implementation)
         validate_result(result, arguments.samples)
         enrich(result)
         result["source"] = identity
     report = {"schema_version": 1, "source": identity, "host": platform.platform(),
+              "implementation": arguments.implementation, "requested_players": arguments.players,
               "investigation_threshold_usec": 16700,
               "percentile_method": "nearest rank", "results": results}
     (work / "results.json").write_text(json.dumps(report, indent=2) + "\n")

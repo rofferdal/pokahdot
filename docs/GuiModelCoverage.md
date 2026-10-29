@@ -63,3 +63,58 @@ token formatting retain their existing contracts. `test_gui_seat_components.gd` 
 model builds with dealer/small-blind flags, along with full typed panel snapshots,
 reserved bands, card redaction, state rebinding and inherited typography.
 No RG-21 cases were removed or reclassified by this component work.
+
+
+## RG-50S full-panel reconciliation
+
+Wide bot panels consume the existing stack_value_text for numeric stack copy,
+falling back to stack_text for detached manual fixtures; the human retains full
+stack_text. No rules or visibility decisions moved into rendering. Semantic
+get_field handles and the typed seat snapshot remain stable across the authored
+hierarchy correction. Regressions cover the fixed corners, human/bot typography,
+seven-digit layout reserve, all states, grayscale and unauthorized child-card
+mutations at native minima and after resizing.
+
+
+## RG-51 replacement diagnostics
+
+`ActionBarViewModel.legal_actions` and `action_roles` copy core availability into
+detached diagnostic values. The model tests verify that mutating those values
+cannot change the recipient view. Rendering and schema-2 snapshot validation
+check actual semantic controls, native content minima, legal-action reachability,
+menu routes and per-card privacy. Schema-1 reference observations and the exact
+historical characterization registry remain unchanged. This adds replacement
+coverage without removing or reclassifying the earlier model/scene cases.
+
+
+## RG-53 session and orchestration coverage
+
+`GuiTableSession` delegates action construction and submission to the existing
+core APIs and uses the existing public-event formatter. Its tests cover exact
+Pot contribution/total pairing, overflow and rejection feedback, street/fold
+history, short-blind runouts, completed-hand pacing, modal holds, recipient
+changes and stale callback epochs. An accepted wager invalidates an old modal-held
+callback before publishing its fresh pause; rejected wagers retain prior
+progression. The core retains betting/progression rules.
+
+Replacement-controller tests cover native mode/fit selection, safe-origin
+placement, generation invalidation, persistent modals, exact draft/caret/selection
+and focus reconstruction, guidance cancellation and ordinary-action probe reuse.
+Startup tests verify one selected controller and adoption of the existing match.
+Four independent lifetime cases cover transactions/private details on rebind,
+invalid binding and destruction during measurement. Component destruction tests
+reproduce and prevent deferred callbacks resuming freed scripts.
+
+Numeric entry carries the visible Pot contribution separately from its exact
+street-total preset. A component test verifies caption 45 with payload 55 and
+preserves the payload fallback for generic callers. Controller integration checks
+native preset selection and cancellation. No historical RG-21 mapping or schema-1
+reference matrix was removed or reclassified.
+
+
+The RG-53 exported-browser check exposed unavailable suit glyphs in the embedded
+font. Conditional SVG rendering preserves the same `CardViewModel` identity and
+permission decisions. Card tests exercise all 52 faces with system fallback
+disabled, verify actual ink and theme tint, and preserve empty/back/redacted
+snapshot contracts. Decoration and keypad-caption fallbacks add no rules or
+recipient data to the rendering layer.

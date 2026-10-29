@@ -97,7 +97,7 @@ func _verify_minimum() -> void:
 		return
 	state = GuiCompositionState.from_fit(state.geometry, state.fit)
 	state.status = GuiCompositionState.Status.CONTENT_MINIMUM
-	state.guidance = "More space is needed. Enlarge the window or rotate the screen."
+	state.guidance = GuiFitPolicy.insufficient_space_message(state.mode)
 	_composition.apply_policy(state)
 	measurements_invalidated.emit()
 

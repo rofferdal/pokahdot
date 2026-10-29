@@ -1,7 +1,8 @@
 class_name TableSeatLayout
 extends RefCounted
 
-## Owns the presentation-only normalized placements for supported table sizes.
+## Reference-only normalized positions, retained until the RG-54 controller cutover.
+## Replacement layouts use GuiSeatSlotTemplate/GuiSeatRingContainer instead.
 
 
 static func symmetric_positions(seat_count: int) -> Array[Vector2]:
