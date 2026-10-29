@@ -16,8 +16,23 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   viewport normalization and RG-11 review corrections verified. RG-12's pure
   size/fit policy and isolated guidance scene are implemented and verified;
   guidance design user-accepted. RG-13 replacement policy routing is verified;
-  RG-20 presentation models are next. Replacement component styling
-  remains pending in its ordered tasks.
+  RG-20 presentation models and RG-21 coverage migration are verified.
+  RG-30 theme palette/review3 is verified and user-accepted. RG-31 compact/regular
+  typography and reference font-scaling removal are verified; the dealer/blind
+  markers, winner-star appearance/placement and status alignment are user-accepted.
+  RG-39 reusable controls are next after the requested commit/push checkpoint
+  and reference-typography preview. Replacement component composition remains
+  in its ordered tasks.
+
+- [`RulesInGameTasks.md`](RulesInGameTasks.md) — planned, independent workstream:
+  a concise Pokahdot tournament-rules reference from the GUI Start screen and
+  interactive CLI `rules` command. Implementation is not started; this plan
+  does not change the GUI restructuring sequence or its acceptance status.
+
+- [`GuiProfileHoverTasks.md`](GuiProfileHoverTasks.md) — planned, independent
+  workstream: hovering a bot seat's display name reveals its public bot profile
+  name. Implementation is not started; this plan preserves the GUI replacement
+  sequence and pending visual acceptance.
 
 
 ## Archived task records
@@ -58,6 +73,8 @@ as historical evidence; retain their recorded names and limitations.
   Web publishing and optional hosted browser/device verification runbook.
 - [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md) —
   provisional responsive Godot GUI guidance consistent with the architecture.
+- [`GuiModelCoverage.md`](GuiModelCoverage.md) — RG-21 old-to-new presentation
+  coverage map, retained adapter checks and measured runtime.
 - [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) — canonical GUI viewport and
   state fixtures, screenshot evidence, review, and local gate workflow.
 - [`templates/GUI_DEFECT.md`](templates/GUI_DEFECT.md) — standard record for GUI

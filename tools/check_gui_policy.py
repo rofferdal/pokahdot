@@ -36,6 +36,8 @@ def check_source(source: str, path: str) -> list[str]:
     errors = []
     if LEGACY.search(imports):
         errors.append(f"{path}: replacement code imports a reference layout policy")
+    if re.search(r"\b(?:content_scale\w*|_enforce_minimum_gui_text_size_for_node)\b", code):
+        errors.append(f"{path}: use role typography and measured fit instead of global text scaling")
     if path == CLASSIFIER:
         return errors
     if path != RESOLVER and re.search(r"\bGuiSizeClass\s*\.\s*classify\s*\(", code):

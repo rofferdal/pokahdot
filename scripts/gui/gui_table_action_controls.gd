@@ -108,33 +108,22 @@ func configure_numeric_action_rows() -> void:
 	_min_wager_button.text = "Min"
 
 
-func configure_action_control_copy(
-	view: GameView, legal: Array, compact_copy: bool, pot_target: PotWagerTargetResult
-) -> void:
-	if PlayerAction.Kind.CHECK in legal:
-		_check_call_button.text = "Check"
-	elif PlayerAction.Kind.CALL in legal:
-		_check_call_button.text = "Call %d" % view.call_amount
-	else:
-		_check_call_button.text = "Call" if compact_copy else "Check / Call"
-	var wager_name: String = "Bet" if PlayerAction.Kind.BET in legal else "Raise"
-	_min_wager_button.text = (
-		"Min %d" % view.minimum_wager_total
-		if compact_copy
-		else "Min %s %d" % [wager_name, view.minimum_wager_total]
-	)
-	_pot_raise_button.text = "Pot %d" % pot_target.contribution
-	_wager_button.text = wager_name
-	_wager_input.placeholder_text = "Total" if compact_copy else "Wager total"
+func configure_action_control_copy(model: ActionBarViewModel, compact_copy: bool) -> void:
+	_check_call_button.text = model.check_call_text
+	_min_wager_button.text = model.minimum_text
+	_pot_raise_button.text = model.pot_text
+	_wager_button.text = model.wager_text
+	_all_in_button.text = model.all_in_text
+	_wager_input.placeholder_text = model.input_placeholder
 	_wager_input.custom_minimum_size.x = 72.0 if compact_copy else 200.0
 
 
 func configure_action_control_visibility(
-	view: GameView, legal: Array, is_human_turn: bool, phone_layout: bool
+	model: ActionBarViewModel, phone_layout: bool, player_count: int
 ) -> void:
 	_phone_hero_summary.visible = phone_layout
 	_phone_player_count_notice.visible = (
-		phone_layout and view.seats.size() > GuiPhoneSeatLayoutScript.MAX_SUPPORTED_PLAYER_COUNT
+		phone_layout and player_count > GuiPhoneSeatLayoutScript.MAX_SUPPORTED_PLAYER_COUNT
 	)
 	if not phone_layout:
 		rows.show()
@@ -151,17 +140,13 @@ func configure_action_control_visibility(
 		]:
 			control.show()
 		return
-	_fold_button.visible = is_human_turn and PlayerAction.Kind.FOLD in legal
-	_check_call_button.visible = (
-		is_human_turn and (PlayerAction.Kind.CHECK in legal or PlayerAction.Kind.CALL in legal)
-	)
+	_fold_button.visible = model.phone_fold_visible
+	_check_call_button.visible = model.phone_check_call_visible
 	_min_wager_button.hide()
 	_pot_raise_button.hide()
 	_wager_input.hide()
-	_wager_button.visible = (
-		is_human_turn and (PlayerAction.Kind.BET in legal or PlayerAction.Kind.RAISE in legal)
-	)
-	_all_in_button.visible = is_human_turn and PlayerAction.Kind.ALL_IN in legal
+	_wager_button.visible = model.phone_wager_visible
+	_all_in_button.visible = model.phone_all_in_visible
 	primary.visible = _fold_button.visible or _check_call_button.visible
 	wagers.visible = _wager_button.visible or _all_in_button.visible
 	rows.visible = primary.visible or wagers.visible
@@ -206,3 +191,13 @@ func restore_phone_action_rows() -> void:
 		_wager_button.reparent(wagers)
 	wagers.move_child(_all_in_button, 0)
 	wagers.move_child(_wager_button, wagers.get_child_count() - 1)
+
+
+func render_enabled(model: ActionBarViewModel) -> void:
+	_fold_button.disabled = not model.fold_enabled
+	_check_call_button.disabled = not model.check_call_enabled
+	_min_wager_button.disabled = not model.minimum_enabled
+	_pot_raise_button.disabled = not model.pot_enabled
+	_wager_input.editable = model.can_wager
+	_wager_button.disabled = not model.wager_enabled
+	_all_in_button.disabled = not model.all_in_enabled

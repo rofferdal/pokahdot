@@ -15,7 +15,6 @@ static func capture(
 	statuses: Dictionary[int, Label],
 	modal_nodes: Dictionary[StringName, Node],
 	detail_seat: int,
-	portrait_seat_copy: bool = false,
 ) -> GuiLayoutSnapshot:
 	var result := GuiLayoutSnapshot.new()
 	result.root_rect = Measure.rect(root, root)
@@ -63,25 +62,27 @@ static func capture(
 		var detail_cards: Control = _find(detail, "DetailHoleCards")
 		if detail_cards != null:
 			redacted_roots.append(detail_cards)
-	# Only the registered event-log control receives its distinct font role.
+	# Register exact seat-copy and log roles; card/unknown descendants retain the 20 px floor.
 	var semantic_nodes: Dictionary[Node, StringName] = {}
 	semantic_nodes[surface] = &"surface"
-	if portrait_seat_copy:
-		for seat: int in panels:
-			var panel := panels[seat] as GuiTableSeatView
-			if panel == null:
-				continue
-			var copy_fields: Dictionary[StringName, Control] = {
-				&"name": panel.name_label,
-				&"stack": panel.stack_label,
-				&"badge": panel.state_badge,
-				&"action": panel.action_badge,
-			}
-			for role: StringName in copy_fields:
-				if copy_fields[role] != null:
-					semantic_nodes[copy_fields[role]] = StringName("seat/%d/%s" % [seat, role])
-			if statuses.has(seat):
-				semantic_nodes[statuses[seat]] = StringName("status/%d" % seat)
+	for seat: int in panels:
+		var panel := panels[seat] as GuiTableSeatView
+		if panel == null:
+			continue
+		var copy_fields: Dictionary[StringName, Control] = {
+			&"name": panel.name_label,
+			&"stack": panel.stack_label,
+			&"badge": panel.state_badge,
+			&"action": panel.action_badge,
+			&"marker": _find(panel, "Marker"),
+			&"badge_row_2": _find(panel, "BadgeRow2"),
+			&"badge_row_3": _find(panel, "BadgeRow3"),
+		}
+		for role: StringName in copy_fields:
+			if copy_fields[role] != null:
+				semantic_nodes[copy_fields[role]] = StringName("seat/%d/%s" % [seat, role])
+		if statuses.has(seat):
+			semantic_nodes[statuses[seat]] = StringName("status/%d" % seat)
 	if controls.has(&"event") and controls[&"event"] != null:
 		semantic_nodes[controls[&"event"]] = &"event"
 	Measure.descendants(

@@ -111,6 +111,35 @@ func test_startup_branding_keeps_essential_form_fully_visible_without_scrolling(
 				assert_gte(field.allocated_size.y, 48.0, String(role))
 
 
+func test_startup_uses_role_metrics_without_geometry_multiplied_text() -> void:
+	for extent: Vector2i in [Vector2i(390, 844), Vector2i(1920, 1080), Vector2i(1200, 1920)]:
+		var harness: Node = Harness.new()
+		add_child_autofree(harness)
+		var rendered: Dictionary = harness.render(States.by_id(&"startup", 6), extent)
+		assert_true(await harness.settle_layout(), str(extent))
+		var main: Control = rendered.root
+		var compact: bool = extent.x == 390
+		var form: Control = main.get_node("%Form")
+		assert_same(form.theme, GuiTypography.Compact if compact else GuiTypography.Regular)
+		var title: Label = main.get_node("%Title")
+		assert_eq(title.get_theme_font_size("font_size"), 24 if compact else 28)
+		assert_false(title.has_theme_font_size_override("font_size"))
+		for name: String in [
+			"PlayerCountInput",
+			"StartingStackInput",
+			"SmallBlindInput",
+			"BigBlindInput",
+			"PlayerCountLabel",
+			"Description",
+			"UseLegacyModelsCheckBox",
+			"StartButton",
+			"QuitApplicationButton",
+		]:
+			var control: Control = main.get_node("%" + name)
+			assert_eq(control.get_theme_font_size("font_size"), 20, name)
+			assert_false(control.has_theme_font_size_override("font_size"), name)
+
+
 func test_phone_table_background_covers_safe_insets_and_resets_for_other_profiles_and_startup(
 ) -> void:
 	var harness: Node = Harness.new()

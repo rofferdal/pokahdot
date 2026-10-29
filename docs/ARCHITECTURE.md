@@ -1163,6 +1163,162 @@ review still checks aliases and new replacement script locations. The resolver
 alone invokes the classifier. Reference/platform scripts remain outside this
 replacement-only guard; remove reference exclusions at cutover.
 
+**Pure table presentation models (RG-20, 2026-10-29)**
+
+`scripts/gui/view_models/` now owns table, seat, card-row/card, center, action,
+hand-summary and event-log values. Every model is a typed `RefCounted`; built
+models retain no Node, Resource/CardData, GameView, PlayerView or action/award
+object. `TableViewModel.build()` takes the recipient-safe view, assignment
+snapshots, current-street actions, retained folds, formatted history and an
+explicit full/compact/minimal density. The adapter owns those lifetimes and
+invalidates its model cache when binding, refreshing or rendering events;
+density changes rebuild presentation without changing core state. Pre-tree
+binding uses full density and replaces prior action/history context before
+constructing the model; mounting refreshes it with the current layout density.
+
+`CardViewModel` represents EMPTY, BACK or authorized FACE data. Back/empty
+values have empty rank/suit text and no identity. Five board slots and two
+seat slots are stable; folded/busted/unknown seats are empty. Opponent faces
+come only from authorized revealed cards, never ShowdownResult's private card
+fields. Models detach every permitted rank/suit value, including rank `10`.
+
+`SeatViewModel` owns assigned identity, exact stacks/wagers, markers and badge
+precedence, action copy, full/compact/inline hand descriptions and semantic
+winner emphasis. All main/split/side-pot recipients and fold winners receive
+winner emphasis; only main-pot showdown winners receive the historical star.
+Current-street compact action badges and retained folded-seat status have
+separate lifetimes. `ActionBarViewModel` owns labels, enabled/visible flags and
+exact wager bounds. It delegates the product Pot contribution/total shortcut
+to core `PotWagerTarget` and otherwise trusts the view's legal-action list;
+no betting rule is reimplemented. `CenterViewModel` owns board/pot/wager and
+blind-level copy. `HandSummaryViewModel` owns ordered winner names, exact award
+shares and semantic summary lines. `EventLogViewModel` is the same detached
+history body whether docked or presented in an overlay; the adapter still
+matches recipient-safe events/actions through the existing pure formatter.
+
+The current controller, action controls and seat factory consume these models
+through `get_table_view_model()` and typed adapter calls. The reference adapter
+retains its existing geometry-dependent choice of copy variants and font
+measurement for wrapping winner names; new components consume selected density
+directly. Reference card factories still accept permitted CardData while their
+replacement scenes remain RG-40–42. This integration changes ownership, not
+legacy geometry or accepted appearance. RG-21 migrates pure presentation test
+cases, with the [coverage map](GuiModelCoverage.md) recording each migration
+and retained integration contract. RG-39–54 finish component rendering and
+retire reference builders.
+
+**Shared theme palette (RG-30 user-accepted, 2026-10-29)**
+
+`resources/gui_theme.tres` now authors the replacement palette and required
+variations: Felt/Zone, SeatPanel/Acting/Folded/HeroPanel/PhoneToken, StatusBand,
+ActionButton/PrimaryActionButton/KeypadKey, OverlayPanel,
+InputField/NumberField/WagerTotalField, CardFace/CardBack, WinningHandText and
+EventLogBody. Additional BodyText/HeadingText/SeatText/CardRank and
+InputFieldInvalid roles make inherited font/validation behavior explicit.
+CardRankRed inherits the same built-in font for red-suit samples.
+Actions use rounded dark-green surfaces and white enabled/hover/pressed/focus
+labels. The later review sets disabled labels to grey `#A8A8A8`.
+Normal, hover, pressed, focus and disabled appearances differ through surfaces
+and borders. Generic fields have sharp corners, white normal/light read-only
+surfaces and dark-green text/caret. Transparent focus borders overlay rather
+than repainting the field; invalid fields retain their red frame while focused.
+
+The Total exception keeps exact `#B8C3BB` text on dark green, zero corner radii
+and -4 top/bottom StyleBox expansion. At the full 48-unit input allocation this
+draws a centered 40-unit face. Theme tests and gallery samples retain 48-unit
+interactive allocations; component scenes must do the same in RG-39.
+WinningHandText is bright yellow with a FontVariation embolden value of 0.8.
+Its unset base uses Godot's default Theme font; no FontFile, SystemFont or
+external font resource is introduced. It retains the 18-unit seat-copy role;
+card ranks and other controls use at least 20, event-log body 18.
+
+The gallery at `tests/visual/gui_theme_gallery.tscn` is a theme-role review,
+not a finished table or reusable component completion. It shows separate
+reserved status bands and at most three seat samples per row. Simultaneous
+hover/pressed/focus samples reuse the authored styles through fixture-only
+overrides; production components must select variations, not copy those
+fixture overrides. Larger-screen samples now show existing assigned avatars; phone samples may
+omit them. RG-41 must render `SeatViewModel.avatar_path` without reselecting on
+resize. Card samples keep actual 120×168 allocations (5:7), avoiding vertical
+row stretch. Review3 uses a test-only glyph Control that measures shaped ink
+through TextLine/TextServer and draws the same built-in font at the corrected
+baseline. This removes unused line leading so value/suit fill more of the face
+while retaining six-pixel padding; black `10♠` and red `A♥` use 90/91 px sample
+fonts. Sizes scale with container allocation in the eventual RG-40 component;
+these fixed gallery dimensions/fonts are not production breakpoints.
+The fixture script owns only preview typography. RG-40 must apply width/height
+≥5:7 (or wider), comparable glyph sizing and padded measured fit to all actual
+face/back/empty slots in community, hero and opponent contexts. Its containers
+must reflow rather than narrow cards or lower text floors. The poker proportion
+uses the [2.5×3.5 card reference](https://educationalplayingcards.com/poker-size-playing-cards.html).
+Review3 uses the authored `gui_grayscale.gdshader` and shared material for
+full folded-surface/child/avatar grayscale, rather than generating a shader
+or altering image assets. Future components select that shared state material.
+The acting theme frame is six pixels. The human sample's 403×112 face, 22 px
+identity copy and 80×80 avatar provide more reading space than 350×84 / 18 px /
+64×64 bot samples. Containers preserve these relative priorities where space
+permits; phone feasibility and all existing text/target floors still apply.
+The approved logo assets are unchanged. Native captures
+and source hashes are written under ignored `localtmp/gui-elements/`.
+
+The palette's fallback font size remains 29. RG-31 applies explicit compact/
+regular metric Themes beneath that palette in both reference and replacement
+paths; visible role text no longer depends on that fallback. Legacy runtime style factories remain isolated until their
+replacement components take over and RG-54 deletes them; they do not constrain
+new styling. The user accepted the review3 palette/sample appearance on
+2026-10-29 and authorized RG-31. Component application follows in the ordered
+RG-39–54 tasks; this acceptance does not certify final layouts or devices. Beautification is permitted within product behavior,
+text/target floors and the single built-in-font contract.
+
+**Shared typography (RG-31)**
+
+`GuiTableComposition.apply_policy()` selects the compact or regular metric
+Theme from the selected candidate's density, including fallback candidates.
+The host supplies the palette; the child metric Theme supplies sizes and gaps
+through native Theme inheritance. Compact bot/human copy is 18/22; regular
+copy is 22/26. Card text remains at least 20, other text 20 and log body 18.
+`GuiSeatTextFit` measures complete normal/bold text runs and reserved blank
+bands, choosing a preferred size down to 18 or returning an explicit fit
+failure. It never scales a node or changes an interaction allocation. Future
+seat components consume this measurement service; these fixtures do not
+certify full table feasibility. Replacement policy checks reject global
+content scaling and recursive font repair.
+
+On 2026-10-29 the user explicitly chose to remove reference font scaling in
+RG-31 rather than wait for RG-54. The reference table applies the same metric
+Theme at `TableSurface`, startup at `Form`, and the keypad at its popup root.
+Fonts no longer multiply by content/portrait/seat geometry scales. The
+recursive table font-floor repair and startup font traversal are removed.
+Existing geometry scales continue sizing avatars, cards, popup allocations and
+touch targets. Native AcceptDialog `buttons_min_height`/`buttons_min_width`
+constants retain 48 px targets when its internal buttons are rebuilt by theme
+changes. Reference seat/status copy uses exact registered semantic roles for
+the approved 18 px floor in every layout; unknown text, card ranks and
+interactive text retain 20. The log-body exception remains 18.
+
+Typography tests compare normal/bold measurement with native Label/VBox
+minimums over preferred sizes 18–26 and multiple allocations, including a
+reserved blank band. Layout roots select metrics from resolved density;
+per-component seat fitting remains bounded and never changes touch allocations.
+Full replacement compositions and device acceptance remain in later tasks.
+
+The accepted marker review adds a white circular `DealerButton` with dark-green
+D, distinct `BlindMarker` SB/BB badges and yellow `WinnerStar`. Heads-up D and
+SB remain separate. Replacement stars follow `SeatViewModel.winner_emphasis`
+for every awarded winner, including split/side pots and fold wins. The reference
+path's main-pot-only star behavior remains unchanged until migration. The
+gallery demonstrates these roles; actual seat binding follows in RG-41/42.
+
+The user accepted the dealer/blind appearance and requested upper-right
+placement plus a larger star independent of the name line. The review2 gallery
+places a passive marker group at the seat's upper-right inset and a separate
+44 px star at the lower right. Bot/human surfaces reserve 108/124 px heights
+so the star clears the markers while preserving human prominence. These are
+gallery allocations, not responsive component dimensions. Revised placement
+and star appearance were user-accepted on 2026-10-29. Status bands share the
+seat surface's horizontal allocation, keeping action/result text aligned with
+the box's left edge even when that box is centered in a wider grid column.
+
 **Content-driven minimums**
 
 Minimum feasible dimensions are functions of count, density, required copy,
@@ -1204,7 +1360,7 @@ Renderer compatibility and the default font remain unchanged. Local raw evidence
 
 The startup panel and table are views in one scalable `Control`-based main scene with `canvas_items` stretch mode and `expand` aspect. Layouts use containers, anchors, and responsive margins rather than fixed pixel positioning. Stretch mode scales the 2D layout but does not by itself guarantee crisp text or textures; those depend on viewport configuration and source assets. Starting a new tournament returns to the startup panel so new values can be chosen.
 
-The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer and blind markers. The acting player is identified by a white seat frame three times thicker than an ordinary frame, without a redundant textual `ACT` marker. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to the GUI presentation layer and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
+The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer and blind markers. The reference acting player is identified by a white seat frame three times thicker than an ordinary frame (the replacement theme review increases this to six), without a redundant textual `ACT` marker. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to the GUI presentation layer and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
 
 Decision (2026-10-27, CODE-01): `PokerTableController` coordinates recipient-safe
 binding, public-action lifetime, input submission and pacing. Presentation work

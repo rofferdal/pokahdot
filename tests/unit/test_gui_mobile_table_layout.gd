@@ -27,7 +27,7 @@ func test_high_resolution_mobile_portrait_uses_the_available_table_surface() -> 
 
 	assert_gte(opponent_panel.size.x, surface_size.x * 0.3)
 	assert_gte(opponent_avatar_region.custom_minimum_size.x, 100.0)
-	assert_gte(opponent_name.get_theme_font_size("font_size"), 38)
+	assert_eq(opponent_name.get_theme_font_size("font_size"), 22)
 	assert_gte(board_card.custom_minimum_size.x, 55.0)
 	assert_gte(action_panel.size.y, 260.0)
 	assert_gte(event_log.size.y, 110.0)
@@ -49,7 +49,7 @@ func test_high_resolution_mobile_portrait_uses_the_available_table_surface() -> 
 
 	assert_eq(opponent_avatar_region.custom_minimum_size, Vector2(112, 112))
 	assert_eq(opponent_avatar.custom_minimum_size, Vector2.ZERO)
-	assert_eq(opponent_name.get_theme_font_size("font_size"), 30)
+	assert_eq(opponent_name.get_theme_font_size("font_size"), 22)
 	assert_eq(board_card.custom_minimum_size, Vector2(68, 76))
 
 

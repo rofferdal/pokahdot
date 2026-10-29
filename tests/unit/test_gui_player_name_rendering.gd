@@ -74,8 +74,7 @@ func test_name_mapping_stays_stable_across_match_refresh_and_resize() -> void:
 		_assert_seat_presentations(table, assignments, avatars)
 
 
-func test_long_names_fit_desktop_and_compact_layouts_without_reducing_text_below_twenty_px(
-) -> void:
+func test_long_names_fit_desktop_and_compact_layouts_above_the_seat_font_floor() -> void:
 	for viewport_size: Vector2 in [DESKTOP_VIEWPORT, COMPACT_VIEWPORT]:
 		for player_count: int in [2, 6, 9]:
 			var human_seat: int = player_count / 2
@@ -114,7 +113,7 @@ func test_long_names_fit_desktop_and_compact_layouts_without_reducing_text_below
 				var context := (
 					"%s, %d-player seat %d (%s)" % [viewport_size, player_count, seat, label.text]
 				)
-				assert_gte(font_size, 20, context)
+				assert_gte(font_size, 18, context)
 				assert_lte(rendered_width, label.size.x, context)
 				assert_eq(label.autowrap_mode, TextServer.AUTOWRAP_OFF, context)
 				assert_true(label.is_visible_in_tree(), context)

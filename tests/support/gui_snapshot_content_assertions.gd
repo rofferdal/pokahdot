@@ -7,13 +7,11 @@ const EVENT_LOG_FONT_SIZE: int = 18
 const MINIMUM_TOUCH_SIZE := Vector2(48.0, 48.0)
 
 
-static func validate_element(
-	value: GuiLayoutElement, failures: PackedStringArray, portrait_seat_copy: bool = false
-) -> void:
+static func validate_element(value: GuiLayoutElement, failures: PackedStringArray) -> void:
 	if value == null or not value.visible:
 		return
 	if value.font_size > 0:
-		var minimum: int = minimum_font_size(value, portrait_seat_copy)
+		var minimum: int = minimum_font_size(value)
 		_require(
 			value.font_size >= minimum,
 			"font-floor: %s uses %d px" % [value.role, value.font_size],
@@ -59,10 +57,10 @@ static func validate_element(
 	)
 
 
-static func minimum_font_size(value: GuiLayoutElement, portrait_seat_copy: bool = false) -> int:
+static func minimum_font_size(value: GuiLayoutElement) -> int:
 	if value.role == &"event" and value.text_kind == &"rich_text":
 		return EVENT_LOG_FONT_SIZE
-	if not portrait_seat_copy or value.text_kind != &"label" or value.interactive:
+	if value.text_kind != &"label" or value.interactive:
 		return MINIMUM_FONT_SIZE
 	var parts: PackedStringArray = String(value.role).split("/")
 	if parts.size() < 2 or not parts[1].is_valid_int():

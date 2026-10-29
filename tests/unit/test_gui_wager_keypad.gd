@@ -67,6 +67,31 @@ func test_number_entry_done_commits_and_cancel_preserves_the_previous_value() ->
 	assert_false(keypad.visible)
 
 
+func test_keypad_geometry_scale_does_not_multiply_text_sizes() -> void:
+	var input := LineEdit.new()
+	add_child_autofree(input)
+	var keypad := WagerKeypadScript.new()
+	add_child_autofree(keypad)
+	keypad.set_usable_rect(Rect2(0, 0, 2000, 2000))
+	for geometry_scale: float in [1.0, 2.0, 1.0]:
+		keypad.open(input, 20, 100, geometry_scale)
+		assert_same(keypad.theme, GuiTypography.Regular)
+		for action: StringName in [&"1", &"clear", &"min", &"pot", &"done", &"cancel"]:
+			var button: Button = keypad.get_action_control(action)
+			assert_eq(button.get_theme_font_size("font_size"), 20)
+			assert_gte(button.custom_minimum_size.y, 48.0)
+		assert_eq(keypad.get_node("Content/Title").get_theme_font_size("font_size"), 20)
+		assert_eq(keypad.get_node("Content/Range").get_theme_font_size("font_size"), 20)
+		assert_eq(keypad.get_node("Content/Value").get_theme_font_size("font_size"), 28)
+		keypad.cancel()
+	keypad.set_usable_rect(Rect2(0, 0, 844, 330))
+	keypad.open(input, 20, 100)
+	assert_same(keypad.theme, GuiTypography.Compact)
+	assert_eq(keypad.get_node("Content/Value").get_theme_font_size("font_size"), 20)
+	assert_eq(keypad.get_action_control(&"1").get_theme_font_size("font_size"), 20)
+	keypad.cancel()
+
+
 func test_keypad_uses_opaque_grouping_and_high_contrast_key_boundaries() -> void:
 	var input := LineEdit.new()
 	add_child_autofree(input)

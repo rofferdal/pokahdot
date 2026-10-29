@@ -12,6 +12,15 @@ COMPONENT = "scripts/gui/components/seat_panel.gd"
 
 
 class GuiPolicyGuardTests(unittest.TestCase):
+    def test_rejects_global_scaling_and_recursive_font_repair(self):
+        for source in [
+            'var size = 20 * window.content_scale_factor',
+            'window.content_scale_size = Vector2i(800, 600)',
+            '_enforce_minimum_gui_text_size_for_node(self)',
+        ]:
+            with self.subTest(source=source):
+                self.assertTrue(CHECK.check_source(source, COMPONENT))
+
     def test_rejects_reference_layout_dependencies_and_local_reclassification(self):
         for source in [
             'const Legacy = preload("res://scripts/gui/gui_mobile_table_layout.gd")',

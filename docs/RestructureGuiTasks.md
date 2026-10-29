@@ -7,7 +7,11 @@ await review. The user requested a fresh `localtmp/` and resumed ordered work on
 2026-10-29. RG-12 policy and isolated guidance presentation are implemented;
 verification is complete. The user accepted the guidance design and authorized
 continuation on 2026-10-29. RG-13 replacement routing is implemented and
-verified. RG-20 presentation models are next; implementation has not started.
+verified and committed at `122f344`. RG-20 presentation models are implemented
+and verified. RG-21 coverage migration is verified. The RG-30 theme review
+candidate is authored, verified and user-accepted. RG-31 typography is implemented
+and verified, including user-selected removal of reference font scaling.
+RG-39 is next, after the commit/push and reference-typography review checkpoint.
 Replacement component styling remains pending in its ordered tasks.
 Reviewed: 2026-10-27 against source commit
 `0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
@@ -170,6 +174,39 @@ Subsequent acceptance: the no-scroll `rg11-review6-startup` captures and all
 five `rg11-review7-*` two-column portrait captures are accepted. This completes
 visual review of these increments; fresh broad verification remains required.
 
+Visual-polish clarification (2026-10-29): the user permits GUI beautification
+where it follows sound design practice and preserves user-facing functionality.
+The single-font constraint remains: use only Godot's built-in default font,
+including variations derived from it. Preserve existing text/target floors,
+required copy and input behavior, and show new visual designs for acceptance
+before continuing beyond their review checkpoint.
+
+Theme-review refinement (2026-10-29): the user generally likes the RG-30
+palette, with three requested changes. Disabled action labels use a slightly
+darker grey (`#A8A8A8` in the revised candidate); enabled/hover/pressed/focus
+labels remain white. Larger-screen seat surfaces must display the selected
+avatar from the existing tournament assignment; compact phones may omit it.
+Cards must retain a width/height ratio of at least 5:7 (poker-card proportions)
+or be wider, including their actual rendered allocation, not just nominal
+minimums. Value and suit have comparable visual size, fit as large as measured
+content permits, and retain padding from every edge. Preserve the single
+built-in font. RG-30 revises the gallery; RG-31/40–42/50–52 must retain these
+contracts in the actual components and layouts. The revised preview awaits
+acceptance; RG-31 remains untouched.
+
+Further theme refinement (2026-10-29): folded seat surfaces, borders, text and
+avatars must be fully grayscale. Give the human seat more reading space than
+bot seats where the wide composition permits it; increase the human's text and
+avatar allocation rather than scaling its painted pixels. Strengthen the acting
+white border beyond the initial three-pixel candidate (six pixels in review3).
+Increase card value/suit occupancy by measuring visible glyph bounds instead
+of reserving unused font line leading. Retain safe padding, the single built-in
+font, 5:7-or-wider card proportions and role-specific text floors. Cards must
+be scalable with container space; the gallery's fixed 120×168 samples and
+90/91 px fonts are examples, not production size constants. RG-30 revises this
+preview; RG-31/40/41/50–52 carry the contracts into responsive components.
+Review3 acceptance remains pending before RG-31.
+
 ### Visual instructions → implementation and acceptance
 
 This table traces the user's chat instructions to the resulting GUI and code
@@ -279,6 +316,11 @@ layouts consume the new policy directly. Review consolidation of tiny snapshot
 value files during cutover only if it improves clarity; that is not extra work
 before the replacement. Final ownership and less custom layout code matter more
 than forcing every reusable component into fewer files.
+
+RG-31 timing clarification (2026-10-29): the user explicitly selected immediate
+removal of font scaling in the reference GUI, including the recursive font
+repair helper. That typography migration happens in RG-31; retirement of the
+remaining reference scenes, factories and geometry owners stays at RG-54.
 
 ## 3. Analysis against responsive-GUI practice in Godot
 
@@ -819,8 +861,8 @@ provided the target contracts and acceptance evidence are retained.
 
 ### Phase 2 — Presentation model
 
-- [ ] **RG-20 — Create `TableViewModel` and child models.** Status: Not
-  started. Mode: Senior. Move display-name, marker, badge, compact action
+- [x] **RG-20 — Create `TableViewModel` and child models.** Status: Implemented
+  and verified. Mode: Senior. Move display-name, marker, badge, compact action
   text, status band text, winner display, pot/wager copy, hand summary and
   action availability from the controller and extracted seat/action helpers into
   `scripts/gui/view_models/`. Pure `RefCounted` with typed fields and a
@@ -835,8 +877,8 @@ provided the target contracts and acceptance evidence are retained.
   main/split/side-pot awards, and one shared recipient-safe event-log model
   independent of whether history is docked or shown in an overlay.
 
-- [ ] **RG-21 — Move poker-derived GUI tests to model tests.** Status: Not
-  started. Mode: QA. Re-home pot-target, repeated-raise, short-stack and
+- [x] **RG-21 — Move poker-derived GUI tests to model tests.** Status: Implemented
+  and verified; coverage map recorded. Mode: QA. Re-home pot-target, repeated-raise, short-stack and
   winner-text assertions from `test_gui_table_actions.gd` and the
   phone files into view-model tests where they test pure presentation. Keep
   real adapter integration tests for button activation, submitted targets, core
@@ -846,8 +888,8 @@ provided the target contracts and acceptance evidence are retained.
 
 ### Phase 3 — Theme
 
-- [ ] **RG-30 — Build the theme palette and type variations.** Status: Not
-  started. Mode: Senior. Move colors and `StyleBox`es from
+- [x] **RG-30 — Build the theme palette and type variations.** Status: Implemented,
+  verified and user-accepted (review3, 2026-10-29). Mode: Senior. Move colors and `StyleBox`es from
   `GuiTableStyle`, `FoldedSeatStyle`, extracted factories/controls/overlays,
   the controller and the keypad into
   `resources/gui_theme.tres` with variations (`Felt`, `Zone`, `SeatPanel`,
@@ -858,7 +900,8 @@ provided the target contracts and acceptance evidence are retained.
   descriptions are bold and bright yellow (`#FFFF00`); use a bold variation
   derived from the built-in font, with no additional font file. Action buttons
   (including Quit, menu/close/cancel and keypad actions) use rounded corners,
-  dark-green backgrounds and white text. Number/text fields use zero-radius
+  dark-green backgrounds and white enabled text; disabled labels use the
+  approved grey exception. Number/text fields use zero-radius
   corners, white backgrounds and dark-green text, with a lighter surface than
   buttons. Focus, hover, pressed, disabled, read-only and validation states
   preserve the button/field distinction.
@@ -868,9 +911,12 @@ provided the target contracts and acceptance evidence are retained.
   design is allowed and old pixel output is not the acceptance target. Theme
   lint validates defined/inherited fonts; rendered components verify effective
   seat-copy/log-body sizes ≥ 18, card/other GUI text ≥ 20 and actual interactive targets ≥ 48 × 48.
+  Folded surfaces and avatars are fully grayscale; the acting frame is bolder
+  than the original candidate. Wide human seats reserve more space/type size
+  than bot seats, subject to measured fit.
 
-- [ ] **RG-31 — Add compact and regular size variants.** Status: Not
-  started. Mode: Senior. Provide font-size/spacing variants per size class,
+- [x] **RG-31 — Add compact and regular size variants.** Status: Complete
+  and verified (2026-10-29). Mode: Senior. Provide font-size/spacing variants per size class,
   applied at the layout root on mode change. Remove `content_scale`-driven
   font multiplication and `_enforce_minimum_gui_text_size_for_node()`.
   Seat text scales with the component within a bounded preferred-to-18 px
@@ -892,7 +938,8 @@ that renders all states at its minimum size and runs the snapshot invariants.
   render/edit signals and theme variations. Route all visible actions through
   the button family, including startup, Quit, confirmation, menus, Log,
   More/Pots, wagering and keypad keys. Use rounded dark-green buttons with
-  white text. Number/text inputs and numeric draft/value-entry surfaces use
+  white enabled text and grey disabled labels. Number/text inputs and numeric
+  draft/value-entry surfaces use
   sharp-cornered white fields with dark-green text; they never masquerade as
   action buttons when touch opens a keypad. Keep normal/focus/disabled/error
   states, including Total's separate light-grey/dark-green shorter-face variant,
@@ -910,7 +957,13 @@ that renders all states at its minimum size and runs the snapshot invariants.
   separately. `CenterBoard` composes the row with pot/wager containers.
   Preserve equal minimum-safe slots across face/back/empty states and measured
   rank/suit constraints, including rank `10`; aspect-ratio containers respect
-  actual content minima. Card components render recipient-safe presentation
+  actual content minima. Actual face/back/empty allocations must keep width/
+  height ≥5:7 or wider; no parent may stretch a card into a narrower shape.
+  Value and suit use comparable visual size, the largest measured fitting font
+  against visible ink bounds with safe padding, and at least 20 px. Card size
+  follows available container space rather than the gallery sample constants. Test rank `10`, all suits and actual
+  container-assigned geometry rather than only nominal custom minima.
+  Card components render recipient-safe presentation
   models and theme variations only, with no `GameView`, deck, evaluator,
   visibility decisions or poker rules inside the view. Tests render all states
   at minimum sizes, verify reuse across contexts, complete rank/suit fit and
@@ -923,7 +976,14 @@ that renders all states at its minimum size and runs the snapshot invariants.
   minimum size, allocation, snapshot footprint and clearance include the band,
   even when blank. Keep the band within the component hierarchy rather than
   a separately positioned sibling. Render avatar, marker, winner star and the
-  shared `CardRow`/`PlayingCard` components. Winning hand/result descriptions
+  shared `CardRow`/`PlayingCard` components. On larger-screen layouts the
+  selected `SeatViewModel.avatar_path` is visible, keeps its aspect ratio and
+  remains stable across resize/rotation; constrained phone tokens may omit it.
+  Avatar allocation participates in measured fit instead of introducing a
+  second screen-size classifier. The folded treatment grayscales the entire
+  surface and avatar, not just its background. Where space permits, the human
+  component is larger and uses larger identity text/avatar than bot seats;
+  complete-footprint measurement still includes its reserved band. Winning hand/result descriptions
   are bold, bright yellow via theme variations, including split/side-pot
   winners and exact `Winner` fold-win copy. Seat copy can scale to 18 px;
   embedded card ranks remain at least 20 px. Migrate or replace
@@ -1636,3 +1696,253 @@ coverage passes seven tests / 118 assertions; five policy-guard mutation tests
 pass. This task introduces no new table design; accepted guidance is reused.
 The owner must defer remeasurement until the current presentation completes.
 RG-20 follows next.
+
+
+### RG-20 presentation model execution — 2026-10-29
+
+Implemented pure typed card/card-row, seat, center, action-bar, table, hand-summary
+and event-log models. The controller and reference seat/action adapters consume
+them; source poker rules and GameView are unchanged. Models detach all visible
+card values and retain no core or scene objects. Identity-free backs/empty slots,
+all action kinds, exact values, densities, active/retained action lifetimes and
+main/split/side/fold-winner emphasis have focused coverage. History is one model
+independent of docked/overlay use. Pre-tree binding/rebinding is tested.
+
+Focused model/adapter batch passed 76 tests / 3,098 assertions before the final
+pre-tree regression was added. Final `make check` passed 126 GUT scripts /
+836 tests / 119,776 assertions, plus Python/lint/format/docs/policy and exact
+characterization checks. All four GUI matrices passed; final logs contain no
+engine/script errors or warnings. Evidence: `localtmp/restructure_rg20/`
+(`check-final.log`, `invariants-final.log`, `focused-final.log`). The
+previous task's verified checkpoint is committed as `122f344`, using
+`git add --all` as the user requested, before any RG-20 implementation.
+
+
+### RG-21 presentation-test migration — 2026-10-29
+
+The [coverage map](GuiModelCoverage.md) records every moved action/summary case,
+the exact replacement model tests and retained adapter responsibilities. Pure
+Pot boundary evaluation now runs without a scene. Real core-derived views feed
+repeated-raise, short-stack and closed-rights model coverage. Exact phone
+fold/split/side-pot names/shares moved to summary tests; actual overlay button
+activation, bound text, privacy, input/modals and submitted/rejected wagers remain
+in scene tests. Core rule tests, matrix definitions and characterization are
+unchanged. Single-case before/after timing is recorded without a speedup claim.
+Final `make check` passed 127 GUT scripts / 841 tests / 119,817 assertions
+plus Python/lint/format/docs/policy and exact characterization checks. All four
+GUI matrices passed. No engine/script errors or warnings in the final logs
+under `localtmp/restructure_rg21/` (`check-final.log`, `invariants-final.log`).
+The coverage map records the before/after timings and limitations. RG-30 is next.
+
+
+### RG-30 shared-theme review candidate — 2026-10-29
+
+Authored the replacement palette/type variations in `resources/gui_theme.tres`,
+including button/field state distinctions, sharp light fields, the approved
+Total exception and bold bright-yellow winner text. All use Godot's built-in
+default font; no font file or SystemFont is introduced. Effective inheritance,
+role fonts, actual control allocations, default bold-font metrics, validation
+focus and Total face/target geometry pass six focused tests / 380 assertions.
+
+The independent native gallery is
+`localtmp/gui-elements/rg30-theme-palette-1280x980.png`; matching source hashes,
+zero image-save error and zero escaped controls are recorded in
+`rg30-theme-palette.json`. It shows at most three seat samples per row and
+reserved status bands beneath panel surfaces. Fixture-only simultaneous
+hover/pressed/focus simulations make authored states comparable in one image.
+These are theme samples, not completed card/seat/action scenes or device support.
+The legacy default remains unchanged until replacement components/cutover.
+
+Final `make check` passed 128 GUT scripts / 847 tests / 120,197 assertions
+plus Python/lint/format/docs/policy and exact characterization checks. All four
+GUI matrices passed. Final logs contain no engine/script errors or warnings:
+`localtmp/restructure_rg30/check-final.log` and `invariants-final.log`. The
+current screenshot/source hashes match the final resource; capture reports
+zero escaped controls and zero save errors. Documentation checks passed after
+updating this record. The palette must be user-reviewed before checking RG-30
+or proceeding to RG-31. No RG-31 implementation has started.
+The user permits visual polish while retaining functionality and the single
+font constraint.
+
+
+### RG-30 review refinement: disabled labels, avatars and card proportions — 2026-10-29
+
+The user generally liked the palette and requested grey disabled-button text,
+avatars on larger-screen seats and broader cards with large, balanced value/
+suit glyphs. The revised theme sets disabled action text to `#A8A8A8`. Four
+wide/human gallery seats display existing assigned avatar samples; the compact
+phone sample omits one. Reserved status bands and the three-seat row cap remain.
+
+The gallery now gives face/back samples fixed 120×168 allocations (5:7) with
+vertical shrink alignment so the surrounding row cannot stretch them narrower.
+Black `10♠` and red `A♥` show equal value/suit font sizes chosen from actual
+default-font metrics and the padded content area. The next size is checked
+against independent Label/Container minima. This fitting script is a review
+fixture, not early completion of RG-40; the future reusable components inherit
+these contracts. The actual running reference table has not been redesigned.
+
+Eight focused theme tests / 421 assertions pass, including avatar identity,
+aspect preservation, actual card proportions, glyph fit and largest fitting
+size. Revised review image:
+`localtmp/gui-elements/rg30-theme-review2-1280x980.png`, with matching source
+hashes and measured card/font records in `rg30-theme-review2.json`.
+Final `make check` passed 128 GUT scripts / 849 tests / 120,238 assertions
+plus Python/lint/format/docs/policy and exact characterization checks. All four
+GUI matrices passed. No engine/script errors or warnings appear in the final
+logs under `localtmp/restructure_rg30_review/` (`check-final.log`,
+`invariants-final.log`, `capture-final.log`). Native metadata confirms all
+three cards are 120×168 and both face samples use equal 55 px value/suit fonts;
+no controls escape the capture and the image saves successfully. Source/image
+hashes are verified in `rg30-theme-review2-source-verification.json`.
+Documentation checks pass. RG-30 stays unchecked pending review of these
+refinements; RG-31 is not started.
+
+
+### RG-30 review3: grayscale, human prominence, stronger acting frame and card ink — 2026-10-29
+
+The revised gallery applies the authored `gui_grayscale_material.tres` to the
+complete folded sample and inherits it through every descendant, including its
+avatar. The folded surface/border are neutral grays. Human sample allocation
+is 403×112 versus 350×84 bot faces, with 22 px identity text and an 80×80 avatar
+versus 18 px / 64×64. The acting frame is six pixels wide rather than three;
+legacy reference styling remains unchanged until component cutover.
+
+Card samples retain 120×168 proportions and positive six-pixel content margins.
+The review fixture measures shaped glyph ink with the default font, chooses a
+fitting size and draws at the corrected baseline, avoiding unused line leading.
+Native samples now use 90/91 px instead of 55 px. Independent saved-PNG checks
+find 65–80 px-high value/suit ink, wholly within the safe padding; folded
+surface/avatar pixels have zero RGB channel difference while the active avatar
+retains color. The fixed review dimensions/fonts do not constrain scalable
+RG-40 components. The user's scaling question is answered by the existing
+container-fit contract; smaller sizes must retain the 20 px text floor.
+
+Final `make check` passed 128 GUT scripts / 850 tests / 120,268 assertions plus
+Python/lint/format/docs/policy and exact characterization checks. All four GUI
+matrices passed; final logs have no engine/script errors or warnings. Evidence:
+`localtmp/restructure_rg30_review3/check-final.log`, `invariants-final.log`,
+`theme-focused.log` (9 tests / 449 assertions), `capture-final.log` and
+`pixel-verification.log`. The review image is
+`localtmp/gui-elements/rg30-theme-review3-1280x980.png`, with matching metadata
+and independent pixel/source verification JSON alongside it. These are palette
+and sample-rendering checks, not completed RG-40/41 or device acceptance.
+RG-30 remains unchecked pending review3 acceptance; RG-31 remains not started.
+
+
+### RG-30 review3 acceptance — 2026-10-29
+
+The user explicitly accepted the latest theme: full grayscale folded surfaces/
+avatars, larger human seat, stronger acting frame and ink-fitted cards, and
+authorized continuation. RG-30 is checked off. This accepts the theme/sample
+appearance, not unfinished replacement components or device support. RG-31 is
+the next ordered task; independent Rules/Profile Hover plans remain unstarted.
+
+### RG-31 implementation and marker review — 2026-10-29
+
+Compact/regular metric Themes now apply at the replacement composition root
+from the selected candidate density. Native inheritance retains palette styles
+and bold metrics. `GuiSeatTextFit` measures complete normal/bold runs, including
+blank status bands, with an explicit failure below the 18 px floor. Focused
+tests exercise same-root density changes, fallback selection, exact fit edges,
+invalid measurements and seven/nine-seat typography groups. These group
+fixtures do not complete the future phone/wide table sweep. The replacement
+policy guard rejects content scaling and recursive font repair.
+
+The requested separate white circular D, SB/BB badges and all-winner stars are
+authored theme roles and independent gallery samples. Heads-up D + SB are
+separate; side-pot and fold winners also show stars. Preview:
+`localtmp/gui-elements/rg31-markers-winners-1280x980.png`, with matching capture
+metadata. Visual acceptance is pending. Production component binding remains
+in RG-41/42. RG-31 stays unchecked: reference scaling/helper removal and its
+full completion criteria remain outstanding. The user requests committing all
+changes on the current branch and pushing after RG-31 is complete and verified,
+before continuing to the next task.
+
+Verification of this intermediate candidate: `make check` passed 129 GUT scripts,
+856 tests and 120,465 assertions, together with documentation, Python, lint,
+format and characterization checks. All four GUI invariant matrices passed.
+Logs: `localtmp/restructure_rg31/check-after.log`, `invariants-after.log` and
+`focused.log` (29 tests / 1,021 assertions). These passes verify the current
+candidate; they do not mark RG-31's outstanding criteria complete.
+
+### RG-31 marker review2 — 2026-10-29
+
+The user accepted the white dealer button and SB/BB badge appearance, requested
+their placement in the upper-right corner, and requested a larger winner star
+independent of a single text line. The gallery now places markers at the
+upper-right inset and a separate 44 px star at the lower right. Bot/human face
+heights are 108/124 to keep markers, stars and identity copy separate. The
+human retains larger type and avatar. This reviews independent state samples;
+production seat rendering remains in RG-41/42.
+
+Focused palette/typography tests pass (15 tests / 645 assertions), including
+corner placement, separate heads-up D/SB, star size and non-overlap with badges.
+Native capture reports no escaped controls or engine errors. Review image:
+`localtmp/gui-elements/rg31-markers-winners-review2-1280x980.png`, with matching
+JSON metadata. Revised placement/star acceptance is pending; RG-31 stays open
+and its requested commit/push checkpoint has not been reached.
+
+Full `make check` passed for review2: 129 GUT scripts / 856 tests / 120,467
+assertions, plus documentation, Python, lint, format and characterization
+checks. Log: `localtmp/restructure_rg31/review2-check.log`.
+
+### RG-31 marker acceptance and status alignment — 2026-10-29
+
+The user explicitly accepted the winner-star, dealer and SB/BB placement.
+This acceptance covers the revised gallery appearance; RG-31's remaining
+implementation criteria and the later production seat components stay open.
+
+Status labels previously filled a grid column while bot seat boxes were
+narrower and centered. They now share the seat box width and centered
+allocation, so last-action/result copy starts at the box's left edge. The
+human's wider box and matching status width are retained. Focused tests verify
+both edges for all five samples (15 tests / 655 assertions). Native review3
+capture has no escaped controls or engine errors:
+`localtmp/gui-elements/rg31-markers-winners-review3-1280x980.png` and matching
+JSON metadata. Full `make check` passed: 129 GUT scripts / 856 tests / 120,481
+assertions plus documentation, Python, lint, format and characterization gates.
+Log: `localtmp/restructure_rg31/review3-check.log`.
+
+### RG-31 completion and commit checkpoint — 2026-10-29
+
+The user accepted the final gallery and authorized continuation. To resolve the
+retirement timing conflict, the user explicitly selected removing reference
+font scaling now. RG-31 therefore applies shared metric Themes to both paths:
+replacement composition roots, reference TableSurface, startup Form and keypad
+popup. Content/portrait/seat scale no longer multiplies font sizes. Geometry
+scales remain for avatars/cards, popup allocations and targets. The table's
+recursive font-floor repair and startup's recursive font traversal are removed.
+
+Native inheritance preserves the palette and single built-in font. Seat text
+is bounded to 18, cards/other text to 20 and log body to 18. Normal/bold native
+Label minimums agree with the bounded fitter across preferred sizes 18–26 and
+multiple available rectangles, including a blank reserved band. Role tests
+cover every inherited label, button, field and log font. Reference fit/identity,
+privacy, keypad transactions, modal behavior and stable-footprint tests remain.
+Native dialog Theme constants keep internal OK/Cancel buttons at 48×48; the
+Fold allocation also retains that floor after its text becomes smaller.
+
+The exact characterization update preserves 9,994 ordered inputs, the matrix
+hash and the same 1,098 failing inputs. Typography/semantic-role changes alter
+25 already-failing scene/resize diagnostic sets. Pure cases are unchanged and
+no newly failing input is registered. The audit and previous registry are under
+`localtmp/restructure_rg31/characterization-migration-audit.json` and
+`characterization-registry-before.json`. This records reference defects rather
+than accepting them or completing later replacement-composition work.
+
+Final `make check` passes 129 GUT scripts / 860 tests / 120,901 assertions, plus
+Python, documentation, lint, formatting and exact characterization checks.
+All four GUI matrices pass, with their case definitions unchanged. Read-only
+review identified the native dialog target regression; it is fixed and the
+matrices were rerun. Logs: `localtmp/restructure_rg31/check-final3.log`,
+`invariants-final2.log`, `floors-focused.log` and `startup-keypad-after.log`.
+RG-31 is checked off. The requested checkpoint stages all accumulated changes,
+commits them on `gui-restructure` and pushes that branch before RG-39.
+
+Development captures under `localtmp/gui-elements/rg31-reference-desktop/`,
+`rg31-reference-phone/` and `rg31-reference-startup/` show the reference GUI's
+typography after scaling removal; their manifests report passing invariants.
+These still use reference layouts/cards/markers, not completed replacement
+components or device acceptance. Show these visible typography changes for
+review before proceeding to RG-39. The accepted replacement gallery remains
+`localtmp/gui-elements/rg31-markers-winners-review3-1280x980.png`.

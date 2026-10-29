@@ -3,7 +3,7 @@ extends "res://tests/support/poker_gut_test.gd"
 const Content := preload("res://tests/support/gui_snapshot_content_assertions.gd")
 
 
-func test_only_registered_portrait_seat_labels_can_use_eighteen() -> void:
+func test_only_registered_seat_labels_can_use_eighteen_in_every_layout() -> void:
 	for role: StringName in [
 		&"seat/0/name",
 		&"seat/7/stack",
@@ -16,10 +16,8 @@ func test_only_registered_portrait_seat_labels_can_use_eighteen() -> void:
 	]:
 		var value: GuiLayoutElement = _copy(role)
 		var failures := PackedStringArray()
-		Content.validate_element(value, failures, true)
-		assert_eq(failures, PackedStringArray(), String(role))
 		Content.validate_element(value, failures)
-		assert_true(_font_failure(failures), "Landscape/desktop/default retain 20: %s" % role)
+		assert_eq(failures, PackedStringArray(), String(role))
 
 
 func test_card_rank_unknown_label_and_interactive_controls_keep_twenty() -> void:
@@ -35,19 +33,19 @@ func test_card_rank_unknown_label_and_interactive_controls_keep_twenty() -> void
 		&"status/0/child/0"
 	]:
 		var failures := PackedStringArray()
-		Content.validate_element(_copy(role), failures, true)
+		Content.validate_element(_copy(role), failures)
 		assert_true(_font_failure(failures), String(role))
 	for kind: StringName in [&"button", &"input", &"rich_text"]:
 		var value: GuiLayoutElement = _copy(&"seat/0/name")
 		value.text_kind = kind
 		value.interactive = kind != &"rich_text"
 		var failures := PackedStringArray()
-		Content.validate_element(value, failures, true)
+		Content.validate_element(value, failures)
 		assert_true(_font_failure(failures), String(kind))
 	var interactive_label: GuiLayoutElement = _copy(&"seat/0/name")
 	interactive_label.interactive = true
 	var failures := PackedStringArray()
-	Content.validate_element(interactive_label, failures, true)
+	Content.validate_element(interactive_label, failures)
 	assert_true(_font_failure(failures))
 
 
@@ -55,13 +53,13 @@ func test_allowed_seat_copy_floor_cannot_drop_below_eighteen_or_waive_targets() 
 	var value: GuiLayoutElement = _copy(&"seat/0/name")
 	value.font_size = 17
 	var failures := PackedStringArray()
-	Content.validate_element(value, failures, true)
+	Content.validate_element(value, failures)
 	assert_true(_font_failure(failures))
 	value.font_size = 20
 	value.interactive = true
 	value.allocated_size = Vector2(47, 47)
 	failures.clear()
-	Content.validate_element(value, failures, true)
+	Content.validate_element(value, failures)
 	assert_true("touch-target:" in "\n".join(failures))
 
 

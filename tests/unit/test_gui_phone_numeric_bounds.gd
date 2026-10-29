@@ -263,13 +263,12 @@ func _assert_content(
 		if label.is_visible_in_tree():
 			_assert_label(label, context)
 	var snapshot: GuiLayoutSnapshot = table.get_layout_snapshot()
-	var portrait: bool = snapshot.profile == GuiLayoutProfile.Kind.PHONE_PORTRAIT
 	for seat: GuiSeatSnapshot in snapshot.seats.values():
 		for role: StringName in [&"stack", &"action"]:
 			var value: GuiLayoutElement = seat.fields[role]
 			if not value.visible:
 				continue
-			assert_gte(value.font_size, 18 if portrait and not seat.hero else 20)
+			assert_gte(value.font_size, 18)
 			if not seat.hero:
 				assert_true(
 					seat.footprint.encloses(value.rect), context + " complete seat footprint"

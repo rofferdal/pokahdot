@@ -9,5 +9,7 @@ var policy: GuiCompositionState
 
 
 func apply_policy(state: GuiCompositionState) -> void:
+	theme = GuiTypography.for_density(state.density)
+	theme_type_variation = &"TableComposition"
 	policy = state
 	policy_changed.emit(state)

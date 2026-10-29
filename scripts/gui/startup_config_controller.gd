@@ -14,12 +14,10 @@ const PORTRAIT_FORM_WIDTH_RATIO := 0.84
 const DESKTOP_FORM_WIDTH_RATIO := 0.46
 const DESKTOP_FORM_MIN_WIDTH := 720.0
 const DESKTOP_FORM_MAX_WIDTH := 900.0
-const PORTRAIT_FONT_SCALE := 2.0
-const COMPACT_FONT_SCALE := 0.625
+const PORTRAIT_TARGET_SCALE := 2.0
+const COMPACT_TARGET_SCALE := 0.625
 const COMPACT_LANDSCAPE_MAX_WIDTH := 1300.0
 const COMPACT_LANDSCAPE_MAX_HEIGHT := 800.0
-const DEFAULT_FORM_FONT_SIZE := 32
-const DEFAULT_TITLE_FONT_SIZE := 64
 const STARTUP_TOUCH_TARGET_HEIGHT := 64.0
 const PHONE_MAX_PLAYER_COUNT := 7
 const PHONE_PLAYER_COUNT_ERROR := (
@@ -266,24 +264,25 @@ func _refresh_startup_layout() -> void:
 		_startup_form_panel.custom_minimum_size.x = (
 			available.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
 		)
-		_set_startup_form_font_sizes(COMPACT_FONT_SCALE)
+		_set_startup_touch_targets(COMPACT_TARGET_SCALE)
 	elif is_portrait:
 		_startup_form_panel.custom_minimum_size.x = (
 			available.x * (0.94 if phone_layout else PORTRAIT_FORM_WIDTH_RATIO)
 		)
-		var portrait_scale: float = (
-			COMPACT_FONT_SCALE
+		var target_scale: float = (
+			COMPACT_TARGET_SCALE
 			if is_compact_portrait
-			else clampf(minf(available.x / 960.0, available.y / 1920.0), 1.0, PORTRAIT_FONT_SCALE)
+			else clampf(minf(available.x / 960.0, available.y / 1920.0), 1.0, PORTRAIT_TARGET_SCALE)
 		)
-		_set_startup_form_font_sizes(portrait_scale)
+		_set_startup_touch_targets(target_scale)
 	else:
 		_startup_form_panel.custom_minimum_size.x = clampf(
 			available.x * DESKTOP_FORM_WIDTH_RATIO,
 			DESKTOP_FORM_MIN_WIDTH,
 			DESKTOP_FORM_MAX_WIDTH,
 		)
-		_set_startup_form_font_sizes(1.0)
+		_set_startup_touch_targets(1.0)
+	_apply_startup_typography(compact_form)
 	_fit_startup_header(available)
 	if _number_keypad != null and _number_keypad.visible:
 		_number_keypad.refresh_layout(GuiMobileTableLayoutScript.content_scale(available))
@@ -325,21 +324,39 @@ func _phone_player_count_is_valid() -> bool:
 	return candidate.to_int() <= PHONE_MAX_PLAYER_COUNT
 
 
-func _set_startup_form_font_sizes(scale_factor: float) -> void:
-	_set_startup_control_font_sizes(_startup_form, scale_factor)
+func _apply_startup_typography(compact: bool) -> void:
+	_startup_form.theme = GuiTypography.for_density(
+		GuiFitCandidate.Density.COMPACT if compact else GuiFitCandidate.Density.FULL
+	)
+	_title.remove_theme_font_size_override("font_size")
+	_title.theme_type_variation = &"HeadingText"
+	for label: Label in [
+		_description,
+		_player_count_label,
+		_starting_stack_label,
+		_small_blind_label,
+		_big_blind_label,
+		_phone_player_count_guidance,
+		_player_count_error,
+		_starting_stack_error,
+		_small_blind_error,
+		_big_blind_error,
+		_form_status,
+	]:
+		label.theme_type_variation = &"BodyText"
 
 
-func _set_startup_control_font_sizes(node: Node, scale_factor: float) -> void:
-	if node is Control:
-		var control := node as Control
-		var default_font_size := (
-			DEFAULT_TITLE_FONT_SIZE if control.name == &"Title" else DEFAULT_FORM_FONT_SIZE
-		)
-		control.add_theme_font_size_override(&"font_size", roundi(default_font_size * scale_factor))
-		if control is LineEdit or control is Button or control is CheckBox:
-			control.custom_minimum_size.y = maxf(48.0, STARTUP_TOUCH_TARGET_HEIGHT * scale_factor)
-	for child: Node in node.get_children():
-		_set_startup_control_font_sizes(child, scale_factor)
+func _set_startup_touch_targets(geometry_scale: float) -> void:
+	for control: Control in [
+		_player_count_input,
+		_starting_stack_input,
+		_small_blind_input,
+		_big_blind_input,
+		_use_legacy_models_checkbox,
+		_start_button,
+		_quit_application_button,
+	]:
+		control.custom_minimum_size.y = maxf(48.0, STARTUP_TOUCH_TARGET_HEIGHT * geometry_scale)
 
 
 func _configure_numeric_inputs_for_mobile() -> void:

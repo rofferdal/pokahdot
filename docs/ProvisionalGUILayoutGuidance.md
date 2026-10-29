@@ -50,6 +50,19 @@ controller cutover remain RG-51–54; reference play retains its current geometr
 Do not add reference breakpoints to new components. The isolated
 `SpaceGuidance` appearance is user-accepted.
 
+The shared replacement palette/type variations are now authored in
+`resources/gui_theme.tres` and await RG-30 visual review. New controls should
+use those variations; the reference defaults/runtime factories remain until
+replacement cutover. The theme gallery is a review fixture, not a table layout.
+Do not introduce another font file or SystemFont; WinningHandText derives its
+bold appearance from the built-in font.
+
+Pure `TableViewModel` and child values now own card states, seat copy, winner
+emphasis, action flags, center/summary copy and the shared log body. The current
+controller consumes them; reference containers and factories remain until
+replacement scene cutover. New components render these values and emit intents
+instead of reading GameView or calculating poker-derived text themselves.
+
 Use containers and anchors for ordinary content. Calculated table regions
 must have one layout owner that assigns parent and child rectangles from the
 same geometry snapshot. `GuiPhoneLayoutPlan` and `GuiPhoneSeatLayout` supply
@@ -66,8 +79,9 @@ change layout minimums. No Start-screen scrolling is allowed: measured header
 fit yields optional copy/logo allocation before essential controls, retaining
 font/target floors and normal container geometry.
 
-The reference retains its 20 px text floor except the reviewed 18 px event-log
-body. The replacement permits seat copy
+RG-31 applies shared compact/regular metric Themes to reference startup/table/
+keypad roots and replacement compositions. Fonts do not multiply by geometry
+scale, and no recursive font repair is used. Both paths permit seat copy
 (names, stacks, markers and action/showdown band) to scale to 18 logical/CSS px;
 card ranks and other GUI text retain 20 px, except event-log body text at
 18 px (preview feedback, 2026-10-29). Log headings/actions still use 20 px.
@@ -81,7 +95,8 @@ regressions supplement canonical layout coverage.
 
 The replacement uses reusable action-button and input-field components.
 Buttons, including Quit, have rounded corners, dark-green backgrounds and white
-text. Number/text fields have sharp corners, white backgrounds and dark-green
+enabled text; disabled labels use grey (`#A8A8A8` in the current candidate).
+Number/text fields have sharp corners, white backgrounds and dark-green
 text. Keep this distinction through focus, disabled/read-only and error states,
 including touch fields that open a keypad. RG-30/RG-39 implement these styles.
 Total wager entry is the later user-approved exception: light-grey text on a
@@ -98,7 +113,10 @@ text; adapt owned geometry and source font sizes instead.
 
 Sixteen avatar PNGs have 64 × 64 source pixels. Full seat panel base display
 regions are 112 × 112 logical pixels for opponents and 128 × 128 for the human,
-with layout adaptation; phone tokens omit avatars. Assignment is GUI-owned,
+with layout adaptation; phone tokens omit avatars. These are reference sizes;
+replacement larger-screen seat surfaces must display their assigned avatar
+using measured aspect-preserving allocation (the theme gallery uses 64×64).
+Resize/rotation must not reselect an avatar. Assignment is GUI-owned,
 unique per tournament, and independent of game RNG. Physical output also
 depends on DPR; source dimensions are not a browser display measurement.
 
@@ -168,3 +186,24 @@ evidence remains in the archived [phone review](arkiv/OptimizingPhoneGuiTasks.md
 landscape tasks unchecked. Historical iPad sign-off, incomplete desktop
 measurements, and accepted LAN resolution limitations remain separate records
 linked by the current documentation index.
+
+
+Replacement card proportions follow the 2026-10-29 review: actual card width/
+height is at least 5:7 or wider. Prevent a containing row from stretching cards
+vertically into a narrow strip. Face/back/empty slots share their allocation.
+Value and suit have comparable visual size; maximize the fitting font inside
+positive content padding, including rank `10` and all suits. Keep both at least
+20 logical/CSS px and use the built-in default font. RG-40 owns the reusable
+implementation; theme-gallery measurements are preview evidence only.
+
+
+The latest RG-30 review requires fully grayscale folded surfaces, including
+avatars/text/borders; reuse the authored grayscale shader/material and preserve
+its descendant inheritance. The new acting border is six pixels, stronger than
+the reference layout's three-pixel treatment. Wide human seats should receive
+more reading space and larger identity copy/avatar than bot seats where measured
+fit permits. Card glyph fitting must consider visible ink rather than unused
+line leading: scale size with container space, keep positive padding and the
+20 px text floor, and preserve 5:7-or-wider actual allocations. The gallery's
+403×112 human face and 90/91 px card samples illustrate this preference; RG-40/41
+implement the responsive reusable components.

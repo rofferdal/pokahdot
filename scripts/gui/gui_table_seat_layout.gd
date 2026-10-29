@@ -110,13 +110,7 @@ static func apply(
 		var panel := seats[seat] as GuiTableSeatView
 		if not layout.small_desktop_layout and not layout.compact_tablet_layout:
 			GuiMobileTableLayoutScript.restore_standard_seat_overlays(panel, is_hero)
-		GuiMobileTableLayoutScript.apply_seat_typography(
-			panel,
-			layout.seat_visual_scale,
-			is_hero,
-			1.0,
-			not layout.mobile_portrait_layout and not layout.small_desktop_layout
-		)
+		GuiMobileTableLayoutScript.apply_seat_geometry(panel, layout.seat_visual_scale, is_hero)
 		if layout.small_desktop_layout:
 			GuiMobileTableLayoutScript.apply_small_desktop_seat_footprint(panel)
 		elif layout.compact_tablet_layout:

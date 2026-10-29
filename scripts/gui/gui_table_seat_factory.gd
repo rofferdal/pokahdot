@@ -14,25 +14,31 @@ const PHONE_CARD_SIZE := Vector2(18, 30)
 const PHONE_SHOWDOWN_CARD_SIZE := Vector2(46, 30)
 const PHONE_SHOWDOWN_CARD_GAP: float = 2.0
 const GUI_MINIMUM_FONT_SIZE: int = GuiTableStyle.MINIMUM_FONT_SIZE
-const OPPONENT_CHIP_FONT_SIZE: int = 44
-const SEAT_TEXT_FONT_SIZE: int = 40
-const HERO_SEAT_TEXT_FONT_SIZE: int = 46
 const NORMAL_SEAT_FRAME_WIDTH: int = 1
 const HERO_SEAT_FRAME_WIDTH: int = 2
 const ACTING_SEAT_FRAME_COLOR := Color.WHITE
 
 var _bound_view: GameView
+var _view_model: TableViewModel
 var _avatar_assignments: Dictionary[int, String]
 var _name_assignments: Dictionary[int, String]
 
 
 ## The controller owns these assignment snapshots for the current tournament.
 func configure(
-	view: GameView, avatars: Dictionary[int, String], names: Dictionary[int, String]
+	view: GameView,
+	avatars: Dictionary[int, String],
+	names: Dictionary[int, String],
+	presentation: TableViewModel = null
 ) -> void:
 	_bound_view = view
 	_avatar_assignments = avatars
 	_name_assignments = names
+	_view_model = (
+		presentation
+		if presentation != null
+		else TableViewModel.build(view, names, avatars, {}, {}, [])
+	)
 
 
 func create_phone_opponent_token(
@@ -135,35 +141,11 @@ func phone_token_label(label_name: String, label_text: String) -> Label:
 
 
 func phone_seat_badge_text(player_view: PlayerView) -> String:
-	var badges: Array[String] = []
-	var position_text: String = seat_marker_text(player_view)
-	if not position_text.is_empty():
-		badges.append(position_text)
-	if player_view.seat == _bound_view.acting_seat:
-		badges.append("Turn")
-	if player_view.folded:
-		badges.append("Fold")
-	elif player_view.all_in:
-		badges.append("AI")
-	elif player_view.busted:
-		badges.append("Out")
-	return " ".join(badges)
+	return _view_model.seat_for(player_view.seat).badge_text
 
 
 func phone_token_badge_text(player_view: PlayerView) -> String:
-	var badges: Array[String] = []
-	var position_text: String = seat_marker_text(player_view)
-	if not position_text.is_empty() and not player_view.busted:
-		badges.append(position_text.replace(" ", ""))
-	if player_view.folded:
-		badges.append("F")
-	elif player_view.all_in:
-		badges.append("AI")
-	elif player_view.busted:
-		badges.append("Out")
-	elif player_view.seat == _bound_view.acting_seat:
-		badges.append("T")
-	return "".join(badges) if player_view.all_in else " ".join(badges)
+	return _view_model.seat_for(player_view.seat).token_badge_text
 
 
 func create_phone_action_badge(action_text: String) -> Label:
@@ -269,7 +251,7 @@ func create_seat_widget(player_view: PlayerView) -> GuiTableSeatView:
 	var avatar_region := create_avatar_region(player_view.seat, OPPONENT_AVATAR_SIZE)
 	row.add_child(avatar_region)
 	add_main_pot_winner_star(avatar_region, player_view.seat, OPPONENT_AVATAR_SIZE)
-	row.add_child(create_seat_identity(player_view, SEAT_TEXT_FONT_SIZE))
+	row.add_child(create_seat_identity(player_view))
 	row.add_child(create_marker_label(player_view))
 	var footer := HBoxContainer.new()
 	footer.name = "Footer"
@@ -311,7 +293,7 @@ func create_hero_seat_widget(player_view: PlayerView) -> GuiTableSeatView:
 	var avatar_region := create_avatar_region(player_view.seat, HERO_AVATAR_SIZE)
 	header.add_child(avatar_region)
 	add_main_pot_winner_star(avatar_region, player_view.seat, HERO_AVATAR_SIZE)
-	header.add_child(create_seat_identity(player_view, HERO_SEAT_TEXT_FONT_SIZE))
+	header.add_child(create_seat_identity(player_view))
 	header.add_child(create_marker_label(player_view))
 	var cards := HBoxContainer.new()
 	cards.name = "HeroCards"
@@ -379,7 +361,7 @@ func create_marker_label(player_view: PlayerView) -> Label:
 	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	marker.autowrap_mode = TextServer.AUTOWRAP_OFF
 	marker.clip_text = true
-	marker.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
+	marker.theme_type_variation = &"SeatText"
 	marker.add_theme_color_override("font_color", Color("172331"))
 	var marker_style := GuiTableStyleScript.compact_box(Color("e7d39b"), Color("f5f0dc"), 1, 5)
 	if marker.text.is_empty():
@@ -403,15 +385,11 @@ func add_main_pot_winner_star(
 
 
 func is_main_pot_winner_at_showdown(seat: int) -> bool:
-	if _bound_view == null or not _bound_view.showdown_results.has(seat):
-		return false
-	for award: PotAward in _bound_view.pot_awards:
-		if award.pot_index == 0:
-			return seat in award.winner_seats
-	return false
+	var model: SeatViewModel = _view_model.seat_for(seat)
+	return model != null and model.main_pot_winner
 
 
-func create_seat_identity(player_view: PlayerView, name_font_size: int) -> VBoxContainer:
+func create_seat_identity(player_view: PlayerView) -> VBoxContainer:
 	var identity := VBoxContainer.new()
 	identity.name = "Identity"
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -421,16 +399,16 @@ func create_seat_identity(player_view: PlayerView, name_font_size: int) -> VBoxC
 	name_label.text = seat_title(player_view)
 	name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	name_label.clip_text = true
-	name_label.add_theme_font_size_override("font_size", name_font_size)
+	name_label.theme_type_variation = (
+		&"HeroText" if player_view.seat == _bound_view.hero_seat else &"SeatText"
+	)
 	identity.add_child(name_label)
 	var stack_label := Label.new()
 	stack_label.name = "Stack"
-	stack_label.text = (
-		str(player_view.stack) if player_view.stack >= 100000 else "%d chips" % player_view.stack
-	)
+	stack_label.text = _view_model.seat_for(player_view.seat).stack_text
 	stack_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	stack_label.clip_text = true
-	stack_label.add_theme_font_size_override("font_size", OPPONENT_CHIP_FONT_SIZE)
+	stack_label.theme_type_variation = name_label.theme_type_variation
 	identity.add_child(stack_label)
 	return identity
 
@@ -477,17 +455,8 @@ func create_opponent_card_face(card_data: CardData, index: int) -> PanelContaine
 
 
 func seat_title(player_view: PlayerView) -> String:
-	if player_view.is_human:
-		return NameAssignmentService.HUMAN_LABEL
-	return _name_assignments.get(player_view.seat, player_view.display_name)
+	return _view_model.seat_for(player_view.seat).display_name
 
 
 func seat_marker_text(player_view: PlayerView) -> String:
-	var markers: Array[String] = []
-	if player_view.seat == _bound_view.button_seat:
-		markers.append("D")
-	if player_view.seat == _bound_view.small_blind_seat:
-		markers.append("SB")
-	if player_view.seat == _bound_view.big_blind_seat:
-		markers.append("BB")
-	return " ".join(markers)
+	return _view_model.seat_for(player_view.seat).markers

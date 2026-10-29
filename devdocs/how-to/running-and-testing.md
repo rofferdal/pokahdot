@@ -224,6 +224,13 @@ for denser step-20 diagnostics. Read the
 [characterization guidance](../../docs/GUI_VISUAL_TESTING.md#policy-and-fit-characterization)
 before reviewing or explicitly changing the failure registry.
 
+RG-31's reference typography migration removes font multiplication and recursive
+font repair. Shared compact/regular metric Themes cover startup, table and
+keypad text. Tests separately enforce 18 px seat/log copy, 20 px other text and
+48 px targets, including native dialog buttons. Its reviewed characterization
+update changes 25 existing scene/resize diagnostic sets while preserving the
+ordered matrix and the same 1,098 failing inputs; it accepts no new failed input.
+
 The app-level `GuiViewportAdapter` owns Window normalization and usable origins;
 startup/table/popups consume its immutable geometry. Run the additional exported
 viewport gate with a fresh output directory:
@@ -261,6 +268,24 @@ must consume the typed policy and measured minima, without legacy layout imports
 or new viewport breakpoints. Its mutation tests live in
 `tests/documentation/test_gui_policy_guard.py`. Reference scripts stay outside
 this scoped replacement guard until cutover.
+
+Presentation-model tests (`test_gui_*_view_model.gd`) cover authorized card
+states, action availability, exact values, density variants, winner emphasis,
+detached history and pre-tree/rebind adapter behavior. These run in `make check`.
+Use `PokerTableController.get_table_view_model()` to inspect the detached bound
+presentation; preserve button/input/submission tests in the real adapter. The
+[coverage map](../../docs/GuiModelCoverage.md) records migrated cases and retained
+rendered/core interactions, including the limited single-run timing evidence.
+
+The [RG-30 theme-gallery command](../../docs/GUI_VISUAL_TESTING.md#shared-theme-review-gallery-rg-30)
+produces an isolated palette preview. `test_gui_theme_palette.gd` mounts real
+Controls to test effective variation inheritance, states, font metrics and
+Total's separate face/target sizes. Revised gallery coverage also checks
+wide avatar binding, 5:7-or-wider actual card geometry and equal maximal fitting
+value/suit typography with padding. Review3 also checks full grayscale material
+inheritance, larger human allocations, the stronger acting border and ink-sized
+card controls; native PNG evidence distinguishes actual glyph ink from line boxes. These checks run in `make check`; gallery
+acceptance and final table/device acceptance remain distinct.
 
 ### Exercise exported Web input
 

@@ -61,20 +61,16 @@ static func validate_snapshot(
 		Regions.validate(snapshot, Profiles.is_phone(snapshot.profile), failures)
 		_validate_board(snapshot, failures)
 		_validate_actions(snapshot, failures)
-	var portrait_seat_copy: bool = (
-		snapshot.profile == Profiles.Kind.PHONE_PORTRAIT
-		and snapshot.surface_size.y > snapshot.surface_size.x
-	)
 	for value: GuiLayoutElement in snapshot.measured:
 		_validate_containment(value, snapshot.root_rect, failures)
-		validate_element(value, failures, portrait_seat_copy)
+		validate_element(value, failures)
 	# Semantic fields keep stable diagnostic roles independent of descendant indices.
 	for value: GuiLayoutElement in snapshot.elements.values():
-		validate_element(value, failures, portrait_seat_copy)
+		validate_element(value, failures)
 	for seat: GuiSeatSnapshot in snapshot.seats.values():
 		for value: GuiLayoutElement in seat.fields.values():
-			validate_element(value, failures, portrait_seat_copy)
-		validate_element(seat.status, failures, portrait_seat_copy)
+			validate_element(value, failures)
+		validate_element(seat.status, failures)
 		for card: GuiCardSnapshot in seat.cards:
 			_require(
 				card.kind != GuiCardSnapshot.Kind.FACE or card.authorized,
@@ -93,7 +89,7 @@ static func validate_snapshot(
 		)
 		for value: GuiLayoutElement in overlay.measured:
 			_validate_containment(value, overlay.element.rect, failures)
-			validate_element(value, failures, portrait_seat_copy)
+			validate_element(value, failures)
 	_require(
 		visible_overlays == expected_overlays,
 		"overlay-exception: expected visible %s, got %s" % [expected_overlays, visible_overlays],
@@ -102,10 +98,8 @@ static func validate_snapshot(
 	return failures
 
 
-static func validate_element(
-	value: GuiLayoutElement, failures: PackedStringArray, portrait_seat_copy: bool = false
-) -> void:
-	Content.validate_element(value, failures, portrait_seat_copy)
+static func validate_element(value: GuiLayoutElement, failures: PackedStringArray) -> void:
+	Content.validate_element(value, failures)
 
 
 static func _validate_containment(

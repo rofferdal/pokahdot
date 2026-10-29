@@ -92,7 +92,7 @@ func test_phone_summary_names_fold_winner_without_revealing_cards() -> void:
 	table._refresh_phone_secondary_controls()
 	table._open_phone_showdown()
 	assert_true(table._phone_showdown_overlay.visible)
-	assert_eq(table._phone_showdown_summary.text, "Main pot (101): Linh +101")
+	assert_eq(table._phone_showdown_summary.text, table.get_table_view_model().summary.text)
 	assert_true(table.displayed_hero_cards.size() <= 2)
 	assert_true(view.revealed_hole_cards.is_empty())
 
@@ -109,10 +109,10 @@ func test_phone_summary_reports_each_split_and_side_pot_share_and_assigned_winne
 	var table: PokerTableController = await _phone_view_table(view)
 	table.bind_view(table._bound_view, {}, {4: "Bao", 5: "Linh"})
 	table._refresh_action_controls()
-	var summary: String = table._phone_showdown_summary_text()
-	assert_string_contains(summary, "Main pot (101): Bao +51, Linh +50")
-	assert_string_contains(summary, "Side pot 1 (40): Linh +40")
-	assert_eq(table._action_status.text, "Linh wins")
+	table.get_node("%PhoneMoreButton").emit_signal("pressed")
+	assert_true(table._phone_showdown_overlay.visible)
+	assert_eq(table._phone_showdown_summary.text, table.get_table_view_model().summary.text)
+	assert_eq(table._action_status.text, table.get_table_view_model().actions.reference_status_text)
 
 
 func test_phone_overflow_quit_waits_for_confirmation_and_profile_exit_restores_desktop() -> void:

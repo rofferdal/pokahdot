@@ -3,7 +3,6 @@ extends PopupPanel
 
 signal confirmed
 
-const GUI_MINIMUM_FONT_SIZE: int = 20
 const KEYPAD_WIDTH: float = 280.0
 const KEYPAD_HEIGHT: float = 360.0
 const KEY_WIDTH: float = 80.0
@@ -48,6 +47,7 @@ static func can_wager(view: GameView) -> bool:
 
 func _init() -> void:
 	name = "WagerKeypad"
+	theme = GuiTypography.Compact
 	exclusive = false
 	transparent_bg = false
 	add_theme_stylebox_override(
@@ -61,18 +61,18 @@ func _init() -> void:
 	_title.name = "Title"
 	_title.text = "Enter wager total"
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	_title.theme_type_variation = &"BodyText"
 	_content.add_child(_title)
 	_value_label = Label.new()
 	_value_label.name = "Value"
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_value_label.add_theme_font_size_override("font_size", 28)
+	_value_label.theme_type_variation = &"HeadingText"
 	_content.add_child(_value_label)
 	_range_label = Label.new()
 	_range_label.name = "Range"
 	_range_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_range_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_range_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	_range_label.theme_type_variation = &"BodyText"
 	_content.add_child(_range_label)
 	_body = BoxContainer.new()
 	_body.name = "Body"
@@ -112,13 +112,13 @@ func _init() -> void:
 	_done_button = Button.new()
 	_done_button.name = "Done"
 	_done_button.text = "Done"
-	_done_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	_done_button.theme_type_variation = &"KeypadKey"
 	_done_button.pressed.connect(_confirm)
 	_done_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_cancel_button = Button.new()
 	_cancel_button.name = "Cancel"
 	_cancel_button.text = "Cancel"
-	_cancel_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	_cancel_button.theme_type_variation = &"KeypadKey"
 	_cancel_button.pressed.connect(_cancel)
 	_cancel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_utilities_grid.add_child(_cancel_button)
@@ -250,7 +250,7 @@ func is_bottom_sheet() -> bool:
 func _refresh_popup_layout(scale: float, usable_size: Vector2i = Vector2i.ZERO) -> void:
 	_layout_generation += 1
 	_last_content_scale = scale
-	_apply_content_scale(scale)
+	_apply_geometry_scale(scale)
 	var viewport_size: Vector2i = (
 		usable_size if usable_size != Vector2i.ZERO else _owner_viewport_size()
 	)
@@ -265,8 +265,10 @@ func _refresh_popup_layout(scale: float, usable_size: Vector2i = Vector2i.ZERO) 
 	popup_style.content_margin_top = 2.0 if compact_height else 5.0
 	popup_style.content_margin_bottom = 2.0 if compact_height else 5.0
 	add_theme_stylebox_override("panel", popup_style)
-	if compact_height:
-		_value_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
+	theme = GuiTypography.for_density(
+		GuiFitCandidate.Density.COMPACT if compact_height else GuiFitCandidate.Density.FULL
+	)
+	_value_label.theme_type_variation = &"BodyText" if compact_height else &"HeadingText"
 	_title.visible = not compact_height
 	_content.add_theme_constant_override("separation", 0 if compact_height else 6)
 	_keys_grid.add_theme_constant_override("v_separation", 0 if compact_height else 6)
@@ -324,7 +326,7 @@ func _add_key(keys: GridContainer, key_text: String, callback: Callable) -> Butt
 	key.name = "Key%s" % key_text.capitalize()
 	key.text = key_text
 	key.custom_minimum_size = Vector2(KEY_WIDTH, TOUCH_TARGET_HEIGHT)
-	key.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
+	key.theme_type_variation = &"KeypadKey"
 	key.pressed.connect(callback)
 	keys.add_child(key)
 	_keys.append(key)
@@ -332,18 +334,12 @@ func _add_key(keys: GridContainer, key_text: String, callback: Callable) -> Butt
 	return key
 
 
-func _apply_content_scale(content_scale: float) -> void:
+func _apply_geometry_scale(content_scale: float) -> void:
 	var scale: float = clampf(content_scale, 1.0, 2.0)
-	_title.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
-	_value_label.add_theme_font_size_override("font_size", 28 * scale)
-	_range_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
 	for key: Button in _keys:
 		key.custom_minimum_size = Vector2(KEY_WIDTH * scale, TOUCH_TARGET_HEIGHT * scale)
-		key.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
 	_done_button.custom_minimum_size = Vector2(KEY_WIDTH * scale, TOUCH_TARGET_HEIGHT * scale)
-	_done_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
 	_cancel_button.custom_minimum_size = Vector2(KEY_WIDTH * scale, TOUCH_TARGET_HEIGHT * scale)
-	_cancel_button.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE * scale)
 	var cell_width: float = KEY_WIDTH * scale
 	for action: String in ["clear", "back", "min", "pot", "cancel", "done"]:
 		var button: Button = _key_controls[action]

@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/layout/gui_composition_host.gd" id="1_host"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/SpaceGuidance.tscn" id="2_guidance"]
+[ext_resource type="Theme" path="res://resources/gui_theme.tres" id="3_palette"]
 
 [node name="CompositionHost" type="Control"]
 layout_mode = 0
 mouse_filter = 2
+theme = ExtResource("3_palette")
 script = ExtResource("1_host")
 
 [node name="LayoutSlot" type="MarginContainer" parent="."]

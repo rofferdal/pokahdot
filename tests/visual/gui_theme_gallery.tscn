@@ -1,0 +1,656 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Theme" path="res://resources/gui_theme.tres" id="1_theme"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/BrandLogo.tscn" id="2_logo"]
+
+[ext_resource type="Script" path="res://tests/visual/gui_theme_gallery.gd" id="3_gallery"]
+[ext_resource type="Texture2D" path="res://assets/avatars/avatar_01.png" id="4_avatar"]
+[ext_resource type="Texture2D" path="res://assets/avatars/avatar_02.png" id="5_avatar"]
+[ext_resource type="Texture2D" path="res://assets/avatars/avatar_03.png" id="6_avatar"]
+[ext_resource type="Texture2D" path="res://assets/avatars/avatar_04.png" id="7_avatar"]
+
+[ext_resource type="Material" path="res://resources/gui_grayscale_material.tres" id="8_grayscale"]
+[ext_resource type="Script" path="res://tests/visual/gui_card_glyph_sample.gd" id="9_glyph"]
+
+[node name="ThemeGallery" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("1_theme")
+script = ExtResource("3_gallery")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.02745098, 0.20, 0.1254902, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 20.0
+offset_right = -24.0
+offset_bottom = -20.0
+
+[node name="Gallery" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Heading" type="Label" parent="Margin/Gallery"]
+layout_mode = 2
+theme_type_variation = &"HeadingText"
+text = "Shared controls and table palette"
+
+[node name="ButtonHeading" type="Label" parent="Margin/Gallery"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "Actions — normal, hover, pressed, focus, disabled, primary"
+
+[node name="Actions" type="GridContainer" parent="Margin/Gallery"]
+layout_mode = 2
+columns = 6
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+
+[node name="Normal" type="Button" parent="Margin/Gallery/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"ActionButton"
+text = "Fold"
+disabled = false
+
+[node name="Hover" type="Button" parent="Margin/Gallery/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"ActionButton"
+text = "Call 20"
+disabled = false
+
+[node name="Pressed" type="Button" parent="Margin/Gallery/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"ActionButton"
+text = "Raise"
+disabled = false
+
+[node name="Focus" type="Button" parent="Margin/Gallery/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"ActionButton"
+text = "Quit"
+disabled = false
+
+[node name="Disabled" type="Button" parent="Margin/Gallery/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"ActionButton"
+text = "All-in"
+disabled = true
+
+[node name="Primary" type="Button" parent="Margin/Gallery/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"PrimaryActionButton"
+text = "Next hand"
+disabled = false
+
+[node name="FieldHeading" type="Label" parent="Margin/Gallery"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "Fields — text, number, read-only, validation, Total, Total focus"
+
+[node name="Fields" type="GridContainer" parent="Margin/Gallery"]
+layout_mode = 2
+columns = 6
+theme_override_constants/h_separation = 12
+
+[node name="Name" type="LineEdit" parent="Margin/Gallery/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"InputField"
+text = "Leilani"
+editable = true
+expand_to_text_length = false
+
+[node name="Number" type="LineEdit" parent="Margin/Gallery/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"NumberField"
+text = "1000000"
+editable = true
+expand_to_text_length = false
+
+[node name="ReadOnly" type="LineEdit" parent="Margin/Gallery/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"InputField"
+text = "1000"
+editable = false
+expand_to_text_length = false
+
+[node name="Invalid" type="LineEdit" parent="Margin/Gallery/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"InputFieldInvalid"
+text = "0"
+editable = true
+expand_to_text_length = false
+
+[node name="Total" type="LineEdit" parent="Margin/Gallery/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"WagerTotalField"
+text = "250"
+editable = true
+expand_to_text_length = false
+
+[node name="TotalFocus" type="LineEdit" parent="Margin/Gallery/Fields"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 48)
+theme_type_variation = &"WagerTotalField"
+text = "250"
+editable = true
+expand_to_text_length = false
+
+[node name="SeatHeading" type="Label" parent="Margin/Gallery"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "Independent seat samples — winners, acting, folded, human and phone"
+
+[node name="Seats" type="GridContainer" parent="Margin/Gallery"]
+layout_mode = 2
+columns = 3
+theme_override_constants/v_separation = 12
+theme_override_constants/h_separation = 12
+
+[node name="Seat0" type="VBoxContainer" parent="Margin/Gallery/Seats"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 120)
+theme_override_constants/separation = 4
+
+[node name="Panel" type="PanelContainer" parent="Margin/Gallery/Seats/Seat0"]
+layout_mode = 2
+custom_minimum_size = Vector2(350, 108)
+size_flags_vertical = 4
+size_flags_horizontal = 4
+theme_type_variation = &"SeatPanel"
+
+[node name="Identity" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat0/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Avatar" type="TextureRect" parent="Margin/Gallery/Seats/Seat0/Panel/Identity"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("4_avatar")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Copy" type="VBoxContainer" parent="Margin/Gallery/Seats/Seat0/Panel/Identity"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat0/Panel/Identity/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Margin/Gallery/Seats/Seat0/Panel/Identity/Copy/Title"]
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "Leilani"
+
+[node name="Stack" type="Label" parent="Margin/Gallery/Seats/Seat0/Panel/Identity/Copy"]
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "1000000 chips"
+
+[node name="Markers" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat0/Panel"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Dealer" type="PanelContainer" parent="Margin/Gallery/Seats/Seat0/Panel/Markers"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"DealerButton"
+
+[node name="D" type="Label" parent="Margin/Gallery/Seats/Seat0/Panel/Markers/Dealer"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DealerText"
+text = "D"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WinnerStar" type="Control" parent="Margin/Gallery/Seats/Seat0/Panel"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+mouse_filter = 2
+theme_type_variation = &"WinnerStar"
+script = ExtResource("9_glyph")
+text = "★"
+font_size = 44
+
+[node name="Status" type="Label" parent="Margin/Gallery/Seats/Seat0"]
+custom_minimum_size = Vector2(350, 28)
+size_flags_horizontal = 4
+layout_mode = 2
+theme_type_variation = &"WinningHandText"
+text = "Pair of Aces"
+
+[node name="Seat1" type="VBoxContainer" parent="Margin/Gallery/Seats"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 120)
+theme_override_constants/separation = 4
+
+[node name="Panel" type="PanelContainer" parent="Margin/Gallery/Seats/Seat1"]
+layout_mode = 2
+custom_minimum_size = Vector2(350, 108)
+size_flags_vertical = 4
+size_flags_horizontal = 4
+theme_type_variation = &"SeatPanelActing"
+
+[node name="Identity" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat1/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Avatar" type="TextureRect" parent="Margin/Gallery/Seats/Seat1/Panel/Identity"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("5_avatar")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Copy" type="VBoxContainer" parent="Margin/Gallery/Seats/Seat1/Panel/Identity"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat1/Panel/Identity/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Margin/Gallery/Seats/Seat1/Panel/Identity/Copy/Title"]
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "Haruto"
+
+[node name="Stack" type="Label" parent="Margin/Gallery/Seats/Seat1/Panel/Identity/Copy"]
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "1000000 chips"
+
+[node name="Markers" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat1/Panel"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Blind" type="Label" parent="Margin/Gallery/Seats/Seat1/Panel/Markers"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"BlindMarker"
+text = "SB"
+
+[node name="Status" type="Label" parent="Margin/Gallery/Seats/Seat1"]
+custom_minimum_size = Vector2(350, 28)
+size_flags_horizontal = 4
+layout_mode = 2
+theme_type_variation = &"StatusBand"
+text = "Your turn"
+
+[node name="Seat2" type="VBoxContainer" parent="Margin/Gallery/Seats"]
+material = ExtResource("8_grayscale")
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 120)
+theme_override_constants/separation = 4
+
+[node name="Panel" type="PanelContainer" parent="Margin/Gallery/Seats/Seat2"]
+use_parent_material = true
+layout_mode = 2
+custom_minimum_size = Vector2(350, 108)
+size_flags_vertical = 4
+size_flags_horizontal = 4
+theme_type_variation = &"SeatPanelFolded"
+
+[node name="Identity" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat2/Panel"]
+use_parent_material = true
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Avatar" type="TextureRect" parent="Margin/Gallery/Seats/Seat2/Panel/Identity"]
+custom_minimum_size = Vector2(64, 64)
+use_parent_material = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("6_avatar")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Copy" type="VBoxContainer" parent="Margin/Gallery/Seats/Seat2/Panel/Identity"]
+use_parent_material = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat2/Panel/Identity/Copy"]
+use_parent_material = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Margin/Gallery/Seats/Seat2/Panel/Identity/Copy/Title"]
+use_parent_material = true
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "Youssef"
+
+[node name="Stack" type="Label" parent="Margin/Gallery/Seats/Seat2/Panel/Identity/Copy"]
+use_parent_material = true
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "1000000 chips"
+
+[node name="Status" type="Label" parent="Margin/Gallery/Seats/Seat2"]
+custom_minimum_size = Vector2(350, 28)
+size_flags_horizontal = 4
+use_parent_material = true
+layout_mode = 2
+theme_type_variation = &"StatusBand"
+text = "Fold"
+
+[node name="Seat3" type="VBoxContainer" parent="Margin/Gallery/Seats"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 148)
+theme_override_constants/separation = 4
+
+[node name="Panel" type="PanelContainer" parent="Margin/Gallery/Seats/Seat3"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 124)
+size_flags_vertical = 4
+size_flags_horizontal = 3
+theme_type_variation = &"HeroPanel"
+
+[node name="Identity" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat3/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Avatar" type="TextureRect" parent="Margin/Gallery/Seats/Seat3/Panel/Identity"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = ExtResource("7_avatar")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Copy" type="VBoxContainer" parent="Margin/Gallery/Seats/Seat3/Panel/Identity"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat3/Panel/Identity/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Margin/Gallery/Seats/Seat3/Panel/Identity/Copy/Title"]
+layout_mode = 2
+theme_type_variation = &"HeroText"
+text = "Human"
+
+[node name="Stack" type="Label" parent="Margin/Gallery/Seats/Seat3/Panel/Identity/Copy"]
+layout_mode = 2
+theme_type_variation = &"HeroText"
+text = "1000000 chips"
+
+[node name="Markers" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat3/Panel"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Dealer" type="PanelContainer" parent="Margin/Gallery/Seats/Seat3/Panel/Markers"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"DealerButton"
+
+[node name="D" type="Label" parent="Margin/Gallery/Seats/Seat3/Panel/Markers/Dealer"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"DealerText"
+text = "D"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Blind" type="Label" parent="Margin/Gallery/Seats/Seat3/Panel/Markers"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"BlindMarker"
+text = "SB"
+
+[node name="WinnerStar" type="Control" parent="Margin/Gallery/Seats/Seat3/Panel"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+mouse_filter = 2
+theme_type_variation = &"WinnerStar"
+script = ExtResource("9_glyph")
+text = "★"
+font_size = 44
+
+[node name="Status" type="Label" parent="Margin/Gallery/Seats/Seat3"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_type_variation = &"HeroWinningHandText"
+text = "Winner"
+
+[node name="Seat4" type="VBoxContainer" parent="Margin/Gallery/Seats"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 120)
+theme_override_constants/separation = 4
+
+[node name="Panel" type="PanelContainer" parent="Margin/Gallery/Seats/Seat4"]
+layout_mode = 2
+custom_minimum_size = Vector2(350, 108)
+size_flags_vertical = 4
+size_flags_horizontal = 4
+theme_type_variation = &"PhoneToken"
+
+[node name="Copy" type="VBoxContainer" parent="Margin/Gallery/Seats/Seat4/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat4/Panel/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Name" type="Label" parent="Margin/Gallery/Seats/Seat4/Panel/Copy/Title"]
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "Linh"
+
+[node name="Stack" type="Label" parent="Margin/Gallery/Seats/Seat4/Panel/Copy"]
+layout_mode = 2
+theme_type_variation = &"SeatText"
+text = "1000000 chips"
+
+[node name="Markers" type="HBoxContainer" parent="Margin/Gallery/Seats/Seat4/Panel"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Blind" type="Label" parent="Margin/Gallery/Seats/Seat4/Panel/Markers"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"BlindMarker"
+text = "BB"
+
+[node name="WinnerStar" type="Control" parent="Margin/Gallery/Seats/Seat4/Panel"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+mouse_filter = 2
+theme_type_variation = &"WinnerStar"
+script = ExtResource("9_glyph")
+text = "★"
+font_size = 44
+
+[node name="Status" type="Label" parent="Margin/Gallery/Seats/Seat4"]
+custom_minimum_size = Vector2(350, 28)
+size_flags_horizontal = 4
+layout_mode = 2
+theme_type_variation = &"WinningHandText"
+text = "Side-pot winner"
+
+[node name="LowerHeading" type="Label" parent="Margin/Gallery"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "Cards, result emphasis and event history"
+
+[node name="Lower" type="HBoxContainer" parent="Margin/Gallery"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Cards" type="HBoxContainer" parent="Margin/Gallery/Lower"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Face" type="PanelContainer" parent="Margin/Gallery/Lower/Cards"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 168)
+size_flags_vertical = 4
+theme_type_variation = &"CardFace"
+
+[node name="Glyphs" type="VBoxContainer" parent="Margin/Gallery/Lower/Cards/Face"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="Value" type="Control" parent="Margin/Gallery/Lower/Cards/Face/Glyphs"]
+layout_mode = 2
+theme_type_variation = &"CardRank"
+mouse_filter = 2
+script = ExtResource("9_glyph")
+text = "10"
+
+[node name="Suit" type="Control" parent="Margin/Gallery/Lower/Cards/Face/Glyphs"]
+layout_mode = 2
+theme_type_variation = &"CardRank"
+mouse_filter = 2
+script = ExtResource("9_glyph")
+text = "♠"
+
+[node name="RedFace" type="PanelContainer" parent="Margin/Gallery/Lower/Cards"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 168)
+size_flags_vertical = 4
+theme_type_variation = &"CardFace"
+
+[node name="Glyphs" type="VBoxContainer" parent="Margin/Gallery/Lower/Cards/RedFace"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="Value" type="Control" parent="Margin/Gallery/Lower/Cards/RedFace/Glyphs"]
+layout_mode = 2
+theme_type_variation = &"CardRankRed"
+mouse_filter = 2
+script = ExtResource("9_glyph")
+text = "A"
+
+[node name="Suit" type="Control" parent="Margin/Gallery/Lower/Cards/RedFace/Glyphs"]
+layout_mode = 2
+theme_type_variation = &"CardRankRed"
+mouse_filter = 2
+script = ExtResource("9_glyph")
+text = "♥"
+
+[node name="Back" type="PanelContainer" parent="Margin/Gallery/Lower/Cards"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 168)
+size_flags_vertical = 4
+theme_type_variation = &"CardBack"
+
+[node name="Pattern" type="Label" parent="Margin/Gallery/Lower/Cards/Back"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "◆"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Result" type="PanelContainer" parent="Margin/Gallery/Lower"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Zone"
+
+[node name="Copy" type="VBoxContainer" parent="Margin/Gallery/Lower/Result"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Heading" type="Label" parent="Margin/Gallery/Lower/Result/Copy"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "Main / split / side-pot winner"
+
+[node name="Winner" type="Label" parent="Margin/Gallery/Lower/Result/Copy"]
+layout_mode = 2
+theme_type_variation = &"WinningHandText"
+text = "Full house: Aces full of Kings\nWinner"
+
+[node name="Log" type="RichTextLabel" parent="Margin/Gallery/Lower"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(350, 140)
+theme_type_variation = &"EventLogBody"
+text = "Preflop begins\nLeilani: Call to 20\nHuman: Raise to 40\nHaruto wins 120"
+fit_content = true
+
+[node name="Footer" type="Label" parent="Margin/Gallery"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "One built-in font · 18 px seat/log copy · 20 px cards/controls · 48 px targets"

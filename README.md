@@ -1,4 +1,6 @@
-# Pokahdot
+# <img src="assets/images/Pokahdot_logo.png" alt="Pokahdot" width="320">
+
+The game will usually be available through [GitHub Pages](https://rofferdal.github.io/pokahdot/).
 
 Pokahdot is a poker game built with [Godot](https://godotengine.org/) 4. The
 rules live in a shared core (`scripts/core/`), so the same game can be played
@@ -45,6 +47,8 @@ The GUI normalizes native display scale and actual Web canvas CSS geometry
 through one viewport adapter. Startup, table and popups share safe-area bounds;
 container/content minimums guide responsive fit. The replacement components and
 presentation requirements remain tracked in the [GUI backlog](docs/RestructureGuiTasks.md).
+Table copy, card visibility models and action availability now use pure
+presentation models; the current controller still renders the reference layouts.
 
 ## Start headless (terminal)
 

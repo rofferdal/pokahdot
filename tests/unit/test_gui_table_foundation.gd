@@ -20,25 +20,30 @@ func test_physical_mouse_input_is_not_emulated_as_touchscreen_input() -> void:
 	)
 
 
-func test_startup_and_table_fonts_are_scaled_by_one_point_eight() -> void:
+func test_startup_and_table_use_shared_role_typography_without_global_font_scaling() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)
-	assert_eq(main.theme.default_font_size, 29)
-	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 50)
-	assert_eq(main.get_node("%Description").get_theme_font_size("font_size"), 29)
-	assert_eq(main.get_node("%PlayerCountInput").get_theme_font_size("font_size"), 29)
-	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 29)
-
-	var table = main.get_node("PokerTable")
-	table.bind_view(_table_view(2), _avatar_assignments(2))
-	assert_eq(table.theme.default_font_size, 29)
-	assert_eq(table.find_child("BoardLabel", true, false).get_theme_font_size("font_size"), 29)
-	assert_eq(table.find_child("PotLabel", true, false).get_theme_font_size("font_size"), 29)
-	assert_eq(table.find_child("WagerLabel", true, false).get_theme_font_size("font_size"), 29)
+	main.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	main.size = Vector2(1920, 1080)
+	main._refresh_startup_layout()
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 28)
+	for path: String in ["%Description", "%PlayerCountInput", "%StartButton"]:
+		assert_eq(main.get_node(path).get_theme_font_size("font_size"), 20)
+	var table: PokerTableController = PokerTableScene.instantiate()
+	table.hide()
+	add_child_autofree(table)
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(1920, 1080)
+	table.bind_view(_hero_table_view(2), _avatar_assignments(2))
+	table.show()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for path: String in ["%BoardLabel", "%PotLabel", "%WagerLabel"]:
+		assert_eq(table.get_node(path).get_theme_font_size("font_size"), 20)
 	assert_eq(
-		table.get_node("%CardSlots/CardSlot1/Content/Rank").get_theme_font_size("font_size"), 32
+		table.get_node("%CardSlots/CardSlot1/Content/Rank").get_theme_font_size("font_size"), 24
 	)
-	assert_eq(table.find_child("Name", true, false).get_theme_font_size("font_size"), 46)
+	assert_eq(table.find_child("Name", true, false).get_theme_font_size("font_size"), 26)
 
 
 func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rotation() -> void:
@@ -50,16 +55,16 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 
 	var panel: PanelContainer = main.get_node("%Panel")
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 1612.8))
-	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 128)
-	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 64)
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 28)
+	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 20)
 	assert_eq(main.get_node("%Fields").columns, 1)
 
 	main.size = Vector2(1920, 1080)
 	main._refresh_startup_layout()
 
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 883.2))
-	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 64)
-	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 32)
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 28)
+	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 20)
 	assert_eq(main.get_node("%Fields").columns, 2)
 	for input_path: NodePath in [
 		^"%PlayerCountInput",
@@ -73,7 +78,7 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 	main.size = Vector2(950, 532)
 	main._refresh_startup_layout()
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 798.0))
-	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 40)
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 24)
 	assert_eq(main.get_node("%StartButton").get_theme_font_size("font_size"), 20)
 	assert_eq(main.get_node("%Form").get_theme_constant("separation"), 8)
 	assert_eq(main.get_node("%Fields").columns, 2)
@@ -81,7 +86,7 @@ func test_startup_form_uses_readable_portrait_mobile_layout_and_resets_after_rot
 	main.size = Vector2(768, 1024)
 	main._refresh_startup_layout()
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 645.12))
-	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 40)
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 24)
 	assert_eq(main.get_node("%Fields").columns, 1)
 	assert_false(main.get_node("%FormStatus").visible)
 
@@ -592,7 +597,7 @@ func test_community_cards_keep_fixed_equal_bounds_when_wide_ranks_are_revealed()
 			)
 
 
-func test_player_facing_gui_text_never_falls_below_twenty_pixels() -> void:
+func test_player_facing_gui_text_respects_role_floors() -> void:
 	var main = MainScene.instantiate()
 	add_child_autofree(main)
 	_assert_minimum_gui_font_size(main)
@@ -824,7 +829,7 @@ func test_live_seat_panels_show_stacks_positions_and_hidden_opponent_cards() -> 
 	var chip_detail: Label = table.get_node(seat_prefix % 1 + "Header/Identity/Stack")
 	var avatar_region: Control = table.get_node(seat_prefix % 1 + "Header/AvatarRegion")
 	var card_back: Label = table.get_node(seat_prefix % 2 + "Footer/HoleCards/CardBack1")
-	assert_eq(chip_detail.get_theme_font_size("font_size"), 44)
+	assert_gte(chip_detail.get_theme_font_size("font_size"), 18)
 	assert_eq(avatar_region.custom_minimum_size, Vector2(112, 112))
 	assert_eq(card_back.custom_minimum_size, Vector2(60, 76))
 	assert_not_null(card_back)
@@ -931,9 +936,22 @@ func _clockwise_distance(from: Vector2, to: Vector2, center: Vector2) -> float:
 
 func _assert_minimum_gui_font_size(node: Node) -> void:
 	if node is Label or node is Button or node is LineEdit:
-		assert_gte(node.get_theme_font_size("font_size"), 20, str(node.get_path()))
+		var seat_role: bool = (
+			node is Label
+			and (
+				node.theme_type_variation
+				in [&"SeatText", &"HeroText", &"StatusBand", &"HeroStatusBand"]
+			)
+		)
+		assert_gte(
+			node.get_theme_font_size("font_size"), 18 if seat_role else 20, str(node.get_path())
+		)
 	elif node is RichTextLabel:
-		assert_gte(node.get_theme_font_size("normal_font_size"), 20, str(node.get_path()))
+		assert_gte(
+			node.get_theme_font_size("normal_font_size"),
+			18 if node.theme_type_variation == &"EventLogBody" else 20,
+			str(node.get_path())
+		)
 	for child: Node in node.get_children():
 		_assert_minimum_gui_font_size(child)
 

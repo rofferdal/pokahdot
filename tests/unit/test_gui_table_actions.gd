@@ -251,9 +251,6 @@ func test_live_repeated_raise_uses_existing_wager_and_reopens_action() -> void:
 	var reraised_view: GameView = match_instance.get_view_for(0)
 	assert_eq(reraised_view.pot_amount, 80)
 	assert_eq(_seat_view(reraised_view, 0).bet_this_round, 20)
-	assert_eq(reraised_view.call_amount, 20)
-	assert_eq(reraised_view.minimum_wager_total, 60)
-	assert_eq(reraised_view.maximum_wager_total, 490)
 	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 80")
 	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 80")
 	assert_false((table.get_node("%PotRaiseButton") as Button).disabled)
@@ -300,8 +297,6 @@ func test_live_repeated_raise_refreshes_minimum_and_rejects_obsolete_input_acros
 		table.get_node("%CheckCallButton").emit_signal("pressed")
 		table.submit_wager_total(20)
 		var before := match_instance.get_view_for(0)
-		assert_eq(before.minimum_wager_total, 60)
-		assert_eq(before.call_amount, 20)
 		assert_true(table.get_node("%MinWagerButton").text in ["Min Raise 60", "Min 60"])
 		assert_false(table.get_node("%WagerButton").disabled)
 		table.show_wager_keypad()
@@ -390,8 +385,6 @@ func test_core_short_all_in_views_keep_raise_controls_aligned_with_recipient_rig
 			table.set_layout_profile_override(profile)
 			var open_view := _core_raise_view(core_table, round, 3)
 			table.bind_view(open_view, _empty_assignments())
-			assert_eq(open_view.minimum_wager_total, 60)
-			assert_eq(open_view.call_amount, 40)
 			assert_false(table.get_node("%CheckCallButton").disabled)
 			assert_false(table.get_node("%AllInButton").disabled)
 			assert_eq(table.get_node("%MinWagerButton").disabled, unacted_stack < 60)
@@ -409,8 +402,6 @@ func test_core_short_all_in_views_keep_raise_controls_aligned_with_recipient_rig
 			assert_true(round.apply_action(3, PlayerAction.call_action()).is_ok())
 			var closed_view := _core_raise_view(core_table, round, 0)
 			table.bind_view(closed_view, _empty_assignments())
-			assert_eq(closed_view.minimum_wager_total, 60)
-			assert_eq(closed_view.call_amount, 10)
 			assert_false(table.get_node("%CheckCallButton").disabled)
 			for button: String in [
 				"%MinWagerButton", "%PotRaiseButton", "%WagerButton", "%AllInButton"
@@ -450,7 +441,6 @@ func test_live_short_stack_disables_exact_pot_without_clamping_to_all_in() -> vo
 	table.get_node("%CheckCallButton").emit_signal("pressed")
 	table.get_node("%PotRaiseButton").emit_signal("pressed")
 	var short_view: GameView = match_instance.get_view_for(0)
-	assert_eq(short_view.maximum_wager_total, 90)
 	assert_string_contains((table.get_node("%PotLabel") as Label).text, "Pot: 80")
 	assert_eq((table.get_node("%PotRaiseButton") as Button).text, "Pot 80")
 	assert_true((table.get_node("%PotRaiseButton") as Button).disabled)
@@ -515,40 +505,6 @@ func test_live_exact_minimum_and_maximum_pot_target_settles_without_clamping() -
 	assert_eq(after.pot_amount, 30)
 	assert_eq(_current_bet(after), 20)
 	assert_eq(_total_chips(after), 40)
-
-
-func test_pot_wager_shortcut_respects_legal_action_and_inclusive_total_bounds() -> void:
-	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
-	add_child_autofree(table)
-	var view := _action_view(2)
-	view.acting_seat = 0
-	view._legal_actions = [PlayerAction.Kind.CHECK, PlayerAction.Kind.BET]
-	view.minimum_wager_total = 20
-	view.maximum_wager_total = 100
-
-	for case: Dictionary in [
-		{"target": 19, "disabled": true, "label": "below minimum"},
-		{"target": 20, "disabled": false, "label": "at minimum"},
-		{"target": 100, "disabled": false, "label": "at maximum"},
-		{"target": 101, "disabled": true, "label": "above maximum"},
-	]:
-		view.pot_amount = case.target
-		table.bind_view(view, _empty_assignments())
-		assert_eq(table.get_node("%PotRaiseButton").disabled, case.disabled, case.label)
-
-	view.pot_amount = 15
-	view.maximum_wager_total = 15
-	view._legal_actions = [PlayerAction.Kind.CHECK, PlayerAction.Kind.ALL_IN]
-	table.bind_view(view, _empty_assignments())
-	assert_true(table.get_node("%PotRaiseButton").disabled, "insufficient stack")
-	assert_eq(table.get_node("%PotRaiseButton").text, "Pot 0")
-
-	view.pot_amount = 30
-	view.minimum_wager_total = 20
-	view.maximum_wager_total = 100
-	view._legal_actions = [PlayerAction.Kind.FOLD, PlayerAction.Kind.CALL]
-	table.bind_view(view, _empty_assignments())
-	assert_true(table.get_node("%PotRaiseButton").disabled, "wager action unavailable")
 
 
 func test_gui_renders_an_action_before_its_configured_nonblocking_pause_advances_a_bot() -> void:
@@ -930,7 +886,7 @@ func test_human_adjacent_panels_do_not_overlap_desktop_seats() -> void:
 		assert_lte(action_rect.size.y, 180.0, "%d-player two-row action height" % player_count)
 		assert_gte(event_rect.size.x, 380.0, "%d-player event width" % player_count)
 		assert_lte(event_rect.size.y, 180.0, "%d-player event height" % player_count)
-		assert_eq(table.get_node("%FoldButton").get_theme_font_size("font_size"), 32)
+		assert_eq(table.get_node("%FoldButton").get_theme_font_size("font_size"), 20)
 		assert_eq(table.get_node("%FoldButton").get_theme_stylebox("normal").border_width_left, 1)
 		assert_eq(table.get_node("%FoldButton").get_theme_stylebox("hover").border_width_left, 2)
 		assert_eq(table.get_node("%WagerInput").get_theme_stylebox("normal").border_width_left, 1)

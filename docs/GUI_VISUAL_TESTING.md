@@ -295,7 +295,8 @@ other text remain at least 20 (18 for event-log body); and 48×48 touch targets.
 a reachable Log action/menu in every layout and completed-hand state.
 
 Action buttons, including Quit and keypad keys, have rounded corners, dark-green
-backgrounds and white text. Number/text fields have sharp corners, white
+backgrounds and white enabled text; disabled labels use the later grey
+exception. Number/text fields have sharp corners, white
 backgrounds and dark-green text. Check focus, disabled/read-only and validation
 states as well as ordinary appearance. These component/style requirements are
 implemented and reviewed in RG-20/30/31/39–45; viewport correction alone does
@@ -640,3 +641,58 @@ case uses explicit primitive minima; it does not reject that viewport for the
 future complete table. Guidance acceptance is pending. The host's reachable
 menu/Quit and state preservation are integration work for subsequent tasks;
 these passive component previews do not certify those flows or device support.
+
+
+## Shared theme review gallery (RG-30)
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 \
+  --audio-driver Dummy --script tests/visual/gui_theme_capture.gd
+```
+
+This writes `localtmp/gui-elements/rg31-markers-winners-review3-1280x980.png` and JSON
+metadata with source hashes, image-save status and escaped-control observations.
+The authored gallery compares button states, generic/Total fields, seat surfaces
+with reserved status bands, bold yellow result copy, card surfaces and log body.
+Simultaneous hover/pressed/focus are fixture simulations using the actual theme
+resources; they are not pointer-interaction acceptance. All samples use the
+built-in default font. Theme-role tests verify effective inheritance, fonts,
+state distinctions and interactive/drawn geometry. This is a palette preview;
+completed responsive table components, composition, interactions and device
+acceptance remain in their owning tasks. The user accepted RG-30 and the revised
+RG-31 marker/star placement and status alignment on 2026-10-29.
+
+
+RG-30 review2 keeps the generally liked palette while showing grey disabled
+labels, larger-screen assigned-avatar samples and 120×168 cards. Metadata in
+`rg30-theme-review2.json` includes actual card sizes/ratios, equal value/suit
+font sizes, source/script hashes and escaped-control observations. Regression
+tests reject narrow actual allocations caused by parent stretch, absent/wrong
+avatars in wide samples, glyph overflow and a font choice that unnecessarily
+leaves another fitting size unused. The compact phone sample may omit avatars.
+This historical review2 candidate preceded review3 acceptance; it does not complete RG-40/41.
+
+
+RG-30 review3 adds complete folded-surface/avatar grayscale, a visibly larger
+human face/type/avatar, a six-pixel acting border and larger ink-fitted card
+glyphs. `rg30-theme-review3.json` records actual seat/card geometry, font sizes
+and source hashes. `rg30-theme-review3-pixel-verification.json` independently
+checks the saved PNG: folded surface/avatar RGB channels agree exactly, active
+avatars retain color and both printed card symbols remain inside six-pixel
+padding. The mask excludes rounded-card corner backgrounds. Test-only glyph
+controls measure actual ink; ordinary line-box measurements no longer cap the
+preview's visible occupancy. Validate full responsive card sizes later in
+RG-40; headless/native sample checks are not device acceptance. The user accepted
+review3 and authorized RG-31. RG-31 subsequently enlarged the winner star,
+placed D/SB/BB at the upper right and aligned status copy with its seat box;
+those gallery refinements are also accepted.
+
+RG-31 typography verification additionally covers native metric inheritance,
+normal/bold text-fit edges, the 18 px seat/log and 20 px other-text floors, and
+48 px targets independently of font size. The user selected immediate removal
+of reference font scaling. Its characterization migration preserves all 9,994
+ordered inputs and the same 1,098 failing inputs; 25 existing scene/resize
+diagnostic sets change with text metrics and stable semantic seat roles.
+No newly failing input is registered. Independent supported-state matrices must
+still pass without failures. The local audit is
+`localtmp/restructure_rg31/characterization-migration-audit.json`.

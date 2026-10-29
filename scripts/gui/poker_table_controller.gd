@@ -30,7 +30,6 @@ const PHONE_SHOWDOWN_CARD_SIZE = GuiTableSeatFactory.PHONE_SHOWDOWN_CARD_SIZE
 const PHONE_SHOWDOWN_CARD_GAP = GuiTableSeatFactory.PHONE_SHOWDOWN_CARD_GAP
 const GUI_MINIMUM_FONT_SIZE: int = GuiTableStyle.MINIMUM_FONT_SIZE
 const EVENT_LOG_FONT_SIZE: int = 18
-const SEAT_TEXT_FONT_SIZE = GuiTableSeatFactory.SEAT_TEXT_FONT_SIZE
 const DESKTOP_CENTER_ZONE_MAX_WIDTH: float = 520.0
 const CENTER_ZONE_SEPARATION: float = 8.0
 const CENTER_BOARD_MINIMUM_HEIGHT: float = 74.0
@@ -47,6 +46,7 @@ var _overlay_views := GuiTableOverlayViews.new()
 var _action_controls := GuiTableActionControls.new()
 var _seat_factory := GuiTableSeatFactory.new()
 var _bound_view: GameView
+var _view_model: TableViewModel
 var _match: TournamentMatch
 var _recipient_seat: int = Table.NO_SEAT
 var _avatar_assignments: Dictionary[int, String] = {}
@@ -173,9 +173,9 @@ func bind_view(
 		push_error("PokerTableController requires a GameView.")
 		return
 	_bound_view = view
+	_view_model = null
 	_avatar_assignments = avatar_assignments.duplicate()
 	_name_assignments = name_assignments.duplicate()
-	_seat_factory.configure(_bound_view, _avatar_assignments, _name_assignments)
 	_event_texts.clear()
 	board_card_count = view.community_cards.size()
 	displayed_pot_amount = view.pot_amount
@@ -192,6 +192,9 @@ func bind_view(
 			_retained_fold_actions[record.seat] = record
 	for player_view: PlayerView in view.seats:
 		wager_amounts[player_view.seat] = player_view.bet_this_round
+	_seat_factory.configure(
+		_bound_view, _avatar_assignments, _name_assignments, get_table_view_model()
+	)
 	_refresh_visuals()
 
 
@@ -293,7 +296,6 @@ func get_layout_snapshot() -> GuiLayoutSnapshot:
 			_seat_status_widgets,
 			modals,
 			_overlay_views.detail_seat,
-			get_layout_profile() == GuiLayoutProfileScript.Kind.PHONE_PORTRAIT,
 		)
 	)
 	snapshot.profile = get_layout_profile()
@@ -329,7 +331,6 @@ func bind_match(
 	_recipient_seat = recipient_seat
 	_avatar_assignments = avatar_assignments.duplicate()
 	_name_assignments = name_assignments.duplicate()
-	_seat_factory.configure(_bound_view, _avatar_assignments, _name_assignments)
 	refresh_from_match()
 	_schedule_after_latest_action()
 
@@ -470,9 +471,30 @@ func _on_wager_input_gui_input(event: InputEvent) -> void:
 		_wager_keypad.cancel()
 
 
+func get_table_view_model() -> TableViewModel:
+	var density: GuiFitCandidate.Density = (
+		GuiFitCandidate.Density.COMPACT
+		if is_node_ready() and _uses_compact_table_copy()
+		else GuiFitCandidate.Density.FULL
+	)
+	if _view_model == null or _view_model.density != density:
+		_view_model = TableViewModel.build(
+			_bound_view,
+			_name_assignments,
+			_avatar_assignments,
+			_active_round_latest_actions,
+			_retained_fold_actions,
+			_event_texts,
+			density
+		)
+	return _view_model
+
+
 func _refresh_visuals() -> void:
 	if not is_node_ready() or _bound_view == null:
 		return
+	_view_model = null
+	_apply_typography_roles()
 	_board_label.text = "Community cards"
 	_configure_center_copy(GuiLayoutProfileScript.is_phone(get_layout_profile()))
 	_configure_status_label(_pot_label)
@@ -483,7 +505,6 @@ func _refresh_visuals() -> void:
 	_refresh_phone_hero_summary()
 	_refresh_action_controls()
 	_refresh_phone_secondary_controls()
-	_enforce_minimum_gui_text_size_for_node(self)
 	_queue_layout()
 
 
@@ -521,67 +542,25 @@ func _apply_table_styles() -> void:
 
 
 func _count_wagers() -> int:
-	var count: int = 0
-	for amount: int in wager_amounts.values():
-		if amount > 0:
-			count += 1
-	return count
+	return get_table_view_model().center.wager_count
 
 
 func _current_wager_total() -> int:
-	var current_wager: int = 0
-	for amount: int in wager_amounts.values():
-		current_wager = maxi(current_wager, amount)
-	return current_wager
+	return get_table_view_model().center.current_wager
 
 
 func _configure_center_copy(phone_layout: bool) -> void:
 	if _bound_view == null:
 		return
-	if phone_layout:
-		_pot_label.text = "Pot: %d" % displayed_pot_amount
-		_wager_label.text = "Current wager: %d" % _current_wager_total()
-	else:
-		_wager_label.text = "Wagers  •  %d active" % _count_wagers()
-		_pot_label.text = (
-			"Pot: %d | SB %d BB %d | L%d"
-			% [
-				displayed_pot_amount,
-				_bound_view.small_blind,
-				_bound_view.big_blind,
-				_bound_view.blind_level,
-			]
-		)
-	if not phone_layout and _uses_large_chip_values():
-		_pot_label.text = (
-			"Pot: %d | L%d\nSB %d BB %d"
-			% [
-				displayed_pot_amount,
-				_bound_view.blind_level,
-				_bound_view.small_blind,
-				_bound_view.big_blind
-			]
-		)
-	_phone_blind_level_detail.text = (
-		"Blinds %d / %d  ·  Level %d  ·  %d hands to next level"
-		% [
-			_bound_view.small_blind,
-			_bound_view.big_blind,
-			_bound_view.blind_level,
-			_bound_view.hands_until_next_level,
-		]
-	)
+	var center: CenterViewModel = get_table_view_model().center
+	_board_label.text = center.board_title
+	_pot_label.text = center.phone_pot_text if phone_layout else center.pot_text
+	_wager_label.text = center.phone_wager_text if phone_layout else center.wager_text
+	_phone_blind_level_detail.text = center.blind_level_text
 
 
 func _uses_large_chip_values() -> bool:
-	if _bound_view == null:
-		return false
-	if _bound_view.pot_amount >= 1000000 or _bound_view.big_blind >= 100000:
-		return true
-	for player: PlayerView in _bound_view.seats:
-		if player.stack >= 100000 or player.bet_this_round >= 100000:
-			return true
-	return false
+	return _bound_view != null and get_table_view_model().center.large_values
 
 
 func _uses_numeric_keypad() -> bool:
@@ -613,7 +592,9 @@ func _rebuild_card_slots() -> void:
 
 
 func _rebuild_seats() -> void:
-	_seat_factory.configure(_bound_view, _avatar_assignments, _name_assignments)
+	_seat_factory.configure(
+		_bound_view, _avatar_assignments, _name_assignments, get_table_view_model()
+	)
 	for seat_widget: PanelContainer in _seat_widgets.values():
 		seat_widget.free()
 	for status_widget: Label in _seat_status_widgets.values():
@@ -681,10 +662,8 @@ func _portrait_opponent_widths(panel: GuiTableSeatView) -> Dictionary[String, fl
 
 
 func _phone_award_recipient(seat: int) -> bool:
-	for award: PotAward in _bound_view.pot_awards:
-		if seat in award.winner_seats:
-			return true
-	return _bound_view.pot_awards.is_empty() and _bound_view.hand_winner_seat == seat
+	var model: SeatViewModel = get_table_view_model().seat_for(seat)
+	return model != null and model.winner_emphasis
 
 
 func _style_phone_result_label(label: Label, highlighted: bool) -> void:
@@ -1131,29 +1110,7 @@ func _phone_hero_action_for_seat(seat: int) -> String:
 func _compact_phone_action_text(
 	latest_record: PublicActionRecord, abbreviate_exact_thousands: bool = true
 ) -> String:
-	var compact_text: String = ""
-	match latest_record.kind:
-		PlayerAction.Kind.FOLD:
-			compact_text = "F"
-		PlayerAction.Kind.CHECK:
-			compact_text = "Chk"
-		PlayerAction.Kind.CALL:
-			compact_text = "C%d" % latest_record.amount
-		PlayerAction.Kind.BET:
-			compact_text = "B%d" % latest_record.amount
-		PlayerAction.Kind.RAISE:
-			compact_text = "R%d" % latest_record.amount
-		PlayerAction.Kind.ALL_IN:
-			compact_text = (
-				"A%dk" % (latest_record.amount / 1000)
-				if (
-					abbreviate_exact_thousands
-					and latest_record.amount >= 1000
-					and latest_record.amount % 1000 == 0
-				)
-				else "A%d" % latest_record.amount
-			)
-	return compact_text
+	return SeatViewModel.format_compact_action(latest_record, abbreviate_exact_thousands)
 
 
 func _refresh_rendered_phone_action_badges() -> void:
@@ -1192,7 +1149,9 @@ func _create_seat_status_label(player_view: PlayerView) -> Label:
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	status_label.clip_text = true
-	status_label.add_theme_font_size_override("font_size", SEAT_TEXT_FONT_SIZE)
+	status_label.theme_type_variation = (
+		&"HeroStatusBand" if player_view.seat == _bound_view.hero_seat else &"StatusBand"
+	)
 	status_label.add_theme_color_override(
 		"font_color", Color("d6d0be") if player_view.folded else Color("f5f0dc")
 	)
@@ -1207,20 +1166,22 @@ func _tablet_status_scale() -> float:
 func _showdown_hand_text(seat: int) -> String:
 	if _bound_view == null:
 		return ""
-	var showdown_result: ShowdownResult = _bound_view.showdown_results.get(seat)
+	var model: SeatViewModel = get_table_view_model().seat_for(seat)
+	if model == null:
+		return ""
 	if (
 		get_layout_profile() == GuiLayoutProfileScript.Kind.TABLET
 		and _surface.size.x < 1600.0
 		and _surface.size.x >= _surface.size.y
 	):
-		return ShowdownHandFormatterScript.format_inline(showdown_result)
+		return model.status_inline
 	if (
 		_compact_six_seat_desktop
 		or GuiMobileTableLayoutScript.is_small_desktop(_surface.size)
 		or (get_layout_profile() == GuiLayoutProfileScript.Kind.TABLET and _surface.size.x < 1600.0)
 	):
-		return ShowdownHandFormatterScript.format_compact(showdown_result)
-	return ShowdownHandFormatterScript.format(showdown_result)
+		return model.status_compact
+	return model.status_full
 
 
 func _configure_seat_status_label(label: Label, seat: int) -> void:
@@ -1241,13 +1202,10 @@ func _configure_seat_status_label(label: Label, seat: int) -> void:
 
 
 func _is_pre_showdown_winner(seat: int) -> bool:
-	return (
-		_bound_view != null
-		and _bound_view.hand_complete
-		and _bound_view.hand_winner_seat != Table.NO_SEAT
-		and _bound_view.hand_winner_seat == seat
-		and _bound_view.showdown_results.is_empty()
-	)
+	if _bound_view == null:
+		return false
+	var model: SeatViewModel = get_table_view_model().seat_for(seat)
+	return model != null and model.pre_showdown_winner
 
 
 func _open_phone_seat_detail(seat: int) -> void:
@@ -1308,37 +1266,12 @@ func _player_view_for_seat(seat: int) -> PlayerView:
 func _latest_action_text(seat: int) -> String:
 	if _bound_view == null:
 		return ""
-	var latest_record: PublicActionRecord = _active_round_latest_actions.get(seat)
-	if latest_record == null:
-		latest_record = _retained_fold_actions.get(seat)
-	if latest_record == null:
-		return ""
-	return _action_record_text(latest_record)
+	var model: SeatViewModel = get_table_view_model().seat_for(seat)
+	return model.latest_action_text if model != null else ""
 
 
 func _action_record_text(latest_record: PublicActionRecord) -> String:
-	var action_text: String = ""
-	if latest_record.record_kind == PublicActionRecord.Kind.SMALL_BLIND:
-		action_text = "Small blind %d" % latest_record.amount
-	elif latest_record.record_kind == PublicActionRecord.Kind.BIG_BLIND:
-		action_text = "Big blind %d" % latest_record.amount
-	else:
-		match latest_record.kind:
-			PlayerAction.Kind.FOLD:
-				action_text = "Fold"
-			PlayerAction.Kind.CHECK:
-				action_text = "Check"
-			PlayerAction.Kind.CALL:
-				action_text = "Call to %d" % latest_record.amount
-			PlayerAction.Kind.BET:
-				action_text = "Bet to %d" % latest_record.amount
-			PlayerAction.Kind.RAISE:
-				action_text = "Raise to %d" % latest_record.amount
-			PlayerAction.Kind.ALL_IN:
-				action_text = "All-in to %d" % latest_record.amount
-	if latest_record.amount >= 100000 and _uses_compact_table_copy():
-		action_text = action_text.replace(" to ", " ")
-	return action_text
+	return SeatViewModel.format_action(latest_record, get_table_view_model().density)
 
 
 func _refresh_seat_status_labels() -> void:
@@ -1346,101 +1279,18 @@ func _refresh_seat_status_labels() -> void:
 		_configure_seat_status_label(_seat_status_widgets[seat], seat)
 
 
-func _enforce_minimum_gui_text_size_for_node(node: Node) -> void:
-	if node is Label or node is Button or node is LineEdit:
-		var minimum: int = 18 if _is_portrait_seat_copy(node) else GUI_MINIMUM_FONT_SIZE
-		if node.get_theme_font_size("font_size") < minimum:
-			node.add_theme_font_size_override("font_size", minimum)
-	elif node is RichTextLabel:
-		var minimum: int = EVENT_LOG_FONT_SIZE if node == _event_log else GUI_MINIMUM_FONT_SIZE
-		if node.get_theme_font_size("normal_font_size") < minimum:
-			node.add_theme_font_size_override("normal_font_size", minimum)
-	for child: Node in node.get_children():
-		_enforce_minimum_gui_text_size_for_node(child)
-
-
-func _is_portrait_seat_copy(node: Node) -> bool:
-	if get_layout_profile() != GuiLayoutProfileScript.Kind.PHONE_PORTRAIT:
-		return false
-	for seat: int in _seat_widgets:
-		if seat == _bound_view.hero_seat:
-			continue
-		var panel := _seat_widgets[seat] as GuiTableSeatView
-		if (
-			node
-			in [
-				panel.name_label,
-				panel.stack_label,
-				panel.state_badge,
-				panel.action_badge,
-				_seat_status_widgets[seat]
-			]
-		):
-			return true
-	return false
-
-
 func _refresh_action_controls() -> void:
 	if _bound_view == null:
 		return
-	var is_human_turn: bool = _bound_view.acting_seat == _bound_view.hero_seat
-	var legal: Array = _bound_view.legal_actions if is_human_turn else []
-	var can_wager: bool = WagerKeypadScript.can_wager(_bound_view)
-	_fold_button.disabled = not (PlayerAction.Kind.FOLD in legal)
-	_check_call_button.disabled = not (
-		PlayerAction.Kind.CHECK in legal or PlayerAction.Kind.CALL in legal
-	)
-	_min_wager_button.disabled = not can_wager
-	_pot_raise_button.disabled = not _can_submit_pot_wager(legal, is_human_turn)
-	_wager_input.editable = can_wager
-	_wager_button.disabled = not can_wager
-	_all_in_button.disabled = not (PlayerAction.Kind.ALL_IN in legal)
-	_action_controls.configure_action_control_copy(
-		_bound_view, legal, _uses_compact_table_copy(), _resolved_pot_wager_target()
-	)
+	var actions: ActionBarViewModel = get_table_view_model().actions
+	_action_controls.render_enabled(actions)
+	_action_controls.configure_action_control_copy(actions, _uses_compact_table_copy())
 	_action_controls.configure_action_control_visibility(
-		_bound_view, legal, is_human_turn, GuiLayoutProfileScript.is_phone(get_layout_profile())
+		actions, GuiLayoutProfileScript.is_phone(get_layout_profile()), _bound_view.seats.size()
 	)
-	_all_in_button.text = "All-in"
-	if not can_wager and _wager_keypad != null:
+	if not actions.can_wager and _wager_keypad != null:
 		_wager_keypad.hide()
-	if _bound_view.tournament_status == &"finished":
-		_action_status.text = TournamentStatusFormatterScript.format(_bound_view)
-		if _bound_view.end_reason == &"winner":
-			_action_status.text = (
-				"%s wins the tournament!"
-				% _display_name_for_seat(_bound_view.tournament_winner_seat)
-			)
-	elif is_human_turn:
-		_action_status.text = "Your turn — %s." % GuiEventFormatterScript.street_name(_bound_view)
-	elif _bound_view.hand_complete:
-		_action_status.text = "Hand complete."
-	else:
-		_action_status.text = (
-			"%s to act — %s"
-			% [
-				GuiEventFormatterScript.player_name_for(_bound_view, _bound_view.acting_seat),
-				GuiEventFormatterScript.street_name(_bound_view),
-			]
-		)
-	if _uses_compact_table_copy():
-		if _bound_view.tournament_status == &"finished" and _bound_view.end_reason == &"winner":
-			_action_status.text = (
-				"%s wins" % _display_name_for_seat(_bound_view.tournament_winner_seat)
-			)
-		elif _bound_view.tournament_status != &"finished":
-			if is_human_turn:
-				_action_status.text = (
-					"Your turn: %s" % GuiEventFormatterScript.street_name(_bound_view)
-				)
-			elif _bound_view.hand_complete:
-				_action_status.text = "Hand complete"
-			else:
-				_action_status.text = (
-					"Act: %s"
-					% GuiEventFormatterScript.player_name_for(_bound_view, _bound_view.acting_seat)
-				)
-
+	_action_status.text = actions.reference_status_text
 	if GuiLayoutProfileScript.is_phone(get_layout_profile()) and _bound_view.hand_complete:
 		var result_text: String = _phone_hand_result_text()
 		if not result_text.is_empty() and _bound_view.tournament_status != &"finished":
@@ -1477,21 +1327,13 @@ func _refresh_phone_hero_summary() -> void:
 func _phone_hand_result_text(maximum_width: float = INF) -> String:
 	if _bound_view == null or not _bound_view.hand_complete:
 		return ""
-	var recipients: Array[int] = []
-	for award: PotAward in _bound_view.pot_awards:
-		for seat: int in award.winner_seats:
-			if seat not in recipients:
-				recipients.append(seat)
-	if recipients.is_empty() and _bound_view.hand_winner_seat != Table.NO_SEAT:
-		recipients.append(_bound_view.hand_winner_seat)
-	if recipients.is_empty():
+	var summary: HandSummaryViewModel = get_table_view_model().summary
+	if summary.winner_names.is_empty():
 		return ""
-	recipients.sort()
 	var lines: Array[String] = []
-	var line: String = "Winner: " if recipients.size() == 1 else "Winners: "
+	var line: String = summary.result_prefix
 	var font: Font = _action_status.get_theme_font("font")
-	for seat: int in recipients:
-		var player_name: String = _display_name_for_seat(seat)
+	for player_name: String in summary.winner_names:
 		var candidate: String = line + player_name
 		if (
 			font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, GUI_MINIMUM_FONT_SIZE).x
@@ -1525,52 +1367,16 @@ func _refresh_phone_secondary_controls() -> void:
 
 
 func _has_phone_hand_summary() -> bool:
-	return (
-		_bound_view != null
-		and (
-			not _bound_view.showdown_results.is_empty()
-			or not _bound_view.pot_awards.is_empty()
-			or _bound_view.hand_winner_seat != Table.NO_SEAT
-		)
-	)
+	return _bound_view != null and get_table_view_model().summary.visible
 
 
 func _display_name_for_seat(seat: int) -> String:
-	var player_view: PlayerView = _player_view_for_seat(seat)
-	return (
-		_seat_factory.seat_title(player_view) if player_view != null else "Player %d" % (seat + 1)
-	)
+	var model: SeatViewModel = get_table_view_model().seat_for(seat)
+	return model.display_name if model != null else "Player %d" % (seat + 1)
 
 
 func _phone_showdown_summary_text() -> String:
-	if _bound_view == null:
-		return ""
-	var seats: Array[int] = []
-	for seat: int in _bound_view.showdown_results:
-		seats.append(seat)
-	seats.sort()
-	var lines: Array[String] = []
-	for award: PotAward in _bound_view.pot_awards:
-		var pot_name: String = (
-			"Main pot" if award.pot_index == 0 else "Side pot %d" % award.pot_index
-		)
-		var recipients: Array[String] = []
-		for seat: int in award.winner_seats:
-			recipients.append(
-				"%s +%d" % [_display_name_for_seat(seat), award.amounts_by_seat[seat]]
-			)
-		lines.append("%s (%d): %s" % [pot_name, award.amount, ", ".join(recipients)])
-	if _bound_view.pot_awards.is_empty() and _bound_view.hand_winner_seat != Table.NO_SEAT:
-		lines.append("%s wins the hand" % _display_name_for_seat(_bound_view.hand_winner_seat))
-	for seat: int in seats:
-		var player_view: PlayerView = _player_view_for_seat(seat)
-		if player_view == null:
-			continue
-		var result: ShowdownResult = _bound_view.showdown_results.get(seat)
-		var description: String = ShowdownHandFormatterScript.format(result)
-		if not description.is_empty():
-			lines.append("%s — %s" % [_seat_factory.seat_title(player_view), description])
-	return "\n".join(lines)
+	return get_table_view_model().summary.text if _bound_view != null else ""
 
 
 func _open_phone_overflow_menu() -> void:
@@ -1654,32 +1460,12 @@ func _uses_compact_table_copy() -> bool:
 	)
 
 
-func _can_submit_pot_wager(legal: Array, is_human_turn: bool) -> bool:
-	if not is_human_turn:
-		return false
-	if PlayerAction.Kind.BET not in legal and PlayerAction.Kind.RAISE not in legal:
-		return false
-	return _resolved_pot_wager_target().available
+func _can_submit_pot_wager(_legal: Array, _is_human_turn: bool) -> bool:
+	return _bound_view != null and get_table_view_model().actions.pot_enabled
 
 
 func _resolved_pot_wager_target() -> PotWagerTargetResult:
-	if _bound_view == null:
-		return PotWagerTargetScript.resolve(0, 0, 0, 1, 0)
-	var existing_wager: int = -1
-	for seat: PlayerView in _bound_view.seats:
-		if seat.seat == _bound_view.hero_seat:
-			existing_wager = seat.bet_this_round
-			break
-	return (
-		PotWagerTargetScript
-		. resolve(
-			displayed_pot_amount,
-			existing_wager,
-			_bound_view.call_amount,
-			_bound_view.minimum_wager_total,
-			_bound_view.maximum_wager_total,
-		)
-	)
+	return ActionBarViewModel.resolve_pot_target(_bound_view)
 
 
 func _on_fold_pressed() -> void:
@@ -1906,7 +1692,8 @@ func _render_events(events: Array[DomainEvent]) -> void:
 			_event_texts.append(
 				GuiEventFormatterScript.format_event(event, _bound_view, action_record)
 			)
-	_event_log.text = "\n".join(_event_texts)
+	_view_model = null
+	_event_log.text = get_table_view_model().history.text
 	_event_log.scroll_to_line(maxi(0, _event_log.get_line_count() - 1))
 	_refresh_phone_secondary_controls()
 	_refresh_seat_status_labels()
@@ -1963,6 +1750,7 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	var profile_changed: bool = layout.layout_profile != _applied_layout_profile
 	var had_applied_profile: bool = _applied_layout_profile != GuiLayoutProfileScript.AUTOMATIC
 	_applied_layout_profile = layout.layout_profile
+	_apply_typography_roles()
 	if profile_changed or composition_changed:
 		_refresh_action_controls()
 	_configure_center_copy(layout.phone_layout)
@@ -1983,13 +1771,10 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 	# Re-resolve viewport-dependent compact/full copy in the same pass that owns
 	# its geometry so showing or resizing cannot leave stale status text behind.
 	_refresh_seat_status_labels()
-	var is_human_turn: bool = _bound_view.acting_seat == _bound_view.hero_seat
-	var active_legal: Array = _bound_view.legal_actions if is_human_turn else []
-	_action_controls.configure_action_control_copy(
-		_bound_view, active_legal, _uses_compact_table_copy(), _resolved_pot_wager_target()
-	)
+	var actions: ActionBarViewModel = get_table_view_model().actions
+	_action_controls.configure_action_control_copy(actions, _uses_compact_table_copy())
 	_action_controls.configure_action_control_visibility(
-		_bound_view, active_legal, is_human_turn, layout.phone_layout
+		actions, layout.phone_layout, _bound_view.seats.size()
 	)
 	if layout.phone_layout:
 		_quit_confirmation.dialog_text = "Quit tournament?"
@@ -2008,6 +1793,34 @@ func _layout_table(usable_size: Vector2, generation: int) -> void:
 		_action_panel.get_combined_minimum_size()
 	)
 	_finish_desktop_layout(layout)
+
+
+func _apply_typography_roles() -> void:
+	_surface.theme = GuiTypography.for_density(get_table_view_model().density)
+	for label: Label in [_board_label, _pot_label, _wager_label, _action_status]:
+		label.remove_theme_font_size_override("font_size")
+		label.theme_type_variation = &"BodyText"
+	for control: Control in [
+		_fold_button,
+		_check_call_button,
+		_min_wager_button,
+		_pot_raise_button,
+		_wager_button,
+		_all_in_button,
+		_quit_button
+	]:
+		control.custom_minimum_size.x = maxf(control.custom_minimum_size.x, 48.0)
+		control.remove_theme_font_size_override("font_size")
+		control.theme_type_variation = &"ActionButton"
+	_wager_input.remove_theme_font_size_override("font_size")
+	_event_log.remove_theme_font_size_override("normal_font_size")
+	_event_log.theme_type_variation = &"EventLogBody"
+	for seat: int in _seat_status_widgets:
+		var label: Label = _seat_status_widgets[seat]
+		label.remove_theme_font_size_override("font_size")
+		label.theme_type_variation = (
+			&"HeroStatusBand" if seat == _bound_view.hero_seat else &"StatusBand"
+		)
 
 
 func _style_desktop_table(layout: GuiTableLayoutPass) -> void:
@@ -2029,26 +1842,12 @@ func _style_desktop_table(layout: GuiTableLayoutPass) -> void:
 	_card_slots.add_theme_constant_override(
 		"separation", 2 if layout.small_desktop_layout or layout.compact_tablet_layout else 6
 	)
-	# Desktop controls use source dimensions directly.  The previous 0.75
-	# post-render correction scaled fonts, card faces, avatars, and border
-	# geometry together, producing blurry text and uneven line weights at normal
-	# MacBook display scaling.  The desktop source sizes are now the approved
-	# display sizes; mobile retains its responsive content scale below.
-	# Keep normal full-HD desktops at their authored sizes, while smaller desktop
-	# surfaces reflow their geometry from the available space. Typography remains
-	# at its integer source size through `desktop_source_sizes`; this is layout,
-	# not a post-render transform.
+	# Reference geometry stays scaled; text uses the shared metric Theme.
 	(
 		GuiMobileTableLayoutScript
-		. apply_scale(
+		. apply_geometry(
 			layout.mobile_portrait_layout,
 			layout.mobile_content_scale,
-			_board_label,
-			_pot_label,
-			_wager_label,
-			_action_status,
-			_event_log,
-			_quit_button,
 			[
 				_fold_button,
 				_check_call_button,
@@ -2060,13 +1859,11 @@ func _style_desktop_table(layout: GuiTableLayoutPass) -> void:
 			],
 			_card_slots,
 			_seat_widgets,
-			_seat_status_widgets,
 			layout.seat_content_scale,
 			layout.seat_visual_scale,
 		)
 	)
 	var action_margin := _action_controls.margin
-	_event_log.add_theme_font_size_override("normal_font_size", EVENT_LOG_FONT_SIZE)
 	action_margin.add_theme_constant_override("margin_left", 2)
 	action_margin.add_theme_constant_override("margin_right", 2)
 	action_margin.add_theme_constant_override("margin_top", 2 if layout.small_desktop_layout else 6)
@@ -2113,7 +1910,6 @@ func _style_desktop_table(layout: GuiTableLayoutPass) -> void:
 		]:
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for status_label: Label in _seat_status_widgets.values():
-			status_label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 			if (
 				layout.compact_tablet_layout
 				and not layout.portrait_tablet_layout

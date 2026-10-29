@@ -8,11 +8,6 @@ const OPPONENT_AVATAR_SIZE := Vector2(112, 112)
 const HERO_AVATAR_SIZE := Vector2(128, 128)
 const OPPONENT_CARD_SIZE := Vector2(60, 76)
 const GUI_MINIMUM_FONT_SIZE: int = 20
-const OPPONENT_CHIP_FONT_SIZE: int = 44
-const SEAT_TEXT_FONT_SIZE: int = 40
-const HERO_SEAT_TEXT_FONT_SIZE: int = 46
-const TABLE_TEXT_FONT_SIZE: int = 32
-const ACTION_TEXT_FONT_SIZE: int = 21
 const STATUS_BAND_HEIGHT: float = 64.0
 const COMPACT_STATUS_BAND_HEIGHT: float = 64.0
 const STATUS_BAND_GAP: float = 2.0
@@ -22,14 +17,6 @@ const LANDSCAPE_TABLET_MIN_HEIGHT: float = 1200.0
 const LANDSCAPE_TABLET_MAX_ASPECT_RATIO: float = 1.8
 const MOBILE_MAX_CONTENT_SCALE: float = 2.0
 const MOBILE_TOUCH_TARGET_HEIGHT: float = 48.0
-# Desktop source sizes.  These are authored at their final display point size;
-# keeping them as integer values avoids fractional post-render scaling on HiDPI.
-const DESKTOP_SEAT_TEXT_FONT_SIZE: int = 30
-const DESKTOP_STATUS_TEXT_FONT_SIZE: int = 26
-const DESKTOP_HERO_SEAT_TEXT_FONT_SIZE: int = 34
-const DESKTOP_CHIP_FONT_SIZE: int = 33
-const DESKTOP_OPPONENT_CARD_RANK_FONT_SIZE: int = 30
-const DESKTOP_HERO_CARD_RANK_FONT_SIZE: int = 44
 const STANDARD_PANEL_MARGIN_HORIZONTAL: float = 8.0
 const STANDARD_PANEL_MARGIN_VERTICAL: float = 5.0
 const STANDARD_OPPONENT_HEADER_SEPARATION: int = 5
@@ -94,60 +81,25 @@ static func opponent_position(
 	return Vector2(position.x, lower_position if position.y > 0.6 else position.y)
 
 
-static func apply_seat_typography(
-	panel: PanelContainer,
-	scale: float,
-	is_hero: bool,
-	typography_scale: float = 1.0,
-	desktop_source_sizes: bool = false,
-) -> void:
-	var content_scale: float = scale
-	var seat_font_size: int = (
-		DESKTOP_HERO_SEAT_TEXT_FONT_SIZE
-		if is_hero
-		else (
-			DESKTOP_SEAT_TEXT_FONT_SIZE
-			if desktop_source_sizes
-			else roundi(
-				(
-					(HERO_SEAT_TEXT_FONT_SIZE if is_hero else SEAT_TEXT_FONT_SIZE)
-					* content_scale
-					* typography_scale
-				)
-			)
-		)
-	)
-	var chip_font_size: int = (
-		DESKTOP_CHIP_FONT_SIZE
-		if desktop_source_sizes
-		else roundi(OPPONENT_CHIP_FONT_SIZE * content_scale * typography_scale)
-	)
+static func apply_seat_geometry(panel: PanelContainer, scale: float, is_hero: bool) -> void:
 	var avatar := panel.find_child("Avatar", true, false) as TextureRect
 	var avatar_region := panel.find_child("AvatarRegion", true, false) as Control
 	var resolved_avatar_size: Vector2 = (
-		(HERO_AVATAR_SIZE if is_hero else OPPONENT_AVATAR_SIZE) * content_scale
+		(HERO_AVATAR_SIZE if is_hero else OPPONENT_AVATAR_SIZE) * scale
 	)
 	if avatar_region != null:
 		avatar_region.custom_minimum_size = resolved_avatar_size
 	if avatar != null:
 		avatar.custom_minimum_size = Vector2.ZERO
 		avatar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var name_label := panel.find_child("Name", true, false) as Label
-	if name_label != null:
-		(
-			name_label
-			. add_theme_font_size_override(
-				"font_size",
-				seat_font_size,
-			)
-		)
-	var stack_label := panel.find_child("Stack", true, false) as Label
-	if stack_label != null:
-		stack_label.add_theme_font_size_override("font_size", chip_font_size)
+	for label_name: String in ["Name", "Stack", "Marker"]:
+		var label := panel.find_child(label_name, true, false) as Label
+		if label != null:
+			label.remove_theme_font_size_override("font_size")
+			label.theme_type_variation = &"HeroText" if is_hero else &"SeatText"
 	var marker_label := panel.find_child("Marker", true, false) as Label
 	if marker_label != null:
-		marker_label.custom_minimum_size = Vector2(96.0 * content_scale, 56.0 * content_scale)
-		marker_label.add_theme_font_size_override("font_size", seat_font_size)
+		marker_label.custom_minimum_size = Vector2(96.0, 56.0) * scale
 
 
 static func apply_small_desktop_seat_footprint(panel: PanelContainer) -> void:
@@ -171,7 +123,6 @@ static func apply_small_desktop_seat_footprint(panel: PanelContainer) -> void:
 		if not marker.has_meta("standard_text"):
 			marker.set_meta("standard_text", marker.text)
 			marker.set_meta("standard_style", marker.get_theme_stylebox("normal").duplicate())
-		marker.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 		marker.add_theme_color_override("font_color", Color("f5f0dc"))
 		marker.add_theme_color_override("font_outline_color", Color("172331"))
 		marker.add_theme_constant_override("outline_size", 4)
@@ -190,10 +141,6 @@ static func apply_small_desktop_seat_footprint(panel: PanelContainer) -> void:
 		winner_star.position = Vector2.ZERO
 		winner_star.size = Vector2(16.0, 16.0)
 		winner_star.custom_minimum_size = Vector2(16.0, 16.0)
-	for label_name: String in ["Name", "Stack"]:
-		var label := panel.find_child(label_name, true, false) as Label
-		if label != null:
-			label.add_theme_font_size_override("font_size", GUI_MINIMUM_FONT_SIZE)
 	for card: Control in panel.find_children("*", "Control", true, false):
 		if card.name.begins_with("CardBack") or card.name.begins_with("ShowdownCard"):
 			_scale_card_face(card, Vector2(28.0, 34.0), GUI_MINIMUM_FONT_SIZE)
@@ -211,7 +158,23 @@ static func apply_compact_tablet_seat_footprint(panel: PanelContainer) -> void:
 	marker.remove_theme_color_override("font_outline_color")
 	marker.remove_theme_constant_override("outline_size")
 	marker.custom_minimum_size = Vector2(
-		COMPACT_TABLET_MARKER_WIDTH, COMPACT_MARKER_SINGLE_LINE_HEIGHT
+		maxf(
+			COMPACT_TABLET_MARKER_WIDTH,
+			ceilf(
+				(
+					marker
+					. get_theme_font("font")
+					. get_string_size(
+						marker.text,
+						HORIZONTAL_ALIGNMENT_LEFT,
+						-1.0,
+						marker.get_theme_font_size("font_size")
+					)
+					. x
+				)
+			)
+		),
+		COMPACT_MARKER_SINGLE_LINE_HEIGHT
 	)
 	marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if marker.has_meta("standard_style"):
@@ -281,48 +244,30 @@ static func restore_standard_seat_overlays(panel: PanelContainer, is_hero: bool)
 		header.move_child(marker, header.get_child_count() - 1)
 
 
-static func apply_scale(
+static func apply_geometry(
 	mobile_portrait: bool,
 	content_scale: float,
-	board_label: Label,
-	pot_label: Label,
-	wager_label: Label,
-	action_status: Label,
-	event_log: RichTextLabel,
-	quit_button: Button,
 	action_controls: Array[Control],
 	card_slots: HBoxContainer,
 	seat_widgets: Dictionary[int, PanelContainer],
-	seat_status_widgets: Dictionary[int, Label],
 	seat_content_scale: float = -1.0,
 	seat_visual_scale: float = -1.0,
 ) -> void:
 	var scale: float = content_scale if mobile_portrait else 1.0
-	var desktop_source_sizes: bool = not mobile_portrait
 	var seat_scale_value: float = scale if seat_content_scale < 0.0 else seat_content_scale
 	if seat_visual_scale >= 0.0:
 		seat_scale_value = seat_visual_scale
-	var action_font_size: float = (
-		TABLE_TEXT_FONT_SIZE * scale if not mobile_portrait else ACTION_TEXT_FONT_SIZE * scale
-	)
-	board_label.add_theme_font_size_override("font_size", TABLE_TEXT_FONT_SIZE * scale)
-	pot_label.add_theme_font_size_override("font_size", TABLE_TEXT_FONT_SIZE * scale)
-	wager_label.add_theme_font_size_override("font_size", TABLE_TEXT_FONT_SIZE * scale)
-	action_status.add_theme_font_size_override("font_size", ACTION_TEXT_FONT_SIZE * scale)
-	event_log.add_theme_font_size_override("normal_font_size", ACTION_TEXT_FONT_SIZE * scale)
-	quit_button.add_theme_font_size_override("font_size", action_font_size)
 	for control: Control in action_controls:
-		control.add_theme_font_size_override("font_size", action_font_size)
 		control.custom_minimum_size = Vector2(
-			control.custom_minimum_size.x,
-			MOBILE_TOUCH_TARGET_HEIGHT * scale if mobile_portrait else 0.0,
+			maxf(control.custom_minimum_size.x, 48.0),
+			MOBILE_TOUCH_TARGET_HEIGHT * scale if mobile_portrait else 48.0,
 		)
 	for card: Control in card_slots.get_children():
 		var card_width: float = 64.0 * scale if mobile_portrait else 68.0
 		_scale_card_face(
 			card,
 			Vector2(card_width, 76.0 * scale),
-			roundi(CardFaceFactoryScript.COMMUNITY_CARD_RANK_FONT_SIZE * scale),
+			card.get_theme_font_size("font_size", "CardRank")
 		)
 	for seat: int in seat_widgets:
 		var panel: PanelContainer = seat_widgets[seat]
@@ -333,35 +278,14 @@ static func apply_scale(
 				_scale_card_face(
 					card,
 					OPPONENT_CARD_SIZE * seat_scale_value,
-					(
-						DESKTOP_OPPONENT_CARD_RANK_FONT_SIZE
-						if desktop_source_sizes
-						else roundi(40 * seat_scale_value)
-					),
+					card.get_theme_font_size("font_size", "CardRank")
 				)
 			elif card.name.begins_with("HeroCard"):
 				_scale_card_face(
 					card,
 					Vector2(108.0, 84.0) * seat_scale_value,
-					(
-						DESKTOP_HERO_CARD_RANK_FONT_SIZE
-						if desktop_source_sizes
-						else roundi(58 * seat_scale_value)
-					),
+					card.get_theme_font_size("font_size", "CardRank")
 				)
-		var status_label: Label = seat_status_widgets.get(seat)
-		if status_label != null:
-			(
-				status_label
-				. add_theme_font_size_override(
-					"font_size",
-					(
-						DESKTOP_STATUS_TEXT_FONT_SIZE
-						if desktop_source_sizes
-						else roundi(SEAT_TEXT_FONT_SIZE * seat_scale_value)
-					),
-				)
-			)
 
 
 static func layout_seat_status_band(

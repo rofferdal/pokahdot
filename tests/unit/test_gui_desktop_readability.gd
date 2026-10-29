@@ -48,7 +48,7 @@ func test_desktop_seat_content_is_visible_and_non_overlapping_for_every_supporte
 					)
 
 
-func test_desktop_seat_typography_is_reduced_after_scale_correction() -> void:
+func test_desktop_seats_use_shared_regular_typography_roles() -> void:
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -59,18 +59,18 @@ func test_desktop_seat_typography_is_reduced_after_scale_correction() -> void:
 	var opponent: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1")
 	var hero: PanelContainer = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat0")
 	assert_eq(
-		opponent.get_node("Content/Header/Identity/Name").get_theme_font_size("font_size"), 30
+		opponent.get_node("Content/Header/Identity/Name").get_theme_font_size("font_size"), 22
 	)
 	assert_eq(
-		opponent.get_node("Content/Header/Identity/Stack").get_theme_font_size("font_size"), 33
+		opponent.get_node("Content/Header/Identity/Stack").get_theme_font_size("font_size"), 22
 	)
-	assert_eq(hero.get_node("Content/Header/Identity/Name").get_theme_font_size("font_size"), 34)
-	assert_eq(opponent.get_node("Content/Header/Marker").get_theme_font_size("font_size"), 30)
+	assert_eq(hero.get_node("Content/Header/Identity/Name").get_theme_font_size("font_size"), 26)
+	assert_eq(opponent.get_node("Content/Header/Marker").get_theme_font_size("font_size"), 22)
 	var opponent_action: Label = table.get_node("TableMargin/Felt/TableSurface/Seats/Seat1Status")
-	assert_eq(opponent_action.get_theme_font_size("font_size"), 26)
+	assert_eq(opponent_action.get_theme_font_size("font_size"), 22)
 
 
-func test_desktop_action_and_quit_fonts_match_community_cards_without_resizing_board() -> void:
+func test_desktop_actions_share_body_typography_and_board_measures_its_content() -> void:
 	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
 	add_child_autofree(table)
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
@@ -82,8 +82,14 @@ func test_desktop_action_and_quit_fonts_match_community_cards_without_resizing_b
 	var community_zone: Panel = table.get_node("TableMargin/Felt/TableSurface/CenterZone/BoardZone")
 	var community_label: Label = table.get_node("%BoardLabel")
 	var community_font_size: int = community_label.get_theme_font_size("font_size")
-	assert_eq(community_font_size, 32)
-	assert_eq(community_zone.size, Vector2(520, 134))
+	assert_eq(community_font_size, 20)
+	assert_eq(community_zone.size.x, 520.0)
+	assert_true(community_zone.get_global_rect().encloses(community_label.get_global_rect()))
+	assert_true(
+		community_zone.get_global_rect().encloses(
+			(table.get_node("%CardSlots") as Control).get_global_rect()
+		)
+	)
 
 	for control_path: NodePath in [
 		^"%FoldButton",
@@ -250,7 +256,7 @@ func test_startup_form_collapses_empty_errors_and_uses_visible_input_controls() 
 	assert_eq(main.get_node("%Description").get_parent(), form)
 	assert_eq(main.get_node("%Actions").get_parent(), form)
 	assert_true(is_equal_approx(panel.custom_minimum_size.x, 883.2))
-	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 64)
+	assert_eq(main.get_node("%Title").get_theme_font_size("font_size"), 28)
 	for error_path: NodePath in [
 		^"%PlayerCountError",
 		^"%StartingStackError",

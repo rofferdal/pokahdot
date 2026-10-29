@@ -48,7 +48,9 @@ func test_unified_status_band_content_contract_across_two_to_nine_players() -> v
 				"%s showdown text is not vertically clipped" % context,
 			)
 			for label: Label in [blank_label, action_label, retained_fold_label, showdown_label]:
-				assert_gte(label.get_theme_font_size("font_size"), 20, "%s readable font" % context)
+				assert_gte(
+					label.get_theme_font_size("font_size"), 18, "%s seat-copy font floor" % context
+				)
 
 
 func test_unified_status_and_lower_table_rectangles_stay_fixed_across_states() -> void:
