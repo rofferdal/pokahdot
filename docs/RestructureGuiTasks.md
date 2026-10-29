@@ -1,13 +1,13 @@
 # Restructure GUI Tasks
 
-Status: In progress — RG-00–RG-11 and RG-11R–RG-11R6 implementation and
-verification complete. Both portrait keypads, the compact landscape keypad,
-the revised Start screen and all `rg11-review7-*` phone captures are
-user-accepted. Final verification added a measured seven-way-winner fallback
-and allows 20 px seat copy where the actual space permits; two additional
-previews await review. Stopped before RG-12 as explicitly requested.
-RG-11R7, the subsequently selected LAN build regression, is fixed and verified
-with an actual successful rebuild. RG-12 remains untouched.
+Status: In progress — RG-00–RG-11 and RG-11R–RG-11R7 are implemented and
+verified. Previously accepted keypads, Start and review7 phone previews retain
+their recorded acceptance; the final two review8 boundary previews still
+await review. The user requested a fresh `localtmp/` and resumed ordered work on
+2026-10-29. RG-12 policy and isolated guidance presentation are implemented;
+verification is complete. The user accepted the guidance design and authorized
+continuation on 2026-10-29. RG-13 replacement routing is implemented and
+verified. RG-20 presentation models are next; implementation has not started.
 Replacement component styling remains pending in its ordered tasks.
 Reviewed: 2026-10-27 against source commit
 `0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
@@ -787,8 +787,9 @@ provided the target contracts and acceptance evidence are retained.
   The LAN scanner and production popup guard are unchanged. Tests also verify
   a zero-exit check that emits an unexpected error still blocks export.
 
-- [ ] **RG-12 — Define unified `SizeClass` and supported fit policy. [Decision + implementation]**
-  Status: Not started. Mode: Tech Lead then Senior. Specify width/height
+- [x] **RG-12 — Define unified `SizeClass` and supported fit policy. [Decision + implementation]**
+  Status: Implemented and verified; guidance design user-accepted (2026-10-29).
+  Mode: Tech Lead then Senior. Specify width/height
   classes and derived modes over adapter geometry, including medium portrait
   widths. Define invalid-size handling, explicit fixture overrides, feasible
   envelopes and the 8-/9-player phone guidance state. Enforce at most three
@@ -802,8 +803,8 @@ provided the target contracts and acceptance evidence are retained.
   with explicit portrait/landscape phone fit envelopes; legacy diagnostic passes
   do not complete the replacement landscape implementation or acceptance.
 
-- [ ] **RG-13 — Route composition decisions through unified policy.** Status:
-  Not started. Mode: Senior. Replace classification and density branches in
+- [x] **RG-13 — Route composition decisions through unified policy.** Status:
+  Implemented and verified through the clean replacement path. Mode: Senior. Replace classification and density branches in
   `GuiTableLayoutPass`, `GuiMobileTableLayout`, `GuiSixSeatDesktopPlan` and
   controller/seat/action helpers. A clean replacement may bypass these legacy
   modules entirely. Pass one typed policy snapshot per operation, preserving
@@ -1556,3 +1557,82 @@ Their metadata records matching source hashes and no invariant failures.
 These two additions await visual review; all prior user acceptances remain
 recorded. No RG-12 implementation or replacement-component/device acceptance
 is claimed. Stop here as requested.
+
+
+### RG-12 unified size and fit policy — 2026-10-29
+
+Implemented the replacement-only pure `GuiSizeClass`, `GuiFitMetrics`,
+`GuiFitCandidate`, `GuiSeatRows` and `GuiFitPolicy` under `scripts/gui/layout/`.
+The architecture records the axis classes, derived modes, fixture override,
+finite measured envelopes, capacity guidance and per-axis/orientation monotonicity.
+Explicit rows cap wide seats at three and portrait opponents at two with a
+centered odd apex. Landscape opponents also use two per band so a hero rail
+cannot create a four-seat row. Clockwise IDs and caller input are retained.
+
+Seven-player portrait/landscape and nine-player wide edge tests use explicitly
+marked primitive minima; they certify the solver, not final component fit.
+Tests cover all recipients/counts, invalid inputs, threshold ±1, usable extent,
+minimum-fit edges, density fallback and growing space across preferences.
+The passive authored `SpaceGuidance.tscn` reuses the transparent brand scene,
+measures actual wrapped text at 20 px and takes no input or game ownership.
+Its rendered containment/font tests cover portrait and short landscape.
+The running legacy GUI is unchanged; routing remains RG-13.
+
+Session outputs were cleared at the user's request before work. Historical
+`localtmp/` filenames above remain historical references, not fresh evidence.
+New review images under `localtmp/gui-elements/`:
+`rg12-capacity-portrait.png`, `rg12-capacity-landscape.png` and
+`rg12-space-portrait.png`, with `rg12-guidance.json` metadata. The seven-player
+space warning uses deliberately oversized primitive minima to demonstrate its
+state; it does not declare 360×640 unsupported for the forthcoming components.
+Guidance visual review is pending; stop before RG-13 for user acceptance.
+
+
+Verification: `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check`
+passed 120 GUT scripts / 800 tests / 118,379 assertions plus Python, lint,
+formatting, docs and exact characterization checks. All four current GUI
+invariant matrices passed. Final logs contain no engine/script errors or
+warnings: `localtmp/restructure_rg12/check-final.log` and
+`invariants-final.log`. The new policy/guidance coverage adds 13 tests.
+Rendered captures completed with zero save errors; source and image hashes are
+in `localtmp/gui-elements/rg12-source-verification.json`. Documentation links
+and formatting were checked after updating this completion record.
+RG-12 implementation is checked; new guidance acceptance remains pending.
+RG-13 and all subsequent tasks remain untouched.
+
+
+### RG-12 guidance acceptance — 2026-10-29
+
+The user accepted the guidance design shown in the RG-12 portrait/landscape
+previews and authorized continuation. This accepts that component's appearance;
+it does not accept final table layouts, device support or production integration.
+RG-13 is the next ordered task.
+
+
+### RG-13 replacement routing execution — 2026-10-29
+
+Used the explicitly permitted clean replacement path: `CompositionHost.tscn`
+registers authored scenes by selected fit mode and passes `GuiCompositionState`
+to their `apply_policy()` API. Density/action flow now belong to measured
+candidates. Real independent container fixtures verify seven-player phone
+orientations and nine-player wide routing, fallback selection, stable IDs for
+every recipient, origin application once, same-mode reuse, mode replacement,
+invalid/missing registrations and actual content-minimum recovery.
+
+The host bypasses the named reference modules rather than extracting another
+legacy geometry helper. Finished table scene registrations remain RG-51/52;
+match/model/overlay orchestration remains RG-53 and default cutover RG-54.
+No reference positions, six-seat expectations, known-failure records or product
+state were changed. The scope guard runs in default checks and has mutation
+coverage for forbidden imports/reclassification/viewport thresholds versus
+allowed measured fit, containment and target-floor validation.
+
+Final verification passed: `make check` (121 GUT scripts / 807 tests /
+118,499 assertions plus Python/lint/format/docs/policy/characterization checks)
+and all four reference GUI matrices. No engine/script errors or warnings in
+`localtmp/restructure_rg13/check-final.log` and `invariants-final.log`.
+The registry and deterministic six-seat tests are unchanged. Focused routing
+coverage passes seven tests / 118 assertions; five policy-guard mutation tests
+pass. This task introduces no new table design; accepted guidance is reused.
+The owner must defer remeasurement until the current presentation completes.
+RG-20 follows next.

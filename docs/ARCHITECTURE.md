@@ -851,8 +851,8 @@ centered single top seat for odd opponent counts. They
 record row membership and preserve clockwise seat IDs; cosmetic staggering
 does not satisfy the limit. Existing small-desktop and nine-seat wide/tablet
 reference paths contain four-seat rows. They remain a documented legacy gap,
-not accepted replacement behavior; implement the cap in RG-12/42/50–52 rather
-than adding further legacy geometry owners.
+not accepted replacement behavior. RG-12 now defines explicit capped rows;
+RG-42/50–52 must allocate them without adding legacy geometry owners.
 
 The user reaffirmed on 2026-10-29 that legacy layout must not limit the new GUI
 on any screen. Replacement containers may change positions, compositions,
@@ -951,7 +951,8 @@ matrix verifies actual text/minimum propagation, public-card privacy, core-seat
 identity and complete safe-view immutability. The registry rejects changed
 failure sets in both directions and fingerprints policy observations/input
 identity. Known defects are recorded without accepting overlap, clipping or
-unsupported sizes. Final support policy remains RG-10/RG-12 work.
+unsupported sizes. RG-10/RG-12 now define geometry and pure fit policy; final
+rendered support still requires RG-39–52 and device acceptance.
 
 Decision (2026-10-28, RG-10): responsive layout uses measured content and
 available logical space, with desktop keyboard input and tablet/phone touch in
@@ -1040,6 +1041,128 @@ all controls/targets within a measured 302-unit safe height. Headless,
 SubViewport and explicitly sized fixture roots do not modify the host Window;
 CLI and simulation never instantiate this adapter.
 
+**Replacement size/fit policy (RG-12, 2026-10-29)**
+
+`scripts/gui/layout/` implements the replacement policy independently of the
+reference GUI. `GuiSizeClass.classify(usable_size, fixture_override)` returns
+width and height classes and one preferred composition. Only adapter-owned
+usable extent participates; safe origins remain in `GuiViewportGeometry` for
+the host to apply once. Invalid, nonfinite or nonpositive geometry is not ready,
+even under an override. Invalid overrides fall back to automatic classification.
+Overrides select a preference for explicit fixtures; they cannot bypass fit.
+
+| Axis | Classes, in logical units |
+| --- | --- |
+| Width | Narrow below 600; medium from 600 to below 1100; expanded from 1100. |
+| Height | Short below 600; medium from 600 to below 760; tall from 760. |
+
+A landscape extent (width greater than height) with short height prefers
+`PHONE_LANDSCAPE`; otherwise narrow width prefers `PHONE`. Medium width or a
+non-tall height prefers `WIDE_COMPACT`; the remainder prefers `WIDE`. A square
+is portrait for policy purposes. Medium portrait, including 650×900, therefore
+has an explicit wide-compact preference. These thresholds choose presentation,
+not device identity, input modality, support minima or font size.
+
+`GuiFitMetrics` accepts detached complete component minima, theme gaps/margins
+and a measurement-evidence tag for one density/action-flow candidate. A minimum
+includes all mandatory copy, cards, blank status bands and interactive allocation.
+A zero event-log minimum is permitted only for phone candidates, whose host must
+retain a reachable Log route. Wide candidates require a measured docked log.
+`GuiFitCandidate.measure()` computes a lower-bound envelope for each finite
+composition. Components and Containers must still establish actual rendered
+containment; envelope fit is not device acceptance.
+
+`GuiSeatRows` fixes row membership before allocation. It rotates supplied
+clockwise core IDs around the recipient without renumbering them. The recipient
+has its own bottom row. Portrait phones use one centered apex for an odd number
+of opponents, two top seats otherwise, then left/right pairs. Landscape phones
+use the same two-opponent cap, reserving the possible third seat in any horizontal
+band for the separate hero rail. Wide plans use three top seats for odd opponent
+counts of at least three, two for even counts, then left/right pairs. Traversal
+is bottom-left upward, top left-to-right, then right downward and recipient.
+No row has more than three seats, including the recipient. Future containers
+must preserve those explicit bands and centered slots, not stagger four seats
+or repair collisions after placement.
+
+`GuiFitPolicy.resolve()` consumes one geometry value, clockwise IDs, recipient
+and measured candidates. It prefers a fitting candidate matching the classifier,
+then considers other fitting candidates in caller-supplied density/flow order.
+Phone candidates match the actual orientation; wide candidates support either.
+Retaining the candidate set and measurements makes feasibility monotonic as
+either axis grows within a fixed orientation, including across class boundaries.
+Rotation changes composition and requires reevaluation. Phone preferences permit
+2–7 participants; counts 8–9 produce capacity guidance without clamping IDs or
+startup values. Wide preferences permit 2–9. No fit, missing measurements,
+invalid input and not-ready geometry have distinct results and guidance.
+
+Initial seven-player primitive envelopes are 324×628 portrait and 608×420
+landscape; a separate 84-unit opponent-height candidate gives 608×348 landscape.
+Nine-player wide primitive minima are 688×552. These are explicitly injected
+solver fixtures, not certified component minima or a screen whitelist. The
+seven-player minimum-fit tests precede the nine-player tests, cover exact fit
+and each axis minus one, and retain a fitting compact plan across preferences.
+Authored components in RG-39–52 must replace primitive measurements with their
+actual content minima while retaining 18-unit seat/log copy, 20-unit other text
+and 48×48 interactive floors.
+
+`SpaceGuidance.tscn` and `GuiSpaceGuidance.render(policy)` provide a passive,
+container-owned guidance view with the existing transparent brand component and
+20-unit message text. The host owns menu/Quit and all tournament/input state;
+this component neither captures input nor changes configuration. Its isolated appearance was user-accepted on 2026-10-29. The reference
+classifiers and production table remain unchanged during replacement work.
+
+**Replacement composition routing (RG-13, 2026-10-29)**
+
+Use the clean replacement path permitted by the retirement decision.
+`scenes/gui/CompositionHost.tscn` is the concrete routing consumer, implemented
+by `GuiCompositionHost`. The application composition root registers authored
+`GuiTableComposition` scenes by mode and supplies one geometry value, stable
+clockwise IDs and measured candidates to `present()`. No scene path, platform
+flag or legacy helper chooses layout inside the host. Finished phone/wide table
+registrations remain RG-51/52; match/model/overlay orchestration remains RG-53.
+There are no empty replacement table scenes or new reference layout wrappers.
+Independent authored container fixtures exercise the real host meanwhile.
+
+`GuiCompositionState` carries geometry, the fit result, selected mode, explicit
+seat rows, density and action flow. Density (`FULL`, `COMPACT`, `MINIMAL`) and
+flow (`SINGLE_ROW`, `TWO_ROWS`, `KEYPAD`) belong to each measured candidate;
+they never derive from another viewport threshold. A fitting fallback's mode,
+not the preferred classifier mode, chooses the registered scene. The host
+reuses the mounted composition for same-mode updates and forwards the same
+state to its public `apply_policy()` API; mode/scene changes dispose of the
+old layout subtree. Components forward that state rather than reclassifying.
+The host retains no match, public action history, model assignments or drafts.
+
+The host owns app-root extent and applies the usable origin once to its layout
+slot. Containers own descendants. After rendering policy, an actual combined
+minimum exceeding the usable extent produces `CONTENT_MINIMUM`, forwards the
+failure snapshot, hides the infeasible composition and requests remeasurement.
+Recovery requires the owner to call `present()` with updated measurements
+on the next content/geometry change. Hidden Controls do not reliably emit
+minimum-change signals, so the host does not wait for one to recover. Guidance and the surviving hidden layout
+cannot inflate a subsequent slot allocation. Invalid geometry, missing
+measurements, unsupported capacity, unregistered scenes and invalid/empty
+PackedScenes remain distinguishable, recoverable states. The outer adapter
+must retain menu/Quit, overlays and input state during guidance.
+
+The reference `GuiTableLayoutPass`, `GuiMobileTableLayout`,
+`GuiSixSeatDesktopPlan` and controller/seat/action helpers are bypassed by the
+replacement host, retained only for reference play and tests until RG-54.
+Their known defects are neither waived for new layouts nor repaired by this
+routing task. The existing deterministic six-seat contract and characterization
+registry remain unchanged. Passing primitive routing fixtures does not certify
+final poker-table containment, styling or device support.
+
+`tools/check_gui_policy.py`, run by `make docs-check` and `make check`, guards
+replacement `layout/`, `view_models/`, `components/` and `compositions/` scripts.
+It rejects legacy layout imports, component reclassification/platform reads and
+numeric/named viewport thresholds outside the classifier. It permits measured
+minimum/containment comparisons, invalid-size checks and local target floors.
+This is a conservative scoped source guard, not a complete GDScript parser;
+review still checks aliases and new replacement script locations. The resolver
+alone invokes the classifier. Reference/platform scripts remain outside this
+replacement-only guard; remove reference exclusions at cutover.
+
 **Content-driven minimums**
 
 Minimum feasible dimensions are functions of count, density, required copy,
@@ -1057,7 +1180,8 @@ and `G` the applicable measured gaps/margins. Evaluate finite container plans:
 
 The replacement must retain a feasible candidate as space grows, even when a
 preferred size class changes. Component minimum-size propagation and Container
-sorting own actual allocations. RG-12 and RG-40–52 implement and verify these
+sorting own actual allocations. RG-12 implements the pure envelopes;
+RG-40–52 supply measured components and verify final compositions for these
 functions; no table of historical screen sizes replaces them. The reference
 fit probe's 64 passing cases at 950×532 and 1250×700 demonstrate feasible logical
 allocations for counts 2–9 and ordinary/large content; they are regression

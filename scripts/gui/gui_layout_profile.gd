@@ -2,6 +2,8 @@ class_name GuiLayoutProfile
 extends RefCounted
 
 ## Classifies the current usable canvas for presentation-only layout decisions.
+## Reference GUI only: the replacement policy is GuiSizeClass/GuiFitPolicy.
+## Production routing migrates in RG-13; keep this reference behavior until then.
 ##
 ## Callers must pass the rectangle left after browser chrome and safe-area
 ## reductions. Platform feature flags and physical display pixels are

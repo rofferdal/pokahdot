@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/gui/layout/gui_composition_host.gd" id="1_host"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/SpaceGuidance.tscn" id="2_guidance"]
+
+[node name="CompositionHost" type="Control"]
+layout_mode = 0
+mouse_filter = 2
+script = ExtResource("1_host")
+
+[node name="LayoutSlot" type="MarginContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+mouse_filter = 2
+
+[node name="SpaceGuidance" parent="LayoutSlot" instance=ExtResource("2_guidance")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2

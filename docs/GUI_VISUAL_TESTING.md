@@ -374,7 +374,8 @@ actual GUI diagnoses come from rendered observations. No recorded failure
 establishes accepted product behavior. Observed 650×900 layouts fail; the tested
 1250×700 cases pass; eight-player 1920×1080 layouts have seat/status overlaps.
 Phone counts 8–9, deferred landscape and insufficient-space cases retain separate
-scope labels. RG-10/RG-12 will define final feasible support envelopes.
+scope labels. RG-12 now defines pure fit envelopes; RG-39–52 must establish
+actual component minima and rendered composition support.
 
 `make gui-layout-sweep` samples step 20 without imposing the step-80 registry on
 new inputs. Its 73,537 observations identify each additional sample explicitly
@@ -621,3 +622,21 @@ browser or physical device passed.
 Choose the environments that are useful for each manual review. If the result
 is used to make a browser or device support claim, record untested or
 unavailable environments as limitations rather than treating them as passes.
+
+
+## Replacement space-guidance preview (RG-12)
+
+Run the standalone Compatibility-renderer capture from the repository root:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 \
+  --audio-driver Dummy --script tests/visual/gui_space_guidance_capture.gd
+```
+
+It writes portrait/landscape phone-capacity and insufficient-space PNGs plus
+metadata to `localtmp/gui-elements/rg12-*`. This mounts the authored guidance
+scene in a SubViewport without a match or reference table. The insufficient-space
+case uses explicit primitive minima; it does not reject that viewport for the
+future complete table. Guidance acceptance is pending. The host's reachable
+menu/Quit and state preservation are integration work for subsequent tasks;
+these passive component previews do not certify those flows or device support.

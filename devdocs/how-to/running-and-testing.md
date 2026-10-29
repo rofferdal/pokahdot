@@ -248,6 +248,20 @@ one viewport-coordinate space (report suite v2). Keep observer helpers in the
 isolated test export support list and out of the production export.
 
 
+The replacement size/fit tests are `test_gui_size_policy.gd`; actual wrapped
+space-guidance text is covered by `test_gui_space_guidance.gd`. Both run in
+`make check`. For the isolated new guidance view, use the
+[RG-12 preview command](../../docs/GUI_VISUAL_TESTING.md#replacement-space-guidance-preview-rg-12).
+Primitive envelope evidence is separate from final component/device fit.
+`test_gui_composition_host.gd` mounts independent authored container fixtures
+through the actual replacement host, covering selected-mode routing, density,
+flow, safe origins, scene reuse/switching and minimum-change recovery.
+`make docs-check` also runs `tools/check_gui_policy.py`: replacement components
+must consume the typed policy and measured minima, without legacy layout imports
+or new viewport breakpoints. Its mutation tests live in
+`tests/documentation/test_gui_policy_guard.py`. Reference scripts stay outside
+this scoped replacement guard until cutover.
+
 ### Exercise exported Web input
 
 Install `requirements-web-test.txt` into a development virtual environment,

@@ -31,7 +31,7 @@ determine feasible layouts, with explicit guidance when space cannot fit them.
 Physical browser/device acceptance remains separate from these measurements.
 See the [geometry contract](ARCHITECTURE.md#gui-adapter).
 
-`GuiLayoutProfile.classify()` selects phone portrait, phone landscape, tablet,
+The reference `GuiLayoutProfile.classify()` selects phone portrait, phone landscape, tablet,
 small desktop, or desktop from usable size/aspect. Explicit overrides require
 recorded device evidence. OS flags do not determine layout by themselves.
 The reference GUI's phone landscape remains diagnostic. The replacement now
@@ -39,6 +39,16 @@ targets phone portrait and landscape, plus both tablet orientations, per the
 user's 2026-10-28 clarification. Historical dimensions are regression samples;
 container/content minimums determine fit. Physical-keyboard and touch handling
 remain independent of size and orientation.
+
+The replacement policy is implemented under `scripts/gui/layout/` (RG-12).
+`GuiSizeClass` selects a preferred mode from the adapter's usable extent;
+`GuiFitPolicy` selects finite measured envelopes independently. The
+[architecture](ARCHITECTURE.md#gui-adapter) records thresholds, explicit seat
+rows, primitive fit evidence and monotonicity. The independent replacement `CompositionHost` now consumes this policy and
+routes registered scenes directly (RG-13). Finished table registrations and
+controller cutover remain RG-51–54; reference play retains its current geometry.
+Do not add reference breakpoints to new components. The isolated
+`SpaceGuidance` appearance is user-accepted.
 
 Use containers and anchors for ordinary content. Calculated table regions
 must have one layout owner that assigns parent and child rectangles from the
@@ -110,7 +120,8 @@ of two opponent seats per row, including short portrait screens. An odd
 opponent count starts with one centered, equal-width seat above paired rows.
 Preserve clockwise seat identities;
 some existing small-desktop/nine-seat reference paths still violate this new
-contract and require replacement in RG-12/42/50–52.
+contract. RG-12 defines capped rows; RG-42/50–52 must allocate them in the
+replacement compositions.
 The accepted compact side-by-side keypad is landscape-only; portrait stacks
 utilities below digits even if a future theme's minima could fit them beside.
 

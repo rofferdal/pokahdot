@@ -140,6 +140,7 @@ verify-web-release-output:
 docs-check:
 	python3 -B -m unittest discover -s tests/documentation -v
 	python3 -B tools/check_docs.py
+	python3 -B tools/check_gui_policy.py
 
 .PHONY: web-layout-test
 web-layout-test:
