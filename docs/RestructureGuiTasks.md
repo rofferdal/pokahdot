@@ -1090,7 +1090,8 @@ Done for Phase 4: every component has a test over all states; components are
 tested independently and ready for replacement layouts. Integration into the
 legacy tree is optional; do not distort the component API merely to fit it.
 
-- [ ] Commit all changes to the current branch and push
+- [x] Commit all changes to the current branch and push — Phase 4 implementation
+  committed at `aa34d96` and pushed to `origin/gui-restructure` (2026-10-29).
 
 ### Phase 5 — Layouts and switching
 
@@ -2513,3 +2514,11 @@ the wider landscape preview of the RG-45R3 keypad header.
 
 The user also accepted `rg42-rg45-review4-menu.png`, confirming the latest
 menu preview.
+
+
+### Phase 4 repository checkpoint — 2026-10-29
+
+Committed the accepted reusable GUI components, verification, documentation and
+existing user edits to AGENTS.md as `aa34d96` and pushed successfully to
+`origin/gui-restructure`. Session captures/logs remain ignored under `localtmp/`.
+The last complete check passed 983 tests / 132,823 assertions. RG-50 is next.
