@@ -39,7 +39,7 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   RG-51 wide previews and all revised RG-52/53 phone previews are user-accepted.
   Symmetric landscape placement and the narrower centered portrait human panel
   are implemented and verified (1,102 tests pass). RG-51–RG-53 are complete;
-  the Phase 5 checkpoint follows. The user requests stopping before RG-60,
+  the Phase 5 checkpoint is committed and pushed. The user requests stopping before RG-60,
   which remains unstarted. No design approval is pending for this batch.
   Default cutover remains RG-54.
 
