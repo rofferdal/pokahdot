@@ -9,13 +9,13 @@ static func profile_for_mode(mode: GuiSizeClass.LayoutMode) -> int:
 	# Diagnostic enum compatibility only; geometry classification stays in policy.
 	match mode:
 		GuiSizeClass.LayoutMode.PHONE:
-			return GuiLayoutProfile.Kind.PHONE_PORTRAIT
+			return GuiLayoutSnapshot.Profile.PHONE_PORTRAIT
 		GuiSizeClass.LayoutMode.PHONE_LANDSCAPE:
-			return GuiLayoutProfile.Kind.PHONE_LANDSCAPE
+			return GuiLayoutSnapshot.Profile.PHONE_LANDSCAPE
 		GuiSizeClass.LayoutMode.WIDE_COMPACT:
-			return GuiLayoutProfile.Kind.SMALL_DESKTOP
+			return GuiLayoutSnapshot.Profile.SMALL_DESKTOP
 		GuiSizeClass.LayoutMode.WIDE:
-			return GuiLayoutProfile.Kind.DESKTOP
+			return GuiLayoutSnapshot.Profile.DESKTOP
 	return -1
 
 
@@ -27,27 +27,8 @@ static func local_rect(control: Control, root: Control, local: Rect2) -> Rect2:
 	return _control_transform(control, root) * local
 
 
-static func _control_transform(control: Control, root: Control) -> Transform2D:
-	var transform: Transform2D = control.get_global_transform_with_canvas()
-	if control.get_viewport() != root.get_viewport():
-		var popup := control.get_viewport() as Window
-		if popup != null:
-			transform = _popup_transform(popup, root) * transform
-	return transform
-
-
-static func _popup_transform(popup: Window, root: Control) -> Transform2D:
-	var offset := Transform2D(0.0, Vector2(popup.position))
-	if popup.is_embedded():
-		return offset * popup.get_final_transform()
-	var parent_window: Window = root.get_window()
-	if parent_window != null:
-		offset.origin -= Vector2(parent_window.position)
-	return (
-		root.get_viewport().get_final_transform().affine_inverse()
-		* offset
-		* popup.get_final_transform()
-	)
+static func _control_transform(control: Control, _root: Control) -> Transform2D:
+	return control.get_global_transform_with_canvas()
 
 
 static func element(
@@ -190,108 +171,3 @@ static func descendants(
 		descendants(
 			child, root, child_role, result, redacted_roots, redact, excluded_roots, semantic_nodes
 		)
-
-
-static func cards(
-	container: Control, root: Control, role: StringName, authorized: bool
-) -> Array[GuiCardSnapshot]:
-	var result: Array[GuiCardSnapshot] = []
-	if not is_instance_valid(container):
-		return result
-	for index: int in range(container.get_child_count()):
-		var child := container.get_child(index) as Control
-		if child == null:
-			continue
-		var value := GuiCardSnapshot.new()
-		value.authorized = authorized
-		var card_role := StringName("%s/%d" % [role, index])
-		value.element = element(child, root, card_role, not authorized)
-		var rank := child.find_child("Rank", true, false) as Control
-		var suit := child.find_child("Suit", true, false) as Control
-		if rank != null or suit != null or String(child.name).begins_with("ShowdownCard"):
-			value.kind = GuiCardSnapshot.Kind.FACE
-		elif String(child.name).begins_with("CardBack"):
-			value.kind = GuiCardSnapshot.Kind.BACK
-		elif child is Label or String(child.name).begins_with("HoleCardField"):
-			value.kind = GuiCardSnapshot.Kind.EMPTY
-		value.rank = element(rank, root, StringName("%s/rank" % card_role), not authorized)
-		value.suit = element(suit, root, StringName("%s/suit" % card_role), not authorized)
-		result.append(value)
-	return result
-
-
-static func overlay(
-	node: Node, root: Control, kind: StringName, redacted_roots: Array[Node] = []
-) -> GuiOverlaySnapshot:
-	var result := GuiOverlaySnapshot.new()
-	result.kind = kind
-	result.element = GuiLayoutElement.new()
-	result.element.role = StringName("overlay/%s" % kind)
-	if not is_instance_valid(node):
-		return result
-	if node is Control:
-		result.element = element(node as Control, root, result.element.role)
-	elif node is Window:
-		var window := node as Window
-		result.window_based = true
-		result.native_window = not window.is_embedded()
-		result.element.visible = window.visible
-		result.element.present = true
-		result.element.rect = (_popup_frame_rect(window, root))
-		result.element.content_rect = result.element.rect
-	descendants(node, root, result.element.role, result.measured, redacted_roots)
-	result.elements = _overlay_elements(node, root, kind)
-	return result
-
-
-static func _popup_frame_rect(window: Window, root: Control) -> Rect2:
-	if window.is_embedded():
-		return Rect2(Vector2(window.position), Vector2(window.size))
-	var frame := Rect2(Vector2(window.position - root.get_window().position), Vector2(window.size))
-	return root.get_viewport().get_final_transform().affine_inverse() * frame
-
-
-static func _overlay_elements(
-	node: Node, root: Control, kind: StringName
-) -> Dictionary[StringName, GuiLayoutElement]:
-	var names: Dictionary[StringName, String] = {}
-	match kind:
-		&"keypad":
-			names = {
-				&"clear": "KeyClear",
-				&"back": "KeyBack",
-				&"done": "Done",
-				&"cancel": "Cancel",
-				&"value": "Value",
-				&"title": "Title",
-				&"range": "Range",
-				&"minimum": "KeyMin",
-				&"pot": "KeyPot",
-			}
-			for digit: int in range(10):
-				names[StringName("key/%d" % digit)] = "Key%d" % digit
-		&"menu":
-			names = {
-				&"close": "PhoneMenuCloseButton",
-				&"quit": "PhoneMenuQuitButton",
-				&"summary": "PhoneMenuShowdownButton",
-				&"blinds": "PhoneBlindLevelDetail",
-			}
-		&"quit":
-			names = {&"continue": "PhoneQuitContinueButton", &"confirm": "PhoneQuitConfirmButton"}
-		&"summary":
-			names = {&"text": "PhoneShowdownSummary", &"close": "PhoneShowdownCloseButton"}
-		&"seat_detail":
-			names = {&"close": "CloseButton", &"name": "Name", &"stack": "Stack", &"state": "State"}
-	var result: Dictionary[StringName, GuiLayoutElement] = {}
-	for role: StringName in names:
-		result[role] = element(
-			node.find_child(names[role], true, false) as Control,
-			root,
-			StringName("overlay/%s/%s" % [kind, role])
-		)
-	if kind == &"quit" and node is ConfirmationDialog:
-		var dialog := node as ConfirmationDialog
-		result[&"continue"] = element(dialog.get_cancel_button(), root, &"overlay/quit/continue")
-		result[&"confirm"] = element(dialog.get_ok_button(), root, &"overlay/quit/confirm")
-	return result

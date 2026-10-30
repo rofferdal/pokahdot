@@ -75,6 +75,16 @@ func _run() -> void:
 	_profile = profile
 	_runout = scenario == "runouts"
 	_size = PROFILE_SIZES[profile]
+	if _options.has("width") or _options.has("height"):
+		var width: String = str(_options.get("width", ""))
+		var height: String = str(_options.get("height", ""))
+		if profile != "phone" or not width.is_valid_int() or not height.is_valid_int():
+			_fail("Phone viewport override requires two positive integer dimensions.")
+			return
+		_size = Vector2i(int(width), int(height))
+		if _size.x <= 0 or _size.y <= 0:
+			_fail("Phone viewport override requires two positive integer dimensions.")
+			return
 	_table = TableScene.instantiate() as GuiReplacementTableController
 	_table.set_script(ProfiledTable)
 	var timing := GuiActionTimingConfig.new()
@@ -345,7 +355,7 @@ func _player_count(profile: String) -> int:
 func _resize_size(index: int) -> Vector2i:
 	var sizes: Array[Vector2i] = []
 	if _profile == "phone":
-		sizes.assign([Vector2i(390, 844), Vector2i(1024, 768), Vector2i(412, 915)])
+		sizes.assign([_size, Vector2i(1024, 768), Vector2i(412, 915)])
 	else:
 		sizes.assign([Vector2i(1024, 768), Vector2i(1377, 777), Vector2i(1920, 1080)])
 	return sizes[index % sizes.size()]

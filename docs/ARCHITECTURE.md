@@ -302,7 +302,7 @@ Trace detail does not change outcome digests or provenance checks.
 | Use responsive Control layout guidance | `canvas_items` with `expand`, containers, anchors, and responsive margins govern layout adaptation; font and texture crispness is not assumed from stretch mode alone. |
 | Give GUI geometry one owner | `GuiViewportAdapter` normalizes the real root Window to actual canvas CSS geometry on Web and client/current-window scale on native platforms. Startup, table and popups consume the same usable rectangle; fixture roots remain isolated. |
 | Classify GUI layout from usable geometry with explicit supplemental overrides | Phone portrait, phone landscape, tablet, small-desktop, and desktop profiles derive from the canvas remaining after browser chrome and safe areas. Known device evidence may override ambiguous geometry; in particular, the observed 2388 x 1450 iPad fixture declares a tablet override instead of making every desktop window of that size a tablet. |
-| Give manually positioned GUI regions one layout owner | The central board/pot/wager stack uses a plain `Control`; `PokerTableController` atomically assigns its centered bounds and its three child panel rectangles. A Godot `Container` must not compete with those explicit rectangles or resize the stack from late child minimum-size notifications. |
+| Give GUI geometry one layout owner | Authored phone/wide compositions and their measured containers allocate complete board, seat and action footprints. Infeasible content presents guidance rather than applying collision corrections. |
 | Preserve mobile usability targets | Interactive controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows. |
 | Select numeric entry from the input source, not viewport geometry | A touch press opens the shared transactional in-canvas keypad on every layout profile; pointer focus leaves the native `LineEdit` available for physical-keyboard digits and editing keys, including on phone-sized windows. Project-level mouse-to-touch emulation stays disabled so a desktop Web click cannot be reclassified as a touch press. Done commits a touch draft and Cancel preserves the previously committed value. |
 | Use GUT as the test framework | Its Godot 4.7 release provides GDScript assertions, parameterized tests, doubles, headless execution, and JUnit output without adding runtime coupling. |
@@ -463,7 +463,7 @@ It must not inspect players, stacks, pots, or UI state.
 - public action history and recipient-safe showdown results, including category, ordered tie-break values, and the selected five cards for each legitimately revealed hand;
 - hand number, tournament status, end reason, and optional winner.
 
-Public action history contains only actions and public outcomes. Opponent hole cards appear only at showdown, or at `hand_end` when those cards were actually shown; folded or otherwise unrevealed cards never appear.
+Public action history contains only actions and public outcomes. Opponent hole cards appear only at showdown, or at `hand_end` when those cards were actually shown; folded, eliminated and otherwise unrevealed seats never display hole cards.
 
 Collections exposed in a view are duplicated so a bot or UI cannot mutate core state indirectly.
 
@@ -727,27 +727,28 @@ The completed implementation history proceeded through the interactive CLI first
 
 ### GUI adapter
 
-Planned GUI replacement (2026-10-27):
-[`RestructureGuiTasks.md`](RestructureGuiTasks.md) leads the future presentation
-structure: one geometry adapter/classification policy, pure view models,
-component scenes, themes and container-owned layout. A complete GUI rewrite
-is permitted; existing GUI code is reusable only where it fits that design.
-The descriptions below remain the implemented baseline. Product behavior,
-privacy, input transactions and useful verification coverage must survive;
-legacy node structure and exact geometry are not architectural constraints.
-No full replacement cutover or device acceptance is claimed by this decision.
+Cutover ownership decision (RG-54): `StartupConfigController` creates one
+`GuiReplacementTableController` and the app-owned `GuiViewportAdapter` supplies
+immutable usable geometry. `GuiSizeClass` owns classification; measured fit
+selects the authored phone, landscape or wide composition, or presents guidance
+without mutating the tournament. `GuiTableSession` owns recipient-safe binding,
+pacing and core action delegation. The layout resolver owns scheduling,
+measurement caches and probes; the composition and overlay host own their
+respective controls, transactions and focus. `GuiStartupLayout` owns responsive
+startup presentation. Static styles live in the theme. Semantic snapshots are
+detached and use the viewport coordinate space. Fixed controls and card slots
+are authored with stable parents. Wide seat panels are instantiated for roster
+or recipient-role changes; a refresh of the same roster preserves panel identity,
+and resize alone does not rebuild seats. A layout mode switch replaces the
+composition subtree while the session and overlay state remain outside it.
 
-Retirement decision (2026-10-28): build the replacement directly; do not continue
-extracting legacy builders or layout helpers. RG-13 may provide a small temporary
-policy bridge, while replacement compositions consume the unified policy
-directly. The [backlog retirement map](RestructureGuiTasks.md#transitional-size-and-retirement-plan--2026-10-28)
-names the old scenes, factories, geometry/style helpers and reference-specific
-snapshot producers to remove at RG-54 after independent replacement coverage.
-Keep the detached semantic snapshot API and useful independent pure services;
-do not retain wrappers solely to keep old trees alive. Delete associated `.uid`
-files only after references are removed. Compare production lines, custom layout
-ownership and runtime construction at cutover; more reusable authored scenes
-alone do not imply more custom code.
+The reference scene/controller, factories, runtime builders, classification
+and geometry helpers, collision/correction passes and reference-only observers
+have been retired. Independent replacement component, state, lifetime, Web
+layout/input and category checks cover their product contracts. The prior
+9,994-input reference registry remains frozen historical evidence; it is not a
+replacement acceptance baseline. Physical-device and gameplay acceptance remain
+separate tasks in the [GUI backlog](RestructureGuiTasks.md).
 
 Authored control components (RG-39, 2026-10-29): `ActionButton.tscn`
 provides shared rounded dark-green/white-text presentation for every visible
@@ -772,8 +773,8 @@ are set on the native control. Invalid Total retains its dark surface, grey text
 and centered shorter face rather than inheriting the generic white error field.
 All controls reserve at least 48×48, use 20 px text and include native full-copy
 minimum widths. Input transactions, numeric validation and game submission stay
-in controllers/adapters. RG-43/45/51–54 compose these controls throughout the
-replacement and retire the existing builders; the reference GUI is still active.
+in controllers/adapters. The replacement compositions use these controls;
+the reference builders have been retired.
 The user accepted the independent RG-39 control gallery on 2026-10-29.
 
 Branding decision (2026-10-29, RG-11R5): `BrandLogo.tscn` is a reusable,
@@ -870,8 +871,7 @@ also enforce the later, stricter two-opponent cap in phone portrait, with a
 centered single top seat for odd opponent counts. They
 record row membership and preserve clockwise seat IDs; cosmetic staggering
 does not satisfy the limit. Existing small-desktop and nine-seat wide/tablet
-reference paths contain four-seat rows. They remain a documented legacy gap,
-not accepted replacement behavior. RG-12 now defines explicit capped rows;
+reference paths contain four-seat rows. Those paths are retired; their four-seat rows were not accepted replacement behavior. RG-12 now defines explicit capped rows;
 RG-42/50–52 must allocate them without adding legacy geometry owners.
 
 The user reaffirmed on 2026-10-29 that legacy layout must not limit the new GUI
@@ -918,7 +918,7 @@ formatting or visibility decisions live in the views. Initial wrapped blind
 copy is queued past the first native container sort so a zero-width label
 cannot latch an inflated ancestor minimum. Snapshot/fit owners wait for the
 normal bounded layout settling before measuring. Invalid models clear old copy.
-The current card factory remains reference code until production cutover.
+The former card factory was reference code and was retired at production cutover.
 
 `PlayingCard` uses native aspect-fit children with a slightly broader 3:4
 ratio, retaining width/height at least 5:7 after integer pixel rounding. All
@@ -954,7 +954,7 @@ maximum numbers, model rebinding and redaction. The reference characterization
 registry remains unchanged. The user accepted RG-40 on 2026-10-29; table/seat
 composition and device acceptance remain in their later tasks.
 
-Decision (2026-10-28, RG-01): `PokerTableController.get_layout_snapshot()`
+Historical decision (2026-10-28, RG-01): the retired reference controller’s `get_layout_snapshot()`
 and `StartupConfigController.get_layout_snapshot()` expose detached,
 strongly typed `GuiLayoutSnapshot` values. Producers adapt the reference GUI;
 consumers use semantic roles rather than widget paths. The API measures the
@@ -987,14 +987,11 @@ rendered tree without changing it or advancing a match. RG-02 shared invariant a
   settling remains a harness responsibility. Snapshots remain valid after
   rerendering or freeing their source scene.
 
-Decision (2026-10-28, RG-02): shared invariant assertions, phone content
-contracts, bounded harness settling and exported browser observers consume
-semantic snapshots. `GuiSceneHarness` accepts an implementation-specific
-fixture driver; the reference driver owns legacy scene setup and its exact
-phone-density oracle. Replacement drivers supply their own bootstrap and
-omit that reference-only pixel comparison. Overlay exceptions use semantic
-kinds and remain fixture-specific. Capture manifests retain original case IDs
-and fingerprint the reference driver and snapshot assertion helpers.
+Current snapshot verification uses replacement-owned matrix and category
+fixtures, schema-2 invariant assertions and exported browser observers. Bounded
+settling distinguishes ready layouts from explicit guidance. Overlay exceptions
+use semantic kinds; capture manifests fingerprint replacement case sources and
+record each case's invariant result.
 
 Browser observations serialize viewport-coordinate regions and semantic label
 roles, and retain complete raw engine failures. Input checks read exact input
@@ -1075,9 +1072,8 @@ Implemented ownership (RG-11): `GuiViewportAdapter`, authored under the main
 GUI scene, owns runtime normalization and publishes immutable
 `GuiViewportGeometry` values from pure Web/native/injected factories.
 Startup's Center retains its internal 12-unit margin within the usable extent.
-The reference table receives that usable origin/extent directly. The replacement
-opts into `GuiViewportAdapter.bind(..., full_table_viewport = true)`, occupies
-the full viewport, and lets `CompositionHost` apply the usable origin once.
+The table occupies the full viewport and lets `CompositionHost` apply the
+usable origin once.
 Its overlays receive the same root-local usable rectangle independently.
 Pending geometry invalidates readiness until the new rectangle is applied.
 
@@ -1207,13 +1203,10 @@ measurements, unsupported capacity, unregistered scenes and invalid/empty
 PackedScenes remain distinguishable, recoverable states. The outer adapter
 must retain menu/Quit, overlays and input state during guidance.
 
-The reference `GuiTableLayoutPass`, `GuiMobileTableLayout`,
-`GuiSixSeatDesktopPlan` and controller/seat/action helpers are bypassed by the
-replacement host, retained only for reference play and tests until RG-54.
-Their known defects are neither waived for new layouts nor repaired by this
-routing task. The existing deterministic six-seat contract and characterization
-registry remain unchanged. Passing primitive routing fixtures does not certify
-final poker-table containment, styling or device support.
+The reference layout and controller helpers were retired at cutover. Their
+frozen characterization registry remains historical evidence; replacement
+routing, native composition matrices and exported checks do not certify physical
+device support.
 
 `tools/check_gui_policy.py`, run by `make docs-check` and `make check`, guards
 replacement `layout/`, `view_models/`, `components/` and `compositions/` scripts.
@@ -1222,8 +1215,7 @@ numeric/named viewport thresholds outside the classifier. It permits measured
 minimum/containment comparisons, invalid-size checks and local target floors.
 This is a conservative scoped source guard, not a complete GDScript parser;
 review still checks aliases and new replacement script locations. The resolver
-alone invokes the classifier. Reference/platform scripts remain outside this
-replacement-only guard; remove reference exclusions at cutover.
+alone invokes the classifier. The guard covers the replacement ownership boundaries after cutover.
 
 **Pure table presentation models (RG-20, 2026-10-29)**
 
@@ -1258,16 +1250,11 @@ shares and semantic summary lines. `EventLogViewModel` is the same detached
 history body whether docked or presented in an overlay; the adapter still
 matches recipient-safe events/actions through the existing pure formatter.
 
-The reference controller, action controls and seat factory consume these models
-through `get_table_view_model()` and typed adapter calls. The reference adapter
-retains its existing geometry-dependent choice of copy variants and font
-measurement for wrapping winner names; new components consume selected density
-directly. Reference card factories still accept permitted CardData while their
-replacement scenes are implemented in RG-40–42. This integration changes ownership, not
-legacy geometry or accepted appearance. RG-21 migrates pure presentation test
-cases, with the [coverage map](GuiModelCoverage.md) recording each migration
-and retained integration contract. RG-39–54 finish component rendering and
-retire reference builders.
+The replacement controller and authored components consume these models through
+`get_table_view_model()` and typed render calls. Components consume selected
+density directly; card view models carry authorized face, back or empty state.
+The [coverage map](GuiModelCoverage.md) records current model and integration
+checks as well as historical migration evidence.
 
 **Complete seat components (RG-41, reconciled in RG-50S)**
 
@@ -1299,8 +1286,7 @@ frames use palette variations. Only name/stack/wager remain inside, with full
 All In and action/result copy beneath. All winning recipients receive bold yellow
 copy. Null/invalid models clear the bound state with explicit diagnostics. The
 user accepted the RG-50S panel and refreshed ring previews on 2026-10-29; whole-game
-integration/device acceptance remain later. The active reference factory remains
-until RG-54.
+integration/device acceptance remain later. The reference factory was retired at RG-54.
 
 **Seat ring and slot resources (RG-50)**
 
@@ -1352,10 +1338,9 @@ The user reviewed original RG-50 captures for placement only. RG-50S subsequentl
 reconciled their interiors with the approved fixed structure and applied the
 requested human card corner; its refreshed six/nine-seat previews are accepted.
 
-Reference TableSeatLayout position tables are retired from the replacement path
-and remain only for the active reference GUI until RG-54. Wide/phone/controller
-integration is implemented in the RG-51–53 opt-in path. Standalone six/nine-seat previews do not claim
-final table or device acceptance.
+Reference TableSeatLayout position tables were retired at cutover. Wide, phone
+and controller integration is the default. Standalone previews do not claim
+physical-device acceptance.
 
 **Wide replacement composition (RG-51)**
 
@@ -1430,13 +1415,15 @@ measured routing, input, overlays and detached snapshots. `GuiTableSession` owns
 one adopted `TournamentMatch`, copied name/avatar assignments, recipient-safe
 views, public event/action history and presentation pacing. It delegates actions,
 Pot targets and progression to the core; match construction remains in the
-existing startup adapter/factory. The reference controller stays isolated until
-cutover rather than being constructed behind the replacement.
+existing startup adapter/factory. The reference controller has been retired.
 
-Startup instantiates exactly one selected controller before child readiness.
-`use_replacement_gui` or `--replacement-gui` enables the replacement; normal
-launch retains the reference until RG-54. Startup snapshot routing calls the
-selected controller's public contract without a reference-specific cast.
+Startup and table classify usable geometry through `GuiSizeClass`; fit remains
+content-measured and insufficient space produces guidance. Startup mounts the
+authored `OverlayHost` for transactional number entry and uses authored theme
+variations for its static control styles.
+
+Startup instantiates the replacement controller before child readiness. Startup
+snapshot routing calls its public contract without a reference-specific cast.
 The approved Start-screen logo remains above the form on the dark background.
 
 Geometry-only updates retain the active composition when its selected mode
@@ -1540,7 +1527,7 @@ The 30-unit header and tightly packed lower copy remove excess panel height.
 Native minimums preserve complete 18 px text and card size rather than switching
 orientation or moving fields between rows. Wider/taller allocations retain these
 corners and recover the same intrinsic minimum. The unused replacement row
-planner is removed; reference helpers remain unchanged until cutover.
+planner and reference helpers were removed at cutover.
 
 `GuiHoleCards` retains the proportional 6%-of-card-width visible gap. Tokens
 keep the pair at its intrinsic size when the containing cell grows. Snapshot
@@ -1595,9 +1582,8 @@ geometry; deferred settling reapplies that rectangle after minimum changes.
 Insufficient-space guidance retains the requested panel and recovers on resize.
 Same-panel reflow preserves descendant focus. Mode exit cancels numeric entry
 without commit, while other modal panels reflow. Teardown cancels drafts and
-pending progression; reentry starts inactive. RG-53 integrates this host outside
-the replaceable composition. The reference GUI remains the normal-launch default
-until RG-54.
+pending progression; reentry starts inactive. The host persists outside the
+replaceable composition in the default GUI.
 
 `NumericKeypad.tscn` renders NumberEntryViewModel and maintains an exact raw local
 draft. Cancel returns the original value, and Done emits the draft once; adapters
@@ -1720,8 +1706,8 @@ Typography tests compare normal/bold measurement with native Label/VBox
 minimums over preferred sizes 18–26 and multiple allocations, including a
 reserved blank band. Layout roots select metrics from resolved density;
 per-component seat fitting remains bounded and never changes touch allocations.
-Full replacement compositions are implemented in the opt-in path; physical-device
-acceptance remains in later tasks.
+Full replacement compositions are the default; physical-device acceptance
+remains in later tasks.
 
 The accepted marker review adds a white circular `DealerButton` with dark-green
 D, distinct `BlindMarker` SB/BB badges and yellow `WinnerStar`. Heads-up D and
@@ -1784,7 +1770,11 @@ The startup panel and table are views in one scalable `Control`-based main scene
 
 The table view uses a green felt surface. Its layout has explicit, visually distinct zones for community cards, the current pot, and player wagers; player-seat panels are arranged around that surface. The layout is presentation-only: it reads board, pot, contribution, position, and action data from `GameView` and must not calculate poker state itself. The GUI maps the recipient's seat to the bottom visual position for readability while retaining each core seat ID and rendering its actual dealer and blind markers. The reference acting player is identified by a white seat frame three times thicker than an ordinary frame (the replacement theme review increases this to six), without a redundant textual `ACT` marker. The recipient's stack/status and private hole cards appear in that bottom seat panel; individual cards are rendered as card faces. This visual remapping is local to the GUI presentation layer and must not mutate `GameView`, `Table`, player ordering, or poker position semantics.
 
-Reference-path decision (2026-10-27, CODE-01; retained until RG-54):
+Historical reference-path decision (2026-10-27, CODE-01; retired at RG-54):
+The following reference implementation descriptions are historical, not current
+ownership or requirements. The cutover decision and replacement contracts above
+control current behavior.
+
 `PokerTableController` coordinates recipient-safe
 binding, public-action lifetime, input submission and pacing. Presentation work
 has typed component boundaries:
@@ -1818,7 +1808,7 @@ reflow without overlap at supported desktop and mobile aspect ratios. The
 app-owned `Main/ViewportAdapter` Node applies the current measured logical base
 and usable rectangle to startup and table; startup no longer normalizes the
 Window. Web uses actual canvas CSS bounds, while the backing canvas remains
-high resolution. `GuiWebViewportGeometry` is a legacy helper pending retirement.
+high resolution. The viewport geometry resource owns the Web conversion.
 The human recipient is visually anchored at the bottom; this is a
 presentation mapping only and must not alter core seat identities or poker
 positions. Desktop seat panels use equal wide dimensions across 2–9 seats,

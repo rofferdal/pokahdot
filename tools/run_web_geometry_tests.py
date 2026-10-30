@@ -77,7 +77,7 @@ def main() -> None:
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
                 for preset in ("ordinary", "asymmetric", "safe-and-visual", "asymmetric-keypad"):
-                    page.goto(f"http://127.0.0.1:{server.server_port}/index.html?geometry={preset}")
+                    page.goto(f"http://127.0.0.1:{server.server_port}/index.html?geometry={preset}&players=2")
                     sizes = ((1280, 720), (1920, 1080), (390, 844)) if preset == "ordinary" else ((390, 844),)
                     for width, height in sizes:
                         page.set_viewport_size({"width": width, "height": height})

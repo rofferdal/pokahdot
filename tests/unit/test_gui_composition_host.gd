@@ -8,17 +8,18 @@ const MODE := GuiSizeClass.LayoutMode
 
 func test_snapshot_diagnostic_profiles_map_modes_without_geometry_classification() -> void:
 	assert_eq(
-		GuiSnapshotMeasurement.profile_for_mode(MODE.PHONE), GuiLayoutProfile.Kind.PHONE_PORTRAIT
+		GuiSnapshotMeasurement.profile_for_mode(MODE.PHONE),
+		GuiLayoutSnapshot.Profile.PHONE_PORTRAIT
 	)
 	assert_eq(
 		GuiSnapshotMeasurement.profile_for_mode(MODE.PHONE_LANDSCAPE),
-		GuiLayoutProfile.Kind.PHONE_LANDSCAPE
+		GuiLayoutSnapshot.Profile.PHONE_LANDSCAPE
 	)
 	assert_eq(
 		GuiSnapshotMeasurement.profile_for_mode(MODE.WIDE_COMPACT),
-		GuiLayoutProfile.Kind.SMALL_DESKTOP
+		GuiLayoutSnapshot.Profile.SMALL_DESKTOP
 	)
-	assert_eq(GuiSnapshotMeasurement.profile_for_mode(MODE.WIDE), GuiLayoutProfile.Kind.DESKTOP)
+	assert_eq(GuiSnapshotMeasurement.profile_for_mode(MODE.WIDE), GuiLayoutSnapshot.Profile.DESKTOP)
 	assert_eq(GuiSnapshotMeasurement.profile_for_mode(MODE.NOT_READY), -1)
 
 

@@ -1,10 +1,9 @@
 extends "res://tests/support/poker_gut_test.gd"
 
-## Historical Milestone 3 diagnostic entry point; suite identity is preserved.
-const Runner := preload("res://tests/support/gui_invariant_matrix_runner.gd")
-const Suites := preload("res://tests/support/gui_invariant_matrix_suites.gd")
+## The M3 replacement gate exercises the complete 99-case native matrix.
+const Matrix := preload("res://tests/support/gui_replacement_category_matrix.gd")
 
 
-func test_milestone_three_visual_matrix_satisfies_gui_invariants() -> void:
-	var failures: PackedStringArray = await Runner.run_suite(self, Suites.Suite.MILESTONE_THREE)
+func test_m3_replacement_matrix_satisfies_schema2_invariants() -> void:
+	var failures: PackedStringArray = await Matrix.run(self, &"m3")
 	assert_eq(failures, PackedStringArray(), "\n" + "\n".join(failures))

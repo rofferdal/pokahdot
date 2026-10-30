@@ -153,6 +153,9 @@ static func _status(
 	if human_turn:
 		return "Your turn: %s" % street if compact else "Your turn — %s." % street
 	if view.hand_complete:
+		var summary := HandSummaryViewModel.build(view, names)
+		if not summary.result_text.is_empty():
+			return summary.result_text
 		return "Hand complete" if compact else "Hand complete."
 	var actor: String = (
 		GuiEventFormatter.player_name_for(view, view.acting_seat)

@@ -12,7 +12,7 @@ func render(model: CardViewModel) -> void:
 	var face: GuiCardFace = get_node("Face")
 	var back: GuiCardBack = get_node("Back")
 	face.render(model if _state == CardViewModel.State.FACE else CardViewModel.empty())
-	back.render(CardViewModel.back())
+	back.render(model if _state == CardViewModel.State.BACK else CardViewModel.empty())
 	face.visible = _state == CardViewModel.State.FACE
 	back.visible = _state == CardViewModel.State.BACK
 	get_node("Empty").visible = _state == CardViewModel.State.EMPTY

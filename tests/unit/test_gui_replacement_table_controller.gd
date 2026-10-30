@@ -2,6 +2,7 @@ extends GutTest
 
 const Controller := preload("res://scenes/gui/ReplacementPokerTable.tscn")
 const Invariants := preload("res://tests/support/gui_invariant_assertions.gd")
+const BrowserFixture := preload("res://tests/support/gui_browser_capture_fixture.gd")
 var _viewport: SubViewport
 var _table: GuiReplacementTableController
 
@@ -43,6 +44,30 @@ func test_live_binding_keeps_private_cards_safe_and_reuses_widgets_without_new_p
 	assert_eq(_table.get_render_counters().mounts, counters.mounts)
 	assert_eq(_table.get_render_counters().active_probes, 0)
 	assert_eq(Invariants.validate_snapshot(_table.get_layout_snapshot()), PackedStringArray())
+
+
+func test_builtin_font_and_stress_copy_fit_actual_phone_allocations() -> void:
+	_setup(Vector2(1000, 500), GuiSizeClass.LayoutMode.PHONE_LANDSCAPE)
+	var descriptor: Dictionary = BrowserFixture.descriptor(3, true)
+	assert_true(_table.bind_view(descriptor.view, descriptor.avatars, descriptor.names))
+	assert_true(await _settle())
+	var snapshot: GuiLayoutSnapshot = _table.get_layout_snapshot()
+	assert_true(snapshot.ready)
+	assert_eq(Invariants.validate_snapshot(snapshot), PackedStringArray())
+	var opponent: GuiSeatSnapshot = snapshot.seats[1]
+	assert_eq(opponent.fields[&"name"].text, "Annalise")
+	assert_eq(opponent.fields[&"stack"].text, "1000000")
+	assert_string_contains(opponent.fields[&"action"].text, "1000000")
+	for role: StringName in [&"name", &"stack", &"action"]:
+		var value: GuiLayoutElement = opponent.fields[role]
+		assert_lte(value.required_size.x, value.allocated_size.x + 0.5, String(role))
+		assert_lte(value.required_size.y, value.allocated_size.y + 0.5, String(role))
+	var compact_action: GuiLayoutElement = snapshot.elements[&"action/check_call"]
+	assert_eq(compact_action.text, "Call 1000000")
+	assert_lte(compact_action.required_size.x, compact_action.allocated_size.x + 0.5)
+	assert_lte(compact_action.required_size.y, compact_action.allocated_size.y + 0.5)
+	for control: Control in _table.get_composition().get_seat_controls().values():
+		assert_true(control.get_theme_font("font").resource_path.is_empty())
 
 
 func test_safe_origin_is_applied_once_and_geometry_reuses_active_composition_and_value_cache(

@@ -43,16 +43,22 @@ static func expected_overlays() -> Array[StringName]:
 	return result
 
 
-static func open_initial_overlay(table: PokerTableController) -> void:
+static func open_initial_overlay(table: GuiReplacementTableController) -> void:
 	if _preset() != "asymmetric-keypad":
 		return
-	for _frame: int in range(16):
+	for _frame: int in range(120):
 		await table.get_tree().process_frame
 		var snapshot: GuiLayoutSnapshot = table.get_layout_snapshot()
 		if snapshot.ready and not snapshot.pending:
-			table.show_wager_keypad()
+			var number := NumberEntryViewModel.new()
+			number.title = "Wager total"
+			number.value = table.get_wager_draft()
+			number.minimum = 10
+			number.maximum = 1000
+			number.show_presets = true
+			table.get_overlay_host().open_number(number)
 			return
-	push_error("Viewport geometry keypad fixture did not reach ready geometry.")
+	push_error("Replacement viewport geometry keypad fixture did not reach ready geometry.")
 
 
 static func _preset() -> String:

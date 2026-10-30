@@ -154,7 +154,7 @@ use the [GUI defect record](../../docs/templates/GUI_DEFECT.md) for failures.
 Verify the rendering and capture pipeline with one development-only case:
 
 ```bash
-make gui-visual-capture-smoke
+make gui-visual-capture-smoke GUI_CAPTURE_OUTPUT=localtmp/gui-smoke-new
 ```
 
 Preview the reusable replacement controls for RG-39 review:
@@ -207,111 +207,50 @@ godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --
 This saves `localtmp/gui-elements/rg50s-seat-ring-review2-{6,9}.png` and matching JSON
 with explicit seat rows, measured minimums, source hashes and content checks.
 These are standalone ring-container samples using synthetic recipient-safe
-fixtures. The finished wide/phone compositions and controller are available in
-the opt-in replacement path:
+fixtures. The replacement wide and phone compositions are now the default.
+Earlier RG-51–53 and review2 PNGs under `localtmp/gui-elements/` remain
+historical session evidence; the six-player fitted portrait example uses a
+480×1040 synthetic canvas rather than a claimed device size. Use the fresh
+destination capture commands below for new review evidence. Unsupported sizes
+present guidance without changing the match or player count.
 
-```bash
-godot --path . -- --replacement-gui
-```
-
-Normal launch retains the reference table until RG-54. Startup creates one
-selected controller and adopts its existing validated match. To capture the
-combined RG-51–53 review fixtures:
-
-```bash
-godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_table_capture.gd
-```
-
-This saves seven `localtmp/gui-elements/rg53-*.png`/JSON pairs: wide six/nine,
-portrait four, landscape two, phone menu, phone number entry and six-player
-phone guidance. The original short heads-up landscape size now shows guidance
-under the accepted symmetric plan; use `--review2` below for the current accepted
-phone previews. Metadata records actual mode/rows, strict invariants and source
-hashes. These explicit recipient-safe synthetic fixtures do not establish
-physical-device acceptance. Current ordinary six/seven-seat portrait content
-needs 991 px height; 390×844 shows guidance with menu/Quit access.
-
-Generate the phone review corrections without replacing accepted captures:
-
-```bash
-godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_table_capture.gd -- --review2
-godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_phone_table_capture.gd -- --review2
-```
-
-The first command saves five `rg53-review2-*` PNG/JSON pairs: symmetric
-three-player landscape, the same layout with representative safe insets,
-heads-up compact landscape at 1024×768, and four/six-player portrait. The
-six-player portrait canvas is 480×1040. The second command saves the large-value
-`rg52-review2-phone-portrait-4-large` example. The narrower human panel preserves
-its intrinsic copy minimum. Unsupported short landscape advises trying portrait
-mode or a larger screen; no player count or active match is changed.
-
-Run all current regression matrices, including historical Milestone 3 and
-the dedicated phone, iPad, and desktop gates, without producing screenshots:
+Run all replacement regression matrices without producing screenshots:
 
 ```bash
 make gui-current-invariant-gate
 ```
 
-The four gate entry points share one runner. Coverage lives in
-[`gui_invariant_matrix_suites.gd`](../../tests/support/gui_invariant_matrix_suites.gd);
-phone-specific checks remain in
-[`gui_phone_matrix_contract.gd`](../../tests/support/gui_phone_matrix_contract.gd).
-Preserve historical case IDs and version intentional coverage changes through
-the [visual evidence contract](../../docs/GUI_VISUAL_TESTING.md).
+The four entry points cover the replacement M3, phone, iPad and desktop
+categories through schema-2 semantic invariants. Their case definitions live in
+`tests/support/gui_replacement_capture_cases.gd` and
+`tests/support/gui_replacement_category_matrix.gd`.
 
-Capture the complete matrix while developing, including from a dirty tree:
+Capture the replacement M3 matrix from a dirty tree for development review:
 
 ```bash
-make gui-visual-capture-development
+make gui-visual-capture-development GUI_CAPTURE_OUTPUT=localtmp/gui-review-new
 ```
 
-This records dirty paths and their fingerprint and is never acceptance
-evidence. It does not run the ordinary complete suite or the standalone
-invariant gate first.
-
-Run the dedicated 406-case phone v2 invariant matrix and render its
-development screenshots with:
-
-```bash
-make gui-phone-invariant-gate
-make gui-phone-capture-development
-```
-
-The phone matrix covers 2, 4, 6, and 7 players across canonical portrait,
-landscape, and reduced-height viewports. It excludes the event-history state
-because the phone composition has no event-history surface. The development
-capture remains non-acceptance evidence and requires 100% visual review.
-
-Run the dedicated iPad geometry and full-state matrix with landscape as the
-primary orientation and portrait as secondary regression coverage:
-
-```bash
-make gui-ipad-invariant-gate
-```
-
-This includes canonical 1024 x 768 landscape and 768 x 1024 portrait, the
-1194 x 696 reduced-height Chrome regression, and the 2388 x 1450 observed
-surface at 2, 4, 6, 7, and 9 players. It does not expand the frozen Milestone 3
-capture count.
+Use `gui-phone-capture-development`, `gui-ipad-capture-development` or
+`gui-desktop-capture-development` with their own fresh destinations for the
+corresponding category. These outputs are not acceptance evidence.
 
 Produce candidate evidence only from a clean committed tree:
 
 ```bash
-make gui-visual-capture
+make gui-visual-capture GUI_CAPTURE_OUTPUT=localtmp/gui-candidate-new
 ```
 
-The clean target runs `make check`, runs `gui-current-invariant-gate`, rechecks tree
-cleanliness, and renders all 348 Milestone 3 captures. Its manifest is
-acceptance-eligible only if every expected capture settles and passes its
-recorded invariants. Capture commands refuse to overwrite existing evidence.
+The clean target runs `make check`, the invariant gate and a clean-tree check
+before capturing 99 replacement M3 cases. The manifest is acceptance-eligible
+only when every case settles and passes its invariants. Every capture command
+requires a new destination under `localtmp/` and refuses to overwrite evidence.
 Use `make GODOT=/full/path/to/godot <target>` when Godot is not on `PATH`.
 
-`make check` includes the step-80 GUI layout characterization. Use
-`make gui-layout-characterization` to run it alone, or `make gui-layout-sweep`
-for denser step-20 diagnostics. Read the
-[characterization guidance](../../docs/GUI_VISUAL_TESTING.md#policy-and-fit-characterization)
-before reviewing or explicitly changing the failure registry.
+`make check` includes the replacement size-policy and native composition
+characterization. Use `make gui-layout-characterization` to run it alone.
+The earlier step-80 registry remains historical evidence. See the
+[characterization guidance](../../docs/GUI_VISUAL_TESTING.md#policy-and-fit-characterization).
 
 RG-31's reference typography migration removes font multiplication and recursive
 font repair. Shared compact/regular metric Themes cover startup, table and
@@ -333,13 +272,12 @@ It uses the same pinned Playwright setup as the input gate. If browsers were
 installed under `localtmp/playwright-browsers`, set
 `PLAYWRIGHT_BROWSERS_PATH="$PWD/localtmp/playwright-browsers"`. Finite inset
 presets belong only to the exported fixture; production observers provide no
-live input/geometry mutators. Real native measurements use
-`tests/performance/gui_geometry_fixture.tscn -- --app-adapter --output ...`.
+live input/geometry mutators. Native safe-area conversions and adapter behavior
+are covered by the viewport geometry and integration tests.
 
 Shared GUI assertions and exported observers use `get_layout_snapshot()`.
-When adding a replacement composition, inject its fixture driver into
-`GuiSceneHarness`; keep reference node setup and exact legacy density checks
-in the reference driver. Browser layout reports use semantic label roles and
+Replacement composition, capture and category fixtures use semantic snapshots
+and do not import the reference controller. Browser layout reports use semantic label roles and
 one viewport-coordinate space (report suite v2). Keep observer helpers in the
 isolated test export support list and out of the production export.
 
@@ -361,7 +299,7 @@ this scoped replacement guard until cutover.
 Presentation-model tests (`test_gui_*_view_model.gd`) cover authorized card
 states, action availability, exact values, density variants, winner emphasis,
 detached history and pre-tree/rebind adapter behavior. These run in `make check`.
-Use `PokerTableController.get_table_view_model()` to inspect the detached bound
+Use `GuiReplacementTableController.get_table_view_model()` to inspect the detached bound
 presentation; preserve button/input/submission tests in the real adapter. The
 [coverage map](../../docs/GuiModelCoverage.md) records migrated cases and retained
 rendered/core interactions, including the limited single-run timing evidence.

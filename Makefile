@@ -1,6 +1,7 @@
 GODOT ?= godot
 WEB_TEST_PYTHON ?= .venv/bin/python
 WEB_TEST_OUTPUT ?= localtmp/web-input
+WEB_LAYOUT_OUTPUT ?= localtmp/web-layout
 WEB_GEOMETRY_OUTPUT ?= localtmp/web-geometry
 WEB_LAN_PYTHON ?= python3
 WEB_LAN_OUTPUT ?= localtmp/web-lan
@@ -14,7 +15,7 @@ GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd
 WEB_EXPORT_PATH := build/web/index.html
 WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 
-.PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate gui-ipad-invariant-gate gui-desktop-invariant-gate gui-current-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
+.PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate gui-ipad-invariant-gate gui-desktop-invariant-gate gui-current-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-ipad-capture-development gui-desktop-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
 
 check:
 	$(MAKE) --no-print-directory docs-check
@@ -63,6 +64,10 @@ web-lan-test:
 web-input-test:
 	$(WEB_TEST_PYTHON) tools/run_web_input_tests.py --godot "$(GODOT)" --output "$(WEB_TEST_OUTPUT)"
 
+.PHONY: web-exported-layout-test
+web-exported-layout-test:
+	$(WEB_TEST_PYTHON) tools/run_web_layout_tests.py --godot "$(GODOT)" --output "$(WEB_LAYOUT_OUTPUT)" --strict
+
 .PHONY: web-geometry-test
 web-geometry-test:
 	$(WEB_TEST_PYTHON) tools/run_web_geometry_tests.py --godot "$(GODOT)" --output "$(WEB_GEOMETRY_OUTPUT)"
@@ -92,16 +97,28 @@ release-candidate-gate:
 	$(MAKE) --no-print-directory require-clean-worktree
 
 gui-visual-capture: release-candidate-gate
-	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_visual_capture_runner.gd -- --full-m3
+	@test -n "$(GUI_CAPTURE_OUTPUT)" || { echo "Set GUI_CAPTURE_OUTPUT to a new localtmp/ path."; exit 2; }
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_visual_capture_runner.gd -- --suite m3 --output "$(GUI_CAPTURE_OUTPUT)"
 
 gui-visual-capture-development:
-	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_visual_capture_runner.gd -- --full-m3 --development
+	@test -n "$(GUI_CAPTURE_OUTPUT)" || { echo "Set GUI_CAPTURE_OUTPUT to a new localtmp/ path."; exit 2; }
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_visual_capture_runner.gd -- --suite m3 --output "$(GUI_CAPTURE_OUTPUT)" --development
 
 gui-phone-capture-development:
-	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_visual_capture_runner.gd -- --full-phone --development
+	@test -n "$(GUI_CAPTURE_OUTPUT)" || { echo "Set GUI_CAPTURE_OUTPUT to a new localtmp/ path."; exit 2; }
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_visual_capture_runner.gd -- --suite phone --output "$(GUI_CAPTURE_OUTPUT)" --development
+
+gui-ipad-capture-development:
+	@test -n "$(GUI_CAPTURE_OUTPUT)" || { echo "Set GUI_CAPTURE_OUTPUT to a new localtmp/ path."; exit 2; }
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_visual_capture_runner.gd -- --suite ipad --output "$(GUI_CAPTURE_OUTPUT)" --development
+
+gui-desktop-capture-development:
+	@test -n "$(GUI_CAPTURE_OUTPUT)" || { echo "Set GUI_CAPTURE_OUTPUT to a new localtmp/ path."; exit 2; }
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_visual_capture_runner.gd -- --suite desktop --output "$(GUI_CAPTURE_OUTPUT)" --development
 
 gui-visual-capture-smoke:
-	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_visual_capture_runner.gd -- --viewport desktop_1280x720 --state human-turn-preflop --player-count 6 --development
+	@test -n "$(GUI_CAPTURE_OUTPUT)" || { echo "Set GUI_CAPTURE_OUTPUT to a new localtmp/ path."; exit 2; }
+	$(GODOT) --path . --rendering-method gl_compatibility --rendering-driver opengl3 --audio-driver Dummy --script tests/visual/gui_replacement_visual_capture_runner.gd -- --suite m3 --case-id m3/1920x1300/p6/human-turn-preflop --output "$(GUI_CAPTURE_OUTPUT)" --development
 
 require-clean-worktree:
 	@test -z "$$(git status --porcelain)" || { \
@@ -141,6 +158,7 @@ docs-check:
 	python3 -B -m unittest discover -s tests/documentation -v
 	python3 -B tools/check_docs.py
 	python3 -B tools/check_gui_policy.py
+	python3 -B tools/check_gui_replacement_coverage.py
 
 .PHONY: web-layout-test
 web-layout-test:
@@ -151,9 +169,6 @@ cli-process-test:
 	$(GODOT) --headless --path . --import
 	GODOT="$(GODOT)" python3 -B -m unittest discover -s tests/cli -t . -v
 
-.PHONY: gui-layout-characterization gui-layout-sweep
+.PHONY: gui-layout-characterization
 gui-layout-characterization:
-	$(GODOT) --headless --path . --script tests/manual/gui_layout_sweep_runner.gd -- --step 80
-
-gui-layout-sweep:
-	$(GODOT) --headless --path . --script tests/manual/gui_layout_sweep_runner.gd -- --step 20 --diagnostic --output res://localtmp/gui-layout-sweep/report.json
+	$(GUT_COMMAND) -gconfig= -gtest=res://tests/unit/test_gui_size_policy.gd -gtest=res://tests/manual/gui_replacement_matrix_runner.gd -gexit

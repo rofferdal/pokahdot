@@ -200,43 +200,9 @@ func _on_key(intent: StringName) -> void:
 func _input(event: InputEvent) -> void:
 	if not _active or not is_visible_in_tree() or not event is InputEventKey:
 		return
-	var key := event as InputEventKey
-	if not key.pressed or key.ctrl_pressed or key.meta_pressed or key.alt_pressed:
-		return
-	var intent: StringName = &""
-	if key.unicode >= 48 and key.unicode <= 57:
-		intent = StringName(String.chr(key.unicode))
-	elif key.unicode == 0:
-		var top: Array[Key] = [KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9]
-		var pad: Array[Key] = [
-			KEY_KP_0,
-			KEY_KP_1,
-			KEY_KP_2,
-			KEY_KP_3,
-			KEY_KP_4,
-			KEY_KP_5,
-			KEY_KP_6,
-			KEY_KP_7,
-			KEY_KP_8,
-			KEY_KP_9
-		]
-		var index: int = top.find(key.keycode)
-		if index < 0:
-			index = pad.find(key.keycode)
-		if index >= 0:
-			intent = StringName(DIGITS[index])
-	match key.keycode:
-		KEY_BACKSPACE:
-			intent = &"back"
-		KEY_DELETE:
-			intent = &"clear"
-		KEY_ENTER, KEY_KP_ENTER:
-			var focused: Control = get_viewport().gui_get_focus_owner()
-			if focused is BaseButton and is_ancestor_of(focused):
-				return
-			intent = &"done"
-		KEY_ESCAPE:
-			intent = &"cancel"
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	var button_focused: bool = focused is BaseButton and is_ancestor_of(focused)
+	var intent: StringName = GuiNumericKeyIntent.from_event(event as InputEventKey, button_focused)
 	if not intent.is_empty():
 		get_viewport().set_input_as_handled()
 		_on_key(intent)
@@ -275,7 +241,9 @@ func _header_minimum(compact: bool) -> Vector2:
 	var title_size: Vector2 = get_control(&"title").get_combined_minimum_size()
 	var value_size: Vector2 = get_control(&"value").get_combined_minimum_size()
 	var limits_size: Vector2 = get_control(&"limits").get_combined_minimum_size()
-	var gap: float = (get_node("%InputRow") as HBoxContainer).get_theme_constant("separation")
+	var gap: float = (get_node("%Header") as Control).get_theme_constant(
+		"separation", &"HBoxContainer"
+	)
 	return (
 		Vector2(
 			maxf(title_size.x + value_size.x + gap, limits_size.x),
@@ -307,7 +275,7 @@ func fit_available(available: Vector2) -> bool:
 	var compact_header_size: Vector2 = _header_minimum(true)
 	var digits: GridContainer = get_node("%Digits")
 	var utilities: GridContainer = get_node("%Utilities")
-	var gap: float = (get_node("Portrait") as VBoxContainer).get_theme_constant("separation")
+	var gap: float = (get_node("Portrait") as Control).get_theme_constant("separation")
 	var digit_size: Vector2 = digits.get_combined_minimum_size()
 	var utility_rows: int = ceili(count / 2.0)
 	var spacing := Vector2(
@@ -370,39 +338,12 @@ func fit_available(available: Vector2) -> bool:
 	for role: StringName in UTILITY:
 		if _buttons[role].visible:
 			_buttons[role].custom_minimum_size = chosen.cell
-	var portrait: VBoxContainer = get_node("Portrait")
-	var landscape: VBoxContainer = get_node("LandscapeStack")
-	var key_rows: HBoxContainer = get_node("LandscapeStack/KeyRows")
-	var header: VBoxContainer = get_node("%Header")
-	var input_row: HBoxContainer = get_node("%InputRow")
-	portrait.visible = layout_mode_name == &"portrait"
-	landscape.visible = not portrait.visible
-	input_row.visible = landscape.visible
-	_set_header_appearance(landscape.visible)
-	header.add_theme_constant_override("separation", 0 if landscape.visible else int(gap))
-	if portrait.visible:
-		_move(header, portrait)
-		_move(digits, portrait)
-		_move(utilities, portrait)
-		_move(get_control(&"title"), header)
-		_move(get_control(&"value"), header)
-		header.move_child(get_control(&"title"), 0)
-		header.move_child(get_control(&"value"), 1)
-		portrait.move_child(header, 0)
-		portrait.move_child(digits, 1)
-	else:
-		_move(header, landscape)
-		_move(get_control(&"title"), input_row)
-		_move(get_control(&"value"), input_row)
-		_move(digits, key_rows)
-		_move(utilities, key_rows)
-		header.move_child(input_row, 0)
-		landscape.move_child(header, 0)
+	var compact: bool = layout_mode_name == &"landscape"
+	_set_header_appearance(compact)
+	var header := get_node("%Header") as GuiKeypadHeader
+	header.configure(compact, gap)
+	var body := get_node("Portrait") as GuiKeypadBody
+	body.configure(compact, gap, compact_header_size if compact else header_size)
 	custom_minimum_size = chosen.minimum
 	size = chosen.minimum
 	return true
-
-
-static func _move(control: Control, parent: Node) -> void:
-	if control.get_parent() != parent:
-		control.reparent(parent, false)

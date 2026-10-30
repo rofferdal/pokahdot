@@ -208,18 +208,8 @@ func _layout() -> void:
 	var plan: GuiActionRows = GuiActionRows.resolve(widths, heights, maxf(body.size.x, 1.0), gap)
 	body.custom_minimum_size = Vector2(plan.minimum_width, plan.reserved_height)
 	layout_rows = plan.row_count
-	var first: HBoxContainer = get_node("Body/Rows/First")
-	var second: HBoxContainer = get_node("Body/Rows/Second")
-	first.alignment = (
-		BoxContainer.ALIGNMENT_CENTER if _hero_width > 0.0 else BoxContainer.ALIGNMENT_BEGIN
-	)
-	second.alignment = first.alignment
-	second.visible = layout_rows == 2
-	for index: int in _units.size():
-		var target: HBoxContainer = first if index < plan.split else second
-		if _units[index].get_parent() != target:
-			_units[index].reparent(target, false)
-		target.move_child(_units[index], index if index < plan.split else index - plan.split)
+	var rows := get_node("Body/Rows") as GuiActionUnitsContainer
+	rows.configure(_units, plan.split, gap, _hero_width > 0.0)
 	_measure_status(plan.minimum_width)
 	_align_status()
 

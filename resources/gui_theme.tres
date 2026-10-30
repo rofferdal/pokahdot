@@ -1,4 +1,7 @@
-[gd_resource type="Theme" load_steps=41 format=3]
+[gd_resource type="Theme" load_steps=51 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/ui/checkbox_unchecked.svg" id="StartupUnchecked"]
+[ext_resource type="Texture2D" path="res://assets/ui/checkbox_checked.svg" id="StartupChecked"]
 
 [sub_resource type="FontVariation" id="WinnerBold"]
 variation_embolden = 0.8
@@ -627,6 +630,134 @@ corner_radius_top_right = 36
 corner_radius_bottom_left = 36
 corner_radius_bottom_right = 36
 
+[sub_resource type="StyleBoxFlat" id="StartupFieldNormal"]
+bg_color = Color(0.062745098, 0.176470588, 0.129411765, 1.0)
+border_color = Color(0.458823529, 0.788235294, 0.603921569, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StartupFieldFocus"]
+bg_color = Color(0.105882353, 0.286274510, 0.200000000, 1.0)
+border_color = Color(0.905882353, 0.827450980, 0.607843137, 1.0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StartupFieldReadOnly"]
+bg_color = Color(0.039215686, 0.090196078, 0.066666667, 1.0)
+border_color = Color(0.333333333, 0.462745098, 0.396078431, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 8.0
+content_margin_top = 5.0
+content_margin_right = 8.0
+content_margin_bottom = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StartupButtonNormal"]
+bg_color = Color(0.062745098, 0.176470588, 0.129411765, 1.0)
+border_color = Color(0.458823529, 0.788235294, 0.603921569, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StartupButtonHover"]
+bg_color = Color(0.105882353, 0.286274510, 0.200000000, 1.0)
+border_color = Color(0.905882353, 0.827450980, 0.607843137, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StartupButtonPressed"]
+bg_color = Color(0.043137255, 0.113725490, 0.082352941, 1.0)
+border_color = Color(0.850980392, 0.709803922, 0.427450980, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StartupButtonFocus"]
+bg_color = Color(0.062745098, 0.176470588, 0.129411765, 1.0)
+border_color = Color(0.905882353, 0.827450980, 0.607843137, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StartupButtonDisabled"]
+bg_color = Color(0.039215686, 0.090196078, 0.066666667, 1.0)
+border_color = Color(0.219607843, 0.329411765, 0.262745098, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+
 [resource]
 default_font_size = 29
 ActionButton/base_type = &"Button"
@@ -814,3 +945,21 @@ SeatRing/constants/margin = 8
 SeatRingFelt/base_type = &"Felt"
 SeatRingFelt/styles/panel = SubResource("SeatRingFelt")
 SeatRing/constants/hero_drop = 72
+
+StartupField/base_type = &"LineEdit"
+StartupField/styles/normal = SubResource("StartupFieldNormal")
+StartupField/styles/focus = SubResource("StartupFieldFocus")
+StartupField/styles/read_only = SubResource("StartupFieldReadOnly")
+StartupButton/base_type = &"Button"
+StartupButton/styles/normal = SubResource("StartupButtonNormal")
+StartupButton/styles/hover = SubResource("StartupButtonHover")
+StartupButton/styles/pressed = SubResource("StartupButtonPressed")
+StartupButton/styles/focus = SubResource("StartupButtonFocus")
+StartupButton/styles/disabled = SubResource("StartupButtonDisabled")
+StartupButton/colors/font_disabled_color = Color(0.494117647, 0.541176471, 0.513725490, 1)
+StartupCheckBox/base_type = &"CheckBox"
+StartupCheckBox/icons/unchecked = ExtResource("StartupUnchecked")
+StartupCheckBox/icons/checked = ExtResource("StartupChecked")
+StartupCheckBox/icons/unchecked_disabled = ExtResource("StartupUnchecked")
+StartupCheckBox/icons/checked_disabled = ExtResource("StartupChecked")
+StartupCheckBox/constants/h_separation = 12

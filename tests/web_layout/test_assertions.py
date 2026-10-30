@@ -25,6 +25,22 @@ def observation() -> dict:
 
 
 class BrowserLayoutAssertionTests(unittest.TestCase):
+    def test_replacement_schema_uses_engine_contract_without_legacy_pixel_geometry(self):
+        snapshot = observation()
+        snapshot.update({"schema_version": 2, "ready": True, "pending": False,
+                         "fit_guidance": ""})
+        self.assertTrue(all(not failures for failures in check_snapshot(snapshot).values()))
+        snapshot["invariant_failures"] = ["row-cap: deliberate replacement defect"]
+        self.assertIn("row-cap: deliberate replacement defect", check_snapshot(snapshot)["all"])
+
+    def test_supported_replacement_schema_rejects_guidance_and_unsettled_state(self):
+        snapshot = observation()
+        snapshot.update({"schema_version": 2, "ready": False, "pending": False,
+                         "fit_guidance": "Use a larger screen."})
+        failures = check_snapshot(snapshot)["all"]
+        self.assertIn("supported-fit: replacement rendered guidance", failures)
+        self.assertIn("layout-readiness: replacement snapshot is not settled", failures)
+
     def test_clear_surface_has_no_failures_and_does_not_depend_on_global_origin(self):
         snapshot = observation()
         self.assertEqual(clockwise_order(snapshot), list(range(6)))

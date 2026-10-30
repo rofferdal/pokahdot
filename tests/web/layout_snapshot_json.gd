@@ -17,6 +17,7 @@ static func encode(snapshot: GuiLayoutSnapshot) -> Dictionary:
 			. append(
 				{
 					"seat": seat_id,
+					"hero": seat.hero,
 					"rect": rect(seat.panel.rect),
 					"status_rect": rect(seat.status.rect),
 					"footprint": rect(seat.footprint),
@@ -32,6 +33,8 @@ static func encode(snapshot: GuiLayoutSnapshot) -> Dictionary:
 	return {
 		"schema_version": snapshot.schema_version,
 		"profile": snapshot.profile,
+		"layout_mode": snapshot.layout_mode,
+		"fit_guidance": snapshot.fit_guidance,
 		"root_rect": rect(snapshot.root_rect),
 		"surface_rect": rect(snapshot.surface_rect),
 		"surface_size": [snapshot.surface_size.x, snapshot.surface_size.y],
@@ -41,6 +44,7 @@ static func encode(snapshot: GuiLayoutSnapshot) -> Dictionary:
 		"ready": snapshot.ready,
 		"regions": regions,
 		"seats": seats,
+		"seat_rows": snapshot.seat_rows,
 		"labels": labels,
 		"measured": measured,
 	}

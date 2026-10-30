@@ -4,7 +4,7 @@ extends Node
 ## state; browser input must travel through the exported canvas and engine.
 
 const MainScene := preload("res://scenes/main.tscn")
-const Setup := preload("res://tests/web/reference_fixture_setup.gd")
+const Measure := preload("res://scripts/gui/gui_snapshot_measurement.gd")
 const Json := preload("res://tests/web/layout_snapshot_json.gd")
 
 
@@ -18,9 +18,10 @@ class CallingAgent:
 
 
 var _main: StartupConfigController
-var _table: PokerTableController
+var _table: GuiReplacementTableController
 var _table_fixture: bool = false
 var _showdown_fixture: bool = false
+var _showdown_advance_pending: bool = false
 var _frame: int = 0
 var _match: TournamentMatch
 
@@ -35,9 +36,12 @@ func _ready() -> void:
 	print("Web input fixture instantiating production main")
 	_main = MainScene.instantiate() as StartupConfigController
 	add_child(_main)
-	_table = Setup.table(_main, _table_fixture)
+	_table = _main.get_table_controller() as GuiReplacementTableController
 	if _table_fixture:
-		var count: int = 6 if _showdown_fixture else 2
+		(_main.get_node("Center") as Control).hide()
+		_table.show()
+	if _table_fixture:
+		var count: int = 2
 		var roles: Dictionary[int, StringName] = {0: &"human"}
 		var agents: Dictionary[int, Agent] = {0: HumanAgent.new()}
 		var names: Dictionary[int, String] = {0: "Human"}
@@ -59,9 +63,9 @@ func _ready() -> void:
 		timing.showdown_pause_seconds = 60.0
 		_table.set_action_timing_config(timing)
 		_table.bind_match(_match, 0, {}, names)
-		Setup.set_wager_input(_table, "75")
+		_table.set_wager_draft("75")
 		if _showdown_fixture:
-			Setup.show_completed_hand(_table)
+			_showdown_advance_pending = true
 	JavaScriptBridge.eval("window.pokahdotInput = {}; void 0")
 
 
@@ -85,9 +89,13 @@ func _prepare_showdown() -> void:
 func _process(_delta: float) -> void:
 	_frame += 1
 	var layout: GuiLayoutSnapshot = _main.get_layout_snapshot()
-	var input_role: StringName = (
-		&"action/wager_input" if _table_fixture else &"startup/starting_stack"
-	)
+	var input_role: StringName = &"action/total" if _table_fixture else &"startup/starting_stack"
+	if _table_fixture and (not layout.ready or layout.pending):
+		return
+	if _showdown_advance_pending:
+		_showdown_advance_pending = false
+		_table.advance_one_action()
+		return
 	var input: GuiLayoutElement = layout.elements[input_role]
 	var keypad: GuiOverlaySnapshot = _overlay(layout, &"keypad")
 	var menu: GuiOverlaySnapshot = _overlay(layout, &"menu")
@@ -95,12 +103,13 @@ func _process(_delta: float) -> void:
 	var summary: GuiOverlaySnapshot = _overlay(layout, &"summary")
 	var controls: Dictionary = {"input": Json.element(input)}
 	if _table_fixture:
-		controls["PhoneMoreButton"] = Json.element(layout.elements[&"more"])
+		controls["PhoneMoreButton"] = Json.element(layout.elements[&"action/more"])
 		controls["FoldButton"] = Json.element(layout.elements[&"action/fold"])
-		controls["PhoneMenuCloseButton"] = _overlay_control(menu, &"close")
-		controls["PhoneMenuQuitButton"] = _overlay_control(menu, &"quit")
-		controls["PhoneQuitContinueButton"] = _overlay_control(quit, &"continue")
-		controls["PhoneShowdownCloseButton"] = _overlay_control(summary, &"close")
+		controls["PhoneMenuCloseButton"] = _overlay_host_control(&"menu_close")
+		controls["PhoneMenuQuitButton"] = _overlay_host_control(&"menu_quit")
+		controls["PhoneQuitContinueButton"] = _overlay_host_control(&"quit_keep")
+		controls["PhoneShowdownCloseButton"] = _overlay_host_control(&"summary_close")
+		controls["PhoneMenuSummaryButton"] = _overlay_host_control(&"menu_summary")
 	controls["open"] = (
 		Json.element(layout.elements[&"action/wager"]) if _table_fixture else controls.input
 	)
@@ -139,9 +148,12 @@ func _process(_delta: float) -> void:
 		snapshot["hand_number"] = view.hand_number
 		snapshot["result_text"] = layout.elements[&"action/status"].text
 		snapshot["result_visible"] = layout.elements[&"action/status"].visible
-		snapshot["result_button"] = layout.elements[&"more"].text
+		snapshot["result_button"] = layout.elements[&"action/more"].text
 		snapshot["summary_open"] = summary.element.visible
-		snapshot["summary_text"] = _overlay_element(summary, &"text").text
+		snapshot["summary_text"] = (
+			(_table.get_overlay_host().get_control(&"summary_body") as RichTextLabel)
+			. get_parsed_text()
+		)
 		var winner_names: Array[String] = []
 		for award: PotAward in view.pot_awards:
 			for seat: int in award.winner_seats:
@@ -150,7 +162,7 @@ func _process(_delta: float) -> void:
 		snapshot["menu"] = menu.element.visible
 		snapshot["quit_confirmation"] = quit.element.visible
 		snapshot["modal_focus"] = _has_focus(menu) or _has_focus(quit)
-		snapshot["more_focus"] = layout.elements[&"more"].focused
+		snapshot["more_focus"] = layout.elements[&"action/more"].focused
 	JavaScriptBridge.eval("window.pokahdotInput = " + JSON.stringify(snapshot) + "; void 0")
 
 
@@ -171,6 +183,10 @@ func _overlay_element(overlay: GuiOverlaySnapshot, role: StringName) -> GuiLayou
 
 func _overlay_control(overlay: GuiOverlaySnapshot, role: StringName) -> Dictionary:
 	return Json.element(_overlay_element(overlay, role))
+
+
+func _overlay_host_control(role: StringName) -> Dictionary:
+	return Json.element(Measure.element(_table.get_overlay_host().get_control(role), _table, role))
 
 
 func _has_focus(overlay: GuiOverlaySnapshot) -> bool:

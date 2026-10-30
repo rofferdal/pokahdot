@@ -5,7 +5,8 @@ extends RefCounted
 ## Historical browser dimensions and exact avatar assignments are unknown.
 
 
-static func descriptor() -> Dictionary:
+static func descriptor(player_count: int = 6, font_stress: bool = false) -> Dictionary:
+	player_count = clampi(player_count, 2, 6)
 	var view := GameView.new()
 	view.hand_number = 1
 	view.hero_seat = 0
@@ -16,20 +17,32 @@ static func descriptor() -> Dictionary:
 	view.big_blind = 10
 	view.acting_seat = 0
 	view.pot_amount = 65
-	view.call_amount = 30
-	view.minimum_wager_total = 40
+	view.call_amount = 1000000 if font_stress else 30
+	view.minimum_wager_total = 1000000 if font_stress else 40
 	view.maximum_wager_total = 1000
-	view.active_player_count_at_level_start = 6
-	view.active_seats = [0, 1, 2, 3, 4, 5]
+	view.active_player_count_at_level_start = player_count
+	view.active_seats.assign(range(player_count))
 	view.active_seats_at_hand_start = view.active_seats.duplicate()
-	var stacks: Array[int] = [1000, 995, 990, 980, 1000, 970]
-	var wagers: Array[int] = [0, 5, 10, 20, 0, 30]
+	var stacks: Array[int] = []
+	stacks.assign(
+		(
+			[1000000, 1000000, 1000000, 1000000, 1000000, 1000000]
+			if font_stress
+			else [1000, 995, 990, 980, 1000, 970]
+		)
+	)
+	var wagers: Array[int] = [0, 1000000 if font_stress else 5, 10, 20, 0, 30]
 	var names: Dictionary[int, String] = {
-		0: "Human", 1: "Yael", 2: "Chidi", 3: "Wei", 4: "Haruto", 5: "Youssef"
+		0: "Human",
+		1: "Annalise" if font_stress else "Yael",
+		2: "Chidi",
+		3: "Wei",
+		4: "Haruto",
+		5: "Youssef"
 	}
 	var avatars: Dictionary[int, String] = {}
 	var paths: PackedStringArray = GuiAvatarCatalog.default_avatar_paths()
-	for seat: int in range(6):
+	for seat: int in range(player_count):
 		var agent: Agent = HumanAgent.new() if seat == 0 else null
 		var player := Player.new(
 			StringName("browser_capture_%d" % seat),
@@ -40,6 +53,7 @@ static func descriptor() -> Dictionary:
 		)
 		player.bet_this_round = wagers[seat]
 		player.folded = seat == 4
+		player.all_in = font_stress and seat == 1
 		view._seats.append(PlayerView.new(player))
 		view.hand_start_stacks[seat] = 1000
 		avatars[seat] = paths[seat]
@@ -59,6 +73,8 @@ static func descriptor() -> Dictionary:
 		PublicActionRecord.new(4, PlayerAction.Kind.FOLD),
 		PublicActionRecord.new(5, PlayerAction.Kind.RAISE, 30)
 	]
+	if font_stress:
+		view._action_history.append(PublicActionRecord.new(1, PlayerAction.Kind.ALL_IN, 1000000))
 	var events: Array[DomainEvent] = [
 		DomainEvent.new(DomainEvent.Kind.BLIND_POSTED, 1, 5),
 		DomainEvent.new(DomainEvent.Kind.BLIND_POSTED, 2, 10),
@@ -71,7 +87,7 @@ static func descriptor() -> Dictionary:
 		"id": &"browser-six-seat-preflop",
 		"kind": &"table",
 		"synthetic": true,
-		"player_count": 6,
+		"player_count": player_count,
 		"view": view,
 		"events": events,
 		"ui": {},

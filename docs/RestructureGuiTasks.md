@@ -26,7 +26,10 @@ RG-50R lowers the human and aligns its action rail; revised six-seat ring
 placement is user-accepted, and review4 nine-seat placement is now accepted.
 RG-50S reconciles the wide interiors and applies the requested human card corner.
 Its refreshed six/nine-seat previews are accepted. RG-51 is verified; complete
-RG-53 before requesting another design review.
+RG-53 before requesting another design review. RG-60–RG-62 and RG-54 are now
+implemented and verified. The user accepted all three final RG-54 synthetic
+layouts (phone portrait, phone landscape and wide) on 2026-10-30. Physical-device
+acceptance remains separate in RG-80–RG-82.
 Reviewed: 2026-10-27 against source commit
 `0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
 This documentation review is not RG-00 baseline execution or device acceptance.
@@ -1191,7 +1194,7 @@ statuses current and present the combined integrated result after RG-53.
 
 ### Phase 6 — Tests and tooling
 
-- [ ] **RG-60 — Replace implementation-coupled tests.** Status: Not started.
+- [x] **RG-60 — Replace implementation-coupled tests.** Status: Complete (2026-10-29).
   Mode: QA. Rewrite or delete internal node-path/name and incidental exact-pixel
   assertions only when snapshot, sweep, component or integration checks replace
   their contract. Rename incident tests to their underlying rule and retain the
@@ -1201,7 +1204,7 @@ statuses current and present the combined integrated result after RG-53.
   every removed assertion has a repository-owned coverage mapping and deliberate
   defect injection still fails. Scene-loading paths remain legitimate.
 
-- [ ] **RG-61 — Exported Web layout checks.** Status: Not started. Mode: QA.
+- [x] **RG-61 — Exported Web layout checks.** Status: Complete (2026-10-29). Mode: QA.
   Extend the existing `tools/run_web_layout_tests.py` /
   `tools/web_layout_assertions.py` and read-only `tests/web/layout_fixture.gd`
   observer. Retain `run_web_input_tests.py` interaction coverage rather than
@@ -1212,7 +1215,7 @@ statuses current and present the combined integrated result after RG-53.
   Done: CI runs exported strict layout plus existing input checks with recorded
   source/engine/browser/DPR identity; emulation is not device acceptance.
 
-- [ ] **RG-62 — Default-font metric parity.** Status: Not started. Mode: QA.
+- [x] **RG-62 — Default-font metric parity.** Status: Complete (2026-10-29). Mode: QA.
   Verify that headless tests and the exported Web build measure text with
   the same built-in default font. Make the text-fit checks in RG-61 cover
   the longest names, exact large chip values and compact action copy. Do
@@ -1222,7 +1225,7 @@ statuses current and present the combined integrated result after RG-53.
   Keep existing rank/name/action regressions; document justified raster/metric
   tolerances rather than replacing the real font with a test substitute.
 
-- [ ] **RG-54 — Cut over and remove the legacy GUI.** Status: Not started.
+- [x] **RG-54 — Cut over and remove the legacy GUI.** Status: Implemented and verified.
   Mode: Senior. Depends on RG-60–62 as well as RG-50–53. Make the verified
   replacement default, then remove the legacy scene/factories, old classification
   and geometry helpers, runtime mutation, deferred center reapplication,
@@ -1233,8 +1236,29 @@ statuses current and present the combined integrated result after RG-53.
   sweep failures are closed, unsupported-size behavior is explicit, all required
   gates pass on the identified candidate and Section 5 size/ownership targets
   are met. Record performance and visual review before physical acceptance.
+  Evidence (2026-10-30): the replacement is the default; legacy scene, factories,
+  geometry owners and selector are retired. `make check` passed (842 GUT tests,
+  307,235 assertions, plus 17 matrix tests / 3,445 assertions), and the four
+  replacement invariant categories passed. Exported layout checked 39 cases
+  with zero strict failures (one report-only guidance case), input passed 6/6,
+  geometry passed 24/24, and the rendered capture smoke passed. The controller
+  is 478 lines and all other GUI scripts are under 400; no production
+  `find_child`, `reparent` or `move_child` calls remain. The tree has 95 GUI
+  scripts / 9,541 lines and 26 scenes / 1,827 lines versus the RG-00 baseline
+  of 36 scripts / 7,226 lines and two scenes / 622 lines: ownership improved,
+  but total source volume increased. A 20-sample seven-player 390×1000 phone
+  profile was ready throughout: native/Web refresh p95 3.840/2.500 ms and
+  settled latency p95 43.225/105.700 ms; six probes were created and freed.
+  At 390×844 seven players receive explicit space guidance, so the profiler
+  requires a feasible `--viewport` for action scenarios. Synthetic review PNGs
+  are in `localtmp/gui-elements/rg54-final-synthetic-*`; they are not physical
+  device acceptance. The user accepted all three final synthetic layouts (phone
+  portrait, phone landscape and wide) on 2026-10-30. Physical review remains
+  RG-80–82.
 
-- [ ] Commit all changes to the current branch and push
+- [x] Commit all task changes to the current branch and push. Status: Complete
+  (2026-10-30); pushed to `origin/gui-restructure`. The unrelated user-owned
+  `AGENTS.md` working-tree edit remains uncommitted.
 
 ### Phase 7 — Documentation
 
@@ -2860,3 +2884,80 @@ launch timeout and successful bounded diagnostic remain recorded separately.
 Architecture records the authoritative metrics and scope. RG-52/RG-53 are
 complete; all Phase 5 designs are accepted. Physical-device and gameplay
 acceptance remain later tasks. Stop before RG-60 after the checkpoint.
+
+### RG-60 replacement-owned test coverage — 2026-10-29
+
+The versioned map in `tests/fixtures/gui_replacement_coverage.json` assigns each
+legacy layout, component, lifetime, capture, exported-input and performance
+family to repository-owned replacement checks. The documentation gate now
+validates every mapped path and rejects replacement observers that import the
+reference controller, scene, classifier or geometry helpers. Mutation tests
+prove that an omitted replacement mapping and a missing observer both fail the
+gate; the existing schema-2 invariant mutation cases continue to reject
+containment, row-cap, target, text-fit, card and privacy defects.
+
+The exported browser-input runner retains all five reference cases and adds a
+real replacement touch case. That case drives the semantic More and wager roles
+through the canvas, verifies modal routing, proves Cancel preserves the exact
+draft and Done commits it, and observes cards through detached snapshots rather
+than internal node paths. The replacement capture and profiler are included in
+the coverage map; a 20-sample native Compatibility-renderer performance smoke
+settled without observer failures.
+
+Verification: focused replacement snapshot/controller/lifetime tests passed
+33 tests / 296 assertions; exported Chromium passed six input cases; and the
+complete `make check` passed 149 GUT scripts, 1,102 tests and 323,847 assertions,
+including the 9,994-input historical characterization with its unchanged 1,098
+known failures. Session evidence is under `localtmp/rg60-web-input-final/` and
+`localtmp/rg60-profile-replacement/`. RG-60 changes no GUI design and therefore
+does not create a new visual-acceptance checkpoint.
+
+### RG-61 exported replacement Web layout gate — 2026-10-29
+
+The read-only exported observer now boots the replacement through the application
+viewport adapter and serializes schema-2 layout, fit, classification and actual
+`Window` geometry without reading component node paths. The strict matrix covers
+supported phone portrait, phone landscape, iPad and desktop environments at DPR
+1, 2, 2.625 and 3, using both automatic and explicit classification. Dedicated
+cases retain asymmetric usable origins/insets and visual-viewport reductions;
+the report records requested and observed DPR, CSS/backing canvas sizes, engine,
+browser, source revision, dirty-source hash and exported-pack identity.
+
+All 34 supported strict cases passed in exported Chromium 140.0.7339.16 with
+Godot 4.7.2 Compatibility. Four boundary samples remain `report_only`: the
+650×360 environment correctly presents insufficient-space guidance, while the
+other three diagnostics pass. The existing exported pointer/touch/keypad/focus
+runner remains independent and passed all six cases. CI now runs the strict
+layout gate before that existing input suite and retains both artifact sets.
+
+The complete `make check` also passes 149 GUT scripts, 1,102 tests and 323,847
+assertions, with the unchanged 9,994-input / 1,098-known-failure historical
+characterization. Evidence is under `localtmp/rg61-web-layout-final3/` and
+`localtmp/rg61-web-input-final/`. These are browser-emulated checks, not physical
+device acceptance. RG-61 changes no GUI design and creates no new visual review.
+
+### RG-62 built-in default-font metric parity — 2026-10-29
+
+The exported observer and a headless Godot probe now measure the same four
+specimens through the engine's built-in default `FontFile`; both report an empty
+resource path, so no project or system font substitutes the product font. Web
+and headless metrics match exactly for the eight-character name `Annalise`, the
+exact stack `1000000`, compact action `Call 1000000` and card rank `10`.
+The parity gate permits at most 0.5 logical pixel for platform raster rounding,
+but the recorded Chromium run uses none of that tolerance.
+
+A dedicated strict 1000×500 phone-landscape case renders the same stress values
+through the replacement composition and checks each semantic element's real
+required and allocated rectangles. The existing 932×430 ordinary landscape
+case remains strict; forcing every maximum string into that smaller envelope
+correctly selects explicit space guidance, rather than clipping or replacing
+the font. Native replacement integration verifies the same stress allocations
+and inherited built-in font independently.
+
+All 35 exported strict cases pass at DPR 1, 2, 2.625 and 3; the four RG-61
+report-only diagnostics remain separate, with only the intentionally short
+650×360 sample reporting guidance. The complete `make check` passes 149 GUT
+scripts, 1,103 tests and 323,860 assertions, including unchanged
+9,994-input / 1,098-known-failure historical characterization. Evidence is in
+`localtmp/rg62-web-layout-final5/`. RG-62 changes no product GUI design and
+creates no new visual-review checkpoint.

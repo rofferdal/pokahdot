@@ -48,9 +48,8 @@ through one viewport adapter. Startup, table and popups share safe-area bounds;
 container/content minimums guide responsive fit. The replacement components and
 presentation requirements remain tracked in the [GUI backlog](docs/RestructureGuiTasks.md).
 Table copy, card visibility models and action availability now use pure
-presentation models. Normal launch selects the reference table; the replacement
-controller is available for review with `godot --path . -- --replacement-gui`.
-Startup creates one selected table and adopts the existing validated match.
+presentation models. Normal launch selects the replacement table. Startup creates one table and adopts
+the existing validated match.
 Reusable action-button and input-field scenes are implemented for the replacement;
 their shared-control design is user-accepted. Reusable cards and the center board
 are user-accepted. Full seat and human panels are provisionally user-accepted. Phone tokens, action
@@ -65,11 +64,11 @@ regions. The human sits below neighbouring bots with an aligned action rail;
 six/nine-seat placement and reconciled interiors are user-accepted. Bot amount
 columns reserve seven digits; both human/bot pairs sit lower right. The RG-51 wide
 composition is verified, including adaptive history docking and the embossed
-logo. RG-52 phone composition and the RG-53 session/controller are implemented
-in the opt-in path, with all revised Phase 5 designs user-accepted and final
-verification passing (1,102 tests). Work stops before RG-60 as requested.
-The reference remains
-the default until RG-54. At 390×844 the current ordinary phone fixtures fit two
+logo. RG-52 phone composition and RG-53 session/controller are implemented,
+with revised Phase 5 designs user-accepted. RG-60–62 replacement coverage,
+exported layout and font-parity checks are complete. The replacement is the
+default; RG-54 retirement and verification are in progress. At 390×844 the
+current ordinary phone fixtures fit two
 through five players; six/seven need more height. Guidance preserves the match
 and retains menu/Quit access.
 
@@ -383,7 +382,7 @@ godot --headless --path . -s addons/gut/gut_cmdln.gd
 For GUI layout work, start with the rendering-enabled capture smoke test:
 
 ```bash
-make gui-visual-capture-smoke
+make gui-visual-capture-smoke GUI_CAPTURE_OUTPUT=localtmp/gui-smoke-new
 ```
 
 The invariant gate, dirty-tree development capture, and clean candidate
@@ -393,10 +392,9 @@ capture have different evidence semantics. Follow
 defect. The complete command reference is also available in
 [`devdocs/how-to/running-and-testing.md`](devdocs/how-to/running-and-testing.md).
 `make check gui-current-invariant-gate` runs the complete headless suite and
-the historical, phone, iPad, and desktop layout matrices during development.
-`check` also compares the step-80 GUI policy/fit characterization with its
-reviewed reference registry; recorded defects remain open. Use
-`make gui-layout-sweep` for the additional step-20 diagnostic samples.
+the replacement M3, phone, iPad, and desktop layout matrices during development.
+`check` also runs the replacement size policy and native composition matrix.
+The historical reference registry remains documented as past evidence.
 Pull requests run the same checks through `release-candidate-gate` on a clean
 proposed merge, using Godot 4.7.2, without deployment. Failures appear in the
 **Checks and current layouts** status; **Exported Web input** separately tests
@@ -470,5 +468,5 @@ pokahdot/
 GUI automated coverage and manual device acceptance are listed separately in
 the [visual evidence contract](docs/GUI_VISUAL_TESTING.md#current-support-and-acceptance).
 Physical-phone acceptance limitations remain recorded in the archived phone
-review; the reference phone landscape remains diagnostic. The replacement
-backlog targets responsive portrait and landscape phone/tablet layouts.
+review; current portrait and landscape device acceptance remains in the
+replacement backlog.

@@ -4,7 +4,6 @@ extends RefCounted
 ## Shared invariants consume only public semantic snapshots and fixture metadata.
 const MINIMUM_FONT_SIZE: int = 20
 const MINIMUM_TOUCH_SIZE := Vector2(48.0, 48.0)
-const Profiles := preload("res://scripts/gui/gui_layout_profile.gd")
 const Content := preload("res://tests/support/gui_snapshot_content_assertions.gd")
 const Regions := preload("res://tests/support/gui_snapshot_region_assertions.gd")
 const Replacement := preload("res://tests/support/gui_replacement_invariant_assertions.gd")
@@ -19,10 +18,10 @@ static func validate(rendered: Dictionary) -> PackedStringArray:
 		&"keypad-open":
 			expected.append(&"keypad")
 		&"wager-entry":
-			if Profiles.is_phone(snapshot.profile):
+			if _is_phone(snapshot.profile):
 				expected.append(&"keypad")
 		&"showdown-overlay":
-			if Profiles.is_phone(snapshot.profile):
+			if _is_phone(snapshot.profile):
 				expected.append(&"summary")
 	var failures: PackedStringArray = validate_snapshot(snapshot, expected)
 	var declared: Array = rendered.get("intentional_overlap_roles", [])
@@ -52,7 +51,7 @@ static func validate_snapshot(
 		return failures
 	if snapshot.startup == null:
 		var required_roles: Array[StringName] = [&"center", &"action", &"board", &"pot", &"wager"]
-		if Profiles.is_phone(snapshot.profile):
+		if _is_phone(snapshot.profile):
 			required_roles.append(&"more")
 		else:
 			required_roles.append_array([&"event", &"quit"])
@@ -61,7 +60,7 @@ static func validate_snapshot(
 				failures.append("layout-contract: missing region %s" % role)
 		if not failures.is_empty():
 			return failures
-		Regions.validate(snapshot, Profiles.is_phone(snapshot.profile), failures)
+		Regions.validate(snapshot, _is_phone(snapshot.profile), failures)
 		_validate_board(snapshot, failures)
 		_validate_actions(snapshot, failures)
 	for value: GuiLayoutElement in snapshot.measured:
@@ -154,3 +153,13 @@ static func _validate_actions(snapshot: GuiLayoutSnapshot, failures: PackedStrin
 static func _require(condition: bool, message: String, failures: PackedStringArray) -> void:
 	if not condition:
 		failures.append(message)
+
+
+static func _is_phone(profile: int) -> bool:
+	return (
+		profile
+		in [
+			GuiLayoutSnapshot.Profile.PHONE_PORTRAIT,
+			GuiLayoutSnapshot.Profile.PHONE_LANDSCAPE,
+		]
+	)

@@ -1,10 +1,9 @@
 extends "res://tests/support/poker_gut_test.gd"
 
-## Canonical and observed iPad diagnostic entry point.
-const Runner := preload("res://tests/support/gui_invariant_matrix_runner.gd")
-const Suites := preload("res://tests/support/gui_invariant_matrix_suites.gd")
+## Canonical tablet orientations, reduced-height, and observed-surface coverage.
+const Matrix := preload("res://tests/support/gui_replacement_category_matrix.gd")
 
 
-func test_ipad_visual_matrix_satisfies_gui_invariants() -> void:
-	var failures: PackedStringArray = await Runner.run_suite(self, Suites.Suite.IPAD)
+func test_replacement_ipad_matrix_satisfies_schema2_invariants() -> void:
+	var failures: PackedStringArray = await Matrix.run(self, &"ipad")
 	assert_eq(failures, PackedStringArray(), "\n" + "\n".join(failures))

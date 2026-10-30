@@ -149,6 +149,7 @@ func _process(_delta: float) -> void:
 	var overlay: GuiOverlayHost = _table.get_overlay_host()
 	controls["menu_close"] = _control(overlay.get_control(&"menu_close"))
 	controls["cancel"] = _control(overlay.get_keypad().get_control(&"cancel"))
+	controls["done"] = _control(overlay.get_keypad().get_control(&"done"))
 	controls["clear"] = _control(overlay.get_keypad().get_control(&"clear"))
 	controls["key2"] = _control(overlay.get_keypad().get_control(&"2"))
 	controls["delete"] = _control(overlay.get_keypad().get_control(&"back"))
@@ -166,16 +167,11 @@ func _process(_delta: float) -> void:
 	var cards: Array[Dictionary] = []
 	for card: GuiPlayingCard in _cards:
 		var value: GuiCardSnapshot = card.get_card_snapshot(_root, &"gallery", true)
-		var glyphs := card.get_node("Face/Glyphs") as GuiCardGlyphs
-		var fallback: Texture2D = GuiCardInk.suit_fallback_texture(
-			glyphs.get_theme_font("font"), value.suit.text, value.suit.font_size
-		)
 		cards.append(
 			{
 				"rank": value.rank.text,
 				"suit": value.suit.text,
 				"font_size": value.suit.font_size,
-				"suit_source": "svg" if fallback != null else "font",
 				"rank_ink": _rect(value.rank.rect),
 				"suit_ink": _rect(value.suit.rect),
 				"card": _rect(value.element.rect),
@@ -190,7 +186,7 @@ func _process(_delta: float) -> void:
 		"overlay": str(overlay.get_active_kind()),
 		"controls": controls,
 		"cards": cards,
-		"back_mark": _back_mark(),
+		"back": _card_state(_back, false),
 		"stars": _star_state(),
 		"raw_draft": _table.get_wager_draft(),
 		"keypad_draft": overlay.get_keypad().get_draft(),
@@ -218,16 +214,14 @@ func _geometry_state(snapshot: GuiLayoutSnapshot) -> Dictionary:
 	return result
 
 
-func _back_mark() -> Dictionary:
-	var mark := _back.get_node("Back/Mark") as Label
-	var fallback: Texture2D = GuiCardInk.symbol_fallback_texture(
-		mark.get_theme_font("font"), "◆", mark.get_theme_font_size("font_size")
-	)
+func _card_state(card: GuiPlayingCard, authorized: bool) -> Dictionary:
+	var snapshot: GuiCardSnapshot = card.get_card_snapshot(_root, &"gallery", authorized)
 	return {
-		"source": "svg" if fallback != null else "font",
-		"native_label_visible": mark.visible,
-		"rect": _rect(mark.get_global_rect()),
-		"font_size": mark.get_theme_font_size("font_size"),
+		"kind": snapshot.kind,
+		"authorized": snapshot.authorized,
+		"rect": _rect(snapshot.element.rect),
+		"rank": snapshot.rank.text,
+		"suit": snapshot.suit.text,
 	}
 
 

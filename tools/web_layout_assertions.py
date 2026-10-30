@@ -89,7 +89,8 @@ def identity_failures(snapshot: dict) -> list[str]:
                            for part in markers.split())
         allowed_markers = {markers, compact}
         candidates = [label for label in labels
-                      if label["role"] in (prefix + "marker", prefix + "badge")]
+                      if label["role"] in (prefix + "marker", prefix + "badge",
+                                           prefix + "badge_row_2", prefix + "badge_row_3")]
         actual = [label["text"] for label in candidates]
         if ((markers and (len(actual) != 1 or actual[0] not in allowed_markers))
                 or (not markers and any(actual))):
@@ -105,6 +106,15 @@ def check_snapshot(snapshot: dict) -> dict[str, list[str]]:
     silently disappear from the strict gate. The complete raw list is untouched.
     """
     raw = snapshot["invariant_failures"]
+    if snapshot.get("schema_version") == 2:
+        identity = identity_failures(snapshot)
+        contract = []
+        if snapshot.get("fit_guidance"):
+            contract.append("supported-fit: replacement rendered guidance")
+        if not snapshot.get("ready") or snapshot.get("pending"):
+            contract.append("layout-readiness: replacement snapshot is not settled")
+        return {"geometry": list(raw), "content": identity,
+                "order": [], "all": list(raw) + identity + contract}
     content = [failure for failure in raw if failure.startswith(CONTENT_PREFIXES)]
     identity = identity_failures(snapshot)
     content += identity

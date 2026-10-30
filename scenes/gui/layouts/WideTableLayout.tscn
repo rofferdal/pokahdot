@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/compositions/gui_wide_table_layout.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/gui/layouts/SeatRingContainer.tscn" id="2"]
@@ -8,6 +8,8 @@
 
 [ext_resource type="PackedScene" path="res://scenes/gui/components/BrandLogo.tscn" id="6"]
 [ext_resource type="Material" path="res://resources/gui_table_logo_material.tres" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/CenterBoard.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/ActionBar.tscn" id="9"]
 
 [node name="WideTableLayout" type="MarginContainer"]
 mouse_filter = 2
@@ -31,6 +33,12 @@ anchor_right = 0.9
 anchor_bottom = 0.62
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="CenterBoard" parent="Boundary/Ring" instance=ExtResource("8")]
+layout_mode = 2
+
+[node name="ActionBar" parent="Boundary/Ring" instance=ExtResource("9")]
+layout_mode = 2
 
 [node name="Dock" type="Control" parent="Boundary"]
 visible = false

@@ -15,20 +15,23 @@ var _saved_quit_on_back: bool
 var _owns_back_policy: bool = false
 
 
-func configure(host: Control, surface: Control, backdrop: Control = null) -> void:
+func configure(host: Control, surface: Control, backdrop: Control) -> bool:
+	if host == null or surface == null or backdrop == null or backdrop.get_parent() != surface:
+		push_error("Modal guard requires an authored backdrop owned by its surface.")
+		return false
 	_host = host
-	_backdrop = backdrop if backdrop != null else Control.new()
-	if backdrop == null:
-		_backdrop.name = "ModalBackdrop"
+	_backdrop = backdrop
 	_backdrop.z_index = 499
 	_backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
 	_backdrop.hide()
-	if _backdrop.get_parent() == null:
-		surface.add_child(_backdrop)
 	_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return true
 
 
 func begin(root: Node, dismiss: Callable, focus: Control, fallback: Control) -> void:
+	if not is_instance_valid(_host) or not is_instance_valid(_backdrop):
+		push_error("Modal guard must be configured before activation.")
+		return
 	if not is_active():
 		var current: Control = _host.get_viewport().gui_get_focus_owner()
 		_previous_focus = weakref(current) if current != null else null
@@ -40,10 +43,6 @@ func begin(root: Node, dismiss: Callable, focus: Control, fallback: Control) -> 
 	_dismiss = dismiss
 	_fallback_focus = fallback
 	_backdrop.show()
-	# GUI picking follows sibling/tree order, independently of drawing z-index.
-	# The active panel must be after the backdrop as well as visually above it.
-	if root is Control and root.get_parent() == _backdrop.get_parent():
-		root.get_parent().move_child(root, -1)
 	focus.grab_focus()
 
 

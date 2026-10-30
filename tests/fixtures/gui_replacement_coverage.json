@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "legacy_families": [
+    {
+      "contract": "responsive classification, fit, safe-area containment and seat-row limits",
+      "legacy_tests": [
+        "tests/unit/test_gui_layout_sweep.gd",
+        "tests/unit/test_gui_mobile_table_layout.gd",
+        "tests/unit/test_gui_phone_portrait_contract.gd"
+      ],
+      "replacement_checks": [
+        "tests/unit/test_gui_size_policy.gd",
+        "tests/unit/test_gui_phone_table_layout.gd",
+        "tests/unit/test_gui_replacement_snapshot_contract.gd",
+        "tests/support/gui_replacement_invariant_assertions.gd",
+        "tests/support/gui_default_font_metrics.gd",
+        "tests/support/gui_default_font_metrics_runner.gd",
+        "tests/web/layout_fixture.gd",
+        "tools/run_web_layout_tests.py",
+        "tools/web_geometry_assertions.py",
+        "tools/web_layout_assertions.py",
+        "tests/manual/gui_replacement_matrix_runner.gd"
+      ],
+      "retired": true
+    },
+    {
+      "contract": "card, seat, action, log and overlay presentation",
+      "legacy_tests": [
+        "tests/unit/test_gui_table_components.gd",
+        "tests/unit/test_gui_phone_seat_tokens.gd",
+        "tests/unit/test_gui_phone_secondary_overlays.gd"
+      ],
+      "replacement_checks": [
+        "tests/unit/test_gui_card_components.gd",
+        "tests/unit/test_gui_seat_components.gd",
+        "tests/unit/test_gui_action_bar_component.gd",
+        "tests/unit/test_gui_event_log_component.gd",
+        "tests/unit/test_gui_replacement_table_controller.gd"
+      ],
+      "retired": true
+    },
+    {
+      "contract": "recipient privacy, stable seat identity, focus, drafts and match lifetime",
+      "legacy_tests": [
+        "tests/unit/test_gui_clockwise_order.gd",
+        "tests/unit/test_gui_live_viewport_changes.gd",
+        "tests/unit/test_gui_modal_interaction.gd"
+      ],
+      "replacement_checks": [
+        "tests/unit/test_gui_replacement_lifetimes.gd",
+        "tests/unit/test_gui_replacement_table_controller.gd",
+        "tests/unit/test_gui_table_session.gd"
+      ],
+      "retired": true
+    },
+    {
+      "contract": "rendered capture and semantic layout evidence",
+      "legacy_tests": [
+        "tests/support/gui_reference_fixture_driver.gd",
+        "tests/visual/gui_visual_capture_runner.gd"
+      ],
+      "replacement_checks": [
+        "tests/visual/gui_replacement_table_capture.gd",
+        "tests/support/gui_replacement_invariant_assertions.gd"
+      ],
+      "retired": true
+    },
+    {
+      "contract": "real exported-browser pointer, touch, modal and transactional keypad input",
+      "legacy_tests": [
+        "tests/web/reference_fixture_setup.gd"
+      ],
+      "replacement_checks": [
+        "tools/run_web_input_tests.py",
+        "tests/performance/gui_replacement_web_check.gd",
+        "tests/web/input_fixture.gd"
+      ],
+      "retired": true
+    },
+    {
+      "contract": "real-renderer refresh, resize, runout, settling and object lifetime",
+      "legacy_tests": [
+        "tests/performance/gui_refresh_fixture.gd",
+        "tests/performance/profiled_poker_table.gd"
+      ],
+      "replacement_checks": [
+        "tools/profile_gui_refresh.py",
+        "tests/performance/gui_replacement_refresh_fixture.gd",
+        "tests/performance/profiled_replacement_table.gd",
+        "tests/web_layout/test_gui_profile_report.py"
+      ],
+      "retired": true
+    }
+  ],
+  "independent_observers": [
+    "tests/support/gui_replacement_invariant_assertions.gd",
+    "tests/support/gui_default_font_metrics.gd",
+    "tests/support/gui_default_font_metrics_runner.gd",
+    "tests/web/layout_fixture.gd",
+    "tests/unit/test_gui_replacement_lifetimes.gd",
+    "tests/unit/test_gui_replacement_snapshot_contract.gd",
+    "tests/unit/test_gui_replacement_table_controller.gd",
+    "tests/visual/gui_replacement_table_capture.gd",
+    "tests/performance/gui_replacement_web_check.gd",
+    "tests/performance/gui_replacement_refresh_fixture.gd",
+    "tests/performance/profiled_replacement_table.gd",
+    "tests/manual/gui_replacement_matrix_runner.gd",
+    "tests/web/input_fixture.gd"
+  ]
+}

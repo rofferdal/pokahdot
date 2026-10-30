@@ -347,6 +347,10 @@ func test_rows_reuse_the_same_card_scenes_for_board_hero_and_opponents() -> void
 	for card: GuiPlayingCard in row.cards:
 		assert_eq(card.scene_file_path, "res://scenes/gui/components/PlayingCard.tscn")
 		assert_eq(card.get_card_snapshot(root, &"hero", true).kind, GuiCardSnapshot.Kind.FACE)
+	row.render(CardRowViewModel.board(view))
+	assert_eq(row.cards, original, "Returning to five slots reuses the authored cards")
+	for card: GuiPlayingCard in original:
+		assert_same(card.get_parent(), row)
 	row.render(CardRowViewModel.for_seat(view, 1))
 	await wait_process_frames(3)
 	assert_eq(row.cards.size(), 2)

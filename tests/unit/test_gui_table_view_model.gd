@@ -1,6 +1,6 @@
 extends GutTest
 
-const TableScene := preload("res://scenes/poker_table.tscn")
+const TableScene := preload("res://scenes/gui/ReplacementPokerTable.tscn")
 
 
 func test_every_density_is_detached_and_keeps_all_seven_or_nine_seats() -> void:
@@ -58,24 +58,26 @@ func test_fold_split_and_side_pot_summary_preserves_names_shares_and_emphasis() 
 
 
 func test_controller_consumes_model_and_rebind_drops_previous_recipient_history() -> void:
-	var table: PokerTableController = TableScene.instantiate()
+	var table := TableScene.instantiate() as GuiReplacementTableController
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(1920, 1300)
 	add_child_autofree(table)
-	var view: GameView = _view(7)
-	table.bind_view(view, {}, {1: "Leilani"})
+	table.set_viewport_geometry(GuiViewportGeometry.injected(table.size))
+	assert_true(table.bind_view(_view(7), {}, {1: "Leilani"}))
+	assert_true(await _settle(table))
 	var model: TableViewModel = table.get_table_view_model()
 	assert_true(model.valid)
-	assert_eq(table.get_node("%PotLabel").text, model.center.pot_text)
-	assert_eq(table.get_node("%PotRaiseButton").text, model.actions.pot_text)
-	assert_eq(table._display_name_for_seat(1), model.seat_for(1).display_name)
+	assert_eq(model.seat_for(1).display_name, "Leilani")
 	var next: GameView = _view(2)
 	next.hand_complete = true
 	next.hand_winner_seat = 1
-	table.bind_view(next, {}, {1: "Haruto"})
+	assert_true(table.bind_view(next, {}, {1: "Haruto"}))
+	assert_true(await _settle(table))
 	var rebound: TableViewModel = table.get_table_view_model()
 	assert_ne(rebound, model)
 	assert_eq(rebound.seats.size(), 2)
 	assert_eq(rebound.history.text, "")
-	assert_eq(table._phone_showdown_summary_text(), rebound.summary.text)
+	assert_string_contains(rebound.summary.text, "Haruto")
 	assert_eq(rebound.seat_for(1).status_text, "Winner")
 	_assert_values_only(rebound, {})
 
@@ -96,18 +98,27 @@ func test_invalid_table_inputs_return_explicit_errors() -> void:
 
 
 func test_pre_tree_binding_and_rebinding_build_fresh_values_before_controls_exist() -> void:
-	var table: PokerTableController = TableScene.instantiate()
+	var table := TableScene.instantiate() as GuiReplacementTableController
 	var view: GameView = _view(7)
 	view._action_history = [PublicActionRecord.new(1, PlayerAction.Kind.RAISE, 200)]
-	table.bind_view(view, {}, {1: "Leilani"})
+	assert_true(table.bind_view(view, {}, {1: "Leilani"}))
 	assert_eq(table.get_table_view_model().seat_for(1).latest_action_text, "Raise to 200")
-	table.bind_view(_view(2), {}, {1: "Haruto"})
+	assert_true(table.bind_view(_view(2), {}, {1: "Haruto"}))
 	assert_eq(table.get_table_view_model().seat_for(1).latest_action_text, "")
 	assert_eq(table.get_table_view_model().seat_for(1).display_name, "Haruto")
 	add_child_autofree(table)
 	await wait_process_frames(3)
 	assert_true(table.get_table_view_model().valid)
-	assert_eq(table._display_name_for_seat(1), "Haruto")
+	assert_eq(table.get_table_view_model().seat_for(1).display_name, "Haruto")
+
+
+func _settle(table: GuiReplacementTableController) -> bool:
+	for _frame: int in 180:
+		await get_tree().process_frame
+		var snapshot: GuiLayoutSnapshot = table.get_layout_snapshot()
+		if snapshot.ready and not snapshot.pending:
+			return true
+	return false
 
 
 func _assert_values_only(value: Variant, seen: Dictionary) -> void:

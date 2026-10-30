@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_table_layout.gd" id="1"]
 [ext_resource type="Theme" path="res://resources/gui_theme.tres" id="2"]
@@ -7,6 +7,10 @@
 [ext_resource type="PackedScene" path="res://scenes/gui/components/SpaceGuidance.tscn" id="5"]
 
 [ext_resource type="Script" path="res://scripts/gui/layout/gui_phone_landscape_container.gd" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/CenterBoard.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/ActionBar.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/SeatToken.tscn" id="9"]
+[ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_seat_rows.gd" id="10"]
 
 [node name="PhoneTableLayout" type="MarginContainer"]
 mouse_filter = 2
@@ -62,6 +66,68 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
+[node name="Rows" type="Container" parent="Boundary/Content/Portrait"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("10")
+
+[node name="Opponent0" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent1" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent2" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent3" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent4" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent5" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent6" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent7" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Boundary/Content/Portrait"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="CenterBoard" parent="Boundary/Content/Portrait" instance=ExtResource("7")]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="HeroSlot" type="CenterContainer" parent="Boundary/Content/Portrait"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HeroCell" type="MarginContainer" parent="Boundary/Content/Portrait/HeroSlot"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Hero" parent="Boundary/Content/Portrait/HeroSlot/HeroCell" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="ActionBar" parent="Boundary/Content/Portrait" instance=ExtResource("8")]
+layout_mode = 2
+compact_controls = true
+
 [node name="Landscape" type="Container" parent="Boundary/Content"]
 visible = false
 layout_mode = 1
@@ -73,6 +139,51 @@ grow_vertical = 2
 mouse_filter = 2
 
 script = ExtResource("6")
+
+[node name="CenterBoard" parent="Boundary/Content/Landscape" instance=ExtResource("7")]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 2
+
+[node name="ActionBar" parent="Boundary/Content/Landscape" instance=ExtResource("8")]
+layout_mode = 2
+compact_controls = true
+
+[node name="Seat0" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat1" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat2" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat3" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat4" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat5" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat6" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat7" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat8" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
 
 [node name="Guidance" parent="Boundary" instance=ExtResource("5")]
 layout_mode = 1

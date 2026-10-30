@@ -1,9 +1,7 @@
 # Responsive GUI implementation guidance
 
-This guide describes the current Godot GUI. The planned replacement follows
-[`RestructureGuiTasks.md`](RestructureGuiTasks.md); its scene/container design
-may replace the entire GUI rather than preserve these implementation details.
-The
+This guide describes the current Godot GUI and its scene/container design in
+[`RestructureGuiTasks.md`](RestructureGuiTasks.md). The
 [product specification](ProjectDescription.md) owns player-facing requirements,
 [architecture](ARCHITECTURE.md#gui-adapter) owns component boundaries, and
 [visual testing contract](GUI_VISUAL_TESTING.md#current-support-and-acceptance)
@@ -24,43 +22,36 @@ native mobile safe rectangles convert through the client origin and actual
 logical/backing ratios. Startup, table and popups consume the same rectangle.
 Headless/SubViewport/explicit fixture roots inject local geometry and never
 normalize the host Window. Sensor orientation enables native rotation; the
-replacement's portrait/landscape compositions remain upcoming tasks.
+replacement uses measured portrait and landscape compositions.
 
 Historical dimensions are regression samples. Component/container minimums
 determine feasible layouts, with explicit guidance when space cannot fit them.
 Physical browser/device acceptance remains separate from these measurements.
 See the [geometry contract](ARCHITECTURE.md#gui-adapter).
 
-The reference `GuiLayoutProfile.classify()` selects phone portrait, phone landscape, tablet,
-small desktop, or desktop from usable size/aspect. Explicit overrides require
-recorded device evidence. OS flags do not determine layout by themselves.
-The reference GUI's phone landscape remains diagnostic. The replacement now
-targets phone portrait and landscape, plus both tablet orientations, per the
-user's 2026-10-28 clarification. Historical dimensions are regression samples;
-container/content minimums determine fit. Physical-keyboard and touch handling
-remain independent of size and orientation.
+`GuiSizeClass` selects a preferred phone portrait, phone landscape, compact
+wide or wide mode from the adapter's usable rectangle. Explicit overrides are
+for fixtures or recorded device evidence; OS flags do not choose layout.
+Container/content minimums determine fit, and physical keyboard and touch
+handling remain independent of size and orientation.
 
 The replacement policy is implemented under `scripts/gui/layout/` (RG-12).
 `GuiSizeClass` selects a preferred mode from the adapter's usable extent;
 `GuiFitPolicy` selects finite measured envelopes independently. The
 [architecture](ARCHITECTURE.md#gui-adapter) records thresholds, explicit seat
-rows, primitive fit evidence and monotonicity. The independent replacement `CompositionHost` now consumes this policy and
-routes registered scenes directly (RG-13). Finished table registrations and
-controller cutover remain RG-51–54; reference play retains its current geometry.
-Do not add reference breakpoints to new components. The isolated
+rows, primitive fit evidence and monotonicity. The `CompositionHost` consumes this policy and routes registered scenes directly.
+The replacement table compositions and controller own production play. The isolated
 `SpaceGuidance` appearance is user-accepted.
 
 The shared replacement palette/type variations are now authored in
-`resources/gui_theme.tres` and await RG-30 visual review. New controls should
-use those variations; the reference defaults/runtime factories remain until
-replacement cutover. The theme gallery is a review fixture, not a table layout.
+`resources/gui_theme.tres` and support the replacement compositions. New controls should use those
+variations. The theme gallery is a review fixture, not a table layout.
 Do not introduce another font file or SystemFont; WinningHandText derives its
 bold appearance from the built-in font.
 
 Pure `TableViewModel` and child values now own card states, seat copy, winner
 emphasis, action flags, center/summary copy and the shared log body. The current
-controller consumes them; reference containers and factories remain until
-replacement scene cutover. New components render these values and emit intents
+replacement controller consumes them. Components render these values and emit intents
 instead of reading GameView or calculating poker-derived text themselves.
 
 Use containers and anchors for ordinary content. Calculated table regions

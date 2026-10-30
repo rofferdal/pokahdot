@@ -1,8 +1,8 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 const Content := preload("res://tests/support/gui_snapshot_content_assertions.gd")
-const Harness := preload("res://tests/support/gui_scene_harness.gd")
-const States := preload("res://tests/support/gui_visual_state_fixtures.gd")
+const LogScene := preload("res://scenes/gui/components/EventLog.tscn")
+const Measure := preload("res://scripts/gui/gui_snapshot_measurement.gd")
 
 
 func test_only_the_semantic_rich_text_event_log_accepts_eighteen() -> void:
@@ -28,36 +28,28 @@ func test_event_log_font_exception_never_reduces_interaction_target_floor() -> v
 
 
 func test_measured_event_identity_uses_the_actual_control_handle_and_not_its_name() -> void:
-	var harness: Node = Harness.new()
-	add_child_autofree(harness)
-	var rendered: Dictionary = harness.render(
-		States.by_id(&"event-history-full", 6), Vector2i(1280, 720)
-	)
-	assert_true(await harness.settle_layout())
-	var actual := rendered.table.get_node("%EventLog") as RichTextLabel
+	var root := Control.new()
+	root.size = Vector2(800, 600)
+	add_child_autofree(root)
+	var log := LogScene.instantiate() as GuiEventLog
+	root.add_child(log)
+	log.size = Vector2(360, 260)
+	log.render(EventLogViewModel.from_lines(["Public event"]))
+	var actual: RichTextLabel = log.get_body()
 	actual.add_theme_font_size_override("normal_font_size", 18)
 	var unrelated := RichTextLabel.new()
 	unrelated.name = "EventLog"
 	unrelated.text = "Unrelated text must keep the normal font floor."
 	unrelated.size = Vector2(400, 60)
 	unrelated.add_theme_font_size_override("normal_font_size", 18)
-	rendered.table.add_child(unrelated)
-	var snapshot: GuiLayoutSnapshot = rendered.table.get_layout_snapshot()
-	assert_eq(snapshot.elements[&"event"].font_size, 18)
-	assert_eq(_failures(snapshot.elements[&"event"]), PackedStringArray())
-	var event_count: int = 0
-	var unrelated_count: int = 0
-	for element: GuiLayoutElement in snapshot.measured:
-		if element.role == &"event":
-			event_count += 1
-			assert_eq(element.text_kind, &"rich_text")
-			assert_eq(element.rect, snapshot.elements[&"event"].rect)
-			assert_eq(_failures(element), PackedStringArray())
-		elif element.text == unrelated.text:
-			unrelated_count += 1
-			assert_string_contains("\n".join(_failures(element)), "font-floor:")
-	assert_eq(event_count, 1)
-	assert_eq(unrelated_count, 1)
+	root.add_child(unrelated)
+	await wait_process_frames(3)
+	var event: GuiLayoutElement = log.get_observation(root)
+	assert_eq(event.font_size, 18)
+	assert_eq(event.text_kind, &"rich_text")
+	assert_eq(_failures(event), PackedStringArray())
+	var other: GuiLayoutElement = Measure.element(unrelated, root, &"unrelated")
+	assert_string_contains("\n".join(_failures(other)), "font-floor:")
 
 
 func _element(role: StringName, kind: StringName, font_size: int) -> GuiLayoutElement:

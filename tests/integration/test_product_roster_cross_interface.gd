@@ -4,7 +4,7 @@ const CliMatchFactoryScript := preload("res://scripts/cli/cli_match_factory.gd")
 const GuiActionTimingConfigScript := preload("res://scripts/gui/gui_action_timing_config.gd")
 const GuiMatchFactoryScript := preload("res://scripts/gui/gui_match_factory.gd")
 const GuiStartupConfigAdapterScript := preload("res://scripts/gui/gui_startup_config_adapter.gd")
-const PokerTableScene := preload("res://scenes/poker_table.tscn")
+const ReplacementTableScene := preload("res://scenes/gui/ReplacementPokerTable.tscn")
 
 const OUTCOME_SEED: int = 9123
 const SCRIPTED_HUMAN_ACTIONS: PackedStringArray = [
@@ -28,10 +28,14 @@ func test_fixed_seed_and_scripted_actions_produce_equivalent_core_outcomes() -> 
 	assert_eq(cli_match.start().status, gui_match.start().status)
 	assert_eq(_core_outcome(cli_match, human_seat), _core_outcome(gui_match, human_seat))
 
-	var table: PokerTableController = PokerTableScene.instantiate() as PokerTableController
+	var table: GuiReplacementTableController = ReplacementTableScene.instantiate()
+	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	table.size = Vector2(1920, 1200)
 	add_child_autofree(table)
+	table.set_viewport_geometry(GuiViewportGeometry.injected(table.size))
 	_pause_gui_automation(table)
 	table.bind_match(gui_match, human_seat, gui_creation.avatar_assignments)
+	assert_true(await _settle_table(table))
 
 	for scripted_action: String in SCRIPTED_HUMAN_ACTIONS:
 		var cli_view: GameView = cli_match.get_view_for(human_seat)
@@ -49,7 +53,8 @@ func test_fixed_seed_and_scripted_actions_produce_equivalent_core_outcomes() -> 
 		var cli_result: StepResult = cli_match.submit_human_action(parsed_command.action)
 
 		table.refresh_from_match()
-		(table.get_node("%CheckCallButton") as Button).emit_signal("pressed")
+		assert_true(await _settle_table(table))
+		assert_ne(table.submit_intent(&"check_call").status, StepResult.Status.ERROR)
 		var gui_result: StepResult = gui_match.advance_until_blocked()
 
 		assert_eq(cli_result.status, gui_result.status, scripted_action)
@@ -172,11 +177,20 @@ func _config(
 	return ConfigResolver.new().resolve(defaults, overrides).get_config()
 
 
-func _pause_gui_automation(table: PokerTableController) -> void:
+func _pause_gui_automation(table: GuiReplacementTableController) -> void:
 	var timing_config := GuiActionTimingConfigScript.new()
 	timing_config.default_pause_seconds = 3600.0
 	timing_config.showdown_pause_seconds = 3600.0
 	table.set_action_timing_config(timing_config)
+
+
+func _settle_table(table: GuiReplacementTableController) -> bool:
+	for _frame: int in 180:
+		await get_tree().process_frame
+		var snapshot: GuiLayoutSnapshot = table.get_layout_snapshot()
+		if snapshot.ready and not snapshot.pending:
+			return true
+	return false
 
 
 func _config_values(config: ResolvedTournamentConfig) -> Dictionary:

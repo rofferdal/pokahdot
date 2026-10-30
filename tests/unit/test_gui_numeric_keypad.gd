@@ -432,16 +432,22 @@ func test_fit_can_recover_from_unavailable_space_and_previous_large_utility_labe
 	_assert_containment_and_floors(keypad, root)
 
 
-func test_reparenting_between_candidates_preserves_native_buttons_and_exact_draft() -> void:
+func test_candidate_changes_preserve_native_buttons_parents_and_exact_draft() -> void:
 	var root: Control = _root()
 	var keypad: GuiNumericKeypad = KeypadScene.instantiate()
 	root.add_child(keypad)
 	keypad.render(_model(true))
 	var first: Control = keypad.get_control(&"1")
+	var first_parent: Node = first.get_parent()
+	var value_parent: Node = keypad.get_control(&"value").get_parent()
+	var pot_parent: Node = keypad.get_control(&"pot").get_parent()
 	for available: Vector2 in [Vector2(272, 592), Vector2(796, 282), Vector2(272, 592)]:
 		assert_true(keypad.fit_available(available))
 		await wait_process_frames(6)
 		assert_same(keypad.get_control(&"1"), first)
+		assert_same(first.get_parent(), first_parent)
+		assert_same(keypad.get_control(&"value").get_parent(), value_parent)
+		assert_same(keypad.get_control(&"pot").get_parent(), pot_parent)
 		assert_eq(keypad.get_draft(), "00042")
 		_assert_digit_grid(keypad)
 		_assert_utility_rectangle(keypad, 6)

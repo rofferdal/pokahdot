@@ -1,6 +1,9 @@
 class_name GuiLayoutSnapshot
 extends RefCounted
 
+## Stable diagnostic values retained for semantic snapshot consumers.
+enum Profile { PHONE_PORTRAIT, PHONE_LANDSCAPE, TABLET, SMALL_DESKTOP, DESKTOP }
+
 ## Values only: no scene nodes, core objects, textures or card resources survive capture.
 ## Rectangles share the owning root's viewport logical space, including popup origins.
 ## Font size is in theme units; effective size includes Control transforms and output

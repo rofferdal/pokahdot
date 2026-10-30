@@ -11,6 +11,26 @@ var _advanced: int = 0
 var _committed_draft: String = "original"
 
 
+func test_modal_guard_rejects_missing_or_unowned_backdrop_without_constructing_one() -> void:
+	var surface := Control.new()
+	var host := Control.new()
+	var guard := GuiModalGuard.new()
+	add_child_autofree(surface)
+	surface.add_child(host)
+	surface.add_child(guard)
+	assert_false(guard.configure(host, surface, null))
+	assert_push_error_count(1)
+	assert_eq(surface.get_child_count(), 2)
+	var other := Control.new()
+	add_child_autofree(other)
+	var backdrop := Control.new()
+	other.add_child(backdrop)
+	assert_false(guard.configure(host, surface, backdrop))
+	assert_push_error_count(2)
+	assert_eq(surface.get_child_count(), 2)
+	assert_false(guard.is_active())
+
+
 func test_menu_switches_keep_one_modal_and_hold_advancement_until_final_close() -> void:
 	_setup()
 	_host.render_log(EventLogViewModel.from_lines(["Blind 10", "Call 20"]))

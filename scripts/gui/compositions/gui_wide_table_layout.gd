@@ -4,8 +4,6 @@ extends GuiTableComposition
 ## Ring geometry remains owned by the ring; optional history lives outside felt.
 const SeatScene := preload("res://scenes/gui/components/SeatPanel.tscn")
 const HeroScene := preload("res://scenes/gui/components/HeroPanel.tscn")
-const CenterScene := preload("res://scenes/gui/components/CenterBoard.tscn")
-const ActionScene := preload("res://scenes/gui/components/ActionBar.tscn")
 @export_range(1, 80) var dock_characters: int = 32
 var _seats: Dictionary[int, Control] = {}
 var _hero: int = -1
@@ -48,10 +46,8 @@ func _ensure_regions() -> void:
 	if _center != null:
 		return
 	_ring().theme = null
-	_center = CenterScene.instantiate()
-	_actions = ActionScene.instantiate()
-	_ring().add_child(_center)
-	_ring().add_child(_actions)
+	_center = _ring().get_node("CenterBoard") as GuiCenterBoard
+	_actions = _ring().get_node("ActionBar") as GuiActionBar
 	_actions.action_requested.connect(
 		func(intent: StringName) -> void: action_requested.emit(intent)
 	)
@@ -198,22 +194,6 @@ func _padding() -> Vector2:
 	)
 
 
-func _dock_width() -> float:
-	var body: RichTextLabel = _log().get_body()
-	var copy_width: float = (
-		body
-		. get_theme_font("normal_font")
-		. get_string_size(
-			"0".repeat(dock_characters),
-			HORIZONTAL_ALIGNMENT_LEFT,
-			-1.0,
-			body.get_theme_font_size("normal_font_size")
-		)
-		. x
-	)
-	return maxf(_log().get_combined_minimum_size().x, ceilf(copy_width))
-
-
 func _layout() -> void:
 	_pending = false
 	if not is_inside_tree():
@@ -242,7 +222,7 @@ func _layout() -> void:
 		dock.hide()
 		return
 	var gap: float = _ring().get_theme_constant("separation", &"SeatRing")
-	var width: float = _dock_width()
+	var width: float = GuiEventLogMeasurement.minimum_dock_width(_log(), dock_characters)
 	var leading: float = (
 		_log().get_combined_minimum_size().y - _log().get_body().get_combined_minimum_size().y
 	)

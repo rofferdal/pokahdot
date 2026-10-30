@@ -271,6 +271,16 @@ func test_status_uses_gui_names_and_preserves_reference_copy_separately() -> voi
 	assert_eq(ActionBarViewModel.build(view).status_text, "Tournament ended: player quit.")
 
 
+func test_completed_hand_status_names_all_distinct_pot_winners() -> void:
+	var view := _view()
+	view.hand_complete = true
+	view.acting_seat = Table.NO_SEAT
+	view._pot_awards = [PotAward.new(0, 20, [0, 1], {0: 10, 1: 10})]
+	var model := ActionBarViewModel.build(view, {1: "Alex"})
+	assert_string_contains(model.status_text, "Human")
+	assert_string_contains(model.status_text, "Alex")
+
+
 func test_null_view_is_explicit_and_no_model_retains_input_resources() -> void:
 	var invalid: ActionBarViewModel = ActionBarViewModel.build(null)
 	assert_false(invalid.valid)

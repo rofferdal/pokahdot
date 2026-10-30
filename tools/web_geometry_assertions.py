@@ -5,15 +5,16 @@ import math
 import re
 
 FLOAT_TOLERANCE = 0.0001
+FONT_METRIC_TOLERANCE = 0.5
 
 
-def minimum_font_size(element: dict, portrait_seat_copy: bool = False) -> int:
-    """Only registered semantic seat Labels may use the portrait copy floor."""
+def minimum_font_size(element: dict) -> int:
+    """Only registered semantic seat Labels may use the shared seat-copy floor."""
     role = element["role"]
     kind = element.get("text_kind")
     if role == "event" and kind == "rich_text":
         return 18
-    if (portrait_seat_copy and kind == "label" and not element.get("interactive", False)
+    if (kind == "label" and not element.get("interactive", False)
             and re.fullmatch(r"(?:status/(?:0|[1-9][0-9]*)|seat/(?:0|[1-9][0-9]*)/(?:name|stack|badge|badge_row_2|badge_row_3|marker|action))", role)):
         return 18
     return 20
@@ -55,14 +56,12 @@ def check_geometry(snapshot: dict, environment: dict, preset: str = "ordinary") 
                 or y + height > uy + uh + FLOAT_TOLERANCE):
             failures.append(f"safe-area: {overlay['kind']} is outside usable geometry")
     transform = window["final_transform"]
-    surface = snapshot.get("surface_size", [0, 0])
-    portrait_seat_copy = snapshot.get("profile") == 0 and surface[1] > surface[0] > 0
     for element in geometry["elements"]:
         role = element["role"]
         if element["text"] and element["font_size"] > 0:
             axes = [element["font_size"] * element["logical_scale"][axis] * transform[index] * css[axis] / backing[axis]
                     for axis, index in enumerate((0, 3))]
-            minimum = minimum_font_size(element, portrait_seat_copy)
+            minimum = minimum_font_size(element)
             if min(axes) < minimum - FLOAT_TOLERANCE:
                 failures.append(f"font-floor: {role} displays {axes} CSS pixels")
         if element["interactive"]:
@@ -72,4 +71,52 @@ def check_geometry(snapshot: dict, environment: dict, preset: str = "ordinary") 
                 failures.append(f"touch-target: {role} displays {size} CSS pixels")
     if snapshot["invariant_failures"]:
         failures.extend(snapshot["invariant_failures"])
+    return failures
+
+
+def check_default_font_metrics(snapshot: dict, native: dict) -> list[str]:
+    """Compare real Godot metrics while allowing only sub-pixel raster rounding."""
+    failures: list[str] = []
+    exported = snapshot.get("default_font_metrics", {})
+    if not exported.get("built_in") or exported.get("resource_path"):
+        failures.append("default-font: exported layout does not use the built-in font")
+    if not native.get("built_in") or native.get("resource_path"):
+        failures.append("default-font: headless probe does not use the built-in font")
+    native_by_id = {item["id"]: item for item in native.get("specimens", [])}
+    for item in exported.get("specimens", []):
+        reference = native_by_id.get(item["id"])
+        if reference is None:
+            failures.append(f"default-font: native specimen {item['id']} is missing")
+            continue
+        for axis in ("width", "height"):
+            if abs(item[axis] - reference[axis]) > FONT_METRIC_TOLERANCE:
+                failures.append(
+                    f"default-font: {item['id']} {axis} differs "
+                    f"({item[axis]} Web vs {reference[axis]} headless)"
+                )
+    if len(exported.get("specimens", [])) != len(native_by_id):
+        failures.append("default-font: exported and native specimen sets differ")
+    return failures
+
+
+def check_font_stress_copy(snapshot: dict) -> list[str]:
+    """Require the RG-62 stress strings to fit their real semantic allocations."""
+    failures: list[str] = []
+    elements = {item["role"]: item for item in snapshot["geometry"]["elements"]}
+    expected = {
+        "seat/1/name": lambda text: text == "Annalise",
+        "seat/1/stack": lambda text: text == "1000000",
+        "seat/1/action": lambda text: text.endswith("1000000"),
+        "action/check_call": lambda text: text == "Call 1000000",
+    }
+    for role, predicate in expected.items():
+        element = elements.get(role)
+        if element is None or not predicate(element.get("text", "")):
+            failures.append(f"font-stress: {role} does not expose the exact stress copy")
+            continue
+        required = element["required_size"]
+        allocated = element["allocated_size"]
+        if any(required[axis] > allocated[axis] + FONT_METRIC_TOLERANCE
+               for axis in (0, 1)):
+            failures.append(f"font-stress: {role} exceeds its actual allocation")
     return failures

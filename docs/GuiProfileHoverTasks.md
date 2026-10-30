@@ -51,15 +51,15 @@ These are current implementation facts, not completed hover functionality:
   [`GuiStartupConfigAdapter`](../scripts/gui/gui_startup_config_adapter.gd) and
   [`StartupConfigController`](../scripts/gui/startup_config_controller.gd)
   currently carry separate name/avatar assignments to
-  [`PokerTableController`](../scripts/gui/poker_table_controller.gd).
+  [`GuiReplacementTableController`](../scripts/gui/gui_replacement_table_controller.gd).
 - [`TableViewModel`](../scripts/gui/view_models/table_view_model.gd) and
   [`SeatViewModel`](../scripts/gui/view_models/seat_view_model.gd) create detached
   presentation values from recipient-safe state and assignment snapshots.
   They currently have no profile-name tooltip field.
-- [`GuiTableSeatFactory`](../scripts/gui/gui_table_seat_factory.gd) creates
-  `Name` labels in `create_seat_identity()` and `create_phone_opponent_token()`.
-  Phone tokens also have a full-seat `DetailsButton` overlay, so attaching a
-  tooltip to the underlying label alone cannot establish correct hit testing.
+- [`GuiSeatPanel`](../scripts/gui/components/gui_seat_panel.gd) and
+  [`GuiSeatToken`](../scripts/gui/components/gui_seat_token.gd) render names
+  through their authored fields. The token itself receives input while its
+  children ignore it, so name-only hover hit testing needs explicit design.
 
 Proposed design: copy a typed `seat -> public profile display name` mapping
 at GUI tournament creation, retain defensive snapshots along the existing
@@ -68,10 +68,8 @@ This adds no GUI dependency or presentation mapping to core `GameView`,
 `Player`, configuration or events. Confirm and document the final seam during
 GPH-01; this plan does not change the implemented architecture.
 
-The contract must work through current adapters and carry into authored
-`SeatPanel`, `HeroPanel` and `SeatToken` components as they replace runtime
-builders. Do not wait for that replacement or add new legacy layout policy to
-replacement components.
+The contract must work through the current adapters and authored `SeatPanel`,
+`HeroPanel` and `SeatToken` components without adding layout policy.
 
 ## Ordered implementation tasks
 

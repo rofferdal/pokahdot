@@ -350,18 +350,17 @@ func test_hero_alignment_centers_rows_and_keeps_status_inset_out_of_intrinsic_wi
 		var status: Control = bar.get_control(&"status")
 		var inset: float = maxf(0.0, (bar.size.x - 378.0) * 0.5)
 		assert_almost_eq(status.global_position.x, bar.global_position.x + inset, 0.5)
-		for path: String in ["Body/Rows/First", "Body/Rows/Second"]:
-			var row: Control = bar.get_node(path)
-			if not row.visible:
-				continue
-			var span := Rect2()
-			var first: bool = true
-			for child: Control in row.get_children():
-				if not child.visible:
-					continue
-				span = child.get_global_rect() if first else span.merge(child.get_global_rect())
-				first = false
-			assert_false(first)
+		var spans: Dictionary[float, Rect2] = {}
+		for child: Control in bar.get_node("Body/Rows").get_children():
+			if child.visible:
+				var y: float = child.global_position.y
+				spans[y] = (
+					spans[y].merge(child.get_global_rect())
+					if spans.has(y)
+					else child.get_global_rect()
+				)
+		assert_eq(spans.size(), bar.layout_rows)
+		for span: Rect2 in spans.values():
 			assert_almost_eq(span.get_center().x, bar.get_global_rect().get_center().x, 0.5)
 		_assert_visible_controls(bar, root)
 	assert_false(bar.align_with_hero(NAN))

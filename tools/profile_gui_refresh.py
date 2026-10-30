@@ -28,11 +28,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SIZES = {"phone": (390, 844), "tablet": (1024, 768), "desktop": (1920, 1080)}
 SCENARIOS = ("turns", "runouts", "resize")
-FIXTURE_FILES = (
-    "tests/performance/profiled_poker_table.gd",
-    "tests/performance/gui_refresh_fixture.gd",
-    "tests/performance/gui_refresh_fixture.tscn",
-)
 REPLACEMENT_FIXTURE_FILES = (
     "tests/performance/profiled_replacement_table.gd",
     "tests/performance/gui_replacement_refresh_fixture.gd",
@@ -41,15 +36,12 @@ REPLACEMENT_FIXTURE_FILES = (
 
 
 def fixture_paths(implementation: str) -> tuple[str, str, tuple[str, ...]]:
-    """Select isolated observers without modifying the reference workload."""
-    if implementation == "replacement":
-        return ("tests/performance/gui_replacement_refresh_native.gd",
-                "res://tests/performance/gui_replacement_refresh_fixture.tscn",
-                REPLACEMENT_FIXTURE_FILES)
-    if implementation == "reference":
-        return ("tests/performance/gui_refresh_native.gd",
-                "res://tests/performance/gui_refresh_fixture.tscn", FIXTURE_FILES)
-    raise ValueError("Unknown GUI implementation: " + implementation)
+    """Select the live replacement observer; historical reports remain data only."""
+    if implementation != "replacement":
+        raise ValueError("Only the replacement GUI can be profiled: " + implementation)
+    return ("tests/performance/gui_replacement_refresh_native.gd",
+            "res://tests/performance/gui_replacement_refresh_fixture.tscn",
+            REPLACEMENT_FIXTURE_FILES)
 
 
 class WebErrorLog:
@@ -218,7 +210,8 @@ def validate_replacement_result(result: dict, samples: int) -> None:
 
 
 def native_case(godot: str, work: Path, profile: str, scenario: str, samples: int,
-                implementation: str = "reference", players: int | None = None) -> dict:
+                implementation: str = "replacement", players: int | None = None,
+                viewport: tuple[int, int] | None = None) -> dict:
     name = f"native-{profile}-{scenario}"
     output = work / f"{name}.json"
     script, _, _ = fixture_paths(implementation)
@@ -229,6 +222,8 @@ def native_case(godot: str, work: Path, profile: str, scenario: str, samples: in
                  "--output", str(output)]
     if players is not None:
         arguments.extend(["--players", str(players)])
+    if viewport is not None:
+        arguments.extend(["--width", str(viewport[0]), "--height", str(viewport[1])])
     time_flag = "-l" if platform.system() == "Darwin" else "-v"
     with (work / f"{name}.log").open("w") as log:
         process = subprocess.Popen(["/usr/bin/time", time_flag, *arguments], cwd=ROOT,
@@ -298,8 +293,20 @@ def renderer_process_sample(session, phase: str) -> dict:
                            "rss_bytes": rss.get(row["id"])} for row in processes]}
 
 
+def profile_url(port: int, profile: str, scenario: str, samples: int,
+                players: int | None, viewport: tuple[int, int] | None) -> str:
+    """Build the same explicit workload options consumed by the native fixture."""
+    result = f"http://127.0.0.1:{port}/index.html?profile={profile}&scenario={scenario}&samples={samples}"
+    if players is not None:
+        result += f"&players={players}"
+    if viewport is not None:
+        result += f"&width={viewport[0]}&height={viewport[1]}"
+    return result
+
+
 def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str], samples: int,
-              implementation: str = "reference", players: int | None = None) -> list[dict]:
+              implementation: str = "replacement", players: int | None = None,
+              viewport: tuple[int, int] | None = None) -> list[dict]:
     from playwright.sync_api import sync_playwright
     from run_web_input_tests import QuietHandler, export_fixture
 
@@ -317,7 +324,7 @@ def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str],
             accounting = browser.new_browser_cdp_session()
             for profile in profiles:
                 for scenario in scenarios:
-                    width, height = SIZES[profile]
+                    width, height = viewport if viewport is not None else SIZES[profile]
                     context = browser.new_context(viewport={"width": width, "height": height},
                                                   device_scale_factor=1)
                     page = context.new_page()
@@ -325,9 +332,8 @@ def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str],
                     page.on("pageerror", lambda error: errors.add(str(error)))
                     page.on("console", lambda message: errors.add(message.text)
                             if message.type == "error" else None)
-                    page.goto(f"http://127.0.0.1:{server.server_port}/index.html?"
-                              f"profile={profile}&scenario={scenario}&samples={samples}"
-                              + (f"&players={players}" if players is not None else ""))
+                    page.goto(profile_url(server.server_port, profile, scenario, samples,
+                                          players, viewport))
                     deadline = time.monotonic() + 180
                     result = None
                     memory_samples = []
@@ -380,9 +386,11 @@ def web_cases(godot: str, work: Path, profiles: list[str], scenarios: list[str],
 def argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("native", "web", "both"), default="both")
-    parser.add_argument("--implementation", choices=("reference", "replacement"), default="reference")
+    parser.add_argument("--implementation", choices=("replacement",), default="replacement")
     parser.add_argument("--players", type=int, choices=range(2, 10), default=None,
                         help="Explicit matched roster; omitted preserves profile defaults (phone7, other9)")
+    parser.add_argument("--viewport", type=int, nargs=2, metavar=("WIDTH", "HEIGHT"), default=None,
+                        help="Override the initial phone viewport in logical pixels")
     parser.add_argument("--godot", default="/Applications/Godot.app/Contents/MacOS/Godot")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--samples", type=int, default=120)
@@ -396,6 +404,10 @@ def main() -> None:
     arguments = parser.parse_args()
     if not 20 <= arguments.samples <= 2000:
         parser.error("--samples must be in 20..2000")
+    if arguments.viewport is not None and (arguments.profiles != ["phone"] or
+                                           any(value <= 0 for value in arguments.viewport)):
+        parser.error("--viewport requires a single phone profile and positive dimensions")
+    viewport = tuple(arguments.viewport) if arguments.viewport is not None else None
     work = arguments.output.resolve()
     work.mkdir(parents=True, exist_ok=False)
     identity = source_identity()
@@ -404,10 +416,10 @@ def main() -> None:
         for profile in arguments.profiles:
             for scenario in arguments.scenarios:
                 results.append(native_case(arguments.godot, work, profile, scenario, arguments.samples,
-                                           arguments.implementation, arguments.players))
+                                           arguments.implementation, arguments.players, viewport))
     if arguments.mode in ("web", "both"):
         results.extend(web_cases(arguments.godot, work, arguments.profiles, arguments.scenarios,
-                                 arguments.samples, arguments.implementation, arguments.players))
+                                 arguments.samples, arguments.implementation, arguments.players, viewport))
     if source_identity()["execution_source_sha256"] != identity["execution_source_sha256"]:
         raise RuntimeError("Execution sources changed during profiling; repeat the measurement")
     for result in results:
@@ -417,6 +429,7 @@ def main() -> None:
         result["source"] = identity
     report = {"schema_version": 1, "source": identity, "host": platform.platform(),
               "implementation": arguments.implementation, "requested_players": arguments.players,
+              "requested_viewport_override": viewport,
               "investigation_threshold_usec": 16700,
               "percentile_method": "nearest rank", "results": results}
     (work / "results.json").write_text(json.dumps(report, indent=2) + "\n")

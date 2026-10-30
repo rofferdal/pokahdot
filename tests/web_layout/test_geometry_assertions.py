@@ -3,7 +3,11 @@ from __future__ import annotations
 import copy
 import unittest
 
-from tools.web_geometry_assertions import check_geometry
+from tools.web_geometry_assertions import (
+    check_default_font_metrics,
+    check_font_stress_copy,
+    check_geometry,
+)
 
 
 def observation(base=(389, 843), css=(389, 843), backing=(1023, 2215)):
@@ -22,6 +26,33 @@ def observation(base=(389, 843), css=(389, 843), backing=(1023, 2215)):
 
 
 class WebGeometryAssertionsTests(unittest.TestCase):
+    def test_default_font_metric_parity_accepts_subpixel_rounding_and_rejects_substitution(self):
+        native = {"built_in": True, "resource_path": "", "specimens": [
+            {"id": "longest_name", "width": 75.0, "height": 26.0},
+        ]}
+        snapshot = {"default_font_metrics": {"built_in": True, "resource_path": "",
+                    "specimens": [{"id": "longest_name", "width": 75.49,
+                                   "height": 25.51}]}}
+        self.assertEqual(check_default_font_metrics(snapshot, native), [])
+        snapshot["default_font_metrics"]["specimens"][0]["width"] = 75.51
+        self.assertTrue(check_default_font_metrics(snapshot, native))
+        snapshot["default_font_metrics"]["specimens"][0]["width"] = 75.0
+        snapshot["default_font_metrics"]["resource_path"] = "res://forbidden-font.ttf"
+        self.assertTrue(any(failure.startswith("default-font:") for failure in
+                            check_default_font_metrics(snapshot, native)))
+
+    def test_font_stress_copy_uses_exact_text_and_actual_allocations(self):
+        elements = []
+        for role, text in (("seat/1/name", "Annalise"), ("seat/1/stack", "1000000"),
+                           ("seat/1/action", "A1000000"),
+                           ("action/check_call", "Call 1000000")):
+            elements.append({"role": role, "text": text, "required_size": [84, 26],
+                             "allocated_size": [84, 26]})
+        snapshot = {"geometry": {"elements": elements}}
+        self.assertEqual(check_font_stress_copy(snapshot), [])
+        elements[3]["allocated_size"][0] = 83.49
+        self.assertTrue(check_font_stress_copy(snapshot))
+
     def test_actual_fractional_canvas_axes_restore_twenty_and_forty_eight(self):
         snapshot, environment = observation()
         before = copy.deepcopy(snapshot)
@@ -108,7 +139,7 @@ class WebGeometryAssertionsTests(unittest.TestCase):
         self.assertTrue(any(failure.startswith("font-floor:")
                             for failure in check_geometry(snapshot, environment)))
 
-    def test_only_registered_portrait_seat_labels_use_eighteen_css_pixels(self):
+    def test_only_registered_seat_labels_use_eighteen_css_pixels(self):
         snapshot, environment = observation()
         snapshot.update(profile=0, surface_size=[389, 843])
         element = snapshot["geometry"]["elements"][0]
@@ -131,7 +162,7 @@ class WebGeometryAssertionsTests(unittest.TestCase):
         self.assertTrue(any(f.startswith("font-floor:") for f in
                             check_geometry(snapshot, environment)))
 
-    def test_portrait_seat_copy_floor_retains_context_axes_and_target_requirements(self):
+    def test_seat_copy_floor_retains_context_axes_and_target_requirements(self):
         snapshot, environment = observation()
         snapshot.update(profile=0, surface_size=[389, 843])
         element = snapshot["geometry"]["elements"][0]
@@ -144,8 +175,7 @@ class WebGeometryAssertionsTests(unittest.TestCase):
         element["logical_scale"] = [1, 1]
         for profile, surface in ((1, [843, 389]), (4, [389, 843]), (0, [843, 389])):
             snapshot.update(profile=profile, surface_size=surface)
-            self.assertTrue(any(f.startswith("font-floor:") for f in
-                                check_geometry(snapshot, environment)))
+            self.assertEqual(check_geometry(snapshot, environment), [])
         snapshot.update(profile=0, surface_size=[389, 843])
         element.update(font_size=20, interactive=True)
         element["target_output_size"][1] *= 0.99

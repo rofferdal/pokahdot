@@ -4,13 +4,14 @@ extends Node
 
 const MainScene := preload("res://scenes/main.tscn")
 const Fixture := preload("res://tests/support/gui_browser_capture_fixture.gd")
-const Invariants := preload("res://tests/support/gui_invariant_assertions.gd")
+const Invariants := preload("res://tests/support/gui_replacement_invariant_assertions.gd")
 const Json := preload("res://tests/web/layout_snapshot_json.gd")
-const Setup := preload("res://tests/web/reference_fixture_setup.gd")
 const GeometrySetup := preload("res://tests/web/viewport_geometry_fixture_setup.gd")
+const SizeClass := preload("res://scripts/gui/layout/gui_size_class.gd")
+const DefaultFontMetrics := preload("res://tests/support/gui_default_font_metrics.gd")
 
 var _main: StartupConfigController
-var _table: PokerTableController
+var _table: GuiReplacementTableController
 var _descriptor: Dictionary
 var _frame: int = 0
 var _expected_overlays: Array[StringName] = []
@@ -20,14 +21,16 @@ func _ready() -> void:
 	if not OS.has_feature("web"):
 		set_process(false)
 		return
-	_descriptor = Fixture.descriptor()
+	_descriptor = Fixture.descriptor(_player_count(), _font_stress())
 	_main = MainScene.instantiate() as StartupConfigController
 	add_child(_main)
 	GeometrySetup.apply(_main)
 	_expected_overlays = GeometrySetup.expected_overlays()
-	_table = Setup.table(_main, true)
+	_main.get_node("Center").hide()
+	_table = _main.get_node("PokerTable") as GuiReplacementTableController
+	_table.show()
+	_table.set_layout_mode_override(_mode_override())
 	_table.bind_view(_descriptor.view, _descriptor.avatars, _descriptor.names)
-	Setup.bind_events(_table, _descriptor.events)
 	await GeometrySetup.open_initial_overlay(_table)
 
 
@@ -35,6 +38,7 @@ func _process(_delta: float) -> void:
 	_frame += 1
 	var layout: GuiLayoutSnapshot = _table.get_layout_snapshot()
 	var snapshot: Dictionary = Json.encode(layout)
+	snapshot["classified_mode"] = SizeClass.classify(layout.usable_rect.size, _mode_override()).mode
 	snapshot["frame"] = _frame
 	snapshot["button_seat"] = _descriptor.view.button_seat
 	snapshot["small_blind_seat"] = _descriptor.view.small_blind_seat
@@ -47,8 +51,9 @@ func _process(_delta: float) -> void:
 				seat["stack"] = player.stack
 				seat["wager"] = player.bet_this_round
 				seat["folded"] = player.folded
-	snapshot["invariant_failures"] = Invariants.validate_snapshot(layout, _expected_overlays)
+	snapshot["invariant_failures"] = Invariants.validate(layout, _expected_overlays)
 	snapshot["geometry"] = _geometry(layout)
+	snapshot["default_font_metrics"] = DefaultFontMetrics.capture(_table.get_theme_font("font"))
 	JavaScriptBridge.eval("window.pokahdotLayout = " + JSON.stringify(snapshot) + "; void 0")
 
 
@@ -122,3 +127,34 @@ func _geometry(layout: GuiLayoutSnapshot) -> Dictionary:
 		"elements": elements,
 		"overlays": overlays,
 	}
+
+
+func _mode_override() -> int:
+	var value: String = JavaScriptBridge.eval(
+		"new URL(location.href).searchParams.get('mode') || 'automatic'"
+	)
+	return int(
+		(
+			{
+				"phone": SizeClass.LayoutMode.PHONE,
+				"phone_landscape": SizeClass.LayoutMode.PHONE_LANDSCAPE,
+				"wide_compact": SizeClass.LayoutMode.WIDE_COMPACT,
+				"wide": SizeClass.LayoutMode.WIDE,
+			}
+			. get(value, SizeClass.AUTOMATIC)
+		)
+	)
+
+
+func _player_count() -> int:
+	return clampi(
+		int(JavaScriptBridge.eval("new URL(location.href).searchParams.get('players') || '6'")),
+		2,
+		6
+	)
+
+
+func _font_stress() -> bool:
+	return bool(
+		JavaScriptBridge.eval("new URL(location.href).searchParams.get('stress') === 'font'")
+	)

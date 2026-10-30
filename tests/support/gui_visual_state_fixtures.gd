@@ -90,7 +90,7 @@ static func all(player_count: int = DEFAULT_PLAYER_COUNT) -> Array[Dictionary]:
 			KIND_UI_ONLY,
 			{
 				"overlay": &"numeric_keypad",
-				"intentional_overlap_controls": [&"StartupNumberKeypad"],
+				"intentional_overlap_controls": [&"number"],
 				"title": "Enter number",
 				"input_text": "25",
 				"minimum": 0,

@@ -75,15 +75,16 @@ player limits; active acceptance checkboxes stay in their owning backlog.
 
 | Profile | Product scope | Automated coverage | Physical/browser acceptance |
 | --- | --- | --- | --- |
-| Phone portrait | 2–7 players; default 6 | Dedicated phone v2 matrix, including reduced height and summary overlays | Archived [phone acceptance record](arkiv/OptimizingPhoneGuiTasks.md); open recorded checks are not completed by archive placement |
-| Phone landscape | Reference emergency reflow; replacement responsive composition planned | Diagnostic reference fixtures | Replacement landscape implementation and acceptance required; historical passes establish no device support |
-| Tablet/iPad | 2–9 players; landscape primary, portrait regression | Dedicated iPad matrix, including explicit observed-device override | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
-| Small desktop/desktop | 2–9 players | Dedicated desktop matrix and historical M3 fixtures | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
+| Phone portrait and landscape | 2–7 players; default 6 | Replacement phone suite: 45 layout and public-state cases, including reduced-height guidance | Archived [phone acceptance record](arkiv/OptimizingPhoneGuiTasks.md); open recorded checks are not completed by archive placement |
+| Tablet/iPad | 2–9 players; landscape primary, portrait regression | Replacement iPad suite: 16 cases across canonical orientations, reduced height, and the observed surface | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
+| Small desktop/desktop | 2–9 players | Replacement desktop suite: 52 cases across compact and wide allocations; the 99-case M3 suite also covers wide states | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
 
-`make gui-current-invariant-gate` requires the historical M3, phone, iPad, and
-desktop matrices. An automated pass proves the tested deterministic invariants.
-A rendered review proves only its captured scope; neither proves a physical
-device passed. Accepted old captures do not certify later code or matrix versions.
+`make gui-current-invariant-gate` runs replacement-owned schema-2 invariants for
+the complete 99-case M3 matrix and the phone, iPad, and desktop category suites.
+The frozen historical registry remains evidence, not an active gate dependency.
+An automated pass proves only the tested deterministic invariants. A rendered
+review proves only its captured scope; neither proves a physical device passed.
+Accepted old captures do not certify later code or matrix versions.
 The completed [LAN workflow](arkiv/LanTestTasks.md) records user acceptance with
 resolution limitations; it does not complete open recorded phone acceptance checks.
 The [archived GUI-05 browser capture review](arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
@@ -152,17 +153,13 @@ uses 2, 4, 6, and 7. Startup uses player count `0` because no table exists yet.
 A fixture may declare a narrower applicable set, but it must state why;
 silently omitting a difficult viewport, player count, or state is not allowed.
 
-The ordinary GUT suite additionally runs
-`tests/unit/test_gui_phone_numeric_bounds.gd`. Its synthetic presentation stress
-views exercise 2–7 phone counts at 360 × 640, large-value tablet/desktop
-surfaces through nine players, exact 999999/6999999/8999999 amounts,
-1,000,000 blinds, split numeric rows, profile restoration, Web fallback
-font metrics, DPR normalization, and real core submissions through inline/keypad
-presets. These deliberately combine boundary values to test layout rather than
-representing a chip-conserving poker hand. They supplement the frozen canonical
-matrices and do not establish physical-device acceptance.
+Replacement numeric coverage includes the phone composition's default and large
+value sweeps for 2–7 seats, the native matrix's independent hero, opponent, pot,
+blind and all-in stress values, and exported font/geometry and keypad input
+checks. These synthetic fixtures test presentation and guidance; they do not
+establish physical-device acceptance.
 
-The real-flow winner regressions in `test_gui_phone_winner_flow.gd` drive
+The real-flow winner regressions in `test_gui_replacement_winner_flow.gd` drive
 `TournamentMatch` through settlement for hero/opponent wins, splits, side pots
 and folds at 2/4/6/7 seats. Winner text must fit and appear before opening Pots;
 card privacy and hand-pause/reset behavior are checked. GUI-05-D removed the
@@ -266,15 +263,12 @@ including usable origins and popup embedding offsets. Local text metrics and
 allocated sizes remain explicitly separate from transformed rectangles.
 See the [GUI adapter contract](ARCHITECTURE.md#gui-adapter).
 
-The focused `test_gui_layout_snapshot.gd` suite exercises startup, wide,
-phone and modal observations plus deliberate privacy/content/geometry
-mutations. Shared assertions, phone content checks and Web observers now
-consume those values. `GuiSceneHarness.set_fixture_driver()` lets a replacement
-composition supply setup independently of the reference tree. The reference
-driver retains its exact density-plan comparison; replacement drivers omit it.
-Settling requires readiness, no pending layout and two stable snapshot geometry
-frames within a 16-frame bound. Snapshot readiness alone does not establish
-rendered or device acceptance.
+The replacement snapshot-contract and startup suites exercise detached startup,
+table and modal observations plus deliberate privacy/content/geometry
+mutations. The native replacement matrix, category capture fixtures and Web
+observers consume those values independently of the retired reference tree.
+They use bounded settling and distinguish ready content from explicit guidance.
+Snapshot readiness alone does not establish rendered or device acceptance.
 
 Exported layout reports use `exported_web_layout_evidence_v2`: `regions`,
 `root_rect`, `surface_rect` and `usable_rect` share viewport logical coordinates;
@@ -304,29 +298,12 @@ not claim their completion.
 
 ## Real-window geometry evidence
 
-The development-only scene
-`tests/performance/gui_geometry_fixture.tscn` measures the actual native root
-Window under the reference and explicit runtime normalization experiments. It
-records Window/DisplayServer/image size, screen scale, virtual base, final
-transform, all visible text/target output sizes and screenshots. It does not
-change product settings. For example:
-
-```sh
-/Applications/Godot.app/Contents/MacOS/Godot --path . --always-on-top \
-  --rendering-method gl_compatibility --rendering-driver opengl3 \
-  --audio-driver Dummy tests/performance/gui_geometry_fixture.tscn \
-  -- --app-adapter --output res://localtmp/viewport-adapter-native
-```
-
-Use a fresh output path and select a screen explicitly when comparing native
-scales. `--app-adapter` measures the production adapter; the fixture's default
-reference policies are explicit injected experiments for comparison. The Web layout observer also reports read-only Window and transformed
-geometry. Compare actual DOM canvas CSS bounds/backing size with those engine
-measurements. Pair x/y output transforms with the corresponding CSS/backing
-ratios; nominal DPR alone misses fractional shell rounding. See the
-[RG-10 unit and minimum-size decision](ARCHITECTURE.md#gui-adapter).
-These experiments establish measurement facts; replacement visual/device
-acceptance remains a separate review.
+The exported layout observer reports the application Window, canvas CSS and
+backing geometry, usable rectangle, and transformed semantic measurements. Pair
+x/y output transforms with their corresponding CSS/backing ratios; nominal DPR
+alone misses fractional rounding. Native viewport and safe-area conversion are
+covered by the viewport geometry and adapter integration tests. Synthetic and
+browser-emulated checks do not establish physical-device acceptance.
 
 ## Viewport adapter gate
 
@@ -342,17 +319,24 @@ JavaScript geometry/input mutator in the observer or production export.
 The new geometry/integration tests also cover fractional native safe-edge
 roundtrips, immutable detached values, invalid-to-valid recovery, pending-frame
 readiness, translated/scaled roots, headless host isolation and keypad
-focus/draft preservation. A 618×302 landscape safe area contains the compact
-keypad and every visible child at the current 20/48 floors. These tests cover
-viewport correctness; later component tests apply the approved 18 px seat-copy
-allowance and the new card/button/field/log/winner presentation contracts.
+focus/draft preservation. A 618×302 landscape safe area presents explicit guidance while preserving the
+table model. Replacement component tests enforce the 18 px seat-copy and 20 px
+other text floors, 48 px targets, and complete card, log and winner content.
 
 ## Policy and fit characterization
 
-`make gui-layout-characterization` checks the exact step-80 reference registry
+`make gui-layout-characterization` runs the replacement size-policy tests and
+native composition matrix. The replacement invariant gate additionally validates
+the same semantic snapshots; exported layout checks cover browser DPR and safe
+insets. Unsupported allocations must publish guidance and preserve their model.
+
+The following reference characterization is historical evidence from before the
+cutover. It does not describe the replacement or certify its behavior.
+
+The historical step-80 characterization checked the exact reference registry
 in [`gui_layout_sweep_known_failures.json`](../tests/fixtures/gui_layout_sweep_known_failures.json).
-It is included in `make check` after measuring approximately 0.5 seconds of pure
-probes and 2.8 seconds for the bounded scene/resize matrix. New failures,
+It measured approximately 0.5 seconds of pure probes and 2.8 seconds for the
+bounded scene/resize matrix. New failures,
 unexpected passes, changed input sets and changed policy observations all
 require review; the runner never updates the registry during a check.
 
@@ -378,16 +362,15 @@ Phone counts 8–9, deferred landscape and insufficient-space cases retain separ
 scope labels. RG-12 now defines pure fit envelopes; RG-39–52 must establish
 actual component minima and rendered composition support.
 
-`make gui-layout-sweep` samples step 20 without imposing the step-80 registry on
-new inputs. Its 73,537 observations identify each additional sample explicitly
-and write a diagnostic report to `localtmp/gui-layout-sweep/report.json`.
-Canonical reports go to `localtmp/gui-layout-characterization/report.json`.
-The registry stores explicit failure signatures/input IDs and source checksums;
-full raw measurements stay in ignored reports. To review a deliberate baseline
-change, inspect both the raw report and fixture diff before explicitly running
-the runner with `--step 80 --record`. Never use recording to mask a regression.
+The retired step-20 reference sweep sampled without applying the frozen
+registry. Its previously recorded 73,537
+observations and ignored local reports are diagnostic history, not replacement
+acceptance. Do not rebase the registry to represent replacement results.
 
-## Milestone gates
+## Historical reference milestone gates
+
+The following records describe the retired reference GUI and do not define
+replacement capture or device acceptance. Current gates are listed below.
 
 Milestone 3 establishes the matrix, deterministic state harness, invariant
 checks, resize coverage, capture process, and defect loop. Its layout acceptance
@@ -461,24 +444,26 @@ the editor binary is not on `PATH`, for example
 
 | Command | Purpose and evidence status |
 | --- | --- |
-| `make gui-layout-characterization` | Compare step-80 policy/plan and bounded scene observations with the exact reviewed failure registry; part of `check`, not visual acceptance. |
-| `make gui-layout-sweep` | Run additional step-20 diagnostic samples, retaining observed failures and scope labels under `localtmp/`; not an acceptance gate. |
-| `make gui-visual-capture-smoke` | Render only the 1280 x 720, six-player `human-turn-preflop` case. It accepts a dirty tree, writes development-only output, and checks the renderer/capture pipeline without running the complete matrix or ordinary test suite. It is never acceptance evidence. |
-| `make gui-visual-invariant-gate` | Run the historical Milestone 3 tablet, small-desktop, and desktop matrix through the reusable scene harness and invariant assertions under GUT. It writes no screenshot evidence. |
-| `make gui-phone-invariant-gate` | Run the distinct 406-case phone v2 matrix across canonical portrait, landscape, and reduced-height fixtures at 2, 4, 6, and 7 players. It verifies full bot names, numeric stacks, two hole-card fields, separate bare-table and summary-overlay states, absent event history, and resize cycles. |
-| `make gui-ipad-invariant-gate` | Run the iPad-specific full-state matrix at canonical portrait and landscape sizes, the 1194 x 696 reduced-height Chrome regression, and the 2388 x 1450 observed surface for 2, 4, 6, 7, and 9 players. It adds centering and symmetric-arc coverage without changing the frozen 348-case Milestone 3 capture matrix. |
-| `make gui-desktop-invariant-gate` | Run the desktop-specific full-state matrix at 950 x 532, 1280 x 720, the provisional 1853 x 916 screenshot raster, and 1920 x 1080 for 2, 4, 6, and 9 players. The raster fixture is diagnostic coverage and does not replace measured CSS viewport evidence. |
-| `make gui-current-invariant-gate` | Run the historical Milestone 3 gate followed by the dedicated phone, iPad, and desktop gates. Pull-request validation and release candidates both require every matrix to pass. Historical fixture identities and manual device-acceptance status remain separate. |
-| `make gui-visual-capture-development` | Render the complete Milestone 3 capture matrix with `--development`. It accepts a dirty tree, records dirty paths and their fingerprint, and always produces non-acceptance evidence. It does not implicitly run `make check` or the standalone invariant gate. |
-| `make gui-phone-capture-development` | Render the complete Milestone 4 phone matrix as development-only evidence. Human review of this output is required by the separate local phone visual-acceptance task. |
-| `make gui-visual-capture` | Produce clean candidate evidence. It refuses a dirty tree, runs `make check` and `gui-current-invariant-gate`, checks cleanliness again, then renders the complete Milestone 3 matrix. Its manifest is acceptance-eligible only when all 348 expected captures settle and pass their recorded invariants. |
+| `make gui-layout-characterization` | Run replacement size-policy and native composition checks; part of `check`, not visual acceptance. |
+| `make gui-visual-capture-smoke GUI_CAPTURE_OUTPUT=localtmp/NEW-PATH` | Render one six-player wide `human-turn-preflop` replacement case. It accepts a dirty tree, writes development-only output, and checks the renderer/capture pipeline without running the complete matrix or ordinary test suite. It is never acceptance evidence. |
+| `make gui-visual-invariant-gate` | Run the replacement-owned 99-case M3 matrix against the schema-2 snapshot observer. It writes no screenshot evidence. |
+| `make gui-phone-invariant-gate` | Run the replacement phone cases across portrait, landscape, reduced-height, supported, and guidance states. |
+| `make gui-ipad-invariant-gate` | Run replacement cases at canonical iPad portrait and landscape, reduced-height, and observed logical surfaces for 2, 4, 6, and 9 players. |
+| `make gui-desktop-invariant-gate` | Run replacement cases at compact desktop and wide allocations across the established M3 public states. |
+| `make gui-current-invariant-gate` | Run the replacement M3, phone, iPad, and desktop gates. Pull-request validation and release candidates require every category to pass. Historical fixture registries remain separate evidence. |
+| `make gui-visual-capture-development GUI_CAPTURE_OUTPUT=localtmp/NEW-PATH` | Render the replacement 99-case M3 matrix. It accepts a dirty tree and produces non-acceptance evidence only. The requested destination must not exist. |
+| `make gui-phone-capture-development GUI_CAPTURE_OUTPUT=localtmp/NEW-PATH` | Render the replacement phone category as development-only evidence. Human review remains part of the separate local phone visual-acceptance task. |
+| `make gui-ipad-capture-development GUI_CAPTURE_OUTPUT=localtmp/NEW-PATH` / `make gui-desktop-capture-development GUI_CAPTURE_OUTPUT=localtmp/NEW-PATH` | Render replacement iPad or desktop category captures as development-only evidence. |
+| `make gui-visual-capture GUI_CAPTURE_OUTPUT=localtmp/NEW-PATH` | Require a new localtmp destination, then run the clean release candidate gate and capture the replacement 99-case M3 matrix. The manifest is acceptance-eligible only when every case settles and passes schema-2 invariants. |
 
-`GuiInvariantMatrixSuites` declares the viewport/count/state coverage used by
-both captures and gates. `GuiInvariantMatrixRunner` owns rendering, settling,
-invariant checks and phone resize cycles; `GuiPhoneMatrixContract` retains the
-additional phone privacy/content/touch-target checks. The four historical
-manual entry points and fixture identities remain stable. Capture provenance
-hashes the shared definitions, runner and phone contract alongside fixtures.
+`GuiReplacementCaptureCases` declares the replacement matrix and named
+phone/iPad/desktop category selections. `GuiReplacementCategoryMatrix` mounts
+the authored replacement table and validates detached schema-2 observations.
+Capture provenance records the source revision, engine/renderer, category, case
+identity, logical size, state, player count, PNG hash, and invariant result.
+The runner writes only to a caller-selected, new directory beneath `localtmp/`
+and refuses dirty trees for release evidence. Frozen historical registries are
+retained as evidence and are not imported by active gates or captures.
 
 All rendered commands require a real display and the Compatibility renderer;
 the capture runner rejects a headless or dummy renderer. Capture targets refuse
@@ -512,71 +497,30 @@ location described below.
 
 ## Screenshot names and storage
 
-Use lowercase ASCII fixture identifiers. Separate filename fields with double
-underscores. Local canonical screenshots use:
+Replacement captures require a new destination under ignored `localtmp/`.
+The runner writes each PNG under the destination's `captures/` directory using
+its source SHA prefix and stable case ID. It refuses existing destinations and
+does not overwrite earlier evidence. The adjacent `manifest.json` records the
+case identity and PNG checksum. Development captures are review aids, not
+acceptance evidence.
 
-```text
-<sha12>__<viewport-id>__<width>x<height>-<orientation>__p<count>__<state-id>.png
-```
-
-For example:
-
-```text
-88122bd46ef0__small_desktop_950x532__950x532-landscape__p6__showdown-long.png
-```
-
-Hosted screenshots add the test environment before the actual viewport:
-
-```text
-<sha12>__<environment-id>__<device-os-browser>__<width>x<height>-<orientation>__p<count>__<state-id>.png
-```
-
-If a state requires more than one image, append a stable suffix such as
-`__before-rotation` or `__after-rotation`. Never distinguish evidence only with
-timestamps or operating-system-generated counters.
-
-Keep generated local captures and their manifest under the ignored path:
-
-```text
-Clean candidate: artifacts/gui_visual/<full-sha>/
-Development:     artifacts/gui_visual/development/<full-sha>-<dirty-fingerprint>/
-```
-
-Attach an immutable archive to the release issue, pull request, or other agreed
-evidence store for durable review. Repository records may link to that archive.
-If a Markdown evidence record is committed after testing, it documents the
-target SHA; its later documentation commit does not become or rebuild the
-tested candidate.
+Attach an immutable archive to the agreed evidence store when durable review
+is needed. A later documentation commit records the tested source SHA; it does
+not replace or rebuild that candidate.
 
 ## Capture manifest
 
-Write `manifest.json` beside the screenshots. The manifest is generated data,
-not a hand-maintained substitute for fixture definitions. It contains:
+The generated replacement manifest records schema and owner, category, source
+SHA and tree state, dirty paths, development and acceptance flags, Godot
+version, renderer, capture time, case matrix and source hashes. Each capture
+records its case ID, PNG checksum, logical size, player count, state, layout
+mode, readiness or guidance, and schema-2 invariant result.
 
-- `schema_version`, `visual_suite_version`, `capture_scope`, and whether the
-  run is a development capture;
-- `source_sha`, `source_tree_state`, `dirty_paths`, and the dirty fingerprint;
-- `acceptance_eligible`, Godot version, display server, renderer, rendering
-  driver, video adapter, UTC capture time, fixture-matrix SHA-256, and checksums
-  for the matrix source files;
-- one record per capture with its stable capture ID, relative filename, PNG
-  SHA-256, viewport ID, logical size, usable rectangle or insets, orientation,
-  layout profile, player count, state ID, fixture ID, fixed seed, and human
-  seat; and
-- named intentional-overlay exception IDs plus `invariants.passed`,
-  `invariants.layout_settled`, and the exact invariant-failure list.
-
-Development and filtered captures always have `acceptance_eligible: false`.
-For the current `milestone-3-v2` suite, only a clean, non-development,
-`full_m3` manifest containing all 348 passing captures can be
-acceptance-eligible. Independently compute and record the completed manifest's
-SHA-256 in its review or defect record; the runner also prints that checksum.
-
-Review status is recorded outside the generated manifest so review cannot
-silently mutate the captured input record. The review record identifies the
-manifest checksum, reviewer, review time, result, defect IDs or acceptance
-decision, and durable evidence URL. When optional hosted evidence is retained,
-the manifest source SHA, reviewed SHA, and hosted commit SHA should match.
+Development and filtered captures are never acceptance eligible. A clean,
+non-development, unfiltered capture is eligible only when every case settles
+and passes. Record the manifest checksum and review separately so a review
+cannot silently mutate captured evidence. Hosted evidence should match the
+reviewed source SHA and deployed commit.
 
 ## Optional hosted-verification handoff
 
@@ -585,7 +529,7 @@ the pushed commit to GitHub Pages. Rendered capture and review remain a
 separate human activity. When collecting reproducible hosted evidence, use
 this process:
 
-1. Run clean `make gui-visual-capture` and independently compute the completed
+1. Run clean `make gui-visual-capture GUI_CAPTURE_OUTPUT=localtmp/NEW-PATH` and independently compute the completed
    `manifest.json` SHA-256.
 2. Review the full image set and record the manifest checksum, exact source
    SHA, suite and full scope, reviewer, UTC review time, result, and every
@@ -696,3 +640,8 @@ diagnostic sets change with text metrics and stable semantic seat roles.
 No newly failing input is registered. Independent supported-state matrices must
 still pass without failures. The local audit is
 `localtmp/restructure_rg31/characterization-migration-audit.json`.
+
+For a seven-player phone action profile, use `--profiles phone --players 7
+--viewport 390 1000`; at 390 × 844 the measured composition shows space
+guidance and cannot execute the action workload. Profiling records synthetic
+host timings and does not replace physical-device acceptance.

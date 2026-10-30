@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Capture exploratory exported-browser layout evidence without accepting defects.
+"""Run strict exported replacement-layout checks and separate diagnostics.
 
-CSS sizes below are new test environments, not reconstructed capture metadata.
-Report mode retains all invariant failures and returns success for a completed
-measurement run. Browser/engine errors still fail. Artifacts remain in localtmp.
+The strict matrix uses real Chromium canvas/backing geometry and the production
+viewport adapter. Report-only boundary cases retain failures without weakening
+the supported phone, tablet and desktop gate. Browser automation is not
+physical-device acceptance.
 """
 from __future__ import annotations
 
@@ -17,26 +18,39 @@ from pathlib import Path
 import subprocess
 import threading
 import time
+from urllib.parse import urlencode
 
 from playwright.sync_api import sync_playwright
 
 from run_web_input_tests import ROOT, QuietHandler, export_fixture
-from web_layout_assertions import check_snapshot, clockwise_order
-
-# Includes classifier/legacy sizing boundaries and independently chosen controls.
-EXPLORATORY_SIZES = (
-    (950, 532), (1024, 600), (1099, 759), (1100, 759),
-    (1194, 696), (1199, 800), (1200, 800), (1201, 800),
-    (1247, 636), (1280, 720), (1300, 760), (1369, 724),
-    (1377, 777), (1440, 900), (1855, 918), (1920, 1080),
-    (768, 1024), (1024, 768),
+from web_geometry_assertions import (
+    check_default_font_metrics,
+    check_font_stress_copy,
+    check_geometry,
 )
-DPR_CONTROLS = ((1280, 720), (1369, 724), (1440, 900), (1024, 768))
+from web_layout_assertions import check_snapshot
+
 SUPPORT = (
     "tests/support/gui_browser_capture_fixture.gd",
-    "tests/support/gui_invariant_assertions.gd",
+    "tests/support/gui_replacement_invariant_assertions.gd",
     "tests/support/gui_snapshot_content_assertions.gd",
-    "tests/support/gui_snapshot_region_assertions.gd",
+    "tests/support/gui_default_font_metrics.gd",
+    "tests/web/layout_snapshot_json.gd",
+    "tests/web/viewport_geometry_fixture_setup.gd",
+)
+DPRS = (1, 2, 2.625, 3)
+MODES = {"phone": 1, "phone_landscape": 2, "wide_compact": 3, "wide": 4}
+SUPPORTED = (
+    ("phone-portrait", 390, 844, "phone", 4),
+    ("phone-landscape", 932, 430, "phone_landscape", 3),
+    ("ipad", 1024, 768, "wide_compact", 6),
+    ("desktop", 1920, 1080, "wide", 6),
+)
+DIAGNOSTICS = (
+    ("boundary-short", 650, 360),
+    ("boundary-medium", 1099, 759),
+    ("boundary-expanded", 1100, 759),
+    ("legacy-sample", 1280, 720),
 )
 
 
@@ -44,134 +58,213 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def settle(page, width: int, height: int) -> dict:
+def native_default_font_metrics(godot: str) -> dict:
+    prefix = "RG62_DEFAULT_FONT_METRICS="
+    completed = subprocess.run(
+        [godot, "--headless", "--path", str(ROOT), "--script",
+         "res://tests/support/gui_default_font_metrics_runner.gd"],
+        cwd=ROOT, text=True, capture_output=True, timeout=30, check=False,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "Native default-font probe failed:\n" + completed.stdout + completed.stderr
+        )
+    for line in completed.stdout.splitlines():
+        if line.startswith(prefix):
+            return json.loads(line.removeprefix(prefix))
+    raise RuntimeError("Native default-font probe returned no metric document.")
+
+
+def strict_cases(quick: bool) -> list[dict]:
+    dprs = (1,) if quick else DPRS
+    environments = SUPPORTED[:1] if quick else SUPPORTED
+    cases = []
+    for dpr in dprs:
+        for name, width, height, expected, players in environments:
+            for classification in ("automatic", "explicit"):
+                cases.append({"id": f"strict-{name}-{classification}-dpr{dpr}",
+                    "kind": "strict", "width": width, "height": height, "dpr": dpr,
+                    "mode": "automatic" if classification == "automatic" else expected,
+                    "expected_mode": MODES[expected], "geometry": "ordinary",
+                    "players": players})
+    if not quick:
+        cases.extend((
+            {"id": "strict-ipad-asymmetric-auto-dpr2.625", "kind": "strict",
+             "width": 1024, "height": 768, "dpr": 2.625, "mode": "automatic",
+             "expected_mode": MODES["wide_compact"], "geometry": "asymmetric",
+             "players": 6},
+            {"id": "strict-desktop-safe-explicit-dpr3", "kind": "strict",
+             "width": 1920, "height": 1080, "dpr": 3, "mode": "wide",
+             "expected_mode": MODES["wide"], "geometry": "safe-and-visual", "players": 6},
+            {"id": "strict-phone-font-stress-dpr2.625", "kind": "strict",
+             "width": 1000, "height": 500, "dpr": 2.625, "mode": "phone_landscape",
+             "expected_mode": MODES["phone_landscape"], "geometry": "ordinary",
+             "players": 3, "stress": "font"},
+        ))
+    return cases
+
+
+def diagnostic_cases(quick: bool) -> list[dict]:
+    if quick:
+        return []
+    return [{"id": f"report-{name}-dpr1", "kind": "report_only", "width": width,
+             "height": height, "dpr": 1, "mode": "automatic", "geometry": "ordinary"}
+            for name, width, height in DIAGNOSTICS]
+
+
+def settle(page, case: dict) -> tuple[dict, dict]:
     deadline = time.monotonic() + 30
     previous = None
     stable = 0
     previous_frame = -1
     while time.monotonic() < deadline:
-        snapshot = page.evaluate("window.pokahdotLayout || null")
-        if snapshot:
-            table = snapshot["root_rect"]
+        observed = page.evaluate("""() => {
+            const state = window.pokahdotLayout;
+            const canvas = document.querySelector('canvas');
+            if (!state || !state.geometry || !canvas) return null;
+            const rect = canvas.getBoundingClientRect(), viewport = window.visualViewport;
+            return {snapshot: state, environment: {
+                inner_size: [innerWidth, innerHeight], device_pixel_ratio: devicePixelRatio,
+                user_agent: navigator.userAgent, platform: navigator.platform,
+                canvas_css_rect: [rect.x, rect.y, rect.width, rect.height],
+                canvas_backing_size: [canvas.width, canvas.height],
+                visual_viewport: viewport ? {width: viewport.width, height: viewport.height,
+                    offset_left: viewport.offsetLeft, offset_top: viewport.offsetTop,
+                    scale: viewport.scale} : null}};
+        }""")
+        if observed:
+            snapshot = observed["snapshot"]
             signature = json.dumps({key: snapshot[key] for key in (
-                "profile", "root_rect", "usable_rect",
-                "regions", "labels")}, sort_keys=True)
-            correct_size = abs(table[2] - width) <= 1 and abs(table[3] - height) <= 1
-            if correct_size and snapshot["ready"] and not snapshot["pending"] and snapshot["frame"] > previous_frame:
-                stable = stable + 1 if signature == previous else 0
-                previous = signature
-                previous_frame = snapshot["frame"]
-                if stable >= 2:
-                    return snapshot
+                "layout_mode", "root_rect", "usable_rect", "regions", "labels",
+                "fit_guidance")}, sort_keys=True)
+            root = snapshot["root_rect"]
+            correct = abs(root[2] - case["width"]) <= 1 and abs(root[3] - case["height"]) <= 1
+            settled = snapshot["ready"] or bool(snapshot.get("fit_guidance"))
+            if (correct and settled and not snapshot["pending"]
+                    and snapshot["frame"] > previous_frame and signature == previous):
+                stable += 1
+            else:
+                stable = 0
+            previous = signature
+            previous_frame = snapshot["frame"]
+            if stable >= 2:
+                return snapshot, observed["environment"]
         page.wait_for_timeout(100)
-    raise AssertionError(f"Layout did not settle at CSS {width}x{height}")
+    raise AssertionError(f"Layout did not settle for {case['id']}")
 
 
-def measure(browser, url: str, work: Path, sizes, dpr: int) -> list[dict]:
-    context = browser.new_context(viewport={"width": sizes[0][0], "height": sizes[0][1]},
-                                  device_scale_factor=dpr)
-    page = context.new_page()
-    errors: list[str] = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
-    cases = []
-    try:
-        page.goto(url + "/index.html")
-        for index, (width, height) in enumerate(sizes):
-            page.set_viewport_size({"width": width, "height": height})
-            snapshot = settle(page, width, height)
-            environment = page.evaluate("""() => {
-                const canvas = document.querySelector('canvas');
-                const rect = canvas.getBoundingClientRect();
-                const viewport = window.visualViewport;
-                return {inner_width: innerWidth, inner_height: innerHeight,
-                    device_pixel_ratio: devicePixelRatio, user_agent: navigator.userAgent,
-                    platform: navigator.platform, max_touch_points: navigator.maxTouchPoints,
-                    secure_context: isSecureContext,
-                    canvas_css_rect: [rect.x, rect.y, rect.width, rect.height],
-                    canvas_backing_size: [canvas.width, canvas.height],
-                    visual_viewport: viewport ? {width: viewport.width, height: viewport.height,
-                        offset_left: viewport.offsetLeft, offset_top: viewport.offsetTop,
-                        scale: viewport.scale} : null,
-                    screen: {width: screen.width, height: screen.height},
-                    browser_zoom: 'not independently measured',
-                    safe_area_insets: 'not independently measured',
-                    browser_chrome: 'headless automation; physical chrome not measured'};
-            }""")
-            name = f"dpr{dpr}-{index:02d}-{width}x{height}"
-            screenshot = work / (name + ".png")
-            page.screenshot(path=str(screenshot))
-            order = clockwise_order(snapshot)
-            cases.append({"case": name, "environment_kind": "exploratory automation",
-                          "environment": environment, "snapshot": snapshot,
-                          "clockwise_order": order, "clockwise_expected": list(range(6)),
-                          "clockwise_passed": order == list(range(6)),
-                          "checks": check_snapshot(snapshot),
-                          "screenshot": screenshot.name, "screenshot_sha256": sha256(screenshot)})
-            print(f"{name}: {len(snapshot['invariant_failures'])} invariant failures; order {order}",
-                  flush=True)
-        if errors:
-            raise AssertionError("Browser errors: " + "\n".join(errors))
-        return cases
-    finally:
-        (work / f"dpr{dpr}-browser-errors.json").write_text(json.dumps(errors, indent=2))
-        (work / f"dpr{dpr}-cases.json").write_text(json.dumps(cases, indent=2))
-        context.close()
+def measure_case(page, base_url: str, work: Path, case: dict, native_font: dict) -> dict:
+    page.set_viewport_size({"width": case["width"], "height": case["height"]})
+    query = {"geometry": case["geometry"], "players": case.get("players", 6)}
+    if case.get("stress"):
+        query["stress"] = case["stress"]
+    if case["mode"] != "automatic":
+        query["mode"] = case["mode"]
+    page.goto(f"{base_url}/index.html?{urlencode(query)}")
+    snapshot, environment = settle(page, case)
+    failures = check_snapshot(snapshot)["all"]
+    failures.extend(check_geometry(snapshot, environment, case["geometry"]))
+    failures.extend(check_default_font_metrics(snapshot, native_font))
+    if case.get("stress") == "font":
+        failures.extend(check_font_stress_copy(snapshot))
+    if snapshot.get("classified_mode") != case.get(
+            "expected_mode", snapshot.get("classified_mode")):
+        failures.append("classification: observed mode differs from requested/automatic mode")
+    if abs(environment["device_pixel_ratio"] - case["dpr"]) > 0.0001:
+        failures.append("environment: browser DPR differs from requested DPR")
+    failures = list(dict.fromkeys(failures))
+    screenshot = work / f"{case['id']}.png"
+    page.screenshot(path=str(screenshot))
+    return {**case, "requested_css_size": [case["width"], case["height"]],
+            "actual_dpr": environment["device_pixel_ratio"], "environment": environment,
+            "snapshot": snapshot, "failures": failures, "screenshot": screenshot.name,
+            "screenshot_sha256": sha256(screenshot)}
+
+
+def measure(browser, base_url: str, work: Path, cases: list[dict],
+            native_font: dict) -> tuple[list[dict], list[str]]:
+    results = []
+    browser_errors: list[str] = []
+    for dpr in sorted({case["dpr"] for case in cases}):
+        selected = [case for case in cases if case["dpr"] == dpr]
+        context = browser.new_context(viewport={"width": selected[0]["width"],
+                                      "height": selected[0]["height"]},
+                                      device_scale_factor=dpr)
+        page = context.new_page()
+        case_errors: list[str] = []
+        page.on("pageerror", lambda error: case_errors.append(str(error)))
+        page.on("console", lambda message: case_errors.append(message.text)
+                if message.type == "error" else None)
+        page.set_default_timeout(30000)
+        try:
+            for case in selected:
+                before = len(case_errors)
+                result = measure_case(page, base_url, work, case, native_font)
+                result["browser_errors"] = case_errors[before:]
+                if result["browser_errors"]:
+                    result["failures"].append("browser: console or page error")
+                results.append(result)
+                print(f"{case['id']}: {len(result['failures'])} failures", flush=True)
+        finally:
+            browser_errors.extend(case_errors)
+            context.close()
+    return results, browser_errors
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--godot", default="godot")
     parser.add_argument("--output", type=Path, default=ROOT / "localtmp" / "web-layout")
-    parser.add_argument("--quick", action="store_true", help="Measure three exploratory sizes only")
+    parser.add_argument("--quick", action="store_true", help="Run one strict phone case pair")
     parser.add_argument("--strict", action="store_true",
-                        help="Exit nonzero after retaining the complete report if selected checks fail")
-    parser.add_argument("--check", choices=("all", "geometry", "content", "order"), default="all")
+                        help="Fail when a supported strict case fails")
     args = parser.parse_args()
-    args.output = args.output.resolve()
-    args.output.mkdir(parents=True, exist_ok=False)
-    source_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    work = args.output.resolve()
+    work.mkdir(parents=True, exist_ok=False)
+    source_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                                         text=True).strip()
     source_diff_sha256 = hashlib.sha256(
         subprocess.check_output(["git", "diff", "HEAD"], cwd=ROOT)).hexdigest()
-    output = export_fixture(args.godot, args.output,
-                            main_scene="res://tests/web/layout_fixture.tscn", support_files=SUPPORT)
+    output = export_fixture(args.godot, work,
+                            main_scene="res://tests/web/layout_fixture.tscn",
+                            support_files=SUPPORT)
+    native_font = native_default_font_metrics(args.godot)
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0),
         functools.partial(QuietHandler, directory=str(output)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    cases = strict_cases(args.quick) + diagnostic_cases(args.quick)
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(args=["--enable-unsafe-swiftshader"])
-            sizes = ((1280, 720), (1369, 724), (1920, 1080)) if args.quick else EXPLORATORY_SIZES
-            # Same live state crosses profiles in both directions; repeated sizes are deliberate.
-            sequence = tuple(sizes) + tuple(reversed(sizes[:-1]))
-            cases = measure(browser, f"http://127.0.0.1:{server.server_port}", args.output,
-                            sequence, 1)
-            if not args.quick:
-                cases += measure(browser, f"http://127.0.0.1:{server.server_port}", args.output,
-                                 DPR_CONTROLS, 2)
-            version = browser.version
+            browser_version = browser.version
+            results, browser_errors = measure(
+                browser, f"http://127.0.0.1:{server.server_port}", work, cases, native_font)
             browser.close()
-        document = {
-            "suite": "exported_web_layout_evidence_v2",
-            "mode": "strict" if args.strict else "report", "selected_check": args.check,
+        document = {"schema_version": 3, "suite": "exported_replacement_layout_v3",
+            "mode": "strict" if args.strict else "report",
+            "acceptance": "browser emulation only; not physical-device acceptance",
+            "captured_utc": datetime.now(timezone.utc).isoformat(),
+            "browser": browser_version,
+            "engine": subprocess.check_output([args.godot, "--version"], text=True).strip(),
+            "requested_dprs": list((1,) if args.quick else DPRS),
+            "source_sha": source_sha, "source_diff_sha256": source_diff_sha256,
             "measurement_runner_sha256": sha256(Path(__file__)),
             "checker_sha256": sha256(ROOT / "tools/web_layout_assertions.py"),
-            "acceptance": "not established; invariant/order failures retained",
-            "captured_utc": datetime.now(timezone.utc).isoformat(), "browser": version,
-            "historical_metadata": "Original builds, CSS viewports, DPR, zoom and iPad identity unknown",
-            "source_sha": source_sha,
-            "source_diff_sha256": source_diff_sha256,
+            "geometry_checker_sha256": sha256(ROOT / "tools/web_geometry_assertions.py"),
+            "native_default_font_metrics": native_font,
             "fixture_files_sha256": {path: sha256(ROOT / path) for path in
                 (*SUPPORT, "tests/web/layout_fixture.gd", "tests/web/layout_fixture.tscn")},
-            "copied_project_sha256": (args.output / "source.sha256").read_text(),
+            "copied_project_sha256": (work / "source.sha256").read_text().strip(),
             "exported_pack_sha256": sha256(output / "index.pck"),
-            "cases": cases,
-        }
-        (args.output / "results.json").write_text(json.dumps(document, indent=2))
-        failed = [case["case"] for case in cases if case["checks"][args.check]]
-        print(f"Captured {len(cases)} environments/transitions; "
-              f"{len(failed)} fail {args.check}; evidence: {args.output}")
-        if args.strict and failed:
+            "browser_errors": browser_errors, "cases": results}
+        (work / "results.json").write_text(json.dumps(document, indent=2) + "\n")
+        failed = [case["id"] for case in results
+                  if case["kind"] == "strict" and case["failures"]]
+        diagnostic_failed = [case["id"] for case in results
+                             if case["kind"] == "report_only" and case["failures"]]
+        print(f"Checked {len(results)} exported cases; {len(failed)} strict failures; "
+              f"{len(diagnostic_failed)} report-only failures; evidence: {work}")
+        if args.strict and (failed or browser_errors):
             raise SystemExit(1)
     finally:
         server.shutdown()

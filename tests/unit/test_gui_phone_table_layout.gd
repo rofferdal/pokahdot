@@ -170,6 +170,26 @@ func test_refresh_preserves_identity_draft_selection_and_explicit_modality() -> 
 	assert_eq(layout.get_wager_draft(), "001000000")
 
 
+func test_scene_owned_seat_parents_and_identity_survive_reflow_and_refresh() -> void:
+	for landscape: bool in [false, true]:
+		var layout: GuiPhoneTableLayout = _layout(landscape)
+		assert_true(layout.render(_model(6)))
+		await wait_process_frames(12)
+		var seats: Dictionary[int, Control] = layout.get_seat_controls()
+		var parents: Dictionary[int, Node] = {}
+		for id: int in seats:
+			parents[id] = seats[id].get_parent()
+		for allocation: Vector2 in [Vector2(600, 1000), Vector2(350, 900), Vector2(3000, 2500)]:
+			assert_true(layout.set_allocation_limit(allocation))
+			await wait_process_frames(8)
+			assert_true(layout.render(_model(6, &"human-turn-river")))
+			await wait_process_frames(8)
+			for id: int in seats:
+				assert_same(layout.get_seat_controls()[id], seats[id])
+				assert_same(seats[id].get_parent(), parents[id])
+		layout.free()
+
+
 func test_native_keyboard_action_entry_menu_and_seat_detail_signals() -> void:
 	var layout: GuiPhoneTableLayout = _layout(false)
 	assert_true(layout.render(_model(4)))

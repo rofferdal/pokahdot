@@ -130,6 +130,25 @@ func test_threshold_and_short_allocation_show_guidance_without_partial_copy() ->
 	_assert_geometry(layout)
 
 
+func test_resize_only_preserves_wide_seat_nodes_and_their_parents() -> void:
+	var layout: GuiWideTableLayout = _layout()
+	assert_true(layout.render(_model(6)))
+	await wait_process_frames(10)
+	var seats: Dictionary[int, Control] = layout.get_seat_controls()
+	var parents: Dictionary[int, Node] = {}
+	for id: int in seats:
+		parents[id] = seats[id].get_parent()
+	var minimum: Vector2 = layout.get_combined_minimum_size()
+	for allocation: Vector2 in [minimum, minimum + Vector2(800, 200), minimum, Vector2(3000, 2500)]:
+		layout.size = allocation
+		await wait_process_frames(10)
+		var current: Dictionary[int, Control] = layout.get_seat_controls()
+		assert_eq(current.size(), seats.size())
+		for id: int in seats:
+			assert_same(current[id], seats[id])
+			assert_same(current[id].get_parent(), parents[id])
+
+
 func test_refresh_preserves_seat_identity_draft_and_explicit_input_modality() -> void:
 	var layout: GuiWideTableLayout = _layout()
 	assert_true(layout.render(_model(6)))

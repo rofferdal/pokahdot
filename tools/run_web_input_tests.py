@@ -108,10 +108,12 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
             assert state["winner_names"], "Real settlement must identify at least one winner"
             for winner_name in state["winner_names"]:
                 assert winner_name in state["result_text"], state["result_text"]
-            assert state["result_button"] == "Pots"
+            assert "More" in state["result_button"]
             assert not state["summary_open"], "Result must be visible with the cards"
             hand_number = state["hand_number"]
             click("PhoneMoreButton")
+            wait("window.pokahdotInput.menu")
+            click("PhoneMenuSummaryButton")
             state = wait("window.pokahdotInput.summary_open")
             for winner_name in state["winner_names"]:
                 assert winner_name in state["summary_text"]
@@ -135,7 +137,9 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
                 wait("window.pokahdotInput.menu && window.pokahdotInput.modal_focus")
                 click("FoldButton")
                 assert page.evaluate("window.pokahdotInput.history_count") == history
-                assert page.evaluate("window.pokahdotInput.menu")
+                wait("!window.pokahdotInput.menu")
+                click("PhoneMoreButton")
+                wait("window.pokahdotInput.menu && window.pokahdotInput.modal_focus")
                 for _ in range(6):
                     page.keyboard.press("Tab")
                     wait("window.pokahdotInput.modal_focus")
@@ -171,7 +175,8 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
                 wait("!window.pokahdotInput.quit_confirmation && window.pokahdotInput.more_focus")
                 assert page.evaluate("window.pokahdotInput.input") == original
                 page.set_viewport_size({"width": 1280, "height": 720})
-                click("input")
+                wait("window.pokahdotInput.viewport[0] === 1280")
+                click("open")
                 wait("window.pokahdotInput.popup")
                 click("KeyClear")
                 click("Key2")
@@ -184,34 +189,23 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
                     click("Cancel")
                 wait("!window.pokahdotInput.popup")
                 page.set_viewport_size({"width": 390, "height": 844})
-            for original_text in ("invalid", "", "   "):
-                if fixture == "table":
-                    page.set_viewport_size({"width": 1280, "height": 720})
-                click("input", False)
-                wait("window.pokahdotInput.focus && !window.pokahdotInput.popup")
-                page.keyboard.press("ControlOrMeta+A")
-                page.keyboard.press("Backspace")
-                if original_text:
-                    page.keyboard.type(original_text)
-                wait("window.pokahdotInput.input === " + json.dumps(original_text))
-                if fixture == "table":
-                    page.set_viewport_size({"width": 390, "height": 844})
-                click("open")
-                wait("window.pokahdotInput.popup")
-                assert page.evaluate("window.pokahdotInput.input") == original_text
-                click("KeyClear")
-                click("Key2")
-                click("Cancel")
-                wait("!window.pokahdotInput.popup")
-                assert page.evaluate("window.pokahdotInput.input") == original_text
-            if fixture == "table":
-                page.set_viewport_size({"width": 1280, "height": 720})
-                click("input", False)
-                wait("window.pokahdotInput.focus && !window.pokahdotInput.popup")
-                page.keyboard.press("ControlOrMeta+A")
-                page.keyboard.type("250")
-                wait("window.pokahdotInput.input === '250'")
-                page.set_viewport_size({"width": 390, "height": 844})
+                wait("window.pokahdotInput.viewport[0] === 390")
+            else:
+                for original_text in ("invalid", "", "   "):
+                    click("input", False)
+                    wait("window.pokahdotInput.focus && !window.pokahdotInput.popup")
+                    page.keyboard.press("ControlOrMeta+A")
+                    page.keyboard.press("Backspace")
+                    if original_text:
+                        page.keyboard.type(original_text)
+                    wait("window.pokahdotInput.input === " + json.dumps(original_text))
+                    click("open")
+                    wait("window.pokahdotInput.popup")
+                    click("KeyClear")
+                    click("Key2")
+                    click("Cancel")
+                    wait("!window.pokahdotInput.popup")
+                    assert page.evaluate("window.pokahdotInput.input") == original_text
             click("open")
             wait("window.pokahdotInput.popup && !window.pokahdotInput.keypad_has_quit")
             click("KeyClear")
@@ -241,6 +235,69 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
         context.close()
 
 
+def exercise_replacement(browser, base_url: str, work: Path) -> dict:
+    """Drive the replacement only through canvas input and its semantic observer."""
+    context = browser.new_context(viewport={"width": 1000, "height": 1000},
+                                  device_scale_factor=2, has_touch=True, is_mobile=True)
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: errors.append(message.text)
+            if message.type == "error" else None)
+    page.set_default_timeout(20000)
+
+    def wait(expression: str) -> dict:
+        page.wait_for_function("window.pokahdotReplacementCheck && (" + expression + ")")
+        return page.evaluate("window.pokahdotReplacementCheck")
+
+    def click(key: str) -> None:
+        state = wait(f"window.pokahdotReplacementCheck.controls.{key}?.visible")
+        x, y, width, height = state["controls"][key]["rect"]
+        canvas = page.locator("canvas").bounding_box()
+        assert canvas is not None
+        page.touchscreen.tap(canvas["x"] + (x + width / 2) * canvas["width"] / 1000,
+                             canvas["y"] + (y + height / 2) * canvas["height"] / 1000)
+
+    try:
+        page.goto(base_url + "/index.html")
+        state = wait("window.pokahdotReplacementCheck.frame > 20 && "
+                     "window.pokahdotReplacementCheck.ready && "
+                     "!window.pokahdotReplacementCheck.pending")
+        assert len(state["cards"]) == 4
+        assert all(card["font_size"] >= 20 for card in state["cards"])
+        assert state["back"]["rank"] == "" and state["back"]["suit"] == ""
+        click("more")
+        wait("window.pokahdotReplacementCheck.overlay === 'menu'")
+        click("menu_close")
+        wait("window.pokahdotReplacementCheck.overlay === ''")
+        original = page.evaluate("window.pokahdotReplacementCheck.raw_draft")
+        click("wager")
+        wait("window.pokahdotReplacementCheck.overlay === 'number'")
+        click("clear")
+        click("key2")
+        wait("window.pokahdotReplacementCheck.keypad_draft === '2'")
+        assert page.evaluate("window.pokahdotReplacementCheck.raw_draft") == original
+        click("cancel")
+        wait("window.pokahdotReplacementCheck.overlay === ''")
+        assert page.evaluate("window.pokahdotReplacementCheck.raw_draft") == original
+        click("wager")
+        click("clear")
+        click("key2")
+        click("done")
+        wait("window.pokahdotReplacementCheck.overlay === '' && "
+             "window.pokahdotReplacementCheck.raw_draft === '2'")
+        page.screenshot(path=str(work / "replacement-touch.png"))
+        assert not errors, "Browser errors: " + "\n".join(errors)
+        return {"case": "replacement-touch", "passed": True,
+                "snapshot": page.evaluate("window.pokahdotReplacementCheck")}
+    except Exception:
+        page.screenshot(path=str(work / "replacement-touch-failed.png"))
+        (work / "replacement-touch-errors.json").write_text(json.dumps(errors, indent=2))
+        raise
+    finally:
+        context.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--godot", default="godot")
@@ -249,6 +306,18 @@ def main() -> None:
     # Refuse stale evidence instead of silently testing an older export.
     args.output.mkdir(parents=True, exist_ok=False)
     output = export_fixture(args.godot, args.output.resolve())
+    replacement_work = args.output / "replacement-check"
+    replacement_work.mkdir()
+    replacement_output = export_fixture(
+        args.godot,
+        replacement_work.resolve(),
+        "res://tests/performance/gui_replacement_web_check.tscn",
+        (
+            "tests/performance/gui_replacement_web_check.gd",
+            "tests/performance/gui_replacement_web_check.tscn",
+            "tests/performance/profiled_replacement_table.gd",
+        ),
+    )
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0),
         functools.partial(QuietHandler, directory=str(output)))
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -262,13 +331,30 @@ def main() -> None:
                        for fixture in ("startup", "table") for mobile in (False, True)]
             results.append(exercise(browser, f"http://127.0.0.1:{server.server_port}", args.output,
                                     "table-showdown", True))
+            replacement_server = http.server.ThreadingHTTPServer(("127.0.0.1", 0),
+                functools.partial(QuietHandler, directory=str(replacement_output)))
+            replacement_thread = threading.Thread(
+                target=replacement_server.serve_forever, daemon=True)
+            replacement_thread.start()
+            try:
+                results.append(exercise_replacement(
+                    browser,
+                    f"http://127.0.0.1:{replacement_server.server_port}",
+                    replacement_work,
+                ))
+            finally:
+                replacement_server.shutdown()
+                replacement_server.server_close()
             browser.close()
         result_document = {
-            "suite": "exported_web_input_v1",
+            "suite": "exported_web_input_v2",
             "browser": version,
             "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
             "source_diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"], cwd=ROOT)).hexdigest(),
             "fixture_sha256": hashlib.sha256((ROOT / "tests/web/input_fixture.gd").read_bytes()).hexdigest(),
+            "replacement_fixture_sha256": hashlib.sha256(
+                (ROOT / "tests/performance/gui_replacement_web_check.gd").read_bytes()
+            ).hexdigest(),
             "copied_project_sha256": (args.output / "source.sha256").read_text(),
             "exported_pack_sha256": hashlib.sha256((output / "index.pck").read_bytes()).hexdigest(),
             "cases": results,

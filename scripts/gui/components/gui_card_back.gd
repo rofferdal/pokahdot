@@ -13,8 +13,10 @@ func _notification(what: int) -> void:
 		queue_redraw()
 
 
-func render(_model: CardViewModel) -> void:
-	# A back has no identity-bearing content to bind.
+func render(model: CardViewModel) -> void:
+	# Inactive authored slots retain no glyph or identity-bearing content.
+	var mark := get_node("Mark") as Label
+	mark.text = "◆" if model != null and model.state == CardViewModel.State.BACK else ""
 	_refresh_mark()
 
 
@@ -31,6 +33,8 @@ func _refresh_mark() -> void:
 
 func _draw() -> void:
 	var mark := get_node("Mark") as Label
+	if mark.text.is_empty():
+		return
 	var font: Font = mark.get_theme_font("font")
 	var font_size: int = mark.get_theme_font_size("font_size")
 	var fallback: Texture2D = GuiCardInk.symbol_fallback_texture(font, "◆", font_size)

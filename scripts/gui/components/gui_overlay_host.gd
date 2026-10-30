@@ -23,8 +23,9 @@ var _controls: Dictionary[StringName, GuiActionButton] = {}
 
 func _ready() -> void:
 	_init_controls()
-	(get_node("Guard") as GuiModalGuard).configure(self, self, get_node("Backdrop"))
-	_configured = true
+	_configured = (get_node("Guard") as GuiModalGuard).configure(self, self, get_node("Backdrop"))
+	if not _configured:
+		return
 	(get_node("Backdrop") as Control).gui_input.connect(_on_backdrop_input)
 	for button: GuiActionButton in _controls.values():
 		button.activated.connect(_on_action)
@@ -85,23 +86,7 @@ func render_log(model: EventLogViewModel) -> void:
 
 func render_summary(model: HandSummaryViewModel) -> void:
 	_summary_available = model != null and model.visible
-	var body: RichTextLabel = get_control(&"summary_body") as RichTextLabel
-	body.clear()
-	if model != null:
-		if model.lines.is_empty():
-			body.add_text(model.text)
-		else:
-			for index: int in model.lines.size():
-				var line: HandSummaryLineViewModel = model.lines[index]
-				if line.winner_emphasis:
-					body.push_bold()
-					body.push_color(Color.YELLOW)
-				body.add_text(line.text)
-				if line.winner_emphasis:
-					body.pop()
-					body.pop()
-				if index < model.lines.size() - 1:
-					body.add_text("\n")
+	GuiSummaryTextRenderer.render(get_control(&"summary_body") as RichTextLabel, model)
 	_init_controls()
 	_controls[&"menu_summary"].disabled = not _summary_available
 

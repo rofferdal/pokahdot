@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/components/gui_action_bar.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/ActionButton.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/InputField.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/HeroActionSummary.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/gui/components/gui_action_units_container.gd" id="5"]
 
 [node name="ActionBar" type="VBoxContainer"]
 mouse_filter = 2
@@ -41,7 +42,7 @@ autowrap_mode = 3
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Rows" type="VBoxContainer" parent="Body"]
+[node name="Rows" type="Container" parent="Body"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -49,57 +50,47 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-alignment = 1
 theme_type_variation = &"ActionRows"
+script = ExtResource("5")
 
-[node name="First" type="HBoxContainer" parent="Body/Rows"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"ActionRows"
-
-[node name="Second" type="HBoxContainer" parent="Body/Rows"]
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"ActionRows"
-
-[node name="fold" parent="Body/Rows/First" instance=ExtResource("2")]
+[node name="fold" parent="Body/Rows" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="check_call" parent="Body/Rows/First" instance=ExtResource("2")]
+[node name="check_call" parent="Body/Rows" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="minimum" parent="Body/Rows/First" instance=ExtResource("2")]
+[node name="minimum" parent="Body/Rows" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="pot" parent="Body/Rows/First" instance=ExtResource("2")]
+[node name="pot" parent="Body/Rows" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="all_in" parent="Body/Rows/First" instance=ExtResource("2")]
+[node name="all_in" parent="Body/Rows" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="continue" parent="Body/Rows/First" instance=ExtResource("2")]
+[node name="continue" parent="Body/Rows" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="more" parent="Body/Rows/First" instance=ExtResource("2")]
+[node name="more" parent="Body/Rows" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="WagerUnit" type="HBoxContainer" parent="Body/Rows/First"]
+[node name="WagerUnit" type="HBoxContainer" parent="Body/Rows"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ActionRows"
 
-[node name="Total" parent="Body/Rows/First/WagerUnit" instance=ExtResource("3")]
+[node name="Total" parent="Body/Rows/WagerUnit" instance=ExtResource("3")]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="wager" parent="Body/Rows/First/WagerUnit" instance=ExtResource("2")]
+[node name="wager" parent="Body/Rows/WagerUnit" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2

@@ -114,3 +114,7 @@ SeatRing/constants/separation = 4
 SeatRing/constants/margin = 4
 SeatRingFelt/base_type = &"Felt"
 SeatRing/constants/hero_drop = 72
+
+StartupField/base_type = &"LineEdit"
+StartupButton/base_type = &"Button"
+StartupCheckBox/base_type = &"CheckBox"

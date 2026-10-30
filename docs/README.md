@@ -39,9 +39,11 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   RG-51 wide previews and all revised RG-52/53 phone previews are user-accepted.
   Symmetric landscape placement and the narrower centered portrait human panel
   are implemented and verified (1,102 tests pass). RG-51–RG-53 are complete;
-  the Phase 5 checkpoint is committed and pushed. The user requests stopping before RG-60,
-  which remains unstarted. No design approval is pending for this batch.
-  Default cutover remains RG-54.
+  the Phase 5 checkpoint is committed and pushed. RG-60–62 replacement test
+  coverage, exported layout and font-parity gates are complete. The replacement
+  is the default, and RG-54 retirement and final verification are complete. The
+  user accepted its phone-portrait, phone-landscape and wide synthetic layouts
+  on 2026-10-30. Physical-device and gameplay acceptance are separate later tasks.
 
 - [`RulesInGameTasks.md`](RulesInGameTasks.md) — planned, independent workstream:
   a concise Pokahdot tournament-rules reference from the GUI Start screen and

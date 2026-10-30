@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/startup_config_controller.gd" id="1_controller"]
 [ext_resource type="Theme" path="res://resources/gui_theme.tres" id="3_theme"]
 [ext_resource type="Script" path="res://scripts/gui/platform/gui_viewport_adapter.gd" id="4_adapter"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/BrandLogo.tscn" id="5_logo"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/OverlayHost.tscn" id="6_overlay"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -93,16 +94,10 @@ vertical_alignment = 1
 layout_mode = 2
 
 [node name="PlayerCountInput" type="LineEdit" parent="Center/Panel/Margin/Form/Fields/PlayerCountField"]
+theme_type_variation = &"StartupField"
 unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "6"
-
-[node name="PhonePlayerCountGuidance" type="Label" parent="Center/Panel/Margin/Form/Fields/PlayerCountField"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-text = "Phone guidance: 4 players is recommended."
-autowrap_mode = 2
 
 [node name="PlayerCountError" type="Label" parent="Center/Panel/Margin/Form/Fields/PlayerCountField"]
 unique_name_in_owner = true
@@ -120,6 +115,7 @@ vertical_alignment = 1
 layout_mode = 2
 
 [node name="StartingStackInput" type="LineEdit" parent="Center/Panel/Margin/Form/Fields/StartingStackField"]
+theme_type_variation = &"StartupField"
 unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "1000"
@@ -140,6 +136,7 @@ vertical_alignment = 1
 layout_mode = 2
 
 [node name="SmallBlindInput" type="LineEdit" parent="Center/Panel/Margin/Form/Fields/SmallBlindField"]
+theme_type_variation = &"StartupField"
 unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "5"
@@ -160,6 +157,7 @@ vertical_alignment = 1
 layout_mode = 2
 
 [node name="BigBlindInput" type="LineEdit" parent="Center/Panel/Margin/Form/Fields/BigBlindField"]
+theme_type_variation = &"StartupField"
 unique_name_in_owner = true
 layout_mode = 2
 placeholder_text = "10"
@@ -170,7 +168,15 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
 autowrap_mode = 2
 
+[node name="PhonePlayerCountGuidance" type="Label" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Phone guidance: 4 players is recommended."
+autowrap_mode = 2
+
 [node name="UseLegacyModelsCheckBox" type="CheckBox" parent="Center/Panel/Margin/Form"]
+theme_type_variation = &"StartupCheckBox"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Use legacy heuristic models"
@@ -183,12 +189,14 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="StartButton" type="Button" parent="Center/Panel/Margin/Form/Actions"]
+theme_type_variation = &"StartupButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Start tournament"
 
 [node name="QuitApplicationButton" type="Button" parent="Center/Panel/Margin/Form/Actions"]
+theme_type_variation = &"StartupButton"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -200,3 +208,11 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.55, 1, 0.67, 1)
 autowrap_mode = 2
 horizontal_alignment = 1
+
+[node name="StartupOverlay" parent="." instance=ExtResource("6_overlay")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

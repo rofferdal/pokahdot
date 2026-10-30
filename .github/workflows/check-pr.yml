@@ -49,7 +49,7 @@ jobs:
         run: make release-candidate-gate
 
   web-input:
-    name: Exported Web input
+    name: Exported Web layout and input
     runs-on: ubuntu-latest
     steps:
       - name: Check out proposed merge
@@ -85,6 +85,9 @@ jobs:
           .venv/bin/python -m pip install --requirement requirements-web-test.txt
           .venv/bin/python -m playwright install --with-deps chromium
 
+      - name: Check exported replacement layout
+        run: make web-exported-layout-test
+
       - name: Exercise exported pointer, touch, keypad, and focus paths
         run: make web-input-test
 
@@ -97,4 +100,7 @@ jobs:
             localtmp/web-input/*.json
             localtmp/web-input/*.png
             localtmp/web-input/export.log
+            localtmp/web-layout/*.json
+            localtmp/web-layout/*.png
+            localtmp/web-layout/export.log
           if-no-files-found: warn

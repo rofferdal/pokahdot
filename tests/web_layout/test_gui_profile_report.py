@@ -1,4 +1,6 @@
 """Protect profiling evidence from empty samples and unexercised workloads."""
+import contextlib
+import io
 import json
 import signal
 import subprocess
@@ -7,12 +9,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
-from tools.profile_gui_refresh import ROOT, WebErrorLog, argument_parser, enrich, fixture_paths, native_case, summarize, terminate_owned_process_group, validate_result
+from tools.profile_gui_refresh import ROOT, WebErrorLog, argument_parser, enrich, fixture_paths, main, native_case, profile_url, summarize, terminate_owned_process_group, validate_result
 
 
 class GuiProfileReportTests(unittest.TestCase):
     def test_native_launch_preserves_results_and_owns_only_its_new_session(self):
-        for implementation, players in (("reference", None), ("replacement", 2)):
+        for implementation, players in (("replacement", None), ("replacement", 2)):
             with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as folder:
                 work = Path(folder)
                 (work / "native-phone-turns.json").write_text(json.dumps({"samples_requested": 120}))
@@ -34,6 +36,36 @@ class GuiProfileReportTests(unittest.TestCase):
                 self.assertEqual("--players" in launch.call_args.args[0], players is not None)
                 process.wait.assert_called_once_with(timeout=180)
                 kill.assert_not_called()
+
+    def test_explicit_phone_viewport_is_forwarded_to_native_and_web_fixture(self):
+        parser = argument_parser()
+        options = parser.parse_args(["--output", "localtmp/test", "--profiles", "phone",
+                                     "--viewport", "390", "1000"])
+        self.assertEqual(options.viewport, [390, 1000])
+        with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as folder:
+            work = Path(folder)
+            (work / "native-phone-turns.json").write_text(json.dumps({}))
+            process = Mock(pid=765432)
+            process.wait.return_value = 0
+            with patch("tools.profile_gui_refresh.subprocess.Popen", return_value=process) as launch:
+                native_case("godot", work, "phone", "turns", 20, "replacement", 7, (390, 1000))
+            command = launch.call_args.args[0]
+            self.assertEqual(command[command.index("--width") + 1], "390")
+            self.assertEqual(command[command.index("--height") + 1], "1000")
+        url = profile_url(8080, "phone", "turns", 20, 7, (390, 1000))
+        self.assertIn("players=7&width=390&height=1000", url)
+        self.assertNotIn("width=", profile_url(8080, "phone", "turns", 20, None, None))
+
+    def test_viewport_override_rejects_invalid_dimensions_and_non_phone_profiles(self):
+        for profiles, dimensions in ((["phone"], ["0", "1000"]),
+                                     (["phone"], ["390", "-1"]),
+                                     (["desktop"], ["390", "1000"]),
+                                     (["phone", "desktop"], ["390", "1000"])):
+            args = ["profile_gui_refresh.py", "--output", "localtmp/unused-profile",
+                    "--profiles", *profiles, "--viewport", *dimensions]
+            with patch("sys.argv", args), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    main()
 
     def test_native_timeout_stops_owned_group_even_when_wrapper_exits_before_its_child(self):
         with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as folder:
@@ -78,19 +110,23 @@ class GuiProfileReportTests(unittest.TestCase):
         self.assertEqual(errors.count, 21)
         self.assertEqual(len(errors.messages), 12)
         self.assertTrue(all(len(message) == 500 for message in errors.messages))
-    def test_implementation_selection_preserves_reference_default_and_explicit_rosters(self):
+    def test_implementation_selection_uses_replacement_and_rejects_retired_reference(self):
         parser = argument_parser()
         defaults = parser.parse_args(["--output", "localtmp/test"])
-        self.assertEqual(defaults.implementation, "reference")
+        self.assertEqual(defaults.implementation, "replacement")
         self.assertIsNone(defaults.players)
         selected = parser.parse_args(["--output", "localtmp/test", "--implementation",
                                       "replacement", "--players", "2"])
         self.assertEqual((selected.implementation, selected.players), ("replacement", 2))
-        self.assertIn("gui_refresh_native.gd", fixture_paths("reference")[0])
-        self.assertIn("gui_replacement_refresh_native.gd", fixture_paths("replacement")[0])
-        self.assertNotEqual(fixture_paths("reference")[2], fixture_paths("replacement")[2])
-        with self.assertRaises(ValueError):
-            fixture_paths("imaginary")
+        native, scene, support = fixture_paths("replacement")
+        self.assertIn("gui_replacement_refresh_native.gd", native)
+        self.assertIn("gui_replacement_refresh_fixture.tscn", scene)
+        self.assertTrue(all("replacement" in path for path in support))
+        for retired in ("reference", "imaginary"):
+            with self.assertRaises(ValueError):
+                fixture_paths(retired)
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["--output", "localtmp/test", "--implementation", "reference"])
 
     def test_replacement_requires_settled_outcomes_and_reconciled_probe_counters(self):
         result = self._result("turns")
