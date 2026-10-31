@@ -1419,7 +1419,10 @@ complete these corrections or physical-device acceptance.
   Done: no stale references to removed scripts in current docs; docs check
   passes.
 
-- [ ] Commit all changes to the current branch and push
+- [x] Commit all changes to the current branch and push — Complete (2026-10-31).
+  Implementation checkpoint `6c6e78d` is committed and pushed to
+  `origin/gui-restructure`. The verified executable source matches accepted
+  LAN build `599a8f18`; current documentation checks pass.
 
 ### Phase 8 — Device acceptance
 
