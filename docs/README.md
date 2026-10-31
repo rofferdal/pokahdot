@@ -37,8 +37,8 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   RG-80–RG-82 were explicitly user-accepted on 2026-10-31. Final verification
   passes 863 tests, all four native GUI matrices, 138 strict browser layouts,
   fourteen input cases and 25 geometry cases; all 142 exported captures match
-  the accepted baseline. FINISH diff review is approved; commit and push are
-  in progress.
+  the accepted baseline. FINISH is complete: the user reviewed and approved the
+  diff; cleanup commit `edfc603` is pushed to `origin/gui-restructure`.
 - [`arkiv/MinimumRaiseTasks.md`](arkiv/MinimumRaiseTasks.md) — completed
   street-local minimum full-raise increments and GUI/CLI verification;
   MR-00–MR-06 user-accepted after testing with no reported errors (2026-10-28).

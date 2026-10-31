@@ -14,7 +14,8 @@ Phase 9 cleanup is implemented and verified. Tablet construction drops from
 native matrices, 138 required exported layouts, 14 browser-input cases and
 25 geometry cases pass. All 142 exported PNGs match the accepted baseline
 byte-for-byte. Current documentation is reconciled. RG-83 is complete and the
-backlog is archived. FINISH diff review is approved; commit and push are in progress.
+backlog is archived. FINISH is complete: the user reviewed the diff and approved
+publication; cleanup commit `edfc603` is pushed to `origin/gui-restructure`.
 Dated sections below preserve historical progress and acceptance; earlier
 pending statements are superseded by later completion records.
 
@@ -28,8 +29,8 @@ Historical planning baseline: reviewed on 2026-10-27 against source commit
 That documentation review was not RG-00 execution or device acceptance.
 
 The user authorized RG-83 closure/archiving in the 2026-10-31 task request,
-explicitly correcting the task ID from RG-93 to RG-83. FINISH still requires
-the user to review the verified diff before committing and pushing.
+explicitly correcting the task ID from RG-93 to RG-83. The user subsequently
+reviewed the verified diff and approved commit and push on the same date.
 
 This backlog contains an analysis of the current Godot GUI against common
 practice for responsive GUIs on desktop browsers, iPad and phones, an
@@ -1598,9 +1599,9 @@ reduction; required behavior and visual contracts remain covered.
   is recorded; status, indexes and links are updated; `make docs-check` passes
   after the move.
 
-- [ ] **FINISH** Status: User reviewed the staged diff and approved commit and
-  push on 2026-10-31. Publication to `gui-restructure` is in progress; mark
-  complete after the reviewed changes are committed and successfully pushed.
+- [x] **FINISH** Status: Complete (2026-10-31). The user reviewed the staged
+  diff and approved commit and push. All reviewed changes are committed as
+  `edfc603` and successfully pushed to `origin/gui-restructure`.
 
 ## RG-63–RG-66 correction evidence — 2026-10-31
 
