@@ -431,12 +431,20 @@ defect. The complete command reference is also available in
 the replacement M3, phone, iPad, and desktop layout matrices during development.
 `check` also runs the replacement size policy and native composition matrix.
 The historical reference registry remains documented as past evidence.
-Pull requests run the same checks through `release-candidate-gate` on a clean
-proposed merge, using Godot 4.7.2, without deployment. Failures appear in the
-**Checks and current layouts** status; **Exported Web input** separately tests
+GitHub Actions defaults to skipping `*_matrix_runner.gd` suites. Quality checks
+and the complete phone-layout unit job still run on clean checkouts with Godot
+4.7.2. Set the repository Actions variable `RUN_GUI_MATRIX_TESTS` to `true` to
+also run the matrix suites in parallel: four characterization groups, three
+M3 invariant shards and three category invariant matrices. Local `make check`,
+`release-candidate-gate` and `web-release` always retain their full coverage.
+Enabled layout jobs print fixture progress; all jobs record hardware details
+and publish timing summaries and JUnit artifacts. The **Checks and current
+layouts** PR status requires every enabled quality/layout job to succeed.
+**Exported Web layout and input** separately tests
 real browser input against an isolated release export. Maintainers can require
 both statuses in branch protection. `make web-release` creates a local export. Every successful push
-to `main` automatically validates and deploys that commit to GitHub Pages; follow
+to `main` automatically validates that commit through the same shared jobs,
+then exports and deploys only after every check passes; follow
 [`docs/OPTIONAL_WEB_SETUP.md`](docs/OPTIONAL_WEB_SETUP.md).
 
 ## Local Wi-Fi testing

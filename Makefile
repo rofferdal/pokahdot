@@ -11,22 +11,34 @@ WEB_LAN_CA_PORT ?= 8081
 WEB_LAN_ADDRESS ?=
 GDLINT := .venv/bin/gdlint
 GDFORMAT := .venv/bin/gdformat
-GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd
+GUT_COMMAND := $(GODOT) --headless --path . -s addons/gut/gut_cmdln.gd $(if $(GUT_REPORT),-gjunit_xml_file="$(GUT_REPORT)")
 WEB_EXPORT_PATH := build/web/index.html
 WEB_OUTPUT_DIR := $(dir $(WEB_EXPORT_PATH))
 
 .PHONY: check profile-evolution-test gui-visual-invariant-gate gui-phone-invariant-gate gui-ipad-invariant-gate gui-desktop-invariant-gate gui-current-invariant-gate release-candidate-gate gui-visual-capture gui-visual-capture-development gui-phone-capture-development gui-ipad-capture-development gui-desktop-capture-development gui-visual-capture-smoke web-release verify-web-release-output require-clean-worktree
 
 check:
+	$(MAKE) --no-print-directory check-without-layout-characterization
+	$(MAKE) --no-print-directory gui-layout-characterization
+
+.PHONY: check-without-layout-characterization
+check-without-layout-characterization:
+	$(MAKE) --no-print-directory check-quality-tools
+	$(GUT_COMMAND)
+
+.PHONY: ci-quality-check check-quality-tools
+ci-quality-check:
+	$(MAKE) --no-print-directory check-quality-tools
+	python3 -B tools/run_ci_gut.py --godot "$(GODOT)"
+
+check-quality-tools:
 	$(MAKE) --no-print-directory docs-check
 	$(MAKE) --no-print-directory profile-evolution-test
 	$(MAKE) --no-print-directory web-lan-test
 	$(MAKE) --no-print-directory web-layout-test
 	$(MAKE) --no-print-directory cli-process-test
-	$(MAKE) --no-print-directory gui-layout-characterization
 	$(GDLINT) scripts tests
 	$(GDFORMAT) --check scripts tests
-	$(GUT_COMMAND)
 
 profile-evolution-test:
 	python3 -B -m unittest discover -s tests/profile_evolution -t . -v
@@ -172,3 +184,27 @@ cli-process-test:
 .PHONY: gui-layout-characterization
 gui-layout-characterization:
 	$(GUT_COMMAND) -gconfig= -gtest=res://tests/unit/test_gui_size_policy.gd -gtest=res://tests/manual/gui_replacement_matrix_runner.gd -gexit
+
+# CI runs each complete test group on its own runner; local characterization
+# above continues to execute all four groups and the size-policy tests.
+.PHONY: gui-characterization-supported gui-characterization-wide gui-characterization-phone gui-characterization-large-values
+gui-characterization-supported: GUI_CHARACTERIZATION_TEST := test_replacement_supported_layouts_and_guidance
+gui-characterization-wide: GUI_CHARACTERIZATION_TEST := test_replacement_public_states_at_wide_allocation
+gui-characterization-phone: GUI_CHARACTERIZATION_TEST := test_replacement_public_states_on_phone_show_content_or_guidance
+gui-characterization-large-values: GUI_CHARACTERIZATION_TEST := test_independent_large_values_remain_exact_or_show_guidance
+
+gui-characterization-supported gui-characterization-wide gui-characterization-phone gui-characterization-large-values:
+	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_replacement_matrix_runner.gd -gunit_test_name=$(GUI_CHARACTERIZATION_TEST) -gexit
+
+.PHONY: gui-phone-table-layout-gate
+gui-phone-table-layout-gate:
+	$(GUT_COMMAND) -gconfig= -gtest=res://tests/unit/test_gui_phone_table_layout.gd -gexit
+
+# Preserve the complete local M3 gate above; CI selects each disjoint group.
+.PHONY: gui-m3-supported-invariant-gate gui-m3-wide-invariant-gate gui-m3-phone-invariant-gate
+gui-m3-supported-invariant-gate: GUI_M3_TEST := test_m3_supported_layout_invariants
+gui-m3-wide-invariant-gate: GUI_M3_TEST := test_m3_wide_state_invariants
+gui-m3-phone-invariant-gate: GUI_M3_TEST := test_m3_phone_state_invariants
+
+gui-m3-supported-invariant-gate gui-m3-wide-invariant-gate gui-m3-phone-invariant-gate:
+	$(GUT_COMMAND) -gconfig= -gtest=res://tests/manual/gui_invariant_matrix_runner.gd -gunit_test_name=$(GUI_M3_TEST) -gexit

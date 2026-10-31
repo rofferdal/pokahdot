@@ -297,6 +297,59 @@ Use `make GODOT=/full/path/to/godot <target>` when Godot is not on `PATH`.
 
 `make check` includes the replacement size-policy and native composition
 characterization. Use `make gui-layout-characterization` to run it alone.
+When enabled, CI divides its 109 fixtures into four complete test groups, selected by:
+
+```bash
+make gui-characterization-supported
+make gui-characterization-wide
+make gui-characterization-phone
+make gui-characterization-large-values
+```
+
+Each fixture prints START/DONE, elapsed time and frames waited; invariant
+matrices print fixture IDs and elapsed time too. All original assertions and
+frame limits remain unchanged. These targets can run on separate runners;
+`make check` still includes the entire characterization locally.
+
+The M3 invariant gate also has three disjoint CI targets:
+
+```bash
+make gui-m3-supported-invariant-gate # 27 supported-layout cases
+make gui-m3-wide-invariant-gate      # 40 wide public-state cases
+make gui-m3-phone-invariant-gate     # 32 phone public-state cases
+```
+
+`make gui-visual-invariant-gate` still runs all 99 cases locally. The CI shards
+use the same fixture providers, mounting, settlement and invariant assertions;
+coverage tests verify that their case IDs form the original matrix exactly
+once. Running on separate runners reduces each job's workload, while actual
+elapsed time also depends on runner speed and job queueing.
+
+The phone-layout unit suite has 120 combinations in its native-minimum test
+alone, with two ten-frame waits for each. CI runs the complete file through
+`make gui-phone-table-layout-gate` as another required parallel job, retaining
+all frame waits and assertions. It prints per-combination progress and timing.
+`tools/run_ci_gut.py` discovers the ordinary configured GUT suite and excludes
+that file and `*_matrix_runner.gd` from `ci-quality-check`; partition tests
+verify coverage of the configured non-matrix suite and future test files. Local `make check`
+and direct GUT runs still include every unit test.
+
+CI records runner CPU/memory details and writes GUT JUnit reports under
+`localtmp/ci-layout/`. Job summaries list the ten slowest scripts and tests;
+timing artifacts retain the XML and generated quality config. An empty report
+or missing quality script fails validation, catching silent omissions as well
+as ordinary test failures. For a local comparison:
+
+```bash
+mkdir -p localtmp/ci-layout
+make gui-phone-table-layout-gate GUT_REPORT=res://localtmp/ci-layout/phone.xml
+python3 tools/summarize_gut_report.py localtmp/ci-layout/phone.xml
+```
+
+Compare the same commit and Godot version. Frame counts distinguish expensive
+layout work from waiting to settle; timings from different runner hardware are
+not directly interchangeable. The workflow records hardware rather than
+assuming that every hosted runner matches local single-core performance.
 The earlier step-80 registry remains historical evidence. See the
 [characterization guidance](../../docs/GUI_VISUAL_TESTING.md#policy-and-fit-characterization).
 
@@ -505,12 +558,21 @@ tools/profile-evolution inspect-lineage --registry artifacts/lineage.json --cand
 Before submitting pull requests, ensure all tests and linters pass.
 
 Run `make check gui-current-invariant-gate` while developing. Pull requests
-run `make release-candidate-gate` on the clean proposed merge with pinned
-Godot 4.7.2. The **Checks and current layouts** status covers the full suite,
-lint, formatting, and all four layout gates. It performs no deployment;
-maintainers can require this status in branch protection. The release gate
-also checks that verification leaves the working tree clean.
-The separate **Exported Web input** PR status runs the browser regression
+run shared quality and native-layout workflows on the clean proposed merge
+with pinned Godot 4.7.2. Matrix runners are **off by default**. Set repository
+Actions variable `RUN_GUI_MATRIX_TESTS=true` to enable them for PR and deployment
+workflows. Unset, false or other non-true values leave them disabled.
+`check-quality.yml` runs `make ci-quality-check` without matrix runners;
+`check-native-layouts.yml` always runs the complete phone-layout unit suite.
+When enabled, it additionally runs four characterization, three M3 invariant
+and three category invariant jobs. These modes do not change local `make check`,
+`make release-candidate-gate` or `make web-release`, which retain all matrices.
+Each job checks tree cleanliness. The **Checks and current layouts** aggregate
+status fails unless both shared workflows succeed, including when dependencies
+fail, cancel or skip. It performs no deployment; maintainers can retain this
+status in branch protection. Local `release-candidate-gate` still runs the full
+suite and matrices with clean-tree checks before and after.
+The separate **Exported Web layout and input** PR status runs the browser regression
 described above; maintainers can require both statuses before merging.
 
 ### Check Formatting (Without Modifying Files)
@@ -568,7 +630,7 @@ make web-release
 
 This is a local export check. Every push to `main` automatically starts the
 release workflow, which checks out the pushed SHA and runs
-`make release-candidate-gate web-release` in headless CI before deploying to
+the shared quality and parallel native-layout checks before exporting and deploying to
 GitHub Pages. For optional manual hosted checks, follow the
 [Web publishing and hosted-verification runbook](../../docs/OPTIONAL_WEB_SETUP.md).
 

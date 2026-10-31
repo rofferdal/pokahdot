@@ -641,10 +641,12 @@ this process:
    is not the promotion record.
 4. Push the reviewed commit to `main`, then record the automatically triggered
    **Deploy Web release** run URL and deployed commit SHA.
-5. CI checks out the pushed SHA and runs `make release-candidate-gate`. Its
-   headless environment reruns the complete suite and the historical, phone,
-   iPad, and desktop invariant matrices;
-   `web-release` then performs the Web export/output checks. CI does not
+5. CI validates the pushed SHA through quality and phone-unit checks. Matrix
+   runners are off by default; repository Actions variable
+   `RUN_GUI_MATRIX_TESTS=true` additionally requires the parallel matrix jobs.
+   All enabled checks must pass before the dependent build job checks out that
+   SHA, exports Web and verifies the output. Local full release gates still
+   include all matrices. CI does not
    regenerate representative screenshots or replace the completed rendered
    review.
 6. Confirm the checked-out SHA, manifest source SHA, reviewed SHA, and live

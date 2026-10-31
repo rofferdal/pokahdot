@@ -19,6 +19,12 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
+- [`CiLayoutTasks.md`](CiLayoutTasks.md) — complete: Actions skips
+  `*_matrix_runner.gd` by default. `RUN_GUI_MATRIX_TESTS=true` enables eleven
+  native jobs, including disjoint M3 shards. Quality/phone-unit checks remain
+  required; local full gates retain all matrices. Timing reports and local
+  verification pass; hosted performance awaits a new Actions run.
+
 - [`RulesInGameTasks.md`](RulesInGameTasks.md) — completed independent workstream:
   GUI Start → Rules and interactive CLI `rules` share one tournament-reference
   document. RIG-00–05 are verified; the user accepted native Start/Rules previews

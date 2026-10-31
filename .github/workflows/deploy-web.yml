@@ -17,7 +17,16 @@ env:
   GODOT_TEMPLATE_VERSION: 4.7.2.stable
 
 jobs:
+  quality:
+    uses: ./.github/workflows/check-quality.yml
+
+  native-layouts:
+    uses: ./.github/workflows/check-native-layouts.yml
+    with:
+      run-matrix-tests: ${{ vars.RUN_GUI_MATRIX_TESTS == 'true' }}
+
   build:
+    needs: [quality, native-layouts]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,11 +61,6 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
       - name: Install pinned Godot editor and export templates
         shell: bash
         run: |
@@ -80,13 +84,14 @@ jobs:
           cp "$template_unpack_dir/templates/web_nothreads_debug.zip" "$template_dir/"
           cp "$template_unpack_dir/templates/web_nothreads_release.zip" "$template_dir/"
 
-      - name: Install pinned development tools
+      - name: Export the validated release commit
         run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install --requirement requirements-dev.txt
-
-      - name: Validate and export the release artifact
-        run: make release-candidate-gate web-release
+          make require-clean-worktree
+          mkdir -p build/web
+          godot --headless --path . --import
+          godot --headless --path . --export-release "Web" build/web/index.html
+          make verify-web-release-output
+          make require-clean-worktree
 
       - name: Prevent Jekyll processing
         run: touch build/web/.nojekyll

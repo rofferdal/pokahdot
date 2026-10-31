@@ -45,7 +45,14 @@ func test_deploy_workflow_automatically_deploys_exact_main_push() -> void:
 	assert_string_contains(workflow, 'test "$WORKFLOW_REF" = "refs/heads/main"')
 	assert_string_contains(workflow, 'test "$(git rev-parse HEAD)" = "$DEPLOYED_SHA"')
 	assert_string_contains(workflow, 'test -z "$(git status --porcelain)"')
-	assert_string_contains(workflow, "run: make release-candidate-gate web-release")
+	assert_string_contains(workflow, "needs: [quality, native-layouts]")
+	assert_string_contains(workflow, "uses: ./.github/workflows/check-quality.yml")
+	assert_string_contains(workflow, "uses: ./.github/workflows/check-native-layouts.yml")
+	assert_string_contains(
+		workflow, 'godot --headless --path . --export-release "Web" build/web/index.html'
+	)
+	assert_string_contains(workflow, "make verify-web-release-output")
+	assert_false("if: always()" in _section(workflow, "  build:", "  deploy:"))
 	assert_false("gui-visual-capture" in workflow)
 
 

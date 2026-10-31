@@ -1,0 +1,73 @@
+name: Shared native layout checks
+
+on:
+  workflow_call:
+    inputs:
+      run-matrix-tests:
+        description: Run the optional *_matrix_runner.gd suites
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  GODOT_RELEASE: 4.7.2-stable
+
+jobs:
+  layouts:
+    name: Native layout / ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: >-
+          ${{ fromJSON(inputs.run-matrix-tests &&
+            '["gui-characterization-supported", "gui-characterization-wide", "gui-characterization-phone", "gui-characterization-large-values", "gui-phone-table-layout-gate", "gui-m3-supported-invariant-gate", "gui-m3-wide-invariant-gate", "gui-m3-phone-invariant-gate", "gui-phone-invariant-gate", "gui-ipad-invariant-gate", "gui-desktop-invariant-gate"]'
+            || '["gui-phone-table-layout-gate"]') }}
+    steps:
+      - name: Check out proposed commit
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Record runner hardware
+        run: |
+          lscpu
+          free -h
+
+      - name: Install pinned Godot editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot_archive="Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          release_url="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
+          curl --fail --location --retry 3 --output "/tmp/${godot_archive}" "${release_url}/${godot_archive}"
+          unzip -q "/tmp/${godot_archive}" -d "$RUNNER_TEMP/godot"
+          install -m 0755 "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" "$RUNNER_TEMP/godot/godot"
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+
+      - name: Import project resources
+        run: godot --headless --path . --import
+
+      - name: Validate this layout group
+        env:
+          LAYOUT_TARGET: ${{ matrix.target }}
+        run: |
+          make require-clean-worktree
+          mkdir -p localtmp/ci-layout
+          make "$LAYOUT_TARGET" GUT_REPORT=res://localtmp/ci-layout/layout.xml
+          make require-clean-worktree
+      - name: Validate coverage and summarize slow tests
+        if: always()
+        run: python3 tools/summarize_gut_report.py localtmp/ci-layout/layout.xml
+
+      - name: Retain test timing report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: native-layout-${{ matrix.target }}
+          path: |
+            localtmp/ci-layout/*.xml
+            localtmp/ci-layout/*.gutconfig.json
+          if-no-files-found: warn

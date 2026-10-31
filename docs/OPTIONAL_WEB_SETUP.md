@@ -143,11 +143,15 @@ with the files referenced by it. Keep the files together and deploy the
 contents of `build/web`, not the repository root.
 
 `make web-release` verifies a local Web export. After a commit is pushed to
-`main`, the deployment workflow checks out that exact push SHA and runs
-`make release-candidate-gate web-release`. The candidate gate checks tree
-cleanliness, runs `make check`, runs `gui-current-invariant-gate`, and
-checks cleanliness again. `web-release` then owns the release export and
-release-output validation. Both must pass before upload.
+`main`, the deployment workflow validates that exact push SHA through
+`check-quality.yml` and `check-native-layouts.yml`. Quality runs the remaining
+unit/integration suite and tooling; native checks always include the phone
+unit suite. Matrix runners are off by default. Set repository Actions variable
+`RUN_GUI_MATRIX_TESTS=true` to enable all matrix suites across eleven native
+jobs. Each enabled job checks tree cleanliness. The build job requires both
+workflows to succeed before it verifies the pushed SHA, exports Web, runs
+`make verify-web-release-output`, and checks cleanliness before upload.
+Local `web-release` still uses the complete `release-candidate-gate`.
 
 The CI runner is headless and cannot create representative rendered
 screenshots. Automatic deployment makes the current `main` build available
@@ -198,11 +202,11 @@ allows.
    restricted to `main`. It must continue to:
    - check out and verify the exact pushed SHA;
    - install Godot **4.7.2** and its matching export templates;
-   - run `make release-candidate-gate web-release`: the candidate gate owns
-     cleanliness, the complete headless suite, and the historical, phone,
-     iPad, and desktop GUI invariant gates through `gui-current-invariant-gate`,
-     while
-     `web-release` owns the Web export and output validation;
+   - require successful shared quality and native-layout jobs before building;
+     they retain quality and phone-unit checks, with matrix suites additionally
+     required when `RUN_GUI_MATRIX_TESTS=true`;
+   - export the validated SHA, run `make verify-web-release-output` and check
+     cleanliness before upload;
    - create `build/web/.nojekyll` so Pages does not apply Jekyll processing;
    - upload only `build/web` with `actions/upload-pages-artifact`; and
    - expose a build summary containing the pushed commit SHA and validated
@@ -243,10 +247,10 @@ code and review workflow changes before they reach the protected branch.
 ### Automatic deployment and evidence stability
 
 Pull requests independently run `.github/workflows/check-pr.yml`, using the
-same pinned Godot 4.7.2 editor and `release-candidate-gate`. The
+same pinned Godot 4.7.2 editor and shared quality/native-layout workflows. The
 **Checks and current layouts** status exposes failures before merge and can
-be required in branch protection. A separate **Exported Web input** job exports
-an isolated test fixture and checks real Chromium input paths. Both jobs have
+be required in branch protection. A separate **Exported Web layout and input**
+job exports an isolated test fixture and checks real Chromium input paths. Both jobs have
 repository-read access and perform no deployment. This does not change the push-to-`main`
 deployment policy below.
 
@@ -412,7 +416,7 @@ For internally consistent optional hosted evidence, use all of the following:
 - `export_presets.cfg` is committed and a `Web` release export succeeds;
 - the pushed commit, checked-out commit, rendered manifest, and review record
   all identify the same full candidate SHA;
-- `make release-candidate-gate web-release` passed and the independently
+- Shared quality/native-layout checks and export/output validation passed, and the independently
   reviewed rendered manifest checksum identifies a complete
   acceptance-eligible capture;
 - the deployment workflow publishes the release output, not source files;

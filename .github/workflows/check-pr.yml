@@ -14,39 +14,27 @@ env:
   GODOT_RELEASE: 4.7.2-stable
 
 jobs:
+  quality:
+    uses: ./.github/workflows/check-quality.yml
+
+  native-layouts:
+    uses: ./.github/workflows/check-native-layouts.yml
+    with:
+      run-matrix-tests: ${{ vars.RUN_GUI_MATRIX_TESTS == 'true' }}
+
   checks:
     name: Checks and current layouts
+    needs: [quality, native-layouts]
+    if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Check out proposed merge
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install pinned Godot editor
-        shell: bash
+      - name: Require every validation job to succeed
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          LAYOUT_RESULT: ${{ needs.native-layouts.result }}
         run: |
-          set -euo pipefail
-          godot_archive="Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
-          release_url="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}"
-          curl --fail --location --retry 3 --output "/tmp/${godot_archive}" "${release_url}/${godot_archive}"
-          unzip -q "/tmp/${godot_archive}" -d "$RUNNER_TEMP/godot"
-          install -m 0755 "$RUNNER_TEMP/godot/Godot_v${GODOT_RELEASE}_linux.x86_64" "$RUNNER_TEMP/godot/godot"
-          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
-
-      - name: Install pinned development tools
-        run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install --requirement requirements-dev.txt
-
-      - name: Validate rules, tooling, and current layout matrices
-        run: make release-candidate-gate
+          test "$QUALITY_RESULT" = success
+          test "$LAYOUT_RESULT" = success
 
   web-input:
     name: Exported Web layout and input

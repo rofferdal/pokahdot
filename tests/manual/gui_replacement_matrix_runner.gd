@@ -1,6 +1,7 @@
 extends GutTest
 
 ## Independent native replacement matrix; unsupported allocations must guide.
+const Progress := preload("res://tests/support/gui_matrix_progress.gd")
 const TableScene := preload("res://scenes/gui/ReplacementPokerTable.tscn")
 const Invariants := preload("res://tests/support/gui_replacement_invariant_assertions.gd")
 const Fixtures := preload("res://tests/support/gui_visual_state_fixtures.gd")
@@ -26,7 +27,9 @@ func test_replacement_supported_layouts_and_guidance() -> void:
 		cases.append({"size": Vector2i(480, 1200), "count": count, "ready": true})
 	for count: int in [8, 9]:
 		cases.append({"size": Vector2i(480, 1200), "count": count, "ready": false})
+	var progress := Progress.new("characterization/supported", cases.size())
 	for item: Dictionary in cases:
+		progress.begin("%s / p%d" % [item.size, item.count])
 		var viewport := SubViewport.new()
 		viewport.size = item.size
 		viewport.gui_embed_subwindows = true
@@ -39,9 +42,11 @@ func test_replacement_supported_layouts_and_guidance() -> void:
 		table.set_viewport_geometry(GuiViewportGeometry.injected(Vector2(item.size)))
 		var fixture: Dictionary = Fixtures.replacement_flop(item.count)
 		assert_true(table.bind_view(fixture.view, {}, {}), str(item))
+		var waited_frames: int = 0
 		var snapshot: GuiLayoutSnapshot
 		for _frame: int in 180:
 			await get_tree().process_frame
+			waited_frames += 1
 			snapshot = table.get_layout_snapshot()
 			if (
 				not snapshot.pending
@@ -58,11 +63,13 @@ func test_replacement_supported_layouts_and_guidance() -> void:
 		if not item.ready:
 			assert_false(snapshot.fit_guidance.is_empty(), str(item))
 		assert_eq(Invariants.validate(snapshot), PackedStringArray(), str(item))
+		progress.finish(waited_frames)
 		viewport.queue_free()
 		await get_tree().process_frame
 
 
 func test_replacement_public_states_at_wide_allocation() -> void:
+	var progress := Progress.new("characterization/wide", 40)
 	for count: int in [2, 4, 6, 9]:
 		for state: StringName in [
 			&"human-turn-preflop",
@@ -76,6 +83,7 @@ func test_replacement_public_states_at_wide_allocation() -> void:
 			&"tournament-winner",
 			&"event-history-full"
 		]:
+			progress.begin("%s / p%d" % [state, count])
 			var viewport := SubViewport.new()
 			viewport.size = Vector2i(1920, 1300)
 			viewport.gui_embed_subwindows = true
@@ -86,19 +94,23 @@ func test_replacement_public_states_at_wide_allocation() -> void:
 			table.set_viewport_geometry(GuiViewportGeometry.injected(Vector2(viewport.size)))
 			var fixture: Dictionary = Fixtures.by_id(state, count)
 			assert_true(table.bind_view(fixture.view, {}, {}), "%s/%d" % [state, count])
+			var waited_frames: int = 0
 			var snapshot: GuiLayoutSnapshot
 			for _frame: int in 180:
 				await get_tree().process_frame
+				waited_frames += 1
 				snapshot = table.get_layout_snapshot()
 				if not snapshot.pending and snapshot.ready:
 					break
 			assert_true(snapshot.ready, "%s/%d: %s" % [state, count, snapshot.fit_guidance])
 			assert_eq(Invariants.validate(snapshot), PackedStringArray(), "%s/%d" % [state, count])
+			progress.finish(waited_frames)
 			viewport.queue_free()
 			await get_tree().process_frame
 
 
 func test_replacement_public_states_on_phone_show_content_or_guidance() -> void:
+	var progress := Progress.new("characterization/phone", 32)
 	for count: int in [2, 4, 6, 7]:
 		for state: StringName in [
 			&"human-turn-preflop",
@@ -110,6 +122,7 @@ func test_replacement_public_states_on_phone_show_content_or_guidance() -> void:
 			&"elimination",
 			&"tournament-winner"
 		]:
+			progress.begin("%s / p%d" % [state, count])
 			var viewport := SubViewport.new()
 			viewport.size = Vector2i(390, 844)
 			viewport.gui_embed_subwindows = true
@@ -121,9 +134,11 @@ func test_replacement_public_states_on_phone_show_content_or_guidance() -> void:
 			table.set_viewport_geometry(GuiViewportGeometry.injected(Vector2(viewport.size)))
 			var fixture: Dictionary = Fixtures.by_id(state, count)
 			assert_true(table.bind_view(fixture.view, {}, {}), "%s/%d" % [state, count])
+			var waited_frames: int = 0
 			var snapshot: GuiLayoutSnapshot
 			for _frame: int in 180:
 				await get_tree().process_frame
+				waited_frames += 1
 				snapshot = table.get_layout_snapshot()
 				if (
 					not snapshot.pending
@@ -141,13 +156,16 @@ func test_replacement_public_states_on_phone_show_content_or_guidance() -> void:
 			)
 			assert_eq(Invariants.validate(snapshot), PackedStringArray(), "%s/%d" % [state, count])
 			assert_eq(table.get_table_view_model().seats.size(), count, "%s/%d" % [state, count])
+			progress.finish(waited_frames)
 			viewport.queue_free()
 			await get_tree().process_frame
 
 
 func test_independent_large_values_remain_exact_or_show_guidance() -> void:
+	var progress := Progress.new("characterization/large-values", 10)
 	for allocation: Vector2i in [Vector2i(390, 844), Vector2i(1920, 1300)]:
 		for target: String in ["hero", "opponent", "pot", "blinds", "all-in"]:
+			progress.begin("%s / %s" % [allocation, target])
 			var viewport := SubViewport.new()
 			viewport.size = allocation
 			viewport.gui_embed_subwindows = true
@@ -179,9 +197,11 @@ func test_independent_large_values_remain_exact_or_show_guidance() -> void:
 						PublicActionRecord.new(1, PlayerAction.Kind.ALL_IN, 6999999)
 					]
 			assert_true(table.bind_view(view, {}, {}), target)
+			var waited_frames: int = 0
 			var snapshot: GuiLayoutSnapshot
 			for _frame: int in 180:
 				await get_tree().process_frame
+				waited_frames += 1
 				snapshot = table.get_layout_snapshot()
 				if (
 					not snapshot.pending
@@ -210,5 +230,6 @@ func test_independent_large_values_remain_exact_or_show_guidance() -> void:
 					assert_string_contains(model.center.blind_level_text, "1000000")
 				"all-in":
 					assert_string_contains(model.seat_for(1).latest_action_text, "6999999")
+			progress.finish(waited_frames)
 			viewport.queue_free()
 			await get_tree().process_frame

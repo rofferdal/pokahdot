@@ -1,5 +1,6 @@
 extends GutTest
 
+const Progress := preload("res://tests/support/gui_matrix_progress.gd")
 const Portrait := preload("res://scenes/gui/layouts/PhoneTableLayout.tscn")
 const Landscape := preload("res://scenes/gui/layouts/PhoneLandscapeLayout.tscn")
 const Palette := preload("res://resources/gui_theme.tres")
@@ -15,6 +16,7 @@ func before_each() -> void:
 
 
 func test_counts_modes_densities_and_states_render_at_actual_native_minima() -> void:
+	var progress := Progress.new("phone-unit/native-minima", 120)
 	for landscape: bool in [false, true]:
 		for density: GuiFitCandidate.Density in [
 			GuiFitCandidate.Density.COMPACT, GuiFitCandidate.Density.FULL
@@ -28,6 +30,9 @@ func test_counts_modes_densities_and_states_render_at_actual_native_minima() -> 
 					&"elimination",
 					&"tournament-winner"
 				]:
+					progress.begin(
+						"landscape=%s density=%d p%d %s" % [landscape, density, count, state]
+					)
 					assert_true(layout.render(_model(count, state, density)))
 					await wait_process_frames(10)
 					layout.size = layout.get_combined_minimum_size()
@@ -38,15 +43,18 @@ func test_counts_modes_densities_and_states_render_at_actual_native_minima() -> 
 					assert_eq(Invariants.validate_snapshot(snapshot), PackedStringArray())
 					for row: PackedInt32Array in snapshot.seat_rows:
 						assert_lte(row.size(), 3 if landscape else 2)
+					progress.finish(20)
 				layout.free()
 
 
 func test_actual_default_and_large_amount_phone_capability_is_reported_without_hiding_copy(
 ) -> void:
+	var progress := Progress.new("phone-unit/capability", 24)
 	var observations: Array[Dictionary] = []
 	for landscape: bool in [false, true]:
 		for large: bool in [false, true]:
 			for count: int in range(2, 8):
+				progress.begin("landscape=%s large=%s p%d" % [landscape, large, count])
 				var layout: GuiPhoneTableLayout = _layout(landscape)
 				var allocation := Vector2(844, 390) if landscape else Vector2(390, 844)
 				layout.set_allocation_limit(allocation)
@@ -76,6 +84,7 @@ func test_actual_default_and_large_amount_phone_capability_is_reported_without_h
 					}
 				)
 				assert_eq(snapshot.ready, allocation.x >= minimum.x and allocation.y >= minimum.y)
+				progress.finish(12)
 				layout.free()
 	DirAccess.make_dir_recursive_absolute("res://localtmp/restructure_rg52")
 	var output := FileAccess.open(
@@ -86,8 +95,10 @@ func test_actual_default_and_large_amount_phone_capability_is_reported_without_h
 
 
 func test_fresh_small_and_grown_then_small_have_identical_native_envelopes() -> void:
+	var progress := Progress.new("phone-unit/envelopes", 12)
 	for landscape: bool in [false, true]:
 		for count: int in range(2, 8):
+			progress.begin("landscape=%s p%d" % [landscape, count])
 			var allocation := Vector2(844, 390) if landscape else Vector2(390, 844)
 			var fresh: GuiPhoneTableLayout = _layout(landscape)
 			fresh.size = allocation
@@ -111,6 +122,7 @@ func test_fresh_small_and_grown_then_small_have_identical_native_envelopes() -> 
 			assert_eq(
 				Invariants.validate_snapshot(fresh.get_layout_snapshot(_root)), PackedStringArray()
 			)
+			progress.finish(24)
 			fresh.free()
 			grown.free()
 

@@ -2315,15 +2315,48 @@ condition.
 Rendered review remains separate from headless CI. Pull requests run the
 non-deploying `Validate pull request` workflow against the proposed merge,
 with repository-read permission and pinned Godot 4.7.2. Its stable
-`Checks and current layouts` status reports `release-candidate-gate` failures
-before merge; maintainers may require that status through branch protection.
-The gate runs the complete headless suite and `gui-current-invariant-gate`,
-which includes the historical M3 and dedicated phone, iPad, and desktop
-matrices, with clean-tree checks before and after. Diagnostic landscape
+`Checks and current layouts` status requires both reusable workflows to succeed
+before merge; maintainers may retain it in branch protection. Decision
+(CI-00, 2026-10-31): `check-quality.yml` runs the remaining unit/integration
+suite, tooling, lint and formatting via `ci-quality-check`.
+`check-native-layouts.yml` supports eleven independent jobs: four characterization
+test groups, the complete phone-layout unit suite, three disjoint M3 invariant
+shards and the existing phone, iPad and desktop invariant matrices.
+CI-03 keeps the M3 full gate locally while dividing its 99 canonical cases into
+supported (27), wide-state (40) and phone-state (32) CI tests. Each test calls
+`GuiReplacementCategoryMatrix.run_cases` with an existing fixture provider;
+`run` still executes a full category for all other callers. Exact case-ID and
+test-selection coverage guards prevent missing or duplicated cases. No scene
+or layout algorithm changes are required for this split.
+CI-04 (explicit user request, 2026-10-31) makes `*_matrix_runner.gd`
+suites optional in Actions, disabled by default. Both callers pass the boolean
+`vars.RUN_GUI_MATRIX_TESTS == 'true'` into the reusable workflow. Disabled mode
+creates only the phone-layout unit job; enabled mode creates all eleven jobs.
+The aggregate and deployment still require quality plus the selected native
+jobs to succeed. This is an intentional CI coverage policy change, separate
+from local full-release checks. No application/runtime configuration changes.
+The matrix uses `fail-fast: false` so failures retain diagnostics from other
+groups. Every job checks cleanliness; the aggregate runs even after a failed,
+cancelled or skipped dependency and accepts only success. The CI quality adapter
+reads `.gutconfig.json`, discovers test scripts and
+writes a temporary config under `localtmp/ci-layout/`, excluding the separately
+required phone-layout file and all `*_matrix_runner.gd` scripts. Partition tests
+verify the non-matrix union and reject a missing phone suite or empty quality
+suite. Local default GUT behavior is unchanged. Fixture-level
+START/DONE, elapsed time and characterization frame counts expose progress.
+Both reusable workflows record CPU/memory details and retain GUT JUnit XML.
+`tools/summarize_gut_report.py` lists slow scripts/tests in job summaries,
+rejects empty or failing reports, and verifies the quality report contains
+exactly the configured scripts. Timing artifacts also retain the generated
+config. These diagnostics separate hosted hardware differences from fixture
+settlement delays; local evidence does not predict hosted queue time.
+Local `check`, `release-candidate-gate` and `web-release` remain complete;
+sharding does not change layout logic, fixture coverage, frame limits or
+assertions. Diagnostic landscape
 fixtures do not establish physical-device acceptance or change the deferred
 phone-landscape support contract.
 
-The separate `Exported Web input` PR job builds an isolated release export
+The separate `Exported Web layout and input` PR job builds an isolated release export
 of the production GUI with a test-only read-only observer. Pinned Chromium
 receives actual pointer, touch and keyboard events; startup and seeded live
 tournament fixtures verify keypad drafts, Cancel/Done, focus transitions and
@@ -2348,9 +2381,12 @@ relative core seat ID; dictionary/source-array order and optional folded or
 revealed content cannot determine seat ownership.
 
 Every push to `main`
-automatically checks out the pushed SHA and runs `release-candidate-gate`,
-followed by `web-release` for the Web export and export-output
-validation. A successful run deploys that exact build to the rolling GitHub
+automatically validates the pushed SHA through the same two reusable
+workflows. The build job requires both successful results before it checks out
+and verifies that exact SHA, imports and exports Web, verifies export output,
+and checks tree cleanliness. It does not rerun the already completed matrices.
+Export is guarded by job dependencies, without an environment flag that could
+bypass the local release gate. A successful run deploys that exact build to the rolling GitHub
 Pages URL so developers can discover browser- and device-specific defects
 early. Neither headless step claims to reproduce representative pixels.
 
