@@ -33,6 +33,13 @@ The project is under development. Active work is indexed in
    include legacy heuristic profiles; this choice resets when returning to the
    startup screen.
 
+Select **Rules** on the Start screen for the concise Pokahdot tournament
+reference. **Back**, Escape or platform Back returns to the same form with
+its drafts and validation messages intact. The rules body scrolls separately
+from its always reachable Back action. The Start/Rules previews were accepted
+on 2026-10-31; browser and physical-device checks remain separate from the
+native fixtures recorded in [RIG-02](docs/RulesInGameTasks.md).
+
 From a terminal with the repository root as the working directory:
 
 ```bash
@@ -114,13 +121,18 @@ Press Enter to start immediately, or type `configure` to edit setup. Options
 after `--` include `--help`, `--configure`, `--players`, `--stack`,
 `--small-blind`, `--big-blind`, and `--seed`. Startup prints the effective seed
 and reproduction options for the actual match. Invalid setup fields can be
-corrected without reentering valid edits.
+corrected without reentering valid edits. Type `rules` at the startup choice or
+any numeric configuration prompt to read the same tournament reference, then
+resume the same prompt with earlier edits intact.
 
 The terminal interface supports a complete tournament with poker actions
 including `potbet` and `potraise`, compact updates, `state` for the complete
 recipient-safe snapshot, and `history` for the current hand's public actions.
-Between hands, only Enter or `continue` deals again; `help`, `quit`, and `exit`
-are available during play. See the [CLI guide](devdocs/how-to/running-and-testing.md#launch-the-interactive-cli)
+Type `rules` during a human turn or between hands to read that fixed reference
+without changing play or consuming incremental history. The command is trimmed,
+case-insensitive and takes no arguments. Between hands, only Enter or `continue`
+deals again; `help`, `quit`, and `exit` are also available during play. See the
+[CLI guide](devdocs/how-to/running-and-testing.md#launch-the-interactive-cli)
 for reproducible transcript commands. Game rules remain in `scripts/core/`.
 
 ## Blind levels and Pot wager

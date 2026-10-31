@@ -28,6 +28,15 @@ godot --path . scenes/main.tscn
 ```
 *Alternatively, open the project in the Godot Editor and press **F5** (Play).*
 
+Select **Rules** on Start to read the fixed tournament reference. Scroll its
+body by pointer, touch drag or keyboard; Back remains outside scrolling.
+**Back**, Escape or platform Back returns to the same form, retaining exact
+input strings, the legacy-model checkbox, validation messages and focus.
+Rules does not create a match or bypass an active numeric keypad. The user
+accepted the native Start/Rules previews on 2026-10-31. Native fixtures cover
+widths from 360 px; smaller widths, browsers and physical devices require
+separate verification.
+
 ### Launch the Interactive CLI
 To play an interactive poker tournament in your terminal:
 ```bash
@@ -37,7 +46,10 @@ godot --headless --path . --script res://scripts/cli/cli_app.gd
 Press Enter for the displayed defaults, or type `configure` to edit them.
 Blank configuration fields retain their displayed value. After validation
 fails, only fields with errors are prompted again; other edits remain intact.
-Use `--configure` to open the configuration fields directly.
+Use `--configure` to open the configuration fields directly. Type `rules` at
+the startup choice or any numeric prompt to print the shared tournament
+reference and repeat the same prompt, retaining earlier edits and pending
+validation corrections.
 
 Options after Godot's `--` separator are validated before setup: `--players`
 (2–9), `--stack`, `--small-blind`, `--big-blind` (each 1–1,000,000), `--seed`
@@ -81,28 +93,61 @@ startup checkbox. With the option enabled, `ceil(bot_count / 2)` bot seats use
 legacy profiles and the rest use strategic profiles.
 
 #### In-Game CLI Commands:
+
 When it is your turn, enter any of the following commands:
+
 - `check` or `call`
 - `fold`
 - `bet <total>` (e.g. `bet 20` to make your street bet 20 chips)
 - `raise <total>` (e.g. `raise 60` to raise the wager to 60 chips)
 - `allin` (push all remaining chips)
 - `state` (full recipient-safe state) and `history` (current hand public actions)
+- `rules` (the fixed Pokahdot tournament reference, also available between hands)
 - `help` (list available commands)
 - `quit` or `exit` (conclude and exit the tournament)
 
 Between hands, press Enter or type `continue` to deal the next hand. Poker
 actions and unknown commands leave the completed hand unchanged. Blank input
 during a human turn leaves that turn unchanged. Completion, quit and EOF exit
-with status 0; startup/tournament errors exit with status 1.
+with status 0; startup/tournament errors exit with status 1. `rules` is trimmed,
+case-insensitive and accepts no arguments; extra arguments produce a recoverable
+error. Reading rules does not construct a match, advance play, consume RNG or
+consume the incremental-history cursor. There is no `--rules` option or
+post-completion prompt.
 
 ---
 
 ## 3. Running Automated Tests
 
 Pokahdot has two test suites:
+
 1. **GUT (Grand Unified Test)**: Headless GDScript tests for poker rules, tournament match engine, and UI adapters.
 2. **Python `unittest`**: Tests for the external profile evolution tool, artifact schemas, and confirmation gates.
+
+Run the focused Start/Rules regression suite:
+
+```bash
+godot --headless --path . -s addons/gut/gut_cmdln.gd -gconfig= \
+  -gtest=res://tests/unit/test_gui_tournament_rules.gd -gexit
+```
+
+Run the focused shared-content and CLI unit suites by substituting
+`test_tournament_rules_document.gd` or `test_cli_rules.gd` in that command.
+Run the real-process rules transcripts with:
+
+```bash
+GODOT=/Applications/Godot.app/Contents/MacOS/Godot \
+  python3 -B -m unittest tests.cli.test_rules_process -v
+```
+
+These tests cover setup edits/corrections, human turns, between-hand inspection,
+EOF/quit/completion and same-seed output/history equivalence. Use `GODOT=godot`
+when the executable is in `PATH`. Full verification uses `make check` and
+`make gui-current-invariant-gate`, with `GODOT` set as needed.
+
+For native Start/Rules development previews and the accepted visual checkpoint,
+see [GUI visual testing](../../docs/GUI_VISUAL_TESTING.md). Browser and physical
+device checks remain separate from native input/fit coverage.
 
 ### Run All GUT Tests (GDScript)
 ```bash

@@ -4,6 +4,7 @@ extends RefCounted
 enum Kind {
 	EMPTY,
 	HELP,
+	RULES,
 	QUIT,
 	CONTINUE,
 	STATE,

@@ -22,10 +22,22 @@ tournament; invalid input leaves startup visible without starting a hand.
 `GuiStartupLayout` adapts the form, yielding optional logo/copy allocation
 before essential controls, without scrolling or reducing their text/target floors.
 
+The Start **Rules** action opens the persistent sibling
+`TournamentRulesPage.tscn`, outside replaceable table compositions. It renders
+the shared presentation document, with a scrollable 20 px body and Back outside
+scrolling. Main supplies the viewport adapter's usable rectangle. Back, Escape
+or platform Back reveals the existing form and restores exact drafts, checkbox,
+validation display and focus; it does not use tournament-return reset logic.
+An active numeric transaction blocks Rules and Start until Cancel/Done closes
+it. Navigation does not validate configuration, construct a match or consume
+RNG. Native Start/Rules previews were accepted on 2026-10-31; the
+[Rules backlog](../../docs/RulesInGameTasks.md) records test and device limits.
+
 ```mermaid
 flowchart TD
     Main["main.tscn / StartupConfigController"]
     Start["Startup form / GuiStartupLayout"]
+    Rules["TournamentRulesPage.tscn / GuiTournamentRulesPage"]
     Viewport["App-owned GuiViewportAdapter"]
     Table["PokerTable: ReplacementPokerTable.tscn<br/>GuiReplacementTableController"]
     Session["GuiTableSession<br/>match binding, pacing, safe snapshots"]
@@ -35,6 +47,8 @@ flowchart TD
     Components["Seats, cards, center board, actions, event log"]
     Overlay["OverlayHost.tscn / GuiOverlayHost<br/>modal state and focus"]
     Main --> Start
+    Main --> Rules
+    Viewport -->|usable geometry| Rules
     Main --> Viewport
     Main --> Table
     Viewport -->|usable geometry| Table

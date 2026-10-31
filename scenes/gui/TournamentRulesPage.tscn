@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/gui/gui_tournament_rules_page.gd" id="1"]
+
+[node name="RulesPage" type="MarginContainer"]
+visible = false
+layout_mode = 0
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+script = ExtResource("1")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 2
+
+[node name="Padding" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Panel/Padding"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RulesTitle" type="Label" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Pokahdot tournament rules"
+autowrap_mode = 2
+
+[node name="RulesBody" type="RichTextLabel" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 2
+theme_override_font_sizes/normal_font_size = 20
+theme_override_font_sizes/bold_font_size = 20
+bbcode_enabled = false
+selection_enabled = true
+scroll_active = true
+
+[node name="RulesBack" type="Button" parent="Panel/Padding/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 48)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"StartupButton"
+theme_override_font_sizes/font_size = 20
+text = "Back"

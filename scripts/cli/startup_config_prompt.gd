@@ -1,6 +1,8 @@
 class_name StartupConfigPrompt
 extends RefCounted
 
+const RulesReference := preload("res://scripts/cli/cli_rules_reference.gd")
+
 const CONFIGURE_COMMANDS: Array[String] = ["configure", "c"]
 const QUIT_COMMANDS: Array[String] = ["quit", "exit"]
 const SHORT_STACK_COMMANDS: Array[String] = ["short-stack", "short"]
@@ -29,13 +31,18 @@ func run(
 		return _run_custom_configuration(defaults, use_legacy_models)
 
 	while true:
-		_io.write_text("Press Enter to start, or type 'configure', 'short-stack', or 'quit': ")
+		_io.write_text(
+			"Press Enter to start, or type 'configure', 'short-stack', 'rules', or 'quit': "
+		)
 		var input: CliInputLine = _io.read_line()
 		if input.is_eof:
 			_io.write_line("Input closed before startup completed.")
 			return StartupPromptResult.new(StartupPromptResult.Status.EOF)
 
 		var command := input.text.strip_edges().to_lower()
+		if command == "rules":
+			RulesReference.write_to(_io)
+			continue
 		if command.is_empty() or command == "start":
 			return _resolve_and_report(defaults, _startup_overrides(use_legacy_models))
 		if command in CONFIGURE_COMMANDS:
@@ -46,7 +53,7 @@ func run(
 			_io.write_line("Startup cancelled.")
 			return StartupPromptResult.new(StartupPromptResult.Status.QUIT)
 
-		_io.write_line("Unknown setup option. Use Enter, configure, short-stack, or quit.")
+		_io.write_line("Unknown setup option. Use Enter, configure, short-stack, rules, or quit.")
 
 	return StartupPromptResult.new(StartupPromptResult.Status.ERROR)
 
@@ -153,13 +160,16 @@ func _startup_overrides(use_legacy_models: bool) -> StartupOverrides:
 
 func _read_optional_integer(label: String, default_value: int) -> OptionalIntegerInput:
 	while true:
-		_io.write_text("%s [%d]: " % [label, default_value])
+		_io.write_text("%s [%d]: (rules to read, quit to cancel) " % [label, default_value])
 		var input: CliInputLine = _io.read_line()
 		if input.is_eof:
 			_io.write_line("Input closed before startup completed.")
 			return OptionalIntegerInput.eof()
 
 		var value_text := input.text.strip_edges()
+		if value_text.to_lower() == "rules":
+			RulesReference.write_to(_io)
+			continue
 		if value_text.to_lower() in QUIT_COMMANDS:
 			_io.write_line("Startup cancelled.")
 			return OptionalIntegerInput.quit()

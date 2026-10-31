@@ -8,6 +8,7 @@ enum Status {
 	ERROR,
 }
 
+const RulesReference := preload("res://scripts/cli/cli_rules_reference.gd")
 const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
 
 var _io: CliIO
@@ -26,7 +27,7 @@ func _init(
 
 
 func run() -> Status:
-	_io.write_line("Type 'help' for available commands or 'quit' to exit.")
+	_io.write_line("Type 'help' for commands, 'rules' for tournament rules, or 'quit' to exit.")
 
 	while true:
 		_io.write_text("pokahdot> ")
@@ -41,6 +42,8 @@ func run() -> Status:
 				continue
 			CliCommand.Kind.HELP:
 				_print_help()
+			CliCommand.Kind.RULES:
+				RulesReference.write_to(_io)
 			CliCommand.Kind.QUIT:
 				_io.write_line("Goodbye.")
 				return Status.QUIT
@@ -68,13 +71,19 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 		_io.write_line("Unable to start tournament: %s" % result.message)
 		return Status.ERROR
 	_render(match_instance, human_seat)
+	_io.write_line("Type 'rules' for tournament rules or 'help' for available commands.")
 
 	while true:
 		if result.status == StepResult.Status.ERROR:
 			_io.write_line("Tournament error: %s" % result.message)
 			return Status.ERROR
 		if result.status == StepResult.Status.HAND_COMPLETED:
-			_io.write_text("Press Enter or type 'continue' for the next hand, or 'quit': ")
+			(
+				_io
+				. write_text(
+					"Press Enter or type 'continue' for the next hand, 'rules' to read rules, or 'quit': "
+				)
+			)
 			var between_hands_input: CliInputLine = _io.read_line()
 			if between_hands_input.is_eof:
 				match_instance.request_quit()
@@ -88,6 +97,9 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 				_io.write_line("Goodbye.")
 				exit_status = Status.QUIT
 				break
+			if between_hands_command.kind == CliCommand.Kind.RULES:
+				RulesReference.write_to(_io)
+				continue
 			if between_hands_command.kind in [CliCommand.Kind.STATE, CliCommand.Kind.HISTORY]:
 				_render_requested(match_instance, human_seat, between_hands_command)
 				continue
@@ -131,6 +143,8 @@ func run_match(match_instance: TournamentMatch, human_seat: int) -> Status:
 				continue
 			CliCommand.Kind.HELP:
 				_print_help()
+			CliCommand.Kind.RULES:
+				RulesReference.write_to(_io)
 			CliCommand.Kind.STATE, CliCommand.Kind.HISTORY:
 				_render_requested(match_instance, human_seat, command)
 			CliCommand.Kind.CONTINUE:
@@ -235,6 +249,7 @@ func _resolve_pot_action(view: GameView, command: CliCommand) -> PlayerAction:
 func _print_help() -> void:
 	_io.write_line("Available commands:")
 	_io.write_line("  help - show this help")
+	_io.write_line("  rules - read Pokahdot tournament rules")
 	_io.write_line("  state, history - show the full state or current hand action history")
 	_io.write_line("  quit, exit - exit Pokahdot")
 	_io.write_line("  continue, Enter - start the next hand only between hands")

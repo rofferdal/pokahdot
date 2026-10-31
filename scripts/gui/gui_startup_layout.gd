@@ -32,6 +32,7 @@ var _starting_stack_error: Label
 var _small_blind_error: Label
 var _big_blind_error: Label
 var _form_status: Label
+var _rules_button: Button
 var _start_button: Button
 var _startup_panel: CenterContainer
 var _brand_logo: TextureRect
@@ -61,6 +62,7 @@ func _init(root: Control) -> void:
 	_big_blind_error = root.get_node("%BigBlindError") as Label
 	_form_status = root.get_node("%FormStatus") as Label
 	_start_button = root.get_node("%StartButton") as Button
+	_rules_button = root.get_node("%RulesButton") as Button
 	_startup_panel = root.get_node("Center") as CenterContainer
 	_brand_logo = root.get_node("%BrandLogo") as TextureRect
 	_background = root.get_node("Background") as ColorRect
@@ -190,6 +192,7 @@ func _set_startup_touch_targets(geometry_scale: float) -> void:
 		_big_blind_input,
 		_use_legacy_models_checkbox,
 		_start_button,
+		_rules_button,
 		_quit_application_button,
 	]:
 		control.custom_minimum_size.y = maxf(48.0, STARTUP_TOUCH_TARGET_HEIGHT * geometry_scale)

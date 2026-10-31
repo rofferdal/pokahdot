@@ -13,6 +13,33 @@ contracts and evidence; they do not require the replacement to retain internal n
 legacy geometry or a past visual defect. Snapshot/observer migration precedes
 legacy deletion.
 
+Start/Rules checkpoint (RIG-02, 2026-10-31): the production Start screen now
+has Rules, opening a separate shared-content page. The user accepted these
+native previews on 2026-10-31 before RIG-03. For later changes, review Start
+and Rules at 390×744, 780×360, 1920×1080 and 1080×1920, including the scrolled Ending section.
+Keep Start free of scrollbars, Rules body at least 20 logical/CSS px and Back
+outside scrolling with at least 48×48 allocation. Test pointer/touch/keyboard,
+Escape/platform Back, preserved invalid drafts/errors, return focus, safe-area
+changes and rotation. Active numeric entry must block Rules and Start until
+Cancel/Done closes it. This acceptance is specific to Start/Rules and does not
+reopen unrelated GUI work. Future visual changes require their own review.
+
+Generate native Compatibility development previews in a **new** directory:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 \
+  --audio-driver Dummy --script tests/visual/gui_tournament_rules_capture.gd -- \
+  localtmp/gui-elements/rig02-review-next
+```
+
+The runner captures the authored production scenes into twelve PNGs and a
+manifest, without constructing a match. The current session's previews use
+`localtmp/gui-elements/rig02-review/`. Native SubViewport captures and automated
+input/fit checks cover native fixture widths from 360 px; smaller widths,
+browser behavior and physical-device acceptance are not established. RIG-02
+visual acceptance covers the reviewed native Start/Rules previews; it does not
+certify browser or physical-device behavior.
+
 Branding and phone-portrait review (2026-10-29, RG-11R5/6): confirm genuine
 alpha in `Pokahdot_logo.png`, a transparent Start-screen logo on the dark
 background, and subtle table-cloth relief without an opaque rectangle. Test

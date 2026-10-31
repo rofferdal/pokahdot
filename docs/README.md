@@ -19,10 +19,12 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
-- [`RulesInGameTasks.md`](RulesInGameTasks.md) — planned, independent workstream:
-  a concise Pokahdot tournament-rules reference from the GUI Start screen and
-  interactive CLI `rules` command. Implementation is not started; this plan
-  does not reopen the accepted GUI restructuring baseline.
+- [`RulesInGameTasks.md`](RulesInGameTasks.md) — completed independent workstream:
+  GUI Start → Rules and interactive CLI `rules` share one tournament-reference
+  document. RIG-00–05 are verified; the user accepted native Start/Rules previews
+  on 2026-10-31. Full checks pass with 889 Godot tests, 227 Python tests and all
+  four GUI invariant matrices. Browser/physical-device coverage remains separate.
+  This work does not reopen the accepted GUI restructuring baseline.
 
 - [`GuiProfileHoverTasks.md`](GuiProfileHoverTasks.md) — planned, independent
   workstream: hovering a bot seat's display name reveals its public bot profile

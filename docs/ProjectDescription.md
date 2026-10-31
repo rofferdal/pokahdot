@@ -387,6 +387,13 @@ cards were actually shown.
   small blind, and big blind, prefilled with defaults. Starting without edits
   is valid. Explain invalid input and do not begin a hand until all values are
   valid.
+- Provide a Rules action on Start for the concise Pokahdot tournament reference,
+  sourced from one presentation-neutral document shared with the CLI `rules`
+  command. Back, keyboard cancel and platform Back return to the exact existing
+  form drafts, legacy-bot choice, validation display and focus without starting
+  or resetting a tournament. Rules cannot bypass active numeric entry. Its body
+  may scroll; Back stays outside it. Preserve the 20 logical/CSS px text floor,
+  48×48 action targets and viewport/safe-area handling.
 - Place the Pokahdot logo above the Start-screen form. Use the transparent
   `assets/images/Pokahdot_logo.png` derived from the supplied JPEG; preserve
   its aspect ratio and keep all controls reachable without reducing text or
@@ -568,6 +575,15 @@ godot --headless --path . --script res://scripts/cli/cli_app.gd
   Correction retains valid edits and reprompts fields with validation errors.
 - Explain invalid startup values and prompt again. No hand starts from invalid
   configuration.
+- Support the exact, trimmed, case-insensitive `rules` command at startup choice
+  and numeric configuration prompts, human turns and between hands. Print the
+  same concise tournament reference as GUI Rules, then repeat the current
+  prompt, retaining earlier edits and validation corrections. Extra arguments
+  are recoverable invalid input. Reading rules must not construct a match,
+  submit an action, advance play, consume RNG or consume incremental history.
+  Advertise it in prompts/help/usage; provide no `--rules` option or new
+  post-completion prompt. The reference covers selected tournament, sizing
+  and blind-progression rules, without teaching general Hold'em.
 - Write readable game state to stdout.
 - In every player list, append the literal suffix `(you)` immediately after
   the human's display name, for example `Player 1 (you)`. Exactly one player

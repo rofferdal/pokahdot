@@ -82,6 +82,22 @@ flowchart TD
 - `scripts/core/` has **zero dependencies** on `Control`, `SceneTree`, UI components, or standard I/O (`stdin`/`stdout`).
 - Presentation layers (`scripts/gui/`, `scripts/cli/`) and simulation (`scripts/simulation/`) depend on `scripts/core/`, never the other way around.
 
+The fixed tournament reference is presentation content, separate from the core.
+Typed Resources in `scripts/presentation/` load the single authored
+`resources/presentation/tournament_rules.tres`. `TournamentRulesDocument`
+validates ordered sections and renders deterministic plain text, returning
+explicit errors with no partial copy for invalid content. GUI Start → Rules
+and the interactive CLI `rules` command consume that same source. It contains
+no match state, rule calculations, GUI markup or terminal I/O.
+
+`CliRulesReference` writes the document through `CliIO`; Rules branches at
+setup choice/numeric, shell, human-turn and between-hand prompts repeat the
+same prompt without changing drafts/configuration, game/RNG state or the
+renderer's incremental-history cursor. Exact command parsing trims and ignores
+case, while rejecting arguments. Help and startup usage advertise the command;
+there is no `--rules` flag or post-completion input loop. GUI navigation and
+state preservation are described in [GUI composition](gui-composition.md).
+
 ---
 
 ## 2. The Three Composition Roots

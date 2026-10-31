@@ -73,7 +73,8 @@ static func usage() -> String:
 		+ "--small-blind 1..1000000 --big-blind 1..1000000 --seed INTEGER "
 		+ "--use-legacy-models\n"
 		+ "Seed 0 chooses a time seed; other signed 64-bit seeds reproduce play. "
-		+ "Press Enter to start; --configure opens setup directly."
+		+ "Press Enter to start; --configure opens setup directly.\n"
+		+ "Type rules at setup or play prompts to read Pokahdot tournament rules."
 	)
 
 

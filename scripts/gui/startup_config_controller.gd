@@ -13,6 +13,9 @@ const PHONE_PLAYER_COUNT_ERROR := (
 var startup_adapter
 var _number_input: LineEdit
 var _layout_mode_override: int = GuiSizeClass.AUTOMATIC
+var _rules_previous_quit_on_back: bool = true
+var _rules_owns_back: bool = false
+var _rules_return_focus: Control
 var _startup_layout: GuiStartupLayout
 
 @onready var _player_count_input: LineEdit = %PlayerCountInput
@@ -32,6 +35,8 @@ var _startup_layout: GuiStartupLayout
 @onready var _small_blind_error: Label = %SmallBlindError
 @onready var _big_blind_error: Label = %BigBlindError
 @onready var _form_status: Label = %FormStatus
+@onready var _rules_page: GuiTournamentRulesPage = $RulesPage
+@onready var _rules_button: Button = %RulesButton
 @onready var _start_button: Button = %StartButton
 @onready var _startup_panel: CenterContainer = $Center
 @onready var _brand_logo: TextureRect = %BrandLogo
@@ -97,6 +102,7 @@ func get_layout_snapshot() -> GuiLayoutSnapshot:
 		&"guidance": _phone_player_count_guidance,
 		&"status": _form_status,
 		&"start": _start_button,
+		&"rules": _rules_button,
 		&"quit": _quit_application_button,
 	}
 	var snapshot := GuiStartupSnapshotProducer.capture(
@@ -126,6 +132,8 @@ func _ready() -> void:
 	_startup_overlay.number_cancelled.connect(_on_startup_number_cancelled)
 	_apply_defaults()
 	%StartButton.pressed.connect(_on_start_pressed)
+	_rules_button.pressed.connect(_on_rules_pressed)
+	_rules_page.back_requested.connect(_on_rules_back)
 	_poker_table.tournament_quit_confirmed.connect(_on_tournament_quit_confirmed)
 	_poker_table.return_to_startup_requested.connect(_on_return_to_startup_requested)
 	_poker_table.visibility_changed.connect(_refresh_startup_layout)
@@ -146,10 +154,13 @@ func _on_viewport_geometry_changed(geometry: GuiViewportGeometry) -> void:
 	if not geometry.valid:
 		return
 	_startup_overlay.set_usable_rect(geometry.usable_rect)
+	_rules_page.set_usable_rect(geometry.usable_rect)
 	_refresh_startup_layout()
 
 
 func _on_start_pressed() -> void:
+	if not _startup_panel.is_visible_in_tree() or _startup_overlay.is_active():
+		return
 	startup_adapter.player_count_text = _player_count_input.text
 	startup_adapter.starting_stack_text = _starting_stack_input.text
 	startup_adapter.small_blind_text = _small_blind_input.text
@@ -197,8 +208,54 @@ func _return_to_startup(status_message: String) -> void:
 	_set_error_visibility()
 
 
+func _on_rules_pressed() -> void:
+	if not _startup_panel.is_visible_in_tree() or _startup_overlay.is_active():
+		return
+	_rules_previous_quit_on_back = get_tree().quit_on_go_back
+	_rules_owns_back = true
+	get_tree().quit_on_go_back = false
+	_rules_return_focus = get_viewport().gui_get_focus_owner()
+	_startup_panel.hide()
+	_rules_page.show()
+	_rules_page.begin_reading()
+
+
+func _on_rules_back() -> void:
+	if not _rules_page.is_visible_in_tree():
+		return
+	_restore_rules_back_behavior()
+	_rules_page.hide()
+	_startup_panel.show()
+	if is_instance_valid(_rules_return_focus) and _rules_return_focus.is_visible_in_tree():
+		_rules_return_focus.grab_focus()
+	else:
+		_rules_button.grab_focus()
+
+
+func _exit_tree() -> void:
+	_restore_rules_back_behavior()
+
+
+func _restore_rules_back_behavior() -> void:
+	if _rules_owns_back:
+		get_tree().quit_on_go_back = _rules_previous_quit_on_back
+		_rules_owns_back = false
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _rules_page.is_visible_in_tree() and event.is_action_pressed("ui_cancel"):
+		_on_rules_back()
+		get_viewport().set_input_as_handled()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and is_node_ready():
+		_on_rules_back()
+
+
 func _on_quit_application_pressed() -> void:
-	get_tree().quit()
+	if _startup_panel.is_visible_in_tree() and not _startup_overlay.is_active():
+		get_tree().quit()
 
 
 func _refresh_startup_layout() -> void:
@@ -257,7 +314,17 @@ func _configure_numeric_inputs_for_mobile() -> void:
 
 
 func show_numeric_keypad(input: LineEdit) -> void:
-	if input == null:
+	if (
+		input == null
+		or not _startup_panel.is_visible_in_tree()
+		or _startup_overlay.is_active()
+		or (
+			input
+			not in [
+				_player_count_input, _starting_stack_input, _small_blind_input, _big_blind_input
+			]
+		)
+	):
 		return
 	var geometry: GuiViewportGeometry = _viewport_adapter.get_geometry()
 	if geometry.valid:
@@ -277,7 +344,7 @@ func show_numeric_keypad(input: LineEdit) -> void:
 
 
 func _on_startup_number_committed(value: String) -> void:
-	if is_instance_valid(_number_input):
+	if is_instance_valid(_number_input) and _startup_panel.is_visible_in_tree():
 		_number_input.text = value
 	_number_input = null
 
@@ -287,6 +354,8 @@ func _on_startup_number_cancelled() -> void:
 
 
 func _on_numeric_input_gui_input(event: InputEvent, input: LineEdit) -> void:
+	if not _startup_panel.is_visible_in_tree():
+		return
 	if event is InputEventScreenTouch and event.pressed:
 		show_numeric_keypad(input)
 		accept_event()

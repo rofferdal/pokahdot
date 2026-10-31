@@ -725,6 +725,61 @@ The core checks a latched quit request before every state transition. GUI drivin
 
 The completed implementation history proceeded through the interactive CLI first, then the GUI, simulation, profile-evolution, and release-readiness phases. [`ReleaseReadinessTasks.md`](arkiv/ReleaseReadinessTasks.md) records the completed ordered release-readiness work, while the archived layer backlogs retain their task evidence. Completed historical sequencing is preserved under [`arkiv/`](arkiv/).
 
+### Shared tournament-rules reference (RIG-00–03)
+
+The finalized reference copy and stable section order are recorded in
+[`RulesInGameTasks.md`](RulesInGameTasks.md#content-contract). Ownership is a
+presentation-neutral `TournamentRulesDocument` Resource containing an ordered
+`Array[TournamentRulesSection]`; each section has a stable `StringName` ID,
+plain `String` title and body. The implemented locations are
+`scripts/presentation/tournament_rules_document.gd`,
+`scripts/presentation/tournament_rules_section.gd` and the single authored
+`resources/presentation/tournament_rules.tres`. `validate()` returns explicit
+`PackedStringArray` errors for blank titles/bodies, missing/duplicate IDs, null
+sections and unexpected section order. `render_plain_text()` returns a typed
+`RenderResult` with `text`, `errors` and `is_valid()`; invalid documents return
+empty text and validation errors, never partial copy. The document owns
+deterministic plain-text rendering; neither adapter authors alternate rule
+paragraphs. RIG-02 implements the GUI consumer; RIG-03 implements the CLI consumer.
+
+This fixed reference describes the normative product specification; it does
+not calculate legal actions, inspect a match, access hidden state, consume RNG
+or depend on GUI/CLI types or I/O. Core rules and `GameView` remain authoritative.
+
+`scenes/gui/TournamentRulesPage.tscn` and `GuiTournamentRulesPage` implement
+the reference as a persistent Main sibling outside the disposable table
+composition. `StartupConfigController` hides the existing Start form on Rules
+and reveals the same instance on Back/cancel, retaining raw drafts,
+legacy-model choice, validation display and return focus. Navigation never
+calls startup validation, match creation or tournament-return reset logic.
+Start/Rules/numeric-entry callbacks guard hidden forms and active keypad
+transactions, including synthetic signal activation. The keypad's accepted
+Cancel/Done behavior is preserved.
+
+The page renders the shared document's validated plain text with its title in
+a separate Label and the sections in a scrollable, selectable RichTextLabel.
+BBCode is disabled. Body text uses the built-in default font at 20 logical/CSS
+px; Back has at least 48×48 allocation outside the scroll body. The page owns
+its reading-width margins, while Main supplies the existing viewport adapter's
+usable rectangle for safe areas and rotation. Touch dragging scrolls the body;
+reopening starts at the beginning. Escape and platform Back return to Start.
+During Rules, Main temporarily disables `SceneTree.quit_on_go_back`, restoring
+its previous value on Back or tree exit so Android Back cannot quit instead.
+
+The user accepted the RIG-02 Start/Rules previews on 2026-10-31. Native
+input/geometry fixtures cover widths from 360 px; smaller widths and
+physical/browser-device verification remain unestablished.
+
+`CliRulesReference` renders the same document through `CliIO` at existing
+startup choice/numeric, shell, human-turn and between-hand prompts. The typed
+`CliCommand.Kind.RULES` is informational: its branches do not request a match
+view, submit actions, advance hands or call the game renderer, preserving the
+incremental-history cursor. Numeric prompts repeat the same field after rules,
+retaining earlier edits and validation correction state. Commands are trimmed,
+case-insensitive and exact; extra arguments remain recoverable invalid input.
+Help, prompts and startup usage advertise the command. There is no `--rules`
+flag or additional post-completion input loop.
+
 ### GUI adapter
 
 Cutover ownership decision (RG-54): `StartupConfigController` creates one
@@ -2340,9 +2395,10 @@ and is enabled only by an explicit project-owner request.
 2. Display the defaults and offer an immediate start that supplies no overrides. If configuration is requested, allow participant count, starting stack, small blind, and big blind to be overridden independently; an empty field supplies no override.
 3. Merge overrides onto a fresh default configuration. Report invalid explicit input and repeat only fields named by validation errors, retaining all other edits. Blank correction retains the displayed value. After validation succeeds, print its summary and require no further setup input.
 4. Follow the common match API and render snapshots as text. In every player list, append the literal suffix `(you)` immediately after the display name of the one `PlayerView` whose human flag is true; never apply it to a bot. Format every visible card as `[Rank][Suit]` using the canonical Unicode suit glyphs, and format card collections as `[ Card1 | Card2 | CardN ]`, exactly as specified in `docs/POKERCARDS_IN_CLI.md`. Never render stable IDs, enum ordinals, or numeric rank/suit pairs to the player.
-5. During play, read stdin only at `WAITING_FOR_HUMAN` or `HAND_COMPLETED`. Between hands, only blank input or `continue` advances; help, unknown commands and poker actions preserve the completed hand. At a human turn, blank input preserves the turn and `continue` reports a phase error.
+5. During play, read stdin only at `WAITING_FOR_HUMAN` or `HAND_COMPLETED`. Between hands, only blank input or `continue` advances; help, rules, unknown commands and poker actions preserve the completed hand. At a human turn, blank input preserves the turn and `continue` reports a phase error.
 6. Parse `fold`, `check`, `call`, `bet <amount>`, `raise <amount>`, and `allin` into `PlayerAction`; report parsing or action errors and prompt again without crashing.
 7. Map `quit` and `exit` directly to `request_quit()`.
+8. Accept exact trimmed, case-insensitive `rules` at setup choice/numeric prompts and shell/human-turn/between-hand prompts. Print the shared reference through `CliRulesReference` and repeat the same prompt without state or renderer access. Extra arguments are invalid; completion still exits immediately.
 
 `cli_app.gd` is the composition/process-exit entry point. `TerminalIO` is the only class that reads stdin or writes stdout, behind an injectable `CliIO` boundary used by `StartupConfigPrompt` and `CliCommandLoop`. `CommandParser` converts normalized terminal text to typed shell commands; poker-action parsing is added only when the corresponding core actions exist. Terminal input reads bytes through `OS.read_buffer_from_stdin()` so an intentional blank line remains distinguishable from EOF; EOF terminates cleanly rather than causing an input-retry loop. Blocking reads are permitted only in this headless adapter, never in `scripts/core/` or the GUI.
 

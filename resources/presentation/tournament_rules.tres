@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="TournamentRulesDocument" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/tournament_rules_document.gd" id="1_document"]
+[ext_resource type="Script" path="res://scripts/presentation/tournament_rules_section.gd" id="2_section"]
+
+[sub_resource type="Resource" id="Section_tournament"]
+script = ExtResource("2_section")
+id = &"tournament"
+title = "Tournament"
+body = "One human plays bots at one table. Choose 2–9 players (2–7 on small-phone layouts). Defaults: 6 players, 1000 chips each, blinds 5/10. Everyone starts equally; participant count and starting stack stay fixed. Starting stacks and blinds are positive whole numbers up to 1,000,000; small blind cannot exceed big blind."
+
+[sub_resource type="Resource" id="Section_sizing"]
+script = ExtResource("2_section")
+id = &"sizing"
+title = "Bet and raise sizes"
+body = "Amounts are street totals. A full opening bet is at least one big blind. The first full preflop raise reaches at least twice the nominal big blind, even when posted short. Later full raises increase the current wager by at least the previous full bet/raise increment. Each full raise replaces that increment; reset it to one big blind each street. A full opening bet sets it. Maximum: all-in."
+
+[sub_resource type="Resource" id="Section_short_all_ins"]
+script = ExtResource("2_section")
+id = &"short_all_ins"
+title = "Short all-ins"
+body = "Smaller all-in increases change the call target, retain the increment and never reopen closed raise rights, even cumulatively. A short opening all-in retains the one-big-blind increment. Checking before it leaves raising closed. Unacted players retain their choices. With big blind 10 and opening all-in 5, a full raise reaches at least 15."
+
+[sub_resource type="Resource" id="Section_pot_shortcut"]
+script = ExtResource("2_section")
+id = &"pot_shortcut"
+title = "Pot shortcut"
+body = "With pot P and your existing street wager H, Pot adds P chips and submits H + P. Any call is included once. Available only when that exact total is legal and affordable; never clamped. This is a No Limit convenience, not Pot Limit sizing."
+
+[sub_resource type="Resource" id="Section_blinds"]
+script = ExtResource("2_section")
+id = &"blinds"
+title = "Blinds"
+body = "Levels count completed hands, not time. Starting with at least five active players means twice that count in hands; otherwise ten. The interval stays fixed despite eliminations. After settlement, the next level's first hand uses big blind × 1.25, rounded upward to even, with small blind half: 5/10 → 7/14 → 9/18. Blinds saturate at 500,000/1,000,000; level counters continue."
+
+[sub_resource type="Resource" id="Section_ending"]
+script = ExtResource("2_section")
+id = &"ending"
+title = "Ending"
+body = "Zero chips means permanent elimination; no rebuys. Last player with chips wins. Quitting ends immediately without settling the pot or declaring a winner. Chips have no monetary value."
+
+[resource]
+script = ExtResource("1_document")
+title = "Pokahdot tournament rules"
+sections = Array[ExtResource("2_section")]([SubResource("Section_tournament"), SubResource("Section_sizing"), SubResource("Section_short_all_ins"), SubResource("Section_pot_shortcut"), SubResource("Section_blinds"), SubResource("Section_ending")])

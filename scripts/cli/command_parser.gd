@@ -37,6 +37,7 @@ func _parse_simple_command(normalized: String) -> CliCommand:
 		"history": CliCommand.Kind.HISTORY,
 		"continue": CliCommand.Kind.CONTINUE,
 		"help": CliCommand.Kind.HELP,
+		"rules": CliCommand.Kind.RULES,
 		"quit": CliCommand.Kind.QUIT,
 		"exit": CliCommand.Kind.QUIT,
 		"potbet": CliCommand.Kind.POT_BET,
