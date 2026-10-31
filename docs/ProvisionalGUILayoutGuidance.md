@@ -1,7 +1,8 @@
 # Responsive GUI implementation guidance
 
-This guide describes the current Godot GUI and its scene/container design in
-[`RestructureGuiTasks.md`](RestructureGuiTasks.md). The
+This guide describes the current Godot GUI and its scene/container design.
+The [archived restructuring record](arkiv/RestructureGuiTasks.md) preserves its
+implementation and acceptance history. The
 [product specification](ProjectDescription.md) owns player-facing requirements,
 [architecture](ARCHITECTURE.md#gui-adapter) owns component boundaries, and
 [visual testing contract](GUI_VISUAL_TESTING.md#current-support-and-acceptance)
@@ -57,8 +58,8 @@ instead of reading GameView or calculating poker-derived text themselves.
 Use containers and anchors for ordinary content. Calculated table regions
 must have one layout owner that assigns parent and child rectangles from the
 same geometry snapshot. `GuiPhoneTablePlan` supplies portrait envelopes;
-`GuiPhoneLandscapePlan` supplies symmetric landscape geometry, with
-`GuiPhoneSidePlan` limited to the permitted top-triple fallback.
+`GuiPhoneLandscapePlan` supplies symmetric landscape geometry and owns the
+permitted top-triple fallback when the ordinary arrangement cannot fit.
 `GuiTabletTablePlan` supplies compact tablet geometry with actions beside the
 centered human or below when the symmetric width budget does not fit.
 Preserve tournament state and core seat IDs on resize. Seats use available
@@ -93,9 +94,9 @@ change layout minimums. No Start-screen scrolling is allowed: measured header
 fit yields optional copy/logo allocation before essential controls, retaining
 font/target floors and normal container geometry.
 
-RG-31 applies shared compact/regular metric Themes to reference startup/table/
-keypad roots and replacement compositions. Fonts do not multiply by geometry
-scale, and no recursive font repair is used. Both paths permit seat copy
+Shared compact/regular metric Themes apply to startup, table, keypad and overlay
+roots. The reference table is retired. Fonts do not multiply by geometry
+scale, and no recursive font repair is used. The current GUI permits seat copy
 (names, stacks, markers and action/showdown band) to scale to 18 logical/CSS px;
 card ranks and other GUI text retain 20 px, except event-log body text at
 18 px (preview feedback, 2026-10-29). Log headings/actions still use 20 px.
@@ -109,7 +110,7 @@ regressions supplement canonical layout coverage.
 
 The replacement uses reusable action-button and input-field components.
 Buttons, including Quit, have rounded corners, dark-green backgrounds and white
-enabled text; disabled labels use grey (`#A8A8A8` in the current candidate).
+enabled text; disabled labels use grey (`#A8A8A8`).
 Number/text fields have sharp corners, white backgrounds and dark-green
 text. Keep this distinction through focus, disabled/read-only and error states,
 including touch fields that open a keypad. RG-30/RG-39 implement these styles.
@@ -117,8 +118,8 @@ Total wager entry is the later user-approved exception: light-grey text on a
 dark-green field, sharp corners, and a slightly shorter face vertically centered
 beside Raise. Preserve its full 48 px interactive height; RG-11R4 draws a
 40 px face inside that allocation through -4 px top/bottom StyleBox expansion.
-Other fields retain the white/dark-text palette. Future theme variations own
-this distinction rather than global field recoloring.
+Other fields retain the white/dark-text palette. Shared theme variations own
+this distinction.
 Total's latest text grey is `#B8C3BB`, slightly darker than the button labels.
 
 The theme is `resources/gui_theme.tres`. Keep the plain non-serif face across

@@ -27,8 +27,8 @@ static func resolve(
 	)
 	if not symmetric.valid or symmetric.feasible or ids.size() < 4:
 		return symmetric
-	var side: GuiPhoneLandscapePlan = GuiPhoneSidePlan.resolve(
-		ids, hero, minima, board, action_minimum, available, gap
+	var side: GuiPhoneLandscapePlan = _symmetric(
+		ids, hero, minima, board, action_minimum, available, gap, 7, true
 	)
 	return side if side.feasible else symmetric
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_table_layout.gd" id="1"]
 [ext_resource type="Theme" path="res://resources/gui_theme.tres" id="2"]
@@ -10,7 +10,6 @@
 [ext_resource type="PackedScene" path="res://scenes/gui/components/CompactCenterBoard.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/ActionBar.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/TabletSeatToken.tscn" id="9"]
-[ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_seat_rows.gd" id="10"]
 
 [node name="TabletTableLayout" type="MarginContainer"]
 mouse_filter = 2
@@ -58,88 +57,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-
-[node name="Portrait" type="VBoxContainer" parent="Boundary/Content"]
-theme_override_constants/separation = 2
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Rows" type="Container" parent="Boundary/Content/Portrait"]
-layout_mode = 2
-mouse_filter = 2
-script = ExtResource("10")
-
-[node name="Opponent0" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Opponent1" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Opponent2" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Opponent3" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Opponent4" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Opponent5" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Opponent6" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Opponent7" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="Spacer" type="Control" parent="Boundary/Content/Portrait"]
-layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 2
-
-[node name="CenterBoard" parent="Boundary/Content/Portrait" instance=ExtResource("7")]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-compact_copy = true
-
-[node name="Lower" type="HBoxContainer" parent="Boundary/Content/Portrait"]
-theme_override_constants/separation = 2
-layout_mode = 2
-alignment = 1
-mouse_filter = 2
-
-[node name="HeroSlot" type="MarginContainer" parent="Boundary/Content/Portrait/Lower"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-
-[node name="HeroCell" type="MarginContainer" parent="Boundary/Content/Portrait/Lower/HeroSlot"]
-layout_mode = 2
-mouse_filter = 2
-
-[node name="Hero" parent="Boundary/Content/Portrait/Lower/HeroSlot/HeroCell" instance=ExtResource("9")]
-visible = false
-layout_mode = 2
-
-[node name="ActionBar" parent="Boundary/Content/Portrait/Lower" instance=ExtResource("8")]
-layout_mode = 2
-size_flags_horizontal = 3
-compact_status = true
 
 [node name="Landscape" type="Container" parent="Boundary/Content"]
 visible = false

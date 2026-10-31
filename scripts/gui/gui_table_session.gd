@@ -110,10 +110,6 @@ func get_model(density: GuiFitCandidate.Density = GuiFitCandidate.Density.FULL) 
 	return model
 
 
-func get_last_result() -> StepResult:
-	return _last_result
-
-
 func get_feedback() -> String:
 	return _feedback
 

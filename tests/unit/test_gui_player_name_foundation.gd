@@ -119,8 +119,7 @@ func test_assignment_is_deterministic_injectable_and_stable_for_one_tournament()
 
 	assert_true(first.is_ok())
 	assert_eq(first.assignments, second.assignments)
-	for _render_index: int in range(5):
-		assert_eq(first.assignments, retained_mapping)
+	assert_eq(first.assignments, retained_mapping)
 	var caller_mapping: Dictionary[int, String] = first.assignments
 	caller_mapping[0] = "Changed"
 	assert_eq(first.assignments, retained_mapping)

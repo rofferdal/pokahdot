@@ -47,15 +47,17 @@ On macOS, if Godot is not in `PATH`:
 
 The GUI normalizes native display scale and actual Web canvas CSS geometry
 through one viewport adapter. Startup, table and popups share safe-area bounds;
-container/content minimums guide responsive fit. The replacement components and
-presentation requirements remain tracked in the [GUI backlog](docs/RestructureGuiTasks.md).
+container/content minimums guide responsive fit. The
+[archived GUI restructuring record](docs/arkiv/RestructureGuiTasks.md) preserves
+implementation, cleanup and acceptance evidence.
 Table copy, card visibility models and action availability now use pure
 presentation models. Normal launch selects the replacement table. Startup creates one table and adopts
 the existing validated match.
 Reusable action-button and input-field scenes are implemented for the replacement;
 their shared-control design is user-accepted. Reusable cards and the center board
-are user-accepted. Full seat and human panels are provisionally user-accepted. Phone tokens, action
-controls, event history and in-canvas overlays/keypads are implemented and verified;
+are user-accepted. Full seat and human panels are user-accepted in the final
+device review. Phone tokens, action controls, event history and in-canvas
+overlays/keypads are implemented and verified;
 opponents now share one fixed corner layout and the event-history box resizes
 with its allocation. The keypad distinguishes backspace from Cancel, aligns
 landscape rows and displays the Pot amount. Component galleries, opponent seats,
@@ -451,13 +453,13 @@ and the archived [phone review](docs/arkiv/OptimizingPhoneGuiTasks.md).
 
 The shared transparent Pokahdot logo appears above the Start form and as a
 subtle embossed mark beneath table content. The Start form adapts its optional
-header content without scrolling or shrinking essential controls. The active
-[GUI replacement backlog](docs/RestructureGuiTasks.md) records current visual
+header content without scrolling or shrinking essential controls. The
+[archived GUI restructuring record](docs/arkiv/RestructureGuiTasks.md) preserves visual
 reviews, including the accepted phone-portrait redesign: two opponent seats per
 row, a centered top seat for odd opponent counts, and the community group above
-the human controls. The replacement implementation is complete; the latest
-symmetric tablet/phone refinements still await visual and physical-device
-acceptance. The [product specification](docs/ProjectDescription.md#71-gui) owns
+the human controls. The replacement implementation and symmetric tablet/phone
+refinements are complete; the user explicitly accepted RG-80–RG-82 on 2026-10-31.
+The [product specification](docs/ProjectDescription.md#71-gui) owns
 current layout principles, including the short-landscape-only top-triple exception.
 The [GUI composition reference](devdocs/reference/gui-composition.md) explains
 reusable components, scene/layout ownership and state/input flow with diagrams.
@@ -493,6 +495,6 @@ pokahdot/
 
 GUI automated coverage and manual device acceptance are listed separately in
 the [visual evidence contract](docs/GUI_VISUAL_TESTING.md#current-support-and-acceptance).
-Physical-phone acceptance limitations remain recorded in the archived phone
-review; current portrait and landscape device acceptance remains in the
-replacement backlog.
+The user explicitly accepted phone, iPad and desktop review tasks RG-80–RG-82
+on 2026-10-31 in the archived restructuring record. Earlier phone reviews retain their
+historical limitations; unreported device measurements are not inferred.

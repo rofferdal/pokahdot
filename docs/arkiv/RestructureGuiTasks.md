@@ -1,46 +1,35 @@
 # Restructure GUI Tasks
 
-Status: In progress — RG-00–RG-11 and RG-11R–RG-11R7 are implemented and
-verified. Previously accepted keypads, Start and review7 phone previews retain
-their recorded acceptance; the final two review8 boundary previews still
-await review. The user requested a fresh `localtmp/` and resumed ordered work on
-2026-10-29. RG-12 policy and isolated guidance presentation are implemented;
-verification is complete. The user accepted the guidance design and authorized
-continuation on 2026-10-29. RG-13 replacement routing is implemented and
-verified and committed at `122f344`. RG-20 presentation models are implemented
-and verified. RG-21 coverage migration is verified. The RG-30 theme review
-candidate is authored, verified and user-accepted. RG-31 typography is implemented
-and verified, including user-selected removal of reference font scaling.
-RG-39 reusable controls are implemented, verified and user-accepted.
-RG-40 card components are implemented, verified and user-accepted.
-RG-41 seat and human-panel components are implemented and verified;
-the user provisionally accepted review2 and authorized RG-42. The RG-31 checkpoint is committed at `4ae83cd`,
-matching the locally recorded `origin/gui-restructure` branch.
-RG-42–RG-45 and their RG-45R/R2/R3 review corrections are implemented.
-The user accepted the component galleries, bot-seat arrangement, history scaling,
-menu, summary, portrait keypad arrangement and revised compact landscape keypad.
-Combined Phase 4 component design review is complete. The final RG-45R3 check is
-recorded below; final table integration and device acceptance remain in their
-ordered tasks. RG-50 seat-ring container/templates are implemented and verified;
-RG-50R lowers the human and aligns its action rail; revised six-seat ring
-placement is user-accepted, and review4 nine-seat placement is now accepted.
-RG-50S reconciles the wide interiors and applies the requested human card corner.
-Its refreshed six/nine-seat previews are accepted. RG-51 is verified; complete
-RG-53 before requesting another design review. RG-60–RG-62 and RG-54 are now
-implemented and verified. The user accepted all three final RG-54 synthetic
-layouts (phone portrait, phone landscape and wide) on 2026-10-30. Physical-device
-acceptance remains separate in RG-80–RG-82. Physical-browser feedback has
-identified phone playability, narrow iPad seats and hidden wager shortcuts.
-RG-63–RG-65 passed the initial automated gates (2026-10-31). The subsequent
-Galaxy S25 clarification and iPad review superseded the initial grid layout.
-Symmetric pairs, a centered human, upper-right markers and phone fullscreen
-entry/retry are implemented and automatically verified. Physical review is
-tracked below.
-Reviewed: 2026-10-27 against source commit
-`0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
-This documentation review is not RG-00 baseline execution or device acceptance.
-Owner mode: Tech Lead / Architect for Phase 0–1 decisions, Senior Software
-Engineer for implementation, QA for Phase 6.
+Archived implementation and acceptance record — 2026-10-31.
+Current requirements and developer guidance remain in the linked specifications
+and runbooks; dated task instructions below preserve execution history.
+
+Status: GUI implementation and device review are complete. The user explicitly
+accepted RG-80–RG-82 on 2026-10-31 after reviewing LAN build `599a8f18` on all
+devices. Unreported OS/browser versions, device geometry/DPR and individual
+cases remain unspecified; acceptance does not invent those measurements.
+
+Phase 9 cleanup is implemented and verified. Tablet construction drops from
+761 to 383 nodes; all 863 test cases remain. The final full check, all four
+native matrices, 138 required exported layouts, 14 browser-input cases and
+25 geometry cases pass. All 142 exported PNGs match the accepted baseline
+byte-for-byte. Current documentation is reconciled. RG-83 is complete and the
+backlog is archived. FINISH diff review is approved; commit and push are in progress.
+Dated sections below preserve historical progress and acceptance; earlier
+pending statements are superseded by later completion records.
+
+Remaining limitations: phone layouts support 2–7 players and tablet/desktop
+layouts 2–9; infeasible allocations retain explicit guidance. Device acceptance
+does not supply unreported environment measurements. Local screenshots/logs
+under `localtmp/` remain non-portable evidence rather than repository artifacts.
+
+Historical planning baseline: reviewed on 2026-10-27 against source commit
+`0669f41b7fc203d60640a6250f661b933ee33247` and the then-current working tree.
+That documentation review was not RG-00 execution or device acceptance.
+
+The user authorized RG-83 closure/archiving in the 2026-10-31 task request,
+explicitly correcting the task ID from RG-93 to RG-83. FINISH still requires
+the user to review the verified diff before committing and pushing.
 
 This backlog contains an analysis of the current Godot GUI against common
 practice for responsive GUIs on desktop browsers, iPad and phones, an
@@ -48,8 +37,8 @@ assessment of the GUI tests, a target structure, and ordered tasks for a
 structured refactoring. The target principles in this document lead the
 redesign; the current implementation is a migration baseline, not a reason to
 retain competing geometry owners or runtime-built presentation. The
-[product specification](ProjectDescription.md) owns product rules and the
-[architecture](ARCHITECTURE.md#gui-adapter) describes implemented behavior.
+[product specification](../ProjectDescription.md) owns product rules and the
+[architecture](../ARCHITECTURE.md#gui-adapter) describes implemented behavior.
 Proposed changes below must be recorded as future decisions before those
 implementation descriptions are replaced. If implementation would contradict
 product requirements or an approved architectural decision, stop and ask the
@@ -308,8 +297,8 @@ APIs. Cut over only after the replacement and its tests satisfy the contracts.
 
 Historical planning snapshot: sections 2–6 describe the pre-replacement review,
 including then-current owners, defects and migration proposals. For current GUI
-layout principles use [ProjectDescription](ProjectDescription.md#71-gui) and
-[ARCHITECTURE](ARCHITECTURE.md#gui-adapter); for implementation/review status use
+layout principles use [ProjectDescription](../ProjectDescription.md#71-gui) and
+[ARCHITECTURE](../ARCHITECTURE.md#gui-adapter); for implementation/review status use
 the task checkboxes and RG-63–RG-66 evidence. Dated gallery proportions and old
 three-seat caps do not override the latest paired-row requirements.
 
@@ -659,7 +648,7 @@ clear ownership, correct minimum-size propagation and responsive behavior.
   updates until the end of the rewrite.
 - Do not change `scripts/core/`, poker rules, `GameView` or simulation code.
 - Preserve the product invariants listed in Section 3.5 and the modal/keypad
-  contracts in [ARCHITECTURE.md](ARCHITECTURE.md#gui-adapter).
+  contracts in [ARCHITECTURE.md](../ARCHITECTURE.md#gui-adapter).
 - A clean replacement implementation is permitted. Keep the legacy GUI
   available as a reference, not a mandatory architecture or visual template.
   Compare product contracts through a temporary selector/separate scenes; do not
@@ -751,7 +740,7 @@ provided the target contracts and acceptance evidence are retained.
   user-visible text/target interpretation and minimum feasible sizes per mode,
   density and count, including unsupported-size guidance.
   Done: record the decision and conversion examples in
-  [ARCHITECTURE.md](ARCHITECTURE.md#gui-adapter), using
+  [ARCHITECTURE.md](../ARCHITECTURE.md#gui-adapter), using
   [Godot scaling guidance](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html).
 
 - [x] **RG-11 — Introduce `ViewportAdapter`.** Status: Complete. Mode:
@@ -1410,9 +1399,9 @@ complete these corrections or physical-device acceptance.
   guide with three Mermaid diagrams. `make docs-check` passes (17 regressions,
   31 Markdown files, zero documentation/policy/coverage errors). Mode:
   Documentation Updater. Update the GUI adapter section of
-  [ARCHITECTURE.md](ARCHITECTURE.md#gui-adapter),
-  [ProvisionalGUILayoutGuidance.md](ProvisionalGUILayoutGuidance.md),
-  [GUI_VISUAL_TESTING.md](GUI_VISUAL_TESTING.md), `devdocs/` references and
+  [ARCHITECTURE.md](../ARCHITECTURE.md#gui-adapter),
+  [ProvisionalGUILayoutGuidance.md](../ProvisionalGUILayoutGuidance.md),
+  [GUI_VISUAL_TESTING.md](../GUI_VISUAL_TESTING.md), `devdocs/` references and
   `README.md` to describe the viewport adapter, size classes, components,
   theme and snapshot API; run `make docs-check`. Leave other
   `docs/*Tasks.md` files unchanged.
@@ -1431,7 +1420,17 @@ viewport (CSS px), DPR, orientation, player count and screenshots under
 `localtmp/restructure_acceptance/`. Mark a task complete only when the user
 accepts it. Both phone orientations are part of replacement acceptance.
 
-- [ ] **RG-80 — Phone portrait and landscape review.** Status: Not started. Mode: QA with
+Acceptance recorded (2026-10-31): after reporting that LAN build `599a8f18`
+looks good on all devices, the user explicitly accepted RG-80, RG-81 and RG-82
+as written and authorized marking them complete. The reviewed executable source
+matches implementation commit `6c6e78d`; checkpoint status is committed at
+`8e3c87e`. Reported browsers are Chrome on Galaxy S25, iPad and desktop.
+OS/browser versions, exact device geometry/DPR and individual unreported test
+cases are not inferred from this acceptance. Existing captures and automated
+evidence remain under `localtmp/rg63-66/avatars/`.
+
+- [x] **RG-80 — Phone portrait and landscape review.** Status: Complete; explicitly
+  accepted by the user on 2026-10-31. Mode: QA with
   user. Review a hosted build of the default switch (RG-54) on at least one
   physical Android and one iOS phone for representative counts 2, 4, 6 and 7 (automated portrait coverage includes
   every count 2–7). Review both orientations and rotate during a hand: phone
@@ -1441,45 +1440,167 @@ accepts it. Both phone orientations are part of replacement acceptance.
   quit flows, browser chrome/keyboard changes and actual device/browser Back.
   Done: evidence recorded here; user acceptance noted.
 
-- [ ] **RG-81 — iPad review.** Status: Not started. Mode: QA with user.
+- [x] **RG-81 — iPad review.** Status: Complete; explicitly accepted by the user
+  on 2026-10-31. Mode: QA with user.
   Landscape (primary) and portrait for 2, 6 and 9 players, including
   browser-chrome height changes and rotation during a hand.
   Done: evidence recorded here; user acceptance noted.
 
-- [ ] **RG-82 — Desktop browser review.** Status: Not started. Mode: QA with
+- [x] **RG-82 — Desktop browser review.** Status: Complete; explicitly accepted
+  by the user on 2026-10-31. Mode: QA with
   user. Window sizes around 1280 × 720, 1920 × 1080 and a narrow window that
   crosses each size-class boundary, with pointer and keyboard input. Include
   the new nine-player layout and verify the three-seat horizontal-row cap.
   Done: evidence recorded here; user acceptance noted.
 
-- [ ] **RG-83 — Close the backlog.** Status: Not started. Mode:
-  Documentation Updater. Summarize accepted scope and remaining limitations
-  at the top of this file and move it to `docs/arkiv/` when the user agrees.
-  Done: status line updated; index in [README.md](README.md) updated.
+### Phase 9 — Evidence-based cleanup of GUI code, tests and documentation
 
-### Phase 9 — Cleaning up redundant code, tests and docs after extensive error correction loops
+Correction loops may have introduced redundancy; demonstrate it before removing
+anything. Scope this phase to the restructured GUI, its tests and supporting
+tooling, and affected current documentation. Preserve accepted behavior, visual
+contracts and core/UI separation. Godot best-practice review is a reason for
+bounded simplification, not a new redesign or unrelated core refactoring.
 
-When fixing GUI issues, a lot of tests have been introduced and each problem has caused the
-need to correct something and then a new test has been added. At some point, I think this must have
-lead to redundancy in tests and probably in application code, too.  There may also be cases where
-Godot Best Practice principles have not been followed for each correction. In this phase, code may
-need to be deleted.
+Begin with a short inventory here of cleanup candidates, their justification,
+affected requirements and intended verification. Record a passing baseline with
+`make check gui-current-invariant-gate` before code or test changes. Make small,
+independently reviewable changes and run relevant tests before and after each
+refactoring. Finish the phase with `make check gui-current-invariant-gate` and
+`make docs-check`; record results before marking tasks complete. Put generated
+evidence under `localtmp/`. Finding no justified deletion is a valid outcome.
 
-- [ ] **CUR-90 — Clean up redundant code** Status: Not started.
-  Search for code that are not used, overridden or duplicated by fixes and make it
-  clean.
+Cleanup inventory (2026-10-31; disposition and verification recorded below):
 
-- [ ] **CUR-91 — Clean up redundant tests.** Status: Not started.
-  During error corrections, tests are often introduced that are too specific and
-  not necessary once the problem is fixed. Identify and remove tests that are not
-  verifying actual requirements.
+| Candidate | Justification and protected contract | Verification |
+| --- | --- | --- |
+| Unused controller capability/profile queries | `uses_full_viewport_root()` and `get_layout_profile()` have no callers, signal connections or dynamic references. Startup already owns the full viewport; semantic snapshots retain profile telemetry. | Reference audit; controller/startup/lifetime tests; full check and GUI matrices. |
+| Unused session result accessor | `get_last_result()` has no consumers. Retain internal result handling and feedback. | Reference audit; session tests; full check and GUI matrices. |
+| Obsolete showdown event scan | `contains_showdown()` has no consumers; completion pacing uses `GameView.hand_complete` and the action pacer. | Reference audit; session showdown-pause tests; full check and GUI matrices. |
+| Pass-through phone side-plan wrapper | Its sole caller delegates to a wrapper that calls back into the same landscape planner with the top-triple flag. Inline that call, retaining the same fallback. | Landscape planner tests before/after; full check and GUI matrices. |
+| Permanently inactive tablet portrait subtree | Tablet configuration uses its direct-layout branch in both orientations; the alternate subtree duplicates nine seats, a board and actions without rendering them. Initialize only active region references and remove the unused tablet subtree; preserve phone scene inheritance. | Tablet/phone composition tests before/after, full check, GUI matrices and strict exported layouts. |
+| Repeated name-assignment assertion | Five identical assertions run without any intervening operation; retain one plus deterministic-generation and defensive-copy checks. | Name-foundation tests before/after; full suite. |
+| Unused input-event helpers in table-foundation tests | `_touch_press` and `_left_mouse_press` have no callers; remove unused fixture code without removing tests. | Reference search and table-foundation tests before/after; full suite. |
+| Current acceptance and command guidance | Stale pending-acceptance claims, retired profiler option and browser-input case count conflict with recorded acceptance and current tools. Preserve dated historical records. | Source/acceptance comparison and `make docs-check`. |
 
-- [ ] **CUR-92 — Clean up documentation.** Status: Not started.
-  During error correction, some new decisions about the how the application is
-  constructed and how it works functionally is changed.  Verify doc in docs and
-  devdocs and see to it that it does not contradict what is implemented.
-  ProjectDescription.md and ARCHITECTURE.md are the overriding spec, though, so
-  in case documentation contradicts these files, the other file need to be corrected
+Baseline: `make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check
+gui-current-invariant-gate` passes (863 GUT tests, 310,635 assertions; all four
+native GUI matrices). Evidence: `localtmp/phase9/baseline.log`. Focused code
+baselines pass 48 tests / 666 assertions and 35 tests / 10,970 assertions
+(`localtmp/cur90-93/code-audit/`); test-cleanup baseline passes 11 tests /
+347 assertions (`localtmp/phase9/test-audit/before.log`).
+
+Implemented cleanup: removed the four unused methods and the pass-through
+planner script/UID; retained the same top-triple fallback in the landscape
+planner. Removed the tablet's permanently hidden portrait subtree and initialized
+portrait-only references/signals only for portrait compositions. Tablet scene
+construction falls from 761 to 383 nodes; both phone scenes remain at 751.
+Focused after checks retain 48 tests / 666 assertions and 35 tests / 10,970
+assertions; the planner-only check passes 9 tests / 9,254 assertions. Evidence:
+`localtmp/cur90-93/code-audit/` (`methods-after.log`, `planner-after.log`,
+`layout-after.log`, `nodes-before.log`, `nodes-after.log`).
+
+Test cleanup retains all test cases. The five identical name-assignment
+assertions became one; determinism and defensive-copy checks remain. Removed
+two unused input-event helpers. Focused after verification passes 11 tests /
+343 assertions (`localtmp/phase9/test-audit/after.log`). Component measurement,
+manual live transitions, per-frame paced phone-warning checks, exported canvas
+input, delayed viewport rotation and privacy/lifetime tests remain because
+they exercise distinct failure boundaries. The independent final code review
+found no remaining consumers of removed APIs or resources.
+
+Retained after review: resolver generation/geometry/modality guards, Web metric
+polling alongside resize notifications, tablet side/below/stacked plans, and
+separate avatar/card layout owners. These cover distinct asynchronous or fit
+cases and do not compete for the same child rectangles. No broad redesign or
+whole-test deletion was justified.
+
+Final phase verification (2026-10-31): `make check` passes all 863 GUT tests with
+310,631 assertions (exactly four duplicate assertions removed), plus Python
+suites, lint, formatting and documentation checks. Strict exported layouts pass
+138 required cases, with four diagnostics kept separate; the unsupported short
+boundary retains its expected report-only fit failure. All 142 PNG captures
+are byte-for-byte identical to the previously accepted avatar-review captures.
+Evidence: `localtmp/phase9/final-check.log`, `web-layout/` and
+`screenshot-comparison.json`. All four native matrices pass (99 M3, 49 phone,
+24 iPad and 54 desktop cases). All 14 exported input cases and 25 geometry
+cases pass (`localtmp/phase9/web-input/results.json` and
+`web-geometry/results.json`; commands/results in `final-web.log`). All 277
+production script/scene/resource sources match each exported project's copy
+(`exported-source-comparison.json`). Both full verification commands exited
+successfully. The four expected duplicate assertions are the only assertion
+reduction; required behavior and visual contracts remain covered.
+
+- [x] **CUR-90 — Clean up redundant code.** Status: Complete (2026-10-31).
+  Removed the four unused methods, planner wrapper and inactive tablet subtree;
+  before/after focused checks pass (48/666 and 35/10,970). Tablet construction
+  drops by 378 nodes; phone counts are unchanged. Evidence is recorded above.
+  Mode:
+  Senior Software Engineer. Inventory unused, superseded or duplicated GUI code
+  and supporting tooling. Check scene/resource references, signal connections,
+  dynamic loading and tool entry points before declaring code unused; absence
+  of direct script callers alone is insufficient. Remove or consolidate only
+  demonstrated redundancy, retaining one clear owner for each responsibility.
+  Done: each candidate has a recorded disposition and rationale; retained
+  callers and resources resolve; relevant tests pass before and after changes,
+  with accepted behavior and visual contracts preserved.
+
+- [x] **CUR-91 — Clean up redundant tests.** Status: Complete (2026-10-31).
+  All test cases retained; four no-op duplicate assertions and two unused
+  helpers removed. Focused verification passes 11 tests / 343 assertions;
+  independent code review and lint/format checks pass. Mode: QA.
+  Map candidate tests to requirements and failure modes before deleting them.
+  A fixed bug or a narrowly targeted fixture does not make a regression test
+  redundant: preserve protection against delayed iPad rotation, transient phone
+  warnings and other real failures. Remove tests only when their contract is
+  obsolete or equivalent coverage demonstrably remains. Component, integration
+  and exported-browser checks may protect different boundaries despite similar
+  assertions. Consolidate repetitive fixtures where useful without losing edge
+  cases, timing checks or independent assertions.
+  Done: every removed test identifies the superseded contract or surviving
+  equivalent coverage; relevant suites and the final GUI gates pass without
+  weakening required behavior or changing expected results merely to pass.
+
+- [x] **CUR-92 — Clean up documentation.** Status: Complete (2026-10-31).
+  Current README, architecture, responsive/visual guidance and developer guides
+  reconciled with implemented behavior and recorded acceptance; no unresolved
+  requirement conflict found. `make docs-check` passes; evidence:
+  `localtmp/phase9/docs-cleanup.log` and `docs-cleanup-final.log`. Final
+  phase-wide verification passes and is recorded above. Mode:
+  Documentation Updater. Read implemented behavior and reconcile repository-root
+  `README.md` and affected current documents in `docs/` and `devdocs/`, including
+  commands, links, terminology and acceptance status. `ProjectDescription.md`
+  owns product requirements; `ARCHITECTURE.md` records implementation decisions.
+  A discrepancy may require a code fix or an architecture correction, not
+  automatically rewriting other documentation to match current code. Record
+  unresolved conflicts and seek user resolution when requirements or approved
+  decisions would change. Preserve historical and archived evidence, clearly
+  distinguished from current guidance.
+  Done: current documentation matches verified behavior and governing contracts;
+  no unresolved conflict is presented as completed behavior; `make docs-check`
+  passes and the phase's final verification results are recorded.
+
+### Backlog closure — after Phase 9
+
+- [x] **RG-83 — Close the backlog.** Status: Complete (2026-10-31). Phase 9
+  verification passes; user-authorized archival is complete. Current indexes
+  and backlinks plus this record's relative links are updated. `make docs-check`
+  passes after the move (17 regressions, 30 current Markdown files, zero
+  documentation/policy/coverage errors); all 11 local links inside this archive
+  resolve. Evidence: `localtmp/phase9/docs-archive-final.log` and
+  `archive-links.log`. Mode:
+  Documentation Updater. Depends on CUR-90–CUR-92 and all preceding tasks being
+  complete with verification recorded. Summarize accepted scope, cleanup results
+  and remaining limitations at the top of this file. Move it to `docs/arkiv/`
+  when the user agrees, updating the index in [README.md](../README.md) and all
+  affected current links, including relative links inside the moved document.
+  Preserve the historical execution and acceptance records.
+  Done: closure follows verified Phase 9 completion; user agreement to archive
+  is recorded; status, indexes and links are updated; `make docs-check` passes
+  after the move.
+
+- [ ] **FINISH** Status: User reviewed the staged diff and approved commit and
+  push on 2026-10-31. Publication to `gui-restructure` is in progress; mark
+  complete after the reviewed changes are committed and successfully pushed.
 
 ## RG-63–RG-66 correction evidence — 2026-10-31
 
@@ -2092,7 +2213,7 @@ previous task's verified checkpoint is committed as `122f344`, using
 
 ### RG-21 presentation-test migration — 2026-10-29
 
-The [coverage map](GuiModelCoverage.md) records every moved action/summary case,
+The [coverage map](../GuiModelCoverage.md) records every moved action/summary case,
 the exact replacement model tests and retained adapter responsibilities. Pure
 Pot boundary evaluation now runs without a scene. Real core-derived views feed
 repeated-raise, short-stack and closed-rights model coverage. Exact phone

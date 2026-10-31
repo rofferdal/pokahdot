@@ -49,16 +49,3 @@ func _avatar_rng(seed_value: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	return rng
-
-
-func _touch_press() -> InputEventScreenTouch:
-	var event := InputEventScreenTouch.new()
-	event.pressed = true
-	return event
-
-
-func _left_mouse_press() -> InputEventMouseButton:
-	var event := InputEventMouseButton.new()
-	event.button_index = MOUSE_BUTTON_LEFT
-	event.pressed = true
-	return event

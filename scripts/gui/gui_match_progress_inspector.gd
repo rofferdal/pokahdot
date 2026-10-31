@@ -13,10 +13,3 @@ static func latest_action_seat(events: Array[DomainEvent]) -> int:
 
 static func latest_event_is_community_cards_dealt(events: Array[DomainEvent]) -> bool:
 	return not events.is_empty() and events[-1].kind == DomainEvent.Kind.COMMUNITY_CARDS_DEALT
-
-
-static func contains_showdown(events: Array[DomainEvent]) -> bool:
-	for event: DomainEvent in events:
-		if event.kind == DomainEvent.Kind.SHOWDOWN_STARTED:
-			return true
-	return false

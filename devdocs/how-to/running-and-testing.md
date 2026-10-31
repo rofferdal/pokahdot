@@ -175,7 +175,7 @@ godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --
 
 This saves `localtmp/gui-elements/rg40-card-components.png` and source/geometry
 metadata. Compact examples include maximum legal chip values; final table and
-device acceptance remain in the GUI backlog.
+device acceptance are recorded separately in the archived GUI restructuring record.
 
 Preview the complete seat and human panels, including folded and winner states:
 
@@ -196,7 +196,8 @@ godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --
 This saves seven `rg42-rg45-review4-*.png`/JSON pairs under
 `localtmp/gui-elements`: the revised component gallery, history at two box sizes,
 menu, summary, portrait number entry and two landscape number-entry sizes. Metadata records
-geometry checks and source hashes. These are component review artifacts; final table/device acceptance remains in the GUI backlog.
+geometry checks and source hashes. These are component review artifacts; final
+table/device acceptance is preserved in the archived GUI restructuring record.
 
 Preview the RG-50 seat ring with six and nine complete seats:
 
@@ -300,8 +301,8 @@ flow, safe origins, scene reuse/switching and minimum-change recovery.
 `make docs-check` also runs `tools/check_gui_policy.py`: replacement components
 must consume the typed policy and measured minima, without legacy layout imports
 or new viewport breakpoints. Its mutation tests live in
-`tests/documentation/test_gui_policy_guard.py`. Reference scripts stay outside
-this scoped replacement guard until cutover.
+`tests/documentation/test_gui_policy_guard.py`. The reference implementation is
+retired; the guard applies to the current replacement GUI.
 
 Presentation-model tests (`test_gui_*_view_model.gd`) cover authorized card
 states, action availability, exact values, density variants, winner emphasis,
@@ -358,10 +359,11 @@ samples for turns, all-in runouts and resize transitions at phone, tablet and
 desktop sizes, with seeded matches, real avatars, long names and maximum chip
 values. `--samples`, `--profiles` and `--scenarios` select smaller investigations.
 
-`--implementation reference|replacement` selects the measured path; reference
-remains the default. `--players 2..9` overrides only the profiling roster.
-Unspecified rosters retain seven players for phone and nine otherwise. Use
-matching explicit counts and run implementations/runtimes sequentially:
+The profiler measures the replacement GUI; `--implementation replacement` is
+the only accepted implementation and is the default. `--players 2..9` overrides
+only the profiling roster. Unspecified rosters retain seven players for phone
+and nine otherwise. Use matching explicit counts and run native/Web measurements
+sequentially:
 
 ```bash
 PLAYWRIGHT_BROWSERS_PATH="$PWD/localtmp/playwright-browsers" python3 tools/profile_gui_refresh.py --mode web --implementation replacement --players 2 --profiles phone --samples 20 --output localtmp/gui-profile-replacement-phone
@@ -372,9 +374,9 @@ hook CPU, deferred step-to-settled-draw latency and frame count. It also records
 input modality, mount/probe counters, transient object samples and ready versus
 guidance outcomes. Compare matching visible workloads; guidance cost cannot
 establish visible-table performance. Resize assignments exclude deferred layout
-CPU, and historical refresh hooks have different scopes. Reference phone input
-modality follows its selected legacy profile; replacement phone profiling keeps
-explicit keypad evidence through resizing, so intermediate controls can differ.
+CPU, and historical reference refresh hooks have different scopes. Phone
+profiling keeps explicit keypad evidence through resizing; historical reports
+are data only and cannot be rerun against the retired implementation.
 Pacing delays are disabled only in the fixture; production retains its normal
 pauses. Census resets settle before measurement, and census runs separately
 from active timing samples. Any engine error still fails the run; bounded error
@@ -509,7 +511,9 @@ The server runs in the foreground; use another terminal for these commands.
 `web-lan-stop` performs authenticated shutdown. `make web-lan-test` runs the
 focused build/server regressions, also included in `make check`. The exported
 Web input checks above remain separate from physical Wi-Fi evidence. Device
-acceptance remains tracked in [LanTestTasks.md](../../docs/arkiv/LanTestTasks.md).
+acceptance is recorded in Phase 8 of the
+[archived GUI restructuring record](../../docs/arkiv/RestructureGuiTasks.md); the archived
+[LAN tasks](../../docs/arkiv/LanTestTasks.md) record server-workflow acceptance.
 
 To export the web release target to `build/web/index.html`:
 ```bash

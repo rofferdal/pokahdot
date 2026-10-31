@@ -54,8 +54,7 @@ func apply_policy(state: GuiCompositionState) -> void:
 func _ensure_regions() -> void:
 	if _center != null:
 		return
-	var portrait: Control = get_node("Boundary/Content/Portrait")
-	portrait.minimum_size_changed.connect(_queue_layout)
+	var portrait := get_node_or_null("Boundary/Content/Portrait") as Control
 	var landscape: Control = get_node("Boundary/Content/Landscape")
 	_layout_mode = (
 		GuiSizeClass.LayoutMode.WIDE_COMPACT
@@ -66,19 +65,22 @@ func _ensure_regions() -> void:
 			else GuiSizeClass.LayoutMode.PHONE
 		)
 	)
-	portrait.visible = not landscape_mode
+	if portrait != null:
+		portrait.visible = not landscape_mode
 	landscape.visible = landscape_mode
 	_landscape = landscape as GuiPhoneLandscapeContainer
-	_rows = get_node("Boundary/Content/Portrait/Rows") as GuiPhoneSeatRows
-	var hero_path: String = "Lower/HeroSlot/HeroCell" if tablet_mode else "HeroSlot/HeroCell"
-	_hero_cell = portrait.get_node(hero_path) as MarginContainer
+	if not landscape_mode:
+		portrait.minimum_size_changed.connect(_queue_layout)
+		_rows = portrait.get_node("Rows") as GuiPhoneSeatRows
+		var hero_path: String = "Lower/HeroSlot/HeroCell" if tablet_mode else "HeroSlot/HeroCell"
+		_hero_cell = portrait.get_node(hero_path) as MarginContainer
+		_hero_token = _hero_cell.get_node("Hero") as GuiSeatToken
 	var active: Control = landscape if landscape_mode else portrait
 	_center = active.get_node("CenterBoard") as GuiCenterBoard
 	_actions = (
 		active.get_node("Lower/ActionBar" if tablet_mode and not landscape_mode else "ActionBar")
 		as GuiActionBar
 	)
-	_hero_token = _hero_cell.get_node("Hero") as GuiSeatToken
 	(
 		_slots
 		. assign(

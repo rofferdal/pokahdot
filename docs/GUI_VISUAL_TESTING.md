@@ -6,9 +6,10 @@ runbook in [`OPTIONAL_WEB_SETUP.md`](OPTIONAL_WEB_SETUP.md). Local captures do
 not prove browser or physical-device support, and hosted screenshots do not
 replace deterministic geometry regressions.
 
-The [GUI replacement plan](RestructureGuiTasks.md) owns new implementation and
-device-acceptance work. Existing cases preserve product contracts and evidence;
-they do not require the replacement to retain internal node paths, exact
+The [archived GUI restructuring record](arkiv/RestructureGuiTasks.md) preserves
+completed implementation, cleanup and device acceptance. New work is selected
+through the [current task index](README.md). Existing cases preserve product
+contracts and evidence; they do not require the replacement to retain internal node paths, exact
 legacy geometry or a past visual defect. Snapshot/observer migration precedes
 legacy deletion.
 
@@ -86,7 +87,8 @@ still clear all seat/result footprints and preserve readable metadata. Verify
 hole cards anchor at the lower right, scale toward two-thirds of the visual
 panel height and leave D/SB/BB above at the upper right. The user accepted
 these layout/card details in the `scaled-centered-ipad` six-player preview
-on 2026-10-31; this is visual acceptance, with physical checks still pending.
+on 2026-10-31. Subsequent all-device review and explicit RG-80–RG-82 acceptance
+are recorded in the current acceptance section below.
 Check avatars on every tablet seat, inline Min/Pot
 when the measured action budget permits, grouped community-card growth, and
 rotation without changing match state or avatar assignments. Include DPR
@@ -136,9 +138,16 @@ player limits; active acceptance checkboxes stay in their owning backlog.
 
 | Profile | Product scope | Automated coverage | Physical/browser acceptance |
 | --- | --- | --- | --- |
-| Phone portrait and landscape | 2–7 players; default 6 | Replacement phone suite: 49 layout and public-state cases, including reduced-height guidance | Archived [phone acceptance record](arkiv/OptimizingPhoneGuiTasks.md); open recorded checks are not completed by archive placement |
-| Tablet/iPad | 2–9 players; landscape primary, portrait regression | Replacement iPad suite: 24 cases across canonical orientations, reduced height, and the observed surface | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
-| Small desktop/desktop | 2–9 players | Replacement desktop suite: 54 cases across compact and wide allocations; the 99-case M3 suite also covers wide states | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
+| Phone portrait and landscape | 2–7 players; default 6 | Replacement phone suite: 49 layout and public-state cases, including reduced-height guidance | RG-80 explicitly user-accepted on 2026-10-31 |
+| Tablet/iPad | 2–9 players; landscape primary, portrait regression | Replacement iPad suite: 24 cases across canonical orientations, reduced height, and the observed surface | RG-81 explicitly user-accepted on 2026-10-31 |
+| Small desktop/desktop | 2–9 players | Replacement desktop suite: 54 cases across compact and wide allocations; the 99-case M3 suite also covers wide states | RG-82 explicitly user-accepted on 2026-10-31 |
+
+The user accepted these tasks as written after approving LAN build `599a8f18`
+on all devices. Record that explicit acceptance separately from measured test
+execution: unreported OS/browser versions, exact CSS geometry/DPR and individual
+device cases remain unspecified. The owning record is Phase 8 of
+[`RestructureGuiTasks.md`](arkiv/RestructureGuiTasks.md). Earlier acceptance records
+and their limitations remain historical evidence.
 
 `make gui-current-invariant-gate` runs replacement-owned schema-2 invariants for
 the complete 99-case M3 matrix and the phone, iPad, and desktop category suites.
@@ -146,21 +155,24 @@ The frozen historical registry remains evidence, not an active gate dependency.
 An automated pass proves only the tested deterministic invariants. A rendered
 review proves only its captured scope; neither proves a physical device passed.
 Accepted old captures do not certify later code or matrix versions.
-The completed [LAN workflow](arkiv/LanTestTasks.md) records user acceptance with
-resolution limitations; it does not complete open recorded phone acceptance checks.
+Historical context (2026-10-26–27): the completed
+[LAN workflow](arkiv/LanTestTasks.md) recorded user acceptance with resolution
+limitations. It did not complete the phone checks open at that time.
 The [archived GUI-05 browser capture review](arkiv/AstraSuggestionTasks.md#gui-05-browser-capture-review)
 records overlapping/clipped content in two of four same-state browser captures,
 provisionally clear content in the other two, and the user's positive iPad
-screen review. This is limited state-level evidence: exact environments and
-remaining device/input checks are pending. Preserve the working iPad result
-while fixing the demonstrated browser layouts. The subsequent phone report
-that showdown does not show the winner reopened GUI-01. The updated candidate
-now has default visible winner feedback and direct Pots access; physical phone
-verification is still pending. Summary-formatting tests alone do not establish
-visible winner feedback during actual play.
+screen review. That was limited state-level evidence: exact environments were
+unspecified and device/input checks were still pending. The follow-up required
+preserving the working iPad result while correcting demonstrated browser
+layouts. A subsequent phone report of missing showdown winner feedback reopened
+GUI-01. Its updated candidate added default visible winner feedback and direct
+Pots access; physical phone verification was pending in that record. These
+historical limitations do not reopen the explicit 2026-10-31 acceptance above.
+Summary-formatting tests alone do not establish visible winner feedback during
+actual play.
 
-General hosted checks are optional for deployment. Explicit phone acceptance
-work remains required before claiming the corresponding phone/device support.
+General hosted checks are optional for deployment. New phone/device support
+claims require explicit acceptance for their claimed scope.
 
 ### Avatar sources and display
 
@@ -249,7 +261,9 @@ backing sizes, DPR, visual viewport, selected profile, settled layout and all
 six seats' clockwise order, plus screenshots/source/export checksums. Its
 exploratory sizes are new test inputs, never inferred historical measurements.
 The observer is excluded from the normal production export. The default input
-export remains separate and continues to run its five input cases.
+export remains separate. The input suite runs fourteen cases across the default
+and replacement observer exports, including live phone play, fullscreen paths
+and tablet wager presets.
 
 After installing the [optional browser tooling](../devdocs/how-to/running-and-testing.md#exercise-exported-web-input),
 run this from the repository root with an unused output directory:

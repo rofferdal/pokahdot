@@ -1,11 +1,12 @@
 # How-To Guide: Build and Serve the Latest Game over Local Wi-Fi
 
 Use this workflow to test the current working tree on the development Mac,
-an iPad or an Android phone without pushing or merging. The completed server workflow is recorded in
+an iPad or an Android phone without pushing or merging. The completed server
+workflow is recorded in
 [`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). Current GUI device-review
-evidence and remaining acceptance criteria live in RG-63–RG-66 of
-[`RestructureGuiTasks.md`](../../docs/RestructureGuiTasks.md). Earlier evidence is
-preserved in the archived
+evidence and explicit acceptance live in RG-63–RG-66 and RG-80–RG-82 of
+the [archived restructuring record](../../docs/arkiv/RestructureGuiTasks.md).
+Earlier evidence is preserved in the archived
 [`OptimizingPhoneGuiTasks.md`](../../docs/arkiv/OptimizingPhoneGuiTasks.md)
 and section 5 of the archived [`AstraSuggestionTasks.md`](../../docs/arkiv/AstraSuggestionTasks.md).
 
@@ -272,11 +273,11 @@ Physical-device success is separate from the automated `make web-lan-test`
 regressions and the host's own requests to its Wi-Fi address. This LAN record
 does not certify the rolling Pages build.
 
-## Current GUI-05 device review
+## GUI device regression review
 
 Use one pinned LAN build on desktop browsers at multiple sizes, iPad, and
 phone, as selected for the
-[GUI redesign acceptance plan](../../docs/RestructureGuiTasks.md).
+[completed GUI review scope](../../docs/arkiv/RestructureGuiTasks.md).
 
 Reopen the root URL after rebuilding and compare the build ID on every device.
 Consult the archived
@@ -305,8 +306,10 @@ server-workflow archive unchanged.
   separately from in-game dismissal. On supported phone browsers, Start should
   request fullscreen; test browser exit and **More / Pots → Fullscreen** retry
   in portrait and landscape. Also test play without fullscreen support. Phone
-  landscape implementation is covered automatically; physical acceptance remains
-  pending in RG-63–RG-66 and RG-80–RG-82.
+  landscape implementation is covered automatically. The user explicitly
+  accepted RG-63–RG-66 and RG-80–RG-82 on 2026-10-31; subsequent changes require
+  their own review evidence. That acceptance does not supply unreported
+  device/browser versions or individual test-case measurements.
 - Attach screenshots and the pinned build identity to each defect, including
   the last action and browser state needed to reproduce it. Untested states
   and a second independent browser/device remain pending until observed.
@@ -344,7 +347,7 @@ resolutions. Exact device/OS/browser versions and affected resolutions were
 not supplied. This acceptance closes the LAN workflow; it does not establish
 that every layout passed. Deferred landscape checks in the archived
 [phone review](../../docs/arkiv/OptimizingPhoneGuiTasks.md) remain historical;
-current implementation and pending physical acceptance are tracked in the
-[GUI backlog](../../docs/RestructureGuiTasks.md).
+current implementation and explicit physical acceptance are recorded in the
+[archived GUI restructuring record](../../docs/arkiv/RestructureGuiTasks.md).
 Build identities, host/browser evidence and the acceptance decision are
 recorded in [LanTestTasks.md](../../docs/arkiv/LanTestTasks.md).

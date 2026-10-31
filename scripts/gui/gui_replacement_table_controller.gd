@@ -61,10 +61,6 @@ func _ready() -> void:
 		_on_session_changed()
 
 
-func uses_full_viewport_root() -> bool:
-	return true
-
-
 func bind_match(
 	match_instance: TournamentMatch,
 	recipient: int,
@@ -204,14 +200,6 @@ func set_layout_profile_override(profile: int) -> void:
 		4: GuiSizeClass.LayoutMode.WIDE
 	}
 	set_layout_mode_override(modes.get(profile, GuiSizeClass.AUTOMATIC))
-
-
-func get_layout_profile() -> int:
-	return (
-		GuiSnapshotMeasurement.profile_for_mode(_host().state.mode)
-		if is_node_ready() and _host().state != null
-		else -1
-	)
 
 
 func set_action_timing_config(timing: Resource) -> void:

@@ -7,9 +7,10 @@ Compatibility mode with typed GDScript. Game rules stay in `scripts/core/`.
 The [GUI product requirements](../../docs/ProjectDescription.md#71-gui) own
 visual behavior, and the [GUI adapter architecture](../../docs/ARCHITECTURE.md#gui-adapter)
 owns implementation decisions. This guide describes current source behavior;
-it does not certify visual or physical-device acceptance. Review status remains
-in the [GUI backlog](../../docs/RestructureGuiTasks.md), and evidence requirements
-in [GUI Visual Testing](../../docs/GUI_VISUAL_TESTING.md).
+it does not certify visual or physical-device acceptance. Completed review
+evidence is in the
+[archived GUI restructuring record](../../docs/arkiv/RestructureGuiTasks.md).
+Evidence requirements are in [GUI Visual Testing](../../docs/GUI_VISUAL_TESTING.md).
 
 ## Scene and state ownership
 
@@ -115,7 +116,9 @@ The controller registers four scenes with `GuiCompositionHost`:
 | `PHONE_LANDSCAPE` | [PhoneLandscapeLayout.tscn](../../scenes/gui/layouts/PhoneLandscapeLayout.tscn) | Phone host with landscape configuration and `GuiPhoneLandscapeContainer`/phone plans. |
 
 The tablet's internal `landscape_mode` flag selects its shared direct-layout
-branch; it does not restrict tablet support to landscape orientation.
+branch in both orientations. Its scene contains only that active layout subtree;
+portrait phone nodes and their signals are initialized only by phone portrait
+compositions. The flag does not restrict tablet support to landscape orientation.
 
 Reusable scenes live in [`scenes/gui/components/`](../../scenes/gui/components/)
 with scripts in [`scripts/gui/components/`](../../scripts/gui/components/):

@@ -1,14 +1,14 @@
 # Pokahdot Architecture
 
 Status: Core, CLI, simulation, evolution, and responsive GUI implementations
-are present. Automated layout coverage and historical manual acceptance have
-separate scopes. Physical-phone acceptance limitations remain recorded in the
-archived
-[OptimizingPhoneGuiTasks.md](arkiv/OptimizingPhoneGuiTasks.md). Replacement
-components support portrait and landscape; final table/device acceptance remains
-in the active GUI backlog. The [visual evidence contract](GUI_VISUAL_TESTING.md) owns acceptance
+are present. The user explicitly accepted phone, iPad and desktop review tasks
+RG-80–RG-82 on 2026-10-31. Automated coverage, explicit acceptance and historical
+manual evidence retain separate scopes; unreported device measurements are not
+inferred. Earlier limitations remain in the archived
+[OptimizingPhoneGuiTasks.md](arkiv/OptimizingPhoneGuiTasks.md).
+The [visual evidence contract](GUI_VISUAL_TESTING.md) owns acceptance
 terminology and current profile coverage.
-Last updated: 2026-10-29
+Last updated: 2026-10-31
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -748,8 +748,8 @@ the phone component host and uses `GuiTabletTablePlan` for mirrored side
 pairs, a single centered apex for odd bot counts, and a separate centered
 human with the same seat dimensions. Actions sit beside the human when the
 symmetric width budget permits, otherwise below. Tablet tokens retain avatars.
-Short landscape phones can use `GuiPhoneSidePlan` to replace an apex plus
-pair with a top triple when the ordinary symmetric composition does not fit.
+`GuiPhoneLandscapePlan` can replace an apex plus pair with a top triple on
+short landscape phones when the ordinary symmetric composition does not fit.
 No other row permits three bots, and the human always has a separate row.
 Every plan includes permanent two-line status bands. Native containers
 distribute spare space to seat footprints and community cards where permitted;
@@ -904,8 +904,9 @@ and geometry helpers, collision/correction passes and reference-only observers
 have been retired. Independent replacement component, state, lifetime, Web
 layout/input and category checks cover their product contracts. The prior
 9,994-input reference registry remains frozen historical evidence; it is not a
-replacement acceptance baseline. Physical-device and gameplay acceptance remain
-separate tasks in the [GUI backlog](RestructureGuiTasks.md).
+replacement acceptance baseline. Physical-device and gameplay acceptance are
+recorded separately in Phase 8 of the
+[archived GUI restructuring record](arkiv/RestructureGuiTasks.md).
 
 Authored control components (RG-39, 2026-10-29): `ActionButton.tscn`
 provides shared rounded dark-green/white-text presentation for every visible
@@ -1059,8 +1060,8 @@ The replacement may collapse a docked log when space is tight, while retaining
 a reachable Log action/menu in every composition and completed-hand state.
 Docked and overlay views share the same recipient-safe log model. RG-43–45
 provide the trigger, reusable scrollable component and modal host, preserving
-history, pause/focus behavior and privacy. The reference phone's omitted log
-surface remains legacy behavior pending this implementation.
+history, pause/focus behavior and privacy. The retired reference phone's omitted
+log surface is historical behavior, superseded by these components.
 
 Authored card components (RG-40, 2026-10-29):
 `PlayingCard` is a standalone authored presentation scene with face, back and
@@ -1240,7 +1241,9 @@ Native mobile safe rectangles convert from global client pixels through the
 window origin and actual quantized logical/backing axes; desktop client space
 is already unobstructed. Window resize, display movement/density changes and
 Web viewport events refresh the same source. Native handheld orientation uses
-Godot's sensor setting; replacement landscape acceptance remains pending.
+Godot's sensor setting. Phone portrait/landscape and iPad review tasks were
+explicitly user-accepted on 2026-10-31; unreported native-device measurements
+are not inferred from that acceptance.
 
 The supported GUI explicitly uses embedded subwindows
 (`window/subwindows/embed_subwindows = true`). `GuiPopupPlacement` maps the same
@@ -1530,8 +1533,8 @@ two theme gaps wider than the bot cells unless intrinsic copy requires more;
 one-column allocation preserves that budget within the available width.
 `GuiPhoneTablePlan` compares complete measured portrait one/two-column envelopes.
 Landscape uses `GuiPhoneLandscapePlan` and `GuiPhoneLandscapeContainer`. When
-the symmetric arrangement does not fit, RG-63 permits a top triple through
-`GuiPhoneSidePlan`, retaining the separate bottom-center human and clockwise identity.
+the symmetric arrangement does not fit, the same plan permits a top triple,
+retaining the separate bottom-center human and clockwise identity.
 In the symmetric arrangement, opponents
 form mirrored pairs at the sides, an odd opponent count reserves a centered
 apex, the board sits directly above the bottom-center human, and actions sit
@@ -1685,7 +1688,7 @@ metrics remove two pixels of unused top leading while retaining 18 px glyphs;
 name/diacritic and winning-copy ink tests protect the resulting line boxes.
 Three-pixel panel padding clears acting/focus borders, and the status band
 still reserves two lines. The RG-45R arrangement remains accepted historical
-evidence; the RG-63/RG-64 arrangements await physical review.
+evidence; the final RG-63/RG-64 arrangements were user-accepted on 2026-10-31.
 
 `GuiHoleCards` uses a proportional visible gap (6% by default, 3% for portrait
 phone tokens). Pair allocation is aspect-preserving and bounded by the right
@@ -1911,9 +1914,9 @@ RG-40–52 supply measured components and verify final compositions for these
 functions; no table of historical screen sizes replaces them. The retired
 reference probe's 64 cases at 950×532 and 1250×700, and its recorded 650×900 /
 eight-player 1920×1080 defects, are historical evidence. Current replacement
-support and pending physical acceptance belong to
+support and explicit physical acceptance are recorded in
 [GUI visual testing](GUI_VISUAL_TESTING.md#current-support-and-acceptance) and
-the active backlog; retired defects are not new supported-size exceptions.
+the archived GUI restructuring record; retired defects are not new supported-size exceptions.
 
 This policy follows [Godot's scaling guidance](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html),
 using the documented [Window virtual base](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window-property-content-scale-size)
@@ -2745,19 +2748,25 @@ scripts/core/
     strategy_decision_model_parameters.gd
 scripts/gui/
   startup_config_controller.gd
-  poker_table_controller.gd
-  gui_table_seat_factory.gd
-  gui_table_seat_view.gd
-  gui_table_action_controls.gd
-  gui_table_overlay_views.gd
-  gui_table_layout_pass.gd
-  gui_table_seat_layout.gd
+  gui_replacement_table_controller.gd
+  gui_replacement_layout_resolver.gd
+  gui_table_session.gd
+  view_models/
+    table_view_model.gd
+  layout/
+    gui_composition_host.gd
+  components/
+    gui_overlay_host.gd
+  platform/
+    gui_viewport_adapter.gd
 scripts/cli/
   cli_app.gd
 scripts/simulation/
   simulation_cli_app.gd
 scenes/
   main.tscn
+  gui/
+    ReplacementPokerTable.tscn
 docs/
   README.md                 # current task index
   arkiv/                    # historical task records
