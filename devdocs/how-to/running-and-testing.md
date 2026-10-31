@@ -153,6 +153,32 @@ For native Start/Rules development previews and the accepted visual checkpoint,
 see [GUI visual testing](../../docs/GUI_VISUAL_TESTING.md). Browser and physical
 device checks remain separate from native input/fit coverage.
 
+### Verify bot-profile hover
+
+Hover a bot's displayed name with a real pointer for 0.5 seconds to see its
+public profile name. Humans and unavailable metadata show no popup. Compact
+seat-detail taps and keyboard activation retain their existing behavior;
+touch-emulated hover is suppressed. Profile-text keyboard/touch alternatives
+remain future scope.
+
+Run the focused metadata/adapter and interaction suites:
+
+```bash
+godot --headless --path . -s addons/gut/gut_cmdln.gd -gconfig= \
+  -gtest=res://tests/unit/test_gui_bot_profile_metadata.gd -gexit
+godot --headless --path . -s addons/gut/gut_cmdln.gd -gconfig= \
+  -gtest=res://tests/unit/test_gui_bot_profile_hover.gd -gexit
+```
+
+The first covers metadata isolation, validation and deterministic composition;
+the second exercises production full/compact rendering and cleanup. Existing
+seat/table-model, startup and name-assignment suites retain the surrounding
+privacy and gameplay contracts. See the
+[accepted native previews](../../docs/GUI_VISUAL_TESTING.md#bot-profile-hover-checkpoint)
+for the capture command and viewport/input limits. Full regression remains
+`make check gui-current-invariant-gate`; native acceptance does not establish
+browser or physical-device behavior.
+
 ### Run All GUT Tests (GDScript)
 ```bash
 godot --headless --path . -s addons/gut/gut_cmdln.gd

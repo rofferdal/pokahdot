@@ -24,6 +24,9 @@ var name_assignments: Dictionary[int, String]:
 var avatar_assignments: Dictionary[int, String]:
 	get:
 		return _avatar_assignments.duplicate()
+var profile_names: Dictionary[int, String]:
+	get:
+		return _profile_names.duplicate()
 var effective_seed: int:
 	get:
 		return _effective_seed
@@ -32,6 +35,7 @@ var _defaults: TournamentConfig
 var _match_factory
 var _name_assignments: Dictionary[int, String] = {}
 var _avatar_assignments: Dictionary[int, String] = {}
+var _profile_names: Dictionary[int, String] = {}
 var _effective_seed: int = 0
 
 
@@ -59,6 +63,7 @@ func reset_to_defaults() -> void:
 	start_result = null
 	_name_assignments.clear()
 	_avatar_assignments.clear()
+	_profile_names.clear()
 	_effective_seed = 0
 
 
@@ -69,6 +74,7 @@ func try_start() -> bool:
 	start_result = null
 	_name_assignments.clear()
 	_avatar_assignments.clear()
+	_profile_names.clear()
 	_effective_seed = 0
 	var overrides := StartupOverrides.new()
 	var player_count := _parse_integer(player_count_text, &"player_count", "Player count")
@@ -98,6 +104,7 @@ func try_start() -> bool:
 	match_instance = creation.match_instance
 	_name_assignments = creation.name_assignments
 	_avatar_assignments = creation.avatar_assignments
+	_profile_names = creation.profile_names
 	_effective_seed = creation.effective_seed
 	start_result = match_instance.start(1)
 	if start_result.status == StepResult.Status.ERROR:
@@ -106,6 +113,7 @@ func try_start() -> bool:
 		resolved_config = null
 		_name_assignments.clear()
 		_avatar_assignments.clear()
+		_profile_names.clear()
 		_effective_seed = 0
 		return false
 	return true

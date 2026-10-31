@@ -14,5 +14,5 @@ bluff_rate = 22
 script = ExtResource("1_profile")
 profile_id = &"loose_aggressive"
 model_id = &"strategy_parameterized"
-display_name = "Loose Aggressive"
+display_name = "Loose Cannon"
 parameters = SubResource("StrategyParameters_loose_aggressive")

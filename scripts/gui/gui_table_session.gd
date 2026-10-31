@@ -9,6 +9,7 @@ var _recipient: int = Table.NO_SEAT
 var _view: GameView
 var _avatars: Dictionary[int, String] = {}
 var _names: Dictionary[int, String] = {}
+var _profile_names: Dictionary[int, String] = {}
 var _latest: Dictionary[int, PublicActionRecord] = {}
 var _folds: Dictionary[int, PublicActionRecord] = {}
 var _lines: Array[String] = []
@@ -40,7 +41,8 @@ func bind_match(
 	match_instance: TournamentMatch,
 	recipient: int,
 	avatars: Dictionary[int, String],
-	names: Dictionary[int, String] = {}
+	names: Dictionary[int, String] = {},
+	profile_names: Dictionary[int, String] = {}
 ) -> bool:
 	stop()
 	_clear_binding()
@@ -55,6 +57,7 @@ func bind_match(
 	_recipient = recipient
 	_avatars = avatars.duplicate()
 	_names = names.duplicate()
+	_profile_names = profile_names.duplicate()
 	_feedback = ""
 	_last_result = StepResult.new(StepResult.Status.WAITING_FOR_HUMAN)
 	var epoch: int = _epoch
@@ -69,7 +72,8 @@ func bind_view(
 	view: GameView,
 	avatars: Dictionary[int, String],
 	names: Dictionary[int, String] = {},
-	event_lines: Array[String] = []
+	event_lines: Array[String] = [],
+	profile_names: Dictionary[int, String] = {}
 ) -> bool:
 	stop()
 	_clear_binding()
@@ -80,6 +84,7 @@ func bind_view(
 	_recipient = view.hero_seat
 	_avatars = avatars.duplicate()
 	_names = names.duplicate()
+	_profile_names = profile_names.duplicate()
 	_lines = event_lines.duplicate()
 	_latest.clear()
 	_folds.clear()
@@ -102,7 +107,7 @@ func get_view() -> GameView:
 
 func get_model(density: GuiFitCandidate.Density = GuiFitCandidate.Density.FULL) -> TableViewModel:
 	var model: TableViewModel = TableViewModel.build(
-		_view, _names, _avatars, _latest, _folds, _lines, density
+		_view, _names, _avatars, _latest, _folds, _lines, density, _profile_names
 	)
 	if model.valid and not _feedback.is_empty():
 		model.actions.status_text = _feedback
@@ -216,6 +221,7 @@ func stop() -> void:
 	_held_pending = false
 	_pacer.cancel()
 	_match = null
+	_profile_names.clear()
 
 
 func is_advance_pending() -> bool:
@@ -227,6 +233,7 @@ func _clear_binding() -> void:
 	_recipient = Table.NO_SEAT
 	_avatars.clear()
 	_names.clear()
+	_profile_names.clear()
 	_latest.clear()
 	_folds.clear()
 	_lines.clear()

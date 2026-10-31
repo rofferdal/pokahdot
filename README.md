@@ -38,7 +38,14 @@ reference. **Back**, Escape or platform Back returns to the same form with
 its drafts and validation messages intact. The rules body scrolls separately
 from its always reachable Back action. The Start/Rules previews were accepted
 on 2026-10-31; browser and physical-device checks remain separate from the
-native fixtures recorded in [RIG-02](docs/RulesInGameTasks.md).
+native fixtures recorded in [RIG-02](docs/arkiv/RulesInGameTasks.md).
+
+Hover a bot's displayed name for half a second to see `Bot profile: <profile
+name>`. This works with a real pointer on full and compact tables. Human names
+have no profile popup; touch and keyboard seat-detail activation retain their
+existing behavior. The native desktop and compact previews were accepted on
+2026-11-01; [verification evidence](docs/GuiProfileHoverTasks.md) records the
+scope and browser/device limits.
 
 The game defaults to uninterrupted best-effort layouts instead of the
 “A little more room” warning. Set `useTooLittleRoomWarning=true` in

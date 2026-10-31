@@ -31,7 +31,7 @@ validation display and focus; it does not use tournament-return reset logic.
 An active numeric transaction blocks Rules and Start until Cancel/Done closes
 it. Navigation does not validate configuration, construct a match or consume
 RNG. Native Start/Rules previews were accepted on 2026-10-31; the
-[Rules backlog](../../docs/RulesInGameTasks.md) records test and device limits.
+[Rules backlog](../../docs/arkiv/RulesInGameTasks.md) records test and device limits.
 
 ```mermaid
 flowchart TD
@@ -74,6 +74,33 @@ and confirmation presentation. One active modal blocks underlying actions,
 contains keyboard focus and holds automatic advancement until close. Focus
 returns to an appropriate surviving control after composition changes. Engine
 Back/Escape handling does not intercept browser navigation as a table action.
+
+## Public bot-profile hover
+
+The table owns `BotProfileTooltip.tscn` outside replaceable compositions.
+`GuiMatchFactory` copies only selected profiles' public `display_name` strings
+into a tournament-local `profile_names: Dictionary[int, String]`. Defensive
+copies cross the creation result, startup adapter and table session; pure seat
+models expose validated name/text/eligibility values. No profile Resource,
+strategy data or RNG object enters this metadata path. See the
+[architecture contract](../../docs/ARCHITECTURE.md#gui-adapter) for API and
+validation details.
+
+The tooltip observes real mouse motion against the current component's
+`get_field(&"name")` rectangle and appears after 0.5 seconds. Full seats and
+all compact token scenes share this contract. Compact tokens retain their root
+detail-input handlers and focus order; there is no DetailsButton overlay.
+Human flags and unavailable metadata produce empty tooltip values. Refresh,
+rebind, modal opening and layout/geometry updates cancel pending/visible hover;
+a new real-pointer motion rearms it. Touch-emulated input cannot arm it.
+
+The passive popup inherits OverlayPanel/BodyText styling and wraps full plain
+text at 20 px inside the injected usable area. It suppresses text that cannot
+physically fit there in full. It introduces no seat/card minima or focus stops.
+Keyboard profile descriptions and touch equivalents remain future scope.
+The user accepted native desktop and compact previews on 2026-11-01; see
+[visual verification](../../docs/GUI_VISUAL_TESTING.md#bot-profile-hover-checkpoint)
+for reproducible evidence and browser/device limits.
 
 ## Data and input flow
 

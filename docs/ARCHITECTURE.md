@@ -728,7 +728,7 @@ The completed implementation history proceeded through the interactive CLI first
 ### Shared tournament-rules reference (RIG-00–03)
 
 The finalized reference copy and stable section order are recorded in
-[`RulesInGameTasks.md`](RulesInGameTasks.md#content-contract). Ownership is a
+[`RulesInGameTasks.md`](arkiv/RulesInGameTasks.md#content-contract). Ownership is a
 presentation-neutral `TournamentRulesDocument` Resource containing an ordered
 `Array[TournamentRulesSection]`; each section has a stable `StringName` ID,
 plain `String` title and body. The implemented locations are
@@ -1490,6 +1490,126 @@ density directly; card view models carry authorized face, back or empty state.
 The [coverage map](GuiModelCoverage.md) records current model and integration
 checks as well as historical migration evidence.
 
+**Public bot-profile hover contract (GPH-01, 2026-11-01)**
+
+This section describes the implemented public metadata boundary. GPH-02–GPH-04
+record automated verification and the desktop/compact native previews accepted
+by the user on 2026-11-01; browser/device acceptance remains separate.
+
+`BotProfile.display_name` is the sole public profile-name source, for both
+curated strategic profiles and optional legacy profiles. The factory already
+has the selected profile in its per-seat construction loop. It copies only
+that String into `profile_names: Dictionary[int, String]`, without another
+selection, RNG call, model lookup or inspection of live agent behavior. The
+mapping is keyed by original tournament seat, independently of recipient,
+assigned visual name, avatar, folding, elimination or layout ordering. Full
+profile Resources, parameters, profile/model IDs, agents, private cards,
+decision traces and RNG objects never enter this presentation mapping.
+
+The pure GUI helper `GuiBotProfileMetadata` validates these strings at the
+composition and presentation boundaries. A valid name is nonempty, is equal
+to its `strip_edges()` result, and contains no C0/C1 control characters
+(U+0000–U+001F, U+007F–U+009F) or Unicode line/paragraph separators
+(U+2028/U+2029). Invalid or unavailable names suppress the tooltip; accepted
+names retain their exact Unicode spelling. Render as plain text, never markup.
+Do not truncate names or limit their identity to an arbitrary length; wrap them
+at the popup's measured usable width. Missing/invalid optional display metadata
+does not prevent otherwise valid tournament startup. Composition may emit one
+warning per affected seat containing only the seat number and a fixed reason;
+never log the rejected value, Resource, parameters or agent. Pure model builds
+remain silent to avoid repeated refresh diagnostics.
+
+The adapter path appends optional `profile_names` arguments, default `{}`, to
+existing APIs so fixtures and prior callers remain compatible:
+
+- `GuiMatchCreationResult` appends the argument after `creation_error`, copies
+  it on construction and returns defensive copies from its property.
+- `GuiStartupConfigAdapter` copies successful creation metadata, exposes a
+  defensive getter and clears it at reset, before each startup attempt and
+  after any construction/start failure. `StartupConfigController` forwards it
+  when binding the resulting tournament.
+- `GuiReplacementTableController` and `GuiTableSession` append it to
+  `bind_match()` after `names`, and to `bind_view()` after `event_lines`.
+  Session binding copies it; failed binding, teardown and new-tournament
+  binding clear or replace the previous snapshot. Routine refreshes retain it.
+- `TableViewModel.build()` and `SeatViewModel.build()` append the optional
+  mapping after their existing density argument. Seat values expose detached
+  `bot_profile_name: String`, `bot_profile_tooltip_text: String` and
+  `bot_profile_tooltip_eligible: bool`; eligible
+  text is exactly `Bot profile: <display_name>`. `PlayerView.is_human` always
+  forces empty strings, including for an erroneous mapping entry. Recipient
+  status is not a human detector. Metadata replacement invalidates cached
+  presentation alongside names/avatars; source-map mutation cannot alter an
+  adopted session or previously built model.
+
+All current name paths were inspected: SeatPanel and HeroPanel use `%Name`
+Labels and passive descendants, with no focusable seat-detail target. The
+phone, tablet and landscape SeatToken scenes share `GuiSeatToken`, a root
+with `MOUSE_FILTER_STOP` and `FOCUS_ALL`; its name and other descendants use
+`MOUSE_FILTER_IGNORE`. The root handles touch, real mouse clicks and
+`ui_accept` to open seat details. There is no current `DetailsButton` overlay;
+that proposed seam describes an older implementation. Name-only hover observes
+the real pointer against the existing name Label rectangle without
+intercepting detail presses or changing mouse filters. Those root handlers
+and their keyboard focus order are preserved. Hero presentation uses the same
+contract but human metadata remains empty.
+
+The hover popup is pointer-passive and non-focusable. Existing SeatToken focus
+could host a future explicit accessible description without adding tab stops,
+but no equivalent focus target exists for full seats. Keyboard profile
+information and a touch equivalent are separate future scope decisions; this
+feature does not add labels to the tab order or show a popup on focus/touch.
+Use real-pointer events, excluding touch-emulated mouse input, with one
+consistent hover delay. Close on leaving/switching names, modal opening, name
+removal, rebind, teardown or composition rebuild, and close or reposition on
+resize/rotation using actual usable geometry. Popup styling consumes the
+shared theme and built-in font with a minimum 20 logical-pixel text size; it
+must not change seat minima or card geometry. Official Godot Control/theme
+reference consultation and rendered containment/input evidence belong to
+GPH-03/GPH-04.
+
+**Public bot-profile hover rendering (GPH-03, 2026-11-01)**
+
+`ReplacementPokerTable.tscn` now owns the authored `BotProfileTooltip.tscn`
+(`GuiBotProfileTooltip`) alongside its persistent composition and modal hosts.
+The table injects name-target lookup, blocked-state and actual usable-rectangle
+callbacks. The popup consumes only a seat number, exact tooltip String and
+rectangles, and it observes input without accepting it. Target lookup uses
+`get_seat_controls()` / `get_field(&"name")` for SeatPanel, HeroPanel and all
+SeatToken variants. Existing mouse filters and keyboard focus order remain
+unchanged. Compact root handlers therefore retain seat-detail touch/click and
+keyboard activation without a separate DetailsButton.
+
+Only non-emulated mouse motion arms the fixed 0.5-second delay. Touch,
+emulated mouse, mouse buttons and pressed keyboard keys cancel it. The table
+cancels on session refresh, rebind, teardown, modal opening, geometry/layout
+resolution, window mouse exit and window focus loss; a new real-pointer motion
+is required to rearm. Pending/active targets are rechecked against the current
+name/text/rectangle each frame, so an independently removed or moved name also
+closes the popup. The current usable rectangle clips eligibility; the guidance
+rail cannot trigger an underlying name.
+
+The authored popup and plain Label ignore mouse input and cannot take focus.
+They inherit shared `OverlayPanel` and `BodyText` styling, including the single
+built-in font, 20 px text, contrast and panel padding. TextParagraph measures
+adaptive word wrapping at the available safe width; the Label receives that
+width before its text to avoid a zero-width minimum-height feedback loop.
+Placement first tries below the name, then above, then clamps both axes inside
+the usable area. No seat or card layout is changed. If the complete text cannot
+physically fit within that area at the 20 px floor, this optional popup stays
+hidden rather than truncating the profile identity. Ordinary long-name fit and
+edge containment have separate GUI integration and rendered capture evidence.
+
+Implementation reference consultation used the official Godot
+[Control](https://docs.godotengine.org/en/stable/classes/class_control.html),
+[Theme](https://docs.godotengine.org/en/stable/classes/class_theme.html) and
+[InputEvent](https://docs.godotengine.org/en/stable/classes/class_inputevent.html)
+documentation, including `DEVICE_ID_EMULATION`, inherited theme lookup and
+pointer-passive controls. The user accepted the desktop and compact long-name
+native previews on 2026-11-01. Their scope and automated evidence are recorded
+in [the profile-hover backlog](GuiProfileHoverTasks.md); browser/device
+acceptance remains separate.
+
 **Complete seat components (RG-41, reconciled in RG-50S)**
 
 SeatPanel and HeroPanel are authored VBox scenes with separate framed bodies
@@ -1648,7 +1768,7 @@ guidance preserves the match. Earlier 991 px phone measurements and standalone
 `ReplacementPokerTable.tscn` owns a persistent `CompositionHost`, `OverlayHost`
 and guidance menu rail. `GuiReplacementTableController` coordinates binding,
 measured routing, input, overlays and detached snapshots. `GuiTableSession` owns
-one adopted `TournamentMatch`, copied name/avatar assignments, recipient-safe
+one adopted `TournamentMatch`, copied name/avatar/public-profile assignments, recipient-safe
 views, public event/action history and presentation pacing. It delegates actions,
 Pot targets and progression to the core; match construction remains in the
 existing startup adapter/factory. The reference controller has been retired.

@@ -7,6 +7,9 @@ var error: String = ""
 var seat: int = Table.NO_SEAT
 var display_name: String = ""
 var avatar_path: String = ""
+var bot_profile_name: String = ""
+var bot_profile_tooltip_text: String = ""
+var bot_profile_tooltip_eligible: bool = false
 var stack_text: String = ""
 var stack_value_text: String = ""
 var wager_text: String = ""
@@ -42,7 +45,8 @@ static func build(
 	avatars: Dictionary[int, String],
 	latest: PublicActionRecord = null,
 	retained_fold: PublicActionRecord = null,
-	density: GuiFitCandidate.Density = GuiFitCandidate.Density.FULL
+	density: GuiFitCandidate.Density = GuiFitCandidate.Density.FULL,
+	profile_names: Dictionary[int, String] = {}
 ) -> SeatViewModel:
 	var result := SeatViewModel.new()
 	result.cards = CardRowViewModel.for_seat(view, player.seat if player != null else Table.NO_SEAT)
@@ -57,6 +61,11 @@ static func build(
 		else names.get(player.seat, player.display_name)
 	)
 	result.avatar_path = avatars.get(player.seat, "")
+	var profile_name: String = profile_names.get(player.seat, "")
+	if not player.is_human and GuiBotProfileMetadata.is_valid_name(profile_name):
+		result.bot_profile_name = profile_name
+		result.bot_profile_tooltip_text = "Bot profile: " + profile_name
+		result.bot_profile_tooltip_eligible = true
 	result.stack_value_text = str(player.stack)
 	result.stack_text = str(player.stack) if player.stack >= 100000 else "%d chips" % player.stack
 	result.wager_text = "Bet %d" % player.bet_this_round

@@ -74,6 +74,7 @@ func create(config: ResolvedTournamentConfig) -> GuiMatchCreationResultScript:
 	var profiles := selection.get_profiles()
 	var agents: Dictionary[int, Agent] = {}
 	var profile_index: int = 0
+	var profile_names: Dictionary[int, String] = {}
 	for seat: int in range(config.player_count):
 		if config.seat_agents[seat] == RngStreamFactory.HUMAN_AGENT_ID:
 			agents[seat] = HumanAgent.new()
@@ -94,6 +95,13 @@ func create(config: ResolvedTournamentConfig) -> GuiMatchCreationResultScript:
 							% [seat, "; ".join(agent_creation.errors)]
 						),
 					)
+				)
+			var public_name: String = profiles[profile_index].display_name
+			if GuiBotProfileMetadata.is_valid_name(public_name):
+				profile_names[seat] = public_name
+			else:
+				push_warning(
+					"Bot profile name unavailable for seat %d: invalid public name." % seat
 				)
 			agents[seat] = agent_creation.agent as BotAgent
 			profile_index += 1
@@ -142,6 +150,8 @@ func create(config: ResolvedTournamentConfig) -> GuiMatchCreationResultScript:
 			name_result.assignments,
 			avatar_result.assignments,
 			core_streams.effective_seed,
+			"",
+			profile_names,
 		)
 	)
 

@@ -19,30 +19,32 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
-- [`GuiSpaceWarningTasks.md`](GuiSpaceWarningTasks.md) — complete: configure
+- [`GuiProfileHoverTasks.md`](GuiProfileHoverTasks.md) — complete, independent
+  workstream: hovering a bot seat's display name reveals its public bot profile
+  name. The user accepted desktop and compact long-name previews on 2026-11-01.
+  Full checks pass with 914 Godot tests, 237 Python tests and all four GUI
+  invariant matrices. Native evidence remains separate from browser/device
+  acceptance. This preserves the accepted GUI replacement baseline.
+
+
+## Archived task records
+
+- [`arkiv/GuiSpaceWarningTasks.md`](arkiv/GuiSpaceWarningTasks.md) — complete: configure
   the space warning, defaulting to best-effort play with edge overflow.
 
-- [`CiLayoutTasks.md`](CiLayoutTasks.md) — complete: Actions skips
+- [`arkiv/CiLayoutTasks.md`](arkiv/CiLayoutTasks.md) — complete: Actions skips
   `test_gui_*.gd` and `*_matrix_runner.gd` by default. `RUN_GUI_TESTS` and
   `RUN_GUI_MATRIX_TESTS` independently restore those groups; both true enable
   eleven native jobs, including disjoint M3 shards. Non-GUI quality checks remain
   required; local full gates retain all matrices. Timing reports and local
   verification pass; hosted performance awaits a new Actions run.
 
-- [`RulesInGameTasks.md`](RulesInGameTasks.md) — completed independent workstream:
+- [`arkiv/RulesInGameTasks.md`](arkiv/RulesInGameTasks.md) — completed independent workstream:
   GUI Start → Rules and interactive CLI `rules` share one tournament-reference
   document. RIG-00–05 are verified; the user accepted native Start/Rules previews
   on 2026-10-31. Full checks pass with 889 Godot tests, 227 Python tests and all
   four GUI invariant matrices. Browser/physical-device coverage remains separate.
   This work does not reopen the accepted GUI restructuring baseline.
-
-- [`GuiProfileHoverTasks.md`](GuiProfileHoverTasks.md) — planned, independent
-  workstream: hovering a bot seat's display name reveals its public bot profile
-  name. Implementation is not started; this plan preserves the accepted GUI
-  replacement baseline.
-
-
-## Archived task records
 
 - [`arkiv/RestructureGuiTasks.md`](arkiv/RestructureGuiTasks.md) — GUI restructuring,
   physical-browser corrections and Phase 9 cleanup implemented and verified.

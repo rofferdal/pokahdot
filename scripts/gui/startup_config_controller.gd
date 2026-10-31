@@ -183,6 +183,7 @@ func _on_start_pressed() -> void:
 				0,
 				startup_adapter.avatar_assignments,
 				startup_adapter.name_assignments,
+				startup_adapter.profile_names,
 			)
 		)
 		_startup_panel.hide()

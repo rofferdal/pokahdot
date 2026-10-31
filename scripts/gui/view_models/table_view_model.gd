@@ -22,7 +22,8 @@ static func build(
 	latest_actions: Dictionary[int, PublicActionRecord],
 	retained_folds: Dictionary[int, PublicActionRecord],
 	event_lines: Array[String],
-	copy_density: GuiFitCandidate.Density = GuiFitCandidate.Density.FULL
+	copy_density: GuiFitCandidate.Density = GuiFitCandidate.Density.FULL,
+	profile_names: Dictionary[int, String] = {}
 ) -> TableViewModel:
 	var result := TableViewModel.new()
 	result.density = copy_density
@@ -47,7 +48,8 @@ static func build(
 			avatars,
 			latest_actions.get(player.seat),
 			retained_folds.get(player.seat),
-			copy_density
+			copy_density,
+			profile_names
 		)
 		result.seats.append(seat)
 		result._by_id[player.seat] = seat

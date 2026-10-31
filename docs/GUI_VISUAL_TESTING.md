@@ -158,6 +158,37 @@ The native controller has the equivalent paced regression. The component
 regression verifies that status copy is measured against its human-aligned
 column rather than the lone More button's width.
 
+## Bot-profile hover checkpoint
+
+The user accepted the native desktop and compact long-name previews on
+2026-11-01. This acceptance covers the new profile popup; earlier GUI review
+statuses remain unchanged. Regenerate the production-scene fixtures with:
+
+```bash
+godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 \
+  --audio-driver Dummy --script tests/visual/gui_bot_profile_hover_capture.gd
+```
+
+This runner writes `localtmp/gui-elements/gph-desktop.png` and
+`gph-compact-edge-long.png`, plus JSON geometry/input/source metadata. It uses
+non-emulated mouse-motion events and recipient-safe synthetic fixtures. The
+desktop viewport is 1600×1200 with usable `(16, 20, 1568, 1160)`; compact is
+390×844 with usable `(12, 24, 366, 790)`. Both verify full plain-text identity,
+20 px built-in font and popup containment, including the compact edge/long-name
+case. These native captures do not certify exported-browser or physical-device
+behavior. The runner replaces these session-only files when rerun; retain any
+reviewed captures elsewhere under `localtmp/` first if needed.
+
+Focused integration coverage lives in `test_gui_bot_profile_hover.gd`:
+name-only hover and switching, full/compact seats, human/missing metadata,
+touch-emulation suppression, detail taps and keyboard activation, modal/rebind
+cleanup, refresh/actions, elimination and safe-area/rotation changes. For future
+visual changes, also verify that leaving a name closes the popup, unchanged
+pointer position cannot reopen it after lifecycle cancellation, and all non-name
+seat regions remain free of profile hover. Keyboard access to profile text and
+a touch equivalent are not delivered. Complete verification and acceptance
+records live in [GuiProfileHoverTasks.md](GuiProfileHoverTasks.md).
+
 ## Current support and acceptance
 
 This document owns GUI evidence terminology. The product specification owns

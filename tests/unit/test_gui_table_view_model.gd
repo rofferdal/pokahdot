@@ -9,29 +9,34 @@ func test_every_density_is_detached_and_keeps_all_seven_or_nine_seats() -> void:
 			var view: GameView = _view(count)
 			var names: Dictionary[int, String] = {1: "Leilani"}
 			var avatars: Dictionary[int, String] = {1: "res://assets/avatars/one.svg"}
+			var profiles: Dictionary[int, String] = {0: "Erroneous human entry", 1: "Tight Passive"}
 			var events: Array[String] = ["Hand 1 started", "Human: Check"]
 			var latest: Dictionary[int, PublicActionRecord] = {
 				1: PublicActionRecord.new(1, PlayerAction.Kind.CALL, 1234567)
 			}
 			var model: TableViewModel = TableViewModel.build(
-				view, names, avatars, latest, {}, events, density
+				view, names, avatars, latest, {}, events, density, profiles
 			)
 			assert_true(model.valid)
 			assert_eq(model.seats.size(), count)
 			assert_eq(model.seat_for(0).display_name, "Human")
 			assert_eq(model.seat_for(1).display_name, "Leilani")
+			assert_eq(model.seat_for(0).bot_profile_tooltip_text, "")
+			assert_eq(model.seat_for(1).bot_profile_tooltip_text, "Bot profile: Tight Passive")
 			assert_string_contains(model.seat_for(1).latest_action_text, "1234567")
 			assert_eq(model.history.text, "Hand 1 started\nHuman: Check")
 			assert_eq(model.center.board.cards.size(), 5)
 			_assert_values_only(model, {})
 			var retained: WeakRef = weakref(view)
 			names[1] = "Changed"
+			profiles[1] = "Changed profile"
 			events.clear()
 			latest.clear()
 			view = null
 			assert_null(retained.get_ref())
 			assert_eq(model.history.entries.size(), 2)
 			assert_eq(model.seat_for(1).display_name, "Leilani")
+			assert_eq(model.seat_for(1).bot_profile_name, "Tight Passive")
 
 
 func test_fold_split_and_side_pot_summary_preserves_names_shares_and_emphasis() -> void:
@@ -126,18 +131,24 @@ func _assert_values_only(value: Variant, seen: Dictionary) -> void:
 		for item: Variant in value:
 			_assert_values_only(item, seen)
 	elif value is Dictionary:
-		for item: Variant in value.values():
-			_assert_values_only(item, seen)
+		for key: Variant in value:
+			_assert_values_only(key, seen)
+			_assert_values_only(value[key], seen)
 	elif value is Object:
-		assert_false(
+		assert_true(
 			(
-				value is Node
-				or value is Resource
-				or value is GameView
-				or value is PlayerView
-				or value is PublicActionRecord
-				or value is PotAward
-			)
+				value is TableViewModel
+				or value is SeatViewModel
+				or value is CardRowViewModel
+				or value is CardViewModel
+				or value is CenterViewModel
+				or value is ActionBarViewModel
+				or value is ActionButtonViewModel
+				or value is HandSummaryViewModel
+				or value is HandSummaryLineViewModel
+				or value is EventLogViewModel
+			),
+			"Only detached presentation objects may cross the model boundary."
 		)
 		if seen.has(value.get_instance_id()):
 			return
@@ -145,6 +156,14 @@ func _assert_values_only(value: Variant, seen: Dictionary) -> void:
 		for property: Dictionary in value.get_property_list():
 			if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 				_assert_values_only(value.get(property.name), seen)
+	else:
+		assert_true(
+			(
+				typeof(value)
+				in [TYPE_NIL, TYPE_BOOL, TYPE_INT, TYPE_FLOAT, TYPE_STRING, TYPE_STRING_NAME]
+			),
+			"Presentation leaves must be strings or scalars, without callbacks or opaque handles."
+		)
 
 
 func _view(count: int) -> GameView:

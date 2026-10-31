@@ -43,6 +43,7 @@ var _ever_visible: bool = false
 
 
 func _ready() -> void:
+	get_profile_tooltip().configure(_profile_target_at, _input_blocked, _profile_usable_area)
 	_layout_resolver.configure(
 		_host(),
 		_overlay(),
@@ -85,14 +86,17 @@ func bind_match(
 	match_instance: TournamentMatch,
 	recipient: int,
 	avatars: Dictionary[int, String],
-	names: Dictionary[int, String] = {}
+	names: Dictionary[int, String] = {},
+	profile_names: Dictionary[int, String] = {}
 ) -> bool:
 	_prepare_binding()
 	_bound = true
 	_layout_resolver.set_bound(true)
 	_draft = ""
 	_draft_initialized = false
-	var accepted: bool = _session.bind_match(match_instance, recipient, avatars, names)
+	var accepted: bool = _session.bind_match(
+		match_instance, recipient, avatars, names, profile_names
+	)
 	_bound = accepted
 	_layout_resolver.set_bound(accepted)
 	if not accepted:
@@ -107,14 +111,15 @@ func bind_view(
 	view: GameView,
 	avatars: Dictionary[int, String],
 	names: Dictionary[int, String] = {},
-	event_lines: Array[String] = []
+	event_lines: Array[String] = [],
+	profile_names: Dictionary[int, String] = {}
 ) -> bool:
 	_prepare_binding()
 	_bound = true
 	_layout_resolver.set_bound(true)
 	_draft = ""
 	_draft_initialized = false
-	var accepted: bool = _session.bind_view(view, avatars, names, event_lines)
+	var accepted: bool = _session.bind_view(view, avatars, names, event_lines, profile_names)
 	_bound = accepted
 	_layout_resolver.set_bound(accepted)
 	if not accepted:
@@ -239,12 +244,15 @@ func use_keypad(enabled: bool) -> void:
 
 
 func open_menu() -> void:
+	get_profile_tooltip().cancel()
 	if _bound and is_node_ready():
 		_overlay().set_fallback_focus(_fallback_control())
 		_overlay().open_menu()
 
 
 func teardown() -> void:
+	if is_node_ready():
+		get_profile_tooltip().cancel()
 	_bound = false
 	_layout_resolver.teardown()
 	_session.stop()
@@ -258,6 +266,8 @@ func teardown() -> void:
 
 
 func _on_session_changed() -> void:
+	if is_node_ready():
+		get_profile_tooltip().cancel()
 	_layout_resolver.invalidate_model()
 	_models.clear()
 	if is_node_ready() and _bound:
@@ -318,6 +328,8 @@ func _input_blocked() -> bool:
 
 
 func _request_resolution() -> void:
+	if is_node_ready():
+		get_profile_tooltip().cancel()
 	_pending = _bound
 	_layout_resolver.request_resolution()
 
@@ -415,6 +427,7 @@ func _connect_composition(composition: GuiTableComposition) -> void:
 
 
 func _open_number(value: String) -> void:
+	get_profile_tooltip().cancel()
 	if _input_blocked() or not get_table_view_model().actions.wager_enabled:
 		return
 	_draft = value
@@ -424,6 +437,7 @@ func _open_number(value: String) -> void:
 
 
 func _open_seat(id: int) -> void:
+	get_profile_tooltip().cancel()
 	if not _input_blocked():
 		var model: SeatViewModel = get_table_view_model().seat_for(id)
 		if model != null:
@@ -477,6 +491,8 @@ func _on_visibility_changed() -> void:
 
 
 func _prepare_binding() -> void:
+	if is_node_ready():
+		get_profile_tooltip().cancel()
 	_models.clear()
 	_input_state.reset()
 	_layout_resolver.prepare_binding()
@@ -491,3 +507,52 @@ func _process(_delta: float) -> void:
 	# Await an instance-owned signal: freeing this controller disconnects pending
 	# continuations instead of resuming a dead script from SceneTree signals.
 	frame_tick.emit()
+
+
+func get_profile_tooltip() -> GuiBotProfileTooltip:
+	return get_node("ProfileTooltip") as GuiBotProfileTooltip
+
+
+func _profile_usable_area() -> Rect2:
+	var geometry: GuiViewportGeometry = _layout_resolver.get_geometry()
+	return geometry.usable_rect if geometry != null and geometry.valid else Rect2()
+
+
+func _profile_target_at(point: Vector2) -> Dictionary:
+	if _input_blocked() or not is_visible_in_tree():
+		return {}
+	var composition: GuiTableComposition = get_composition()
+	if composition == null or not composition.is_visible_in_tree():
+		return {}
+	var usable: Rect2 = _profile_usable_area()
+	if not usable.has_point(point):
+		return {}
+	var rail: Control = get_node("GuidanceRail")
+	var to_local: Transform2D = get_global_transform_with_canvas().affine_inverse()
+	if rail.is_visible_in_tree():
+		var rail_rect: Rect2 = (
+			to_local * rail.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, rail.size)
+		)
+		if rail_rect.has_point(point):
+			return {}
+	var model: TableViewModel = get_table_view_model()
+	for id: int in composition.get_seat_controls():
+		var seat: SeatViewModel = model.seat_for(id)
+		if seat == null or seat.bot_profile_tooltip_text.is_empty():
+			continue
+		var control: Control = composition.get_seat_controls()[id]
+		var label: Control = control.get_field(&"name")
+		if label == null or not label.is_visible_in_tree():
+			continue
+		var rect: Rect2 = (
+			to_local * label.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, label.size)
+		)
+		if rect.has_point(point):
+			return {"seat": id, "text": seat.bot_profile_tooltip_text, "rect": rect}
+	return {}
+
+
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_WM_MOUSE_EXIT, NOTIFICATION_WM_WINDOW_FOCUS_OUT]:
+		if is_node_ready():
+			get_profile_tooltip().cancel()

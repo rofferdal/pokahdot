@@ -12,6 +12,9 @@ var name_assignments: Dictionary[int, String]:
 var avatar_assignments: Dictionary[int, String]:
 	get:
 		return _avatar_assignments.duplicate()
+var profile_names: Dictionary[int, String]:
+	get:
+		return _profile_names.duplicate()
 var effective_seed: int:
 	get:
 		return _effective_seed
@@ -22,6 +25,7 @@ var error_message: String:
 var _match_instance: TournamentMatch
 var _name_assignments: Dictionary[int, String]
 var _avatar_assignments: Dictionary[int, String]
+var _profile_names: Dictionary[int, String]
 var _effective_seed: int
 var _error_message: String
 
@@ -32,10 +36,12 @@ func _init(
 	visual_avatar_assignments: Dictionary[int, String] = {},
 	creation_effective_seed: int = 0,
 	creation_error: String = "",
+	profile_names: Dictionary[int, String] = {},
 ) -> void:
 	_match_instance = created_match
 	_name_assignments = visual_name_assignments.duplicate()
 	_avatar_assignments = visual_avatar_assignments.duplicate()
+	_profile_names = profile_names.duplicate()
 	_effective_seed = creation_effective_seed
 	_error_message = creation_error
 

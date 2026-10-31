@@ -565,6 +565,32 @@ cards were actually shown.
   agents, game configuration, domain events, simulation artifacts, or CLI
   labels.
 
+#### GUI bot-profile hover contract
+
+- Hovering only a bot seat's displayed-name region with a real pointer for
+  0.5 seconds shows exactly `Bot profile: <BotProfile.display_name>`. The
+  assigned seat name remains unchanged. The same behavior applies to full
+  seats and compact tokens, independent of viewport size or touch capability.
+- Use the authoritative human flag to suppress human tooltips. Missing or
+  invalid metadata also suppresses the popup. Accept nonempty public names
+  without surrounding whitespace, C0/C1 controls or Unicode line/paragraph
+  separators; preserve accepted names exactly as plain text. Never infer them
+  from visual names, avatars, internal IDs or live decision models.
+- Capture only the public profile-name string at tournament composition, with
+  no extra RNG consumption or private strategy data. Keep its association with
+  the original tournament seat through folding, elimination, refresh and layout
+  changes. New tournaments replace the mapping; reset and failure clear it.
+- The popup is passive and non-focusable. Touch-emulated mouse input cannot
+  trigger it; existing detail taps, keyboard focus order and game actions stay
+  available. Keyboard access to profile information and a touch equivalent
+  remain separate future decisions.
+- Use the shared theme and built-in font at no less than 20 logical/CSS px,
+  wrapping the complete name inside actual usable bounds without changing
+  seat/card geometry. If the entire text cannot physically fit at that floor,
+  suppress the optional popup rather than truncate its identity. Close it on
+  leaving/switching names, modal opening, refresh, rebind or geometry/layout
+  changes; require a new real-pointer motion to rearm.
+
 ### 7.2 Interactive CLI (headless)
 
 Start with:
