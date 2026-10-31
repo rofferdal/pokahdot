@@ -14,6 +14,8 @@ static func mount(host: Node, case: Dictionary) -> Dictionary:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	host.add_child(viewport)
 	var table := TableScene.instantiate() as GuiReplacementTableController
+	table.layout_config = GuiLayoutConfig.new()
+	table.layout_config.useTooLittleRoomWarning = true
 	table.touch_entry = case.category in [&"phone", &"ipad"]
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	table.size = Vector2(case.size)

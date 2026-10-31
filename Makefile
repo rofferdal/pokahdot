@@ -29,7 +29,7 @@ check-without-layout-characterization:
 .PHONY: ci-quality-check check-quality-tools
 ci-quality-check:
 	$(MAKE) --no-print-directory check-quality-tools
-	python3 -B tools/run_ci_gut.py --godot "$(GODOT)"
+	python3 -B tools/run_ci_gut.py --godot "$(GODOT)" $(if $(filter true,$(RUN_GUI_TESTS)),--gui-tests)
 
 check-quality-tools:
 	$(MAKE) --no-print-directory docs-check

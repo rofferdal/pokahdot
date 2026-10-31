@@ -11,6 +11,16 @@ const WideScene := preload("res://scenes/gui/layouts/WideTableLayout.tscn")
 const TabletScene := preload("res://scenes/gui/layouts/TabletTableLayout.tscn")
 const PhoneScene := preload("res://scenes/gui/layouts/PhoneTableLayout.tscn")
 const LandscapeScene := preload("res://scenes/gui/layouts/PhoneLandscapeLayout.tscn")
+@export var layout_config: GuiLayoutConfig = preload("res://resources/gui_layout_config.tres"):
+	set(value):
+		if layout_config != null and layout_config.changed.is_connected(_on_layout_config_changed):
+			layout_config.changed.disconnect(_on_layout_config_changed)
+		layout_config = value
+		if layout_config != null:
+			layout_config.changed.connect(_on_layout_config_changed)
+		if is_node_ready():
+			_on_layout_config_changed()
+
 @export var action_timing_config: Resource
 @export var touch_entry: bool = false
 var _snapshot_capture := GuiReplacementSnapshotCapture.new()
@@ -42,6 +52,9 @@ func _ready() -> void:
 		_update_guidance_rail,
 		_on_layout_settled
 	)
+	if layout_config != null and not layout_config.changed.is_connected(_on_layout_config_changed):
+		layout_config.changed.connect(_on_layout_config_changed)
+	_on_layout_config_changed()
 	_keypad = touch_entry or DisplayServer.is_touchscreen_available()
 	_layout_resolver.set_keypad(_keypad)
 	_session.configure(get_tree(), action_timing_config, _hold_advance, _input_blocked)
@@ -59,6 +72,13 @@ func _ready() -> void:
 	(get_node("GuidanceRail/Row/More") as Button).pressed.connect(open_menu)
 	if _bound:
 		_on_session_changed()
+
+
+func _on_layout_config_changed() -> void:
+	var enabled: bool = layout_config != null and layout_config.useTooLittleRoomWarning
+	_host().use_too_little_room_warning = enabled
+	_layout_resolver.use_too_little_room_warning = enabled
+	_request_resolution()
 
 
 func bind_match(
@@ -412,6 +432,8 @@ func _open_seat(id: int) -> void:
 
 
 func _fallback_control() -> Control:
+	if (get_node("GuidanceRail") as Control).is_visible_in_tree():
+		return get_node("GuidanceRail/Row/More") as Control
 	var composition: GuiTableComposition = get_composition()
 	if (
 		composition != null
@@ -425,7 +447,13 @@ func _fallback_control() -> Control:
 
 func _update_guidance_rail() -> void:
 	var rail: MarginContainer = get_node("GuidanceRail")
-	rail.visible = _host().state == null or _host().state.status != GuiCompositionState.Status.READY
+	var state: GuiCompositionState = _host().state
+	rail.visible = (
+		state == null
+		or state.status != GuiCompositionState.Status.READY
+		or state.allocation_size.x > state.geometry.usable_rect.size.x
+		or state.allocation_size.y > state.geometry.usable_rect.size.y
+	)
 	var geometry: GuiViewportGeometry = _layout_resolver.get_geometry()
 	rail.position = geometry.usable_rect.position
 	rail.size = Vector2(geometry.usable_rect.size.x, rail.get_combined_minimum_size().y)

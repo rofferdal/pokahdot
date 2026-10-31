@@ -152,6 +152,52 @@ with scripts in [`scripts/gui/components/`](../../scripts/gui/components/):
 `GuiTypography` provides density-aware typography. Avoid duplicating palette,
 input behavior or layout policy inside every component.
 
+## Space-warning preference
+
+The application setting **`useTooLittleRoomWarning` defaults to `false`** in
+[`resources/gui_layout_config.tres`](../../resources/gui_layout_config.tres).
+Its typed Resource is
+[`GuiLayoutConfig`](../../scripts/gui/gui_layout_config.gd), and
+`GuiReplacementTableController.layout_config` loads that Resource by default.
+Edit the application resource to select the behavior:
+
+```ini
+useTooLittleRoomWarning = false
+```
+
+| Value | Behavior when the table does not fit |
+| --- | --- |
+| `false` (default) | Keep playing with a measured, best-effort composition. Suppress the “A little more room” replacement and allow content to extend past the usable screen edges. |
+| `true` | Restore strict fit checks. Replace an infeasible table with the warning and block table actions until a fitting layout is available. |
+
+Both modes first prefer a fitting composition. With warnings off, a valid
+candidate requiring the least proportional overflow is used when none fits.
+The host allocates at least its measured minimum, keeps the human/action area
+at the bottom, and shares horizontal spill between the sides. The visible
+composition also suppresses its own transient space warning during reflow.
+The actual viewport/safe-area geometry remains unchanged in snapshots and for
+modal placement. An on-screen More / Quit fallback remains available when the
+composition overflows.
+
+This is an intentional preference for uninterrupted play over strict screen
+containment. Some content can be clipped by the browser/window; text floors
+are retained. The preference applies to portrait and landscape and survives
+rotation and safe-area changes. It does not change player counts, poker rules,
+RNG, tournament state, or normal modal/settlement input guards. Invalid geometry,
+invalid data and missing compositions are not treated as valid fits.
+The phone startup participant range remains 2–7.
+
+For a per-table override, assign a separate `GuiLayoutConfig` to `layout_config`.
+Changing its property at runtime emits `changed` and reapplies layout without
+resetting the tournament or committed wager draft. Rebuild/export the application
+to distribute a changed authored default. This setting is separate from the
+`RUN_GUI_TESTS` and `RUN_GUI_MATRIX_TESTS` Actions variables, which select tests.
+
+Strict layout fixtures explicitly set `useTooLittleRoomWarning=true`, retaining
+containment/guidance assertions. `test_gui_space_warning_config.gd` covers the
+default, both orientations, safe-area/rotation changes, runtime switching,
+wager retention, nine-seat resize and live human actions with warnings off.
+
 ## Viewport classification and measured fit
 
 ```mermaid
@@ -169,7 +215,9 @@ flowchart TD
     Geometry --> Classify --> Fit
     Measure --> Fit
     Fit -->|fits| Host --> Render
-    Fit -->|infeasible| Guidance
+    Fit -->|infeasible, warning enabled| Guidance
+    Fit -->|infeasible, warning disabled| Overflow["Measured minimum allocation / edge overflow"]
+    Overflow --> Host
 ```
 
 [`GuiViewportAdapter`](../../scripts/gui/platform/gui_viewport_adapter.gd)

@@ -10,12 +10,14 @@ signal entry_requested(draft: String)
 signal menu_requested
 signal seat_detail_requested(seat: int)
 
+var allow_edge_overflow: bool = false
 var policy: GuiCompositionState
 
 
 func apply_policy(state: GuiCompositionState) -> void:
 	theme = GuiTypography.for_density(state.density)
 	theme_type_variation = &"TableComposition"
+	allow_edge_overflow = state.allow_edge_overflow
 	policy = state
 	policy_changed.emit(state)
 

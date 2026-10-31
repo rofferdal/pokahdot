@@ -12,6 +12,8 @@ var density: GuiFitCandidate.Density = GuiFitCandidate.Density.COMPACT
 var action_flow: GuiFitCandidate.ActionFlow = GuiFitCandidate.ActionFlow.TWO_ROWS
 var seats: GuiSeatRows
 var guidance: String = ""
+var allow_edge_overflow: bool = false
+var allocation_size := Vector2.ZERO
 
 
 static func from_fit(value: GuiViewportGeometry, policy: GuiFitPolicy) -> GuiCompositionState:
@@ -19,11 +21,14 @@ static func from_fit(value: GuiViewportGeometry, policy: GuiFitPolicy) -> GuiCom
 	result.geometry = value
 	result.fit = policy
 	result.guidance = policy.guidance
-	if policy.status != GuiFitPolicy.Status.FIT:
+	if policy.status not in [GuiFitPolicy.Status.FIT, GuiFitPolicy.Status.OVERFLOW]:
 		result.status = (
 			Status.WAITING if policy.status == GuiFitPolicy.Status.NOT_READY else Status.GUIDANCE
 		)
 		return result
+	result.allocation_size = value.usable_rect.size
+	if policy.status == GuiFitPolicy.Status.OVERFLOW:
+		result.allocation_size = result.allocation_size.max(policy.selected.minimum)
 	result.status = Status.READY
 	result.mode = policy.selected.mode
 	result.density = policy.selected.density

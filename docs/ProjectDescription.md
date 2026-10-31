@@ -459,7 +459,11 @@ cards were actually shown.
   Start tournament gesture. Provide a Fullscreen menu action to re-enter after
   browser exit. Preserve orientation, match state and wager drafts during
   fullscreen/viewport changes. Unsupported or refused fullscreen must not
-  prevent ordinary browser play; genuinely infeasible space still uses guidance.
+  prevent ordinary browser play. `useTooLittleRoomWarning` controls space
+  guidance and defaults to false: prefer a measured best-effort table with
+  permitted edge overflow over replacing play with “A little more room”.
+  When true, retain strict fit guidance and pause table actions while infeasible.
+  Preserve text floors, game state and actual viewport/safe-area geometry.
 - Use one main table scene. The default window is 1920 × 1080, and the table
   must reflow without overlap at representative desktop and mobile aspect
   ratios.

@@ -47,7 +47,7 @@ func _notification(what: int) -> void:
 func apply_policy(state: GuiCompositionState) -> void:
 	super.apply_policy(state)
 	if state.geometry != null and state.geometry.valid:
-		_limit = state.geometry.usable_rect.size
+		_limit = state.geometry.usable_rect.size.max(state.allocation_size)
 	_queue_layout()
 
 
@@ -318,7 +318,7 @@ func _layout() -> void:
 	if not _measuring and custom_minimum_size != minimum:
 		custom_minimum_size = minimum
 	_guidance = ""
-	if not _measuring and (not _has_model or not _plan.feasible):
+	if not allow_edge_overflow and not _measuring and (not _has_model or not _plan.feasible):
 		_guidance = (
 			"Eight or nine players require a larger layout."
 			if not _capacity

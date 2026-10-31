@@ -35,6 +35,8 @@ func test_replacement_supported_layouts_and_guidance() -> void:
 		viewport.gui_embed_subwindows = true
 		add_child(viewport)
 		var table := TableScene.instantiate() as GuiReplacementTableController
+		table.layout_config = GuiLayoutConfig.new()
+		table.layout_config.useTooLittleRoomWarning = true
 		table.touch_entry = item.size.y < 600 or item.size.x < 600
 		table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		table.size = Vector2(item.size)
@@ -89,6 +91,8 @@ func test_replacement_public_states_at_wide_allocation() -> void:
 			viewport.gui_embed_subwindows = true
 			add_child(viewport)
 			var table := TableScene.instantiate() as GuiReplacementTableController
+			table.layout_config = GuiLayoutConfig.new()
+			table.layout_config.useTooLittleRoomWarning = true
 			table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			viewport.add_child(table)
 			table.set_viewport_geometry(GuiViewportGeometry.injected(Vector2(viewport.size)))
@@ -128,6 +132,8 @@ func test_replacement_public_states_on_phone_show_content_or_guidance() -> void:
 			viewport.gui_embed_subwindows = true
 			add_child(viewport)
 			var table := TableScene.instantiate() as GuiReplacementTableController
+			table.layout_config = GuiLayoutConfig.new()
+			table.layout_config.useTooLittleRoomWarning = true
 			table.touch_entry = true
 			table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			viewport.add_child(table)
@@ -171,6 +177,8 @@ func test_independent_large_values_remain_exact_or_show_guidance() -> void:
 			viewport.gui_embed_subwindows = true
 			add_child(viewport)
 			var table := TableScene.instantiate() as GuiReplacementTableController
+			table.layout_config = GuiLayoutConfig.new()
+			table.layout_config.useTooLittleRoomWarning = true
 			table.touch_entry = allocation.x < 600
 			table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			viewport.add_child(table)

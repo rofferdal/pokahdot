@@ -16,11 +16,14 @@ env:
 jobs:
   quality:
     uses: ./.github/workflows/check-quality.yml
+    with:
+      run-gui-tests: ${{ vars.RUN_GUI_TESTS == 'true' }}
 
   native-layouts:
     uses: ./.github/workflows/check-native-layouts.yml
     with:
       run-matrix-tests: ${{ vars.RUN_GUI_MATRIX_TESTS == 'true' }}
+      run-gui-tests: ${{ vars.RUN_GUI_TESTS == 'true' }}
 
   checks:
     name: Checks and current layouts

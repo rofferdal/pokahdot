@@ -641,9 +641,9 @@ this process:
    is not the promotion record.
 4. Push the reviewed commit to `main`, then record the automatically triggered
    **Deploy Web release** run URL and deployed commit SHA.
-5. CI validates the pushed SHA through quality and phone-unit checks. Matrix
-   runners are off by default; repository Actions variable
-   `RUN_GUI_MATRIX_TESTS=true` additionally requires the parallel matrix jobs.
+5. CI validates the pushed SHA through non-GUI quality checks by default.
+   `RUN_GUI_TESTS=true` enables GUI unit suites and `RUN_GUI_MATRIX_TESTS=true`
+   independently enables matrix runners. Both repository variables default off.
    All enabled checks must pass before the dependent build job checks out that
    SHA, exports Web and verifies the output. Local full release gates still
    include all matrices. CI does not
@@ -750,3 +750,14 @@ For a seven-player phone action profile, use `--profiles phone --players 7
 390 × 844. Use fresh evidence when profiling a corrected build; keyboard
 entry and maximum-value stress can have different measured envelopes. Profiling records synthetic
 host timings and does not replace physical-device acceptance.
+
+
+## Configurable space-warning verification
+
+`resources/gui_layout_config.tres` defaults `useTooLittleRoomWarning=false`.
+The application keeps a best-effort table visible when it cannot fit; physical
+edge overflow is intentional in this mode. Set the property true to restore
+strict guidance. Native invariant/characterization fixtures explicitly enable
+it, so containment checks retain their previous meaning. Cover both modes in
+feature tests; do not treat disabled warnings as evidence of physical fit.
+See the [configuration reference](../devdocs/reference/gui-composition.md#space-warning-preference).

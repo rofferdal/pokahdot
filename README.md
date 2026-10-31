@@ -40,6 +40,12 @@ from its always reachable Back action. The Start/Rules previews were accepted
 on 2026-10-31; browser and physical-device checks remain separate from the
 native fixtures recorded in [RIG-02](docs/RulesInGameTasks.md).
 
+The game defaults to uninterrupted best-effort layouts instead of the
+“A little more room” warning. Set `useTooLittleRoomWarning=true` in
+[`resources/gui_layout_config.tres`](resources/gui_layout_config.tres) to restore
+strict space warnings. See the [GUI configuration reference](devdocs/reference/gui-composition.md#space-warning-preference)
+for both modes and edge-overflow behavior.
+
 From a terminal with the repository root as the working directory:
 
 ```bash
@@ -431,11 +437,13 @@ defect. The complete command reference is also available in
 the replacement M3, phone, iPad, and desktop layout matrices during development.
 `check` also runs the replacement size policy and native composition matrix.
 The historical reference registry remains documented as past evidence.
-GitHub Actions defaults to skipping `*_matrix_runner.gd` suites. Quality checks
-and the complete phone-layout unit job still run on clean checkouts with Godot
+GitHub Actions defaults to skipping `test_gui_*.gd` and `*_matrix_runner.gd`
+suites. Non-GUI quality checks still run on clean checkouts with Godot
 4.7.2. Set the repository Actions variable `RUN_GUI_MATRIX_TESTS` to `true` to
-also run the matrix suites in parallel: four characterization groups, three
-M3 invariant shards and three category invariant matrices. Local `make check`,
+run the matrix suites in parallel: four characterization groups, three
+M3 invariant shards and three category invariant matrices. Independently set
+`RUN_GUI_TESTS=true` to enable GUI unit suites and the separate phone-layout
+unit job. With both settings true, all eleven native jobs run. Local `make check`,
 `release-candidate-gate` and `web-release` always retain their full coverage.
 Enabled layout jobs print fixture progress; all jobs record hardware details
 and publish timing summaries and JUnit artifacts. The **Checks and current

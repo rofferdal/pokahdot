@@ -6,6 +6,7 @@ extends Control
 signal policy_changed(state: GuiCompositionState)
 signal measurements_invalidated
 
+var use_too_little_room_warning: bool = true
 var state: GuiCompositionState
 var _scenes: Dictionary[int, PackedScene] = {}
 var _composition: GuiTableComposition
@@ -45,13 +46,17 @@ func present(
 	assert(is_node_ready(), "Mount the composition host before presenting.")
 	_applying = true
 	state = GuiCompositionState.from_fit(
-		geometry, GuiFitPolicy.resolve(geometry, ids, recipient, candidates, fixture_override)
+		geometry,
+		GuiFitPolicy.resolve(
+			geometry, ids, recipient, candidates, fixture_override, not use_too_little_room_warning
+		)
 	)
+	state.allow_edge_overflow = not use_too_little_room_warning
 	if geometry != null and geometry.valid:
 		# The host is app-root-local; only this boundary applies the usable origin.
 		size = geometry.full_rect.size
 		_slot.position = geometry.usable_rect.position
-		_slot.size = geometry.usable_rect.size
+		_restore_allocation()
 	if state.status == GuiCompositionState.Status.READY:
 		_mount_selected()
 	if state.status == GuiCompositionState.Status.READY:
@@ -92,12 +97,19 @@ func _verify_minimum() -> void:
 	if state == null or state.status != GuiCompositionState.Status.READY:
 		return
 	var minimum: Vector2 = _composition.get_combined_minimum_size()
-	var available: Vector2 = state.geometry.usable_rect.size
+	var available: Vector2 = (
+		state.geometry.usable_rect.size if use_too_little_room_warning else state.allocation_size
+	)
 	if minimum.x <= available.x and minimum.y <= available.y:
 		return
 	# A responsive composition must finish reflowing its previous allocation
 	# before the host can reject its minimum for the new geometry.
 	if _composition.get_layout_snapshot(self).pending:
+		return
+	if not use_too_little_room_warning:
+		state.allocation_size = available.max(minimum)
+		_restore_allocation()
+		_composition.apply_policy(state)
 		return
 	state = GuiCompositionState.from_fit(state.geometry, state.fit)
 	state.status = GuiCompositionState.Status.CONTENT_MINIMUM
@@ -134,4 +146,10 @@ func _restore_allocation() -> void:
 	if state.geometry != null and state.geometry.valid:
 		# Hiding an obsolete composition releases its propagated minimum before
 		# restoring the slot allocation for the new content/guidance.
-		_slot.size = state.geometry.usable_rect.size
+		var area: Rect2 = state.geometry.usable_rect
+		var allocation: Vector2 = area.size.max(state.allocation_size)
+		_slot.size = allocation
+		# Preserve the human/action rail at the bottom; share horizontal spill.
+		_slot.position = (
+			area.position + Vector2((area.size.x - allocation.x) / 2.0, area.size.y - allocation.y)
+		)

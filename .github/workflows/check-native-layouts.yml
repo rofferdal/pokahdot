@@ -8,6 +8,11 @@ on:
         type: boolean
         default: false
 
+      run-gui-tests:
+        description: Include test_gui_*.gd suites
+        type: boolean
+        default: false
+
 permissions:
   contents: read
 
@@ -15,16 +20,31 @@ env:
   GODOT_RELEASE: 4.7.2-stable
 
 jobs:
+  selection:
+    name: Select optional native tests
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.selection.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - id: selection
+        env:
+          RUN_GUI_TESTS: ${{ inputs.run-gui-tests }}
+          RUN_GUI_MATRIX_TESTS: ${{ inputs.run-matrix-tests }}
+        run: python3 tools/ci_test_selection.py
+
   layouts:
+    needs: selection
+    if: needs.selection.outputs.targets != '[]'
+
     name: Native layout / ${{ matrix.target }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        target: >-
-          ${{ fromJSON(inputs.run-matrix-tests &&
-            '["gui-characterization-supported", "gui-characterization-wide", "gui-characterization-phone", "gui-characterization-large-values", "gui-phone-table-layout-gate", "gui-m3-supported-invariant-gate", "gui-m3-wide-invariant-gate", "gui-m3-phone-invariant-gate", "gui-phone-invariant-gate", "gui-ipad-invariant-gate", "gui-desktop-invariant-gate"]'
-            || '["gui-phone-table-layout-gate"]') }}
+        target: ${{ fromJSON(needs.selection.outputs.targets) }}
     steps:
       - name: Check out proposed commit
         uses: actions/checkout@v6
@@ -71,3 +91,22 @@ jobs:
             localtmp/ci-layout/*.xml
             localtmp/ci-layout/*.gutconfig.json
           if-no-files-found: warn
+
+  complete:
+    name: Validate native test selection
+    needs: [selection, layouts]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require enabled suites and allow only intentional skips
+        env:
+          SELECTION_RESULT: ${{ needs.selection.result }}
+          LAYOUT_RESULT: ${{ needs.layouts.result }}
+          TARGETS: ${{ needs.selection.outputs.targets }}
+        run: |
+          test "$SELECTION_RESULT" = success
+          if [ "$TARGETS" = '[]' ]; then
+            test "$LAYOUT_RESULT" = skipped
+          else
+            test "$LAYOUT_RESULT" = success
+          fi

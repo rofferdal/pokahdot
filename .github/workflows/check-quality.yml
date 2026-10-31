@@ -2,6 +2,11 @@ name: Shared quality checks
 
 on:
   workflow_call:
+    inputs:
+      run-gui-tests:
+        description: Include test_gui_*.gd suites
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,6 +52,8 @@ jobs:
           .venv/bin/python -m pip install --requirement requirements-dev.txt
 
       - name: Validate the clean proposed commit
+        env:
+          RUN_GUI_TESTS: ${{ inputs.run-gui-tests }}
         run: |
           make require-clean-worktree
           make ci-quality-check

@@ -16,7 +16,7 @@ SPEC.loader.exec_module(CI_GUT)
 class CiSuitePartitionTests(unittest.TestCase):
     def test_real_partition_preserves_configured_non_matrix_scripts_and_options(self):
         original = json.loads((ROOT / ".gutconfig.json").read_text())
-        result = CI_GUT.quality_config(ROOT, original)
+        result = CI_GUT.quality_config(ROOT, original, run_gui_tests=True)
         expected = set(original.get("tests", []))
         for directory in original["dirs"]:
             folder = ROOT / directory.removeprefix("res://")
@@ -46,17 +46,28 @@ class CiSuitePartitionTests(unittest.TestCase):
             (nested / "test_nested.gd").touch()
             config = {"dirs": ["res://tests/unit/"], "include_subdirs": True,
                       "tests": ["res://explicit.gd", "res://explicit_matrix_runner.gd"], "log_level": 3}
-            result = CI_GUT.quality_config(root, config)
+            result = CI_GUT.quality_config(root, config, run_gui_tests=True)
             self.assertEqual(result["tests"], ["res://explicit.gd",
                              "res://tests/unit/nested/test_nested.gd",
                              "res://tests/unit/test_future.gd"])
             self.assertEqual(result["log_level"], 3)
             config["include_subdirs"] = False
             self.assertNotIn("res://tests/unit/nested/test_nested.gd",
-                             CI_GUT.quality_config(root, config)["tests"])
+                             CI_GUT.quality_config(root, config, run_gui_tests=True)["tests"])
+
+    def test_gui_suites_are_excluded_by_default_and_can_be_enabled(self):
+        original = json.loads((ROOT / ".gutconfig.json").read_text())
+        disabled = CI_GUT.quality_config(ROOT, original)
+        enabled = CI_GUT.quality_config(ROOT, original, run_gui_tests=True)
+        self.assertFalse(any(Path(path).name.startswith("test_gui_")
+                             for path in disabled["tests"]))
+        expected = [path for path in enabled["tests"]
+                    if not Path(path).name.startswith("test_gui_")]
+        self.assertEqual(disabled["tests"], expected)
+        self.assertGreater(len(enabled["tests"]), len(disabled["tests"]))
 
     def test_missing_phone_suite_or_empty_quality_partition_fail_closed(self):
         with self.assertRaisesRegex(ValueError, "was not discovered"):
-            CI_GUT.quality_config(ROOT, {"dirs": [], "tests": ["res://other.gd"]})
+            CI_GUT.quality_config(ROOT, {"dirs": [], "tests": ["res://other.gd"]}, run_gui_tests=True)
         with self.assertRaisesRegex(ValueError, "must not be empty"):
             CI_GUT.quality_config(ROOT, {"dirs": [], "tests": [CI_GUT.PHONE_SUITE]})

@@ -374,6 +374,8 @@ func _setup(size: Vector2, mode: GuiSizeClass.LayoutMode) -> void:
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child_autofree(_viewport)
 	_table = Controller.instantiate()
+	_table.layout_config = GuiLayoutConfig.new()
+	_table.layout_config.useTooLittleRoomWarning = true
 	_table.touch_entry = true
 	_table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_viewport.add_child(_table)

@@ -37,6 +37,10 @@ accepted the native Start/Rules previews on 2026-10-31. Native fixtures cover
 widths from 360 px; smaller widths, browsers and physical devices require
 separate verification.
 
+The table's `useTooLittleRoomWarning` preference defaults off. Its Resource
+location, strict-mode behavior and edge-overflow tradeoff are documented in
+[GUI composition](../reference/gui-composition.md#space-warning-preference).
+
 ### Launch the Interactive CLI
 To play an interactive poker tournament in your terminal:
 ```bash
@@ -325,13 +329,13 @@ coverage tests verify that their case IDs form the original matrix exactly
 once. Running on separate runners reduces each job's workload, while actual
 elapsed time also depends on runner speed and job queueing.
 
-The phone-layout unit suite has 120 combinations in its native-minimum test
+When GUI tests are enabled, the phone-layout unit suite has 120 combinations in its native-minimum test
 alone, with two ten-frame waits for each. CI runs the complete file through
 `make gui-phone-table-layout-gate` as another required parallel job, retaining
 all frame waits and assertions. It prints per-combination progress and timing.
 `tools/run_ci_gut.py` discovers the ordinary configured GUT suite and excludes
 that file and `*_matrix_runner.gd` from `ci-quality-check`; partition tests
-verify coverage of the configured non-matrix suite and future test files. Local `make check`
+verify coverage of the selected suite and future test files. Local `make check`
 and direct GUT runs still include every unit test.
 
 CI records runner CPU/memory details and writes GUT JUnit reports under
@@ -559,14 +563,23 @@ Before submitting pull requests, ensure all tests and linters pass.
 
 Run `make check gui-current-invariant-gate` while developing. Pull requests
 run shared quality and native-layout workflows on the clean proposed merge
-with pinned Godot 4.7.2. Matrix runners are **off by default**. Set repository
-Actions variable `RUN_GUI_MATRIX_TESTS=true` to enable them for PR and deployment
-workflows. Unset, false or other non-true values leave them disabled.
-`check-quality.yml` runs `make ci-quality-check` without matrix runners;
-`check-native-layouts.yml` always runs the complete phone-layout unit suite.
-When enabled, it additionally runs four characterization, three M3 invariant
-and three category invariant jobs. These modes do not change local `make check`,
-`make release-candidate-gate` or `make web-release`, which retain all matrices.
+with pinned Godot 4.7.2. Both optional test groups are **off by default**.
+Configure these repository Actions variables independently:
+
+| Variable | When `true` |
+| --- | --- |
+| `RUN_GUI_TESTS` | Include `test_gui_*.gd` in quality checks and run the complete phone-layout unit job separately. |
+| `RUN_GUI_MATRIX_TESTS` | Run all `*_matrix_runner.gd` suites through ten parallel shards. |
+
+Unset or false values disable the corresponding group. With both true, all
+eleven native test jobs run. With both false, a selection/status job records
+that no native suite was requested; no empty GUT run is launched. The completion
+check accepts skipped native execution only for this intentional empty selection.
+Quality checks still run the non-GUI suite, lint, formatting and Python tests.
+These settings affect PR and deployment workflows, not local `make check`,
+`make release-candidate-gate` or `make web-release`, which retain all tests.
+For the optional GUI quality subset locally, use
+`RUN_GUI_TESTS=true make ci-quality-check`; plain `make check` is always full.
 Each job checks tree cleanliness. The **Checks and current layouts** aggregate
 status fails unless both shared workflows succeed, including when dependencies
 fail, cancel or skip. It performs no deployment; maintainers can retain this

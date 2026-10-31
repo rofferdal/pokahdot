@@ -45,22 +45,13 @@ func test_native_workflow_runs_all_characterization_and_invariant_groups() -> vo
 		"gui-ipad-invariant-gate",
 		"gui-desktop-invariant-gate",
 	]
-	var choices := RegEx.new()
-	assert_eq(
-		(
-			choices
-			. compile(
-				"(?s)fromJSON\\(inputs.run-matrix-tests\\s*&&\\s*'([^']+)'\\s*\\|\\|\\s*'([^']+)'\\s*\\)"
-			)
-		),
-		OK
-	)
-	var selection: RegExMatch = choices.search(workflow)
-	assert_not_null(selection)
-	if selection == null:
-		return
-	assert_eq(JSON.parse_string(selection.get_string(1)), expected)
-	assert_eq(JSON.parse_string(selection.get_string(2)), ["gui-phone-table-layout-gate"])
+	var selector: String = _read("res://tools/ci_test_selection.py")
+	for target: String in expected:
+		assert_string_contains(selector, '"' + target + '"')
+	assert_string_contains(workflow, "needs: selection")
+	assert_string_contains(workflow, "if: needs.selection.outputs.targets != '[]'")
+	assert_string_contains(workflow, "target: ${{ fromJSON(needs.selection.outputs.targets) }}")
+	assert_string_contains(workflow, "run: python3 tools/ci_test_selection.py")
 	assert_string_contains(workflow, "type: boolean\n        default: false")
 	assert_string_contains(workflow, "fail-fast: false")
 	assert_string_contains(workflow, "workflow_call:")
@@ -79,6 +70,7 @@ func test_native_workflow_runs_all_characterization_and_invariant_groups() -> vo
 		assert_string_contains(
 			_read(caller), "run-matrix-tests: ${{ vars.RUN_GUI_MATRIX_TESTS == 'true' }}"
 		)
+		assert_string_contains(_read(caller), "run-gui-tests: ${{ vars.RUN_GUI_TESTS == 'true' }}")
 	assert_false("continue-on-error" in workflow)
 
 

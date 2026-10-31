@@ -780,6 +780,27 @@ case-insensitive and exact; extra arguments remain recoverable invalid input.
 Help, prompts and startup usage advertise the command. There is no `--rules`
 flag or additional post-completion input loop.
 
+### Configurable space warning
+
+SPACE-00 (2026-10-31): `GuiLayoutConfig` in `scripts/gui/` is a presentation
+Resource; `resources/gui_layout_config.tres` authors
+`useTooLittleRoomWarning=false`. The controller re-resolves layout on Resource
+changes; core rules and tournament configuration are unaffected. See the
+[developer reference](../devdocs/reference/gui-composition.md#space-warning-preference).
+
+Strict fit remains the first choice. With warnings disabled, `GuiFitPolicy`
+may return `OVERFLOW` with a valid orientation-compatible candidate requiring
+the smallest maximum width/height overflow ratio. Composition allocation is
+separate from actual viewport geometry. The host expands only that allocation,
+anchors its bottom to the usable bottom and shares horizontal spill. Live
+minimum growth follows the same policy. Compositions suppress their internal
+space warnings, preserve text floors, and keep More / Quit within the actual
+usable area. Viewport clipping still applies. `READY` means a composition can
+accept play; physical containment is measured independently. Invalid data,
+geometry and missing scenes retain error handling. Enabling the preference
+restores strict guidance and input blocking. Strict diagnostic fixtures enable
+it explicitly instead of weakening the containment assertions.
+
 ### GUI adapter
 
 Cutover ownership decision (RG-54): `StartupConfigController` creates one
@@ -1960,7 +1981,7 @@ and `G` the applicable measured gaps/margins. Evaluate finite container plans:
 | Phone landscape, 2–7 | Use equal complete seat footprints in symmetric side rows, a centered board above the separate human, and actions to the right with a symmetric width reserve. If needed, compare the permitted top-triple alternative; other rows stay paired. |
 | Compact tablet, 2–9, either orientation | `GuiTabletTablePlan` compares a shared side-seat corridor with side or below-human actions, then fully stacked board/human/action bands when the human-width cards cannot share that corridor. Native card/metadata height and complete seat/status minima determine fit. |
 | Wide, 2–9 | The seat-ring Container derives its minimum from complete seat/status footprints, center and lower regions, theme gaps and the count's paired-row template. The human has its own bottom row. Compact/regular density and action flow are finite measured candidates. |
-| Infeasible or invalid space | Preserve tournament/configuration state and show explicit resize/rotate guidance. Phone counts 8–9 require a feasible wider composition. Never hide required copy, clamp seat counts or scale text below its floor. |
+| Infeasible or invalid space | Preserve state and text floors. Invalid input retains error handling; insufficient space uses measured best-effort overflow by default, or strict guidance with `useTooLittleRoomWarning=true`. Never clamp seat counts. |
 
 The replacement must retain a feasible candidate as space grows, even when a
 preferred size class changes. Component minimum-size propagation and Container
@@ -2330,8 +2351,11 @@ test-selection coverage guards prevent missing or duplicated cases. No scene
 or layout algorithm changes are required for this split.
 CI-04 (explicit user request, 2026-10-31) makes `*_matrix_runner.gd`
 suites optional in Actions, disabled by default. Both callers pass the boolean
-`vars.RUN_GUI_MATRIX_TESTS == 'true'` into the reusable workflow. Disabled mode
-creates only the phone-layout unit job; enabled mode creates all eleven jobs.
+`vars.RUN_GUI_MATRIX_TESTS == 'true'` into the reusable workflow. CI-05 adds independent `RUN_GUI_TESTS=false` to exclude `test_gui_*.gd`,
+including the phone job, by default. `ci_test_selection.py` chooses zero, one,
+ten or eleven native jobs for the four flag combinations. A selection job
+always records the policy; a completion job permits skipped execution only
+for an empty selection and requires success otherwise.
 The aggregate and deployment still require quality plus the selected native
 jobs to succeed. This is an intentional CI coverage policy change, separate
 from local full-release checks. No application/runtime configuration changes.
@@ -2340,8 +2364,8 @@ groups. Every job checks cleanliness; the aggregate runs even after a failed,
 cancelled or skipped dependency and accepts only success. The CI quality adapter
 reads `.gutconfig.json`, discovers test scripts and
 writes a temporary config under `localtmp/ci-layout/`, excluding the separately
-required phone-layout file and all `*_matrix_runner.gd` scripts. Partition tests
-verify the non-matrix union and reject a missing phone suite or empty quality
+run phone-layout file, matrix runners and, by default, `test_gui_*.gd` scripts. Partition tests
+verify the selected-suite union and reject a missing phone suite or empty quality
 suite. Local default GUT behavior is unchanged. Fixture-level
 START/DONE, elapsed time and characterization frame counts expose progress.
 Both reusable workflows record CPU/memory details and retain GUT JUnit XML.

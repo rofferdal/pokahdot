@@ -313,6 +313,8 @@ func _setup(extent: Vector2i) -> void:
 	_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(_viewport)
 	_table = Controller.instantiate()
+	_table.layout_config = GuiLayoutConfig.new()
+	_table.layout_config.useTooLittleRoomWarning = true
 	_table.touch_entry = true
 	_table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_viewport.add_child(_table)

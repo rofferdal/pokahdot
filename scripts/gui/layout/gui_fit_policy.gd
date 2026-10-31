@@ -3,7 +3,7 @@ extends RefCounted
 
 ## Expected unsupported states are values; adapters present guidance and retain
 ## configuration/tournament state. Only fixture callers supply a mode override.
-enum Status { NOT_READY, INVALID_INPUT, NEEDS_MEASUREMENTS, PHONE_CAPACITY, TOO_SMALL, FIT }
+enum Status {NOT_READY, INVALID_INPUT, NEEDS_MEASUREMENTS, PHONE_CAPACITY, TOO_SMALL, FIT, OVERFLOW}
 
 var status: Status = Status.NOT_READY
 var size_class: GuiSizeClass
@@ -16,7 +16,8 @@ static func resolve(
 	ids: PackedInt32Array,
 	recipient: int,
 	candidates: Array[GuiFitCandidate],
-	fixture_override: int = GuiSizeClass.AUTOMATIC
+	fixture_override: int = GuiSizeClass.AUTOMATIC,
+	allow_overflow: bool = false
 ) -> GuiFitPolicy:
 	var result := GuiFitPolicy.new()
 	result.size_class = GuiSizeClass.classify(Vector2.ZERO)
@@ -27,7 +28,7 @@ static func resolve(
 		result.status = Status.INVALID_INPUT
 		result.guidance = "Player seats are unavailable."
 		return result
-	if result.size_class.is_phone() and ids.size() > 7:
+	if result.size_class.is_phone() and ids.size() > 7 and not allow_overflow:
 		result.status = Status.PHONE_CAPACITY
 		result.guidance = (
 			"Eight or nine players require a larger layout. "
@@ -36,6 +37,8 @@ static func resolve(
 		return result
 	result.status = Status.NEEDS_MEASUREMENTS
 	result.guidance = "Waiting for component measurements."
+	var overflow_candidate: GuiFitCandidate
+	var overflow_score: float = INF
 	# Prefer the requested mode, but keep other fitting candidates. No feasible
 	# composition is lost at a global breakpoint within the same orientation.
 	for preferred: bool in [true, false]:
@@ -58,6 +61,17 @@ static func resolve(
 				result.selected = candidate
 				result.guidance = ""
 				return result
+			var score: float = maxf(
+				candidate.minimum.x / result.size_class.usable_size.x,
+				candidate.minimum.y / result.size_class.usable_size.y
+			)
+			if score < overflow_score:
+				overflow_candidate = candidate
+				overflow_score = score
+	if allow_overflow and overflow_candidate != null:
+		result.status = Status.OVERFLOW
+		result.selected = overflow_candidate
+		result.guidance = ""
 	return result
 
 

@@ -175,6 +175,8 @@ func test_translated_scaled_main_converts_nonzero_usable_origin_through_current_
 func test_compact_landscape_reports_guidance_inside_three_hundred_two_units() -> void:
 	var main: StartupConfigController = await _main(Vector2i(640, 360))
 	var table: GuiReplacementTableController = _table(main)
+	table.layout_config = GuiLayoutConfig.new()
+	table.layout_config.useTooLittleRoomWarning = true
 	var usable := Rect2(11, 24, 618, 302)
 	main.get_viewport_adapter().inject_geometry(Geometry.injected(Vector2(640, 360), usable))
 	assert_true(await _settle(main))

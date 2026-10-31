@@ -145,10 +145,11 @@ contents of `build/web`, not the repository root.
 `make web-release` verifies a local Web export. After a commit is pushed to
 `main`, the deployment workflow validates that exact push SHA through
 `check-quality.yml` and `check-native-layouts.yml`. Quality runs the remaining
-unit/integration suite and tooling; native checks always include the phone
-unit suite. Matrix runners are off by default. Set repository Actions variable
-`RUN_GUI_MATRIX_TESTS=true` to enable all matrix suites across eleven native
-jobs. Each enabled job checks tree cleanliness. The build job requires both
+non-GUI suite and tooling by default. Set repository Actions variable
+`RUN_GUI_TESTS=true` to include `test_gui_*.gd` and its phone-unit job. Independently
+set `RUN_GUI_MATRIX_TESTS=true` to enable all matrix runners. Both settings
+default off; both true select eleven native jobs. An explicit selection/status
+job handles the no-native-tests mode. Every enabled job checks cleanliness. The build job requires both
 workflows to succeed before it verifies the pushed SHA, exports Web, runs
 `make verify-web-release-output`, and checks cleanliness before upload.
 Local `web-release` still uses the complete `release-candidate-gate`.
@@ -203,8 +204,8 @@ allows.
    - check out and verify the exact pushed SHA;
    - install Godot **4.7.2** and its matching export templates;
    - require successful shared quality and native-layout jobs before building;
-     they retain quality and phone-unit checks, with matrix suites additionally
-     required when `RUN_GUI_MATRIX_TESTS=true`;
+     quality always runs; GUI and matrix suites are required when their independent
+     `RUN_GUI_TESTS` / `RUN_GUI_MATRIX_TESTS` settings are true;
    - export the validated SHA, run `make verify-web-release-output` and check
      cleanliness before upload;
    - create `build/web/.nojekyll` so Pages does not apply Jekyll processing;

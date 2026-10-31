@@ -19,9 +19,13 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
+- [`GuiSpaceWarningTasks.md`](GuiSpaceWarningTasks.md) — complete: configure
+  the space warning, defaulting to best-effort play with edge overflow.
+
 - [`CiLayoutTasks.md`](CiLayoutTasks.md) — complete: Actions skips
-  `*_matrix_runner.gd` by default. `RUN_GUI_MATRIX_TESTS=true` enables eleven
-  native jobs, including disjoint M3 shards. Quality/phone-unit checks remain
+  `test_gui_*.gd` and `*_matrix_runner.gd` by default. `RUN_GUI_TESTS` and
+  `RUN_GUI_MATRIX_TESTS` independently restore those groups; both true enable
+  eleven native jobs, including disjoint M3 shards. Non-GUI quality checks remain
   required; local full gates retain all matrices. Timing reports and local
   verification pass; hosted performance awaits a new Actions run.
 

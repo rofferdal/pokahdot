@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PHONE_SUITE = "res://tests/unit/test_gui_phone_table_layout.gd"
 
 
-def quality_config(root: Path, config: dict) -> dict:
+def quality_config(root: Path, config: dict, run_gui_tests: bool = False) -> dict:
     """Discover the configured suite anew; fail if the required partition is absent."""
     tests = set(config.get("tests", []))
     pattern = config.get("prefix", "test_") + "*" + config.get("suffix", ".gd")
@@ -24,10 +24,11 @@ def quality_config(root: Path, config: dict) -> dict:
             raise ValueError(f"Missing GUT test directory: {directory}")
         paths = folder.rglob(pattern) if config.get("include_subdirs", False) else folder.glob(pattern)
         tests.update("res://" + path.relative_to(root).as_posix() for path in paths if path.is_file())
-    if PHONE_SUITE not in tests:
+    if run_gui_tests and PHONE_SUITE not in tests:
         raise ValueError("The separately required phone suite was not discovered")
     selected = sorted(path for path in tests
-                      if path != PHONE_SUITE and not path.endswith("_matrix_runner.gd"))
+                      if path != PHONE_SUITE and not path.endswith("_matrix_runner.gd")
+                      and (run_gui_tests or not Path(path).name.startswith("test_gui_")))
     if not selected:
         raise ValueError("The CI quality suite must not be empty")
     return dict(config, dirs=[], configured_dirs=[], tests=selected)
@@ -36,9 +37,11 @@ def quality_config(root: Path, config: dict) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--godot", default="godot")
+    parser.add_argument("--gui-tests", action="store_true",
+                        help="Include GUI suites; the phone suite runs in its separate job")
     args = parser.parse_args()
     try:
-        config = quality_config(ROOT, json.loads((ROOT / ".gutconfig.json").read_text()))
+        config = quality_config(ROOT, json.loads((ROOT / ".gutconfig.json").read_text()), args.gui_tests)
         output = ROOT / "localtmp/ci-layout/quality.gutconfig.json"
         output.parent.mkdir(parents=True, exist_ok=True)
         config["junit_xml_file"] = "res://localtmp/ci-layout/quality.xml"
@@ -47,7 +50,7 @@ def main() -> int:
     except (OSError, ValueError, KeyError) as error:
         print(f"Cannot partition CI GUT suite: {error}", file=sys.stderr)
         return 1
-    print(f"CI quality: {len(config['tests'])} scripts; phone suite is separate; matrix runners excluded.", flush=True)
+    print(f"CI quality: {len(config['tests'])} scripts; optional GUI={args.gui_tests}; phone/matrix runners are separate.", flush=True)
     try:
         return subprocess.run(
             [args.godot, "--headless", "--path", str(ROOT), "-s", "addons/gut/gut_cmdln.gd",

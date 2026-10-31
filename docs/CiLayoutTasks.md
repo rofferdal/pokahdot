@@ -1,6 +1,6 @@
 # Parallel CI layout checks
 
-Status: Complete (2026-10-31), including CI-03 and CI-04. Requested: 2026-10-31.
+Status: Complete (2026-10-31), including CI-05 optional GUI tests. Requested: 2026-10-31.
 
 Keep full local native-layout/release checks and support independent matrix
 groups on separate GitHub Actions runners. CI-04 follows the later explicit
@@ -57,6 +57,15 @@ slowdown with runner CPU/memory details, timing summaries and XML artifacts.
   quality checks. Quality discovery excludes matching matrix filenames even
   if they later appear in ordinary test directories. Local full checks remain
   unchanged. Update current coverage guidance and verify both selections.
+
+- [x] **CI-05 — Make GUI test scripts optional in Actions.**
+  Status: Complete. All four selector modes, 32 completion-result combinations,
+  partition/discovery tests and actionlint pass. The default CI path executes
+  461 tests across 70 scripts; its JUnit coverage matches the generated config. Default
+  `RUN_GUI_TESTS=false` excludes `test_gui_*.gd`, including the separate phone
+  suite. It is independent of `RUN_GUI_MATRIX_TESTS`. Test all four selections,
+  future GUI/non-GUI discovery and explicit skip completion. Keep local full
+  checks unchanged. Evidence: `localtmp/space-warning/ci-{tests,quality,contracts}.log`.
 
 Evidence under `localtmp/ci-layout/`: `baseline-characterization.log`,
 `baseline-release.log`, `check.log`, `quality.log`, `phone-unit.log`,

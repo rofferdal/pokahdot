@@ -2,6 +2,7 @@ class_name GuiReplacementLayoutResolver
 extends RefCounted
 
 # Owns layout requests, measurement caches, probe lifetime and resolution counters.
+var use_too_little_room_warning: bool = true
 var _root: GuiReplacementTableController
 var _session: GuiTableSession
 var _input: GuiReplacementInputState
@@ -173,7 +174,7 @@ func _resolve_layout() -> void:
 	var model: TableViewModel = _root.get_table_view_model()
 	var ids: PackedInt32Array = _model_ids(model)
 	var preference: GuiFitPolicy = GuiFitPolicy.resolve(
-		_geometry, ids, model.hero_seat, [], _mode_override
+		_geometry, ids, model.hero_seat, [], _mode_override, not use_too_little_room_warning
 	)
 	if _candidate_generation != _model_generation:
 		var generation: int = _model_generation
@@ -205,7 +206,12 @@ func _resolve_layout() -> void:
 			_complete_candidates = false
 	if _candidate_generation == _model_generation and not _complete_candidates:
 		var known: GuiFitPolicy = GuiFitPolicy.resolve(
-			_geometry, ids, model.hero_seat, _candidates, _mode_override
+			_geometry,
+			ids,
+			model.hero_seat,
+			_candidates,
+			_mode_override,
+			not use_too_little_room_warning
 		)
 		if (
 			known.status != GuiFitPolicy.Status.FIT
@@ -238,7 +244,12 @@ func _resolve_layout() -> void:
 	var previous_density: int = _host.state.density if _host.state != null else -1
 	_input.remember(previous, _overlay.is_active())
 	var policy: GuiFitPolicy = GuiFitPolicy.resolve(
-		_geometry, ids, model.hero_seat, _candidates, _mode_override
+		_geometry,
+		ids,
+		model.hero_seat,
+		_candidates,
+		_mode_override,
+		not use_too_little_room_warning
 	)
 	if previous != null and (policy.selected == null or previous_mode != policy.selected.mode):
 		_restore_focus_after_layout = (

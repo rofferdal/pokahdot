@@ -214,9 +214,13 @@ func _layout() -> void:
 	var fits: bool = _bound and available.x >= minimum.x and available.y >= minimum.y
 	var guidance: GuiSpaceGuidance = get_node("Boundary/Guidance")
 	guidance.render_message(
-		"" if fits else "More space is needed. Enlarge the window or rotate the screen."
+		(
+			""
+			if fits or allow_edge_overflow
+			else "More space is needed. Enlarge the window or rotate the screen."
+		)
 	)
-	_ring().visible = fits
+	_ring().visible = _bound and (fits or allow_edge_overflow)
 	var dock: Control = get_node("Boundary/Dock")
 	if not fits:
 		dock.hide()
