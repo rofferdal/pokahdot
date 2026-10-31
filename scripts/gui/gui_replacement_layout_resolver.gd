@@ -66,6 +66,12 @@ func set_bound(bound: bool) -> void:
 
 
 func set_geometry(geometry: GuiViewportGeometry) -> void:
+	if (
+		_geometry == null
+		or geometry == null
+		or _geometry.usable_rect.size != geometry.usable_rect.size
+	):
+		_candidate_generation = -1
 	_geometry = geometry
 
 
@@ -209,11 +215,16 @@ func _resolve_layout() -> void:
 	if _candidate_generation != _model_generation:
 		var generation: int = _model_generation
 		var modality: bool = _keypad
+		var measured_size: Vector2 = _geometry.usable_rect.size
 		var measured: Array[GuiFitCandidate] = await _measure_candidates(generation)
 		if not _root.is_inside_tree() or not _bound:
 			_end_resolution()
 			return
-		if generation == _model_generation and modality == _keypad:
+		if (
+			generation == _model_generation
+			and modality == _keypad
+			and measured_size == _geometry.usable_rect.size
+		):
 			_candidates = measured
 			_candidate_generation = generation
 			_complete_candidates = true
@@ -303,24 +314,35 @@ func _measure_candidates(generation: int) -> Array[GuiFitCandidate]:
 	]:
 		for mode: GuiSizeClass.LayoutMode in [
 			GuiSizeClass.LayoutMode.WIDE,
+			GuiSizeClass.LayoutMode.WIDE_COMPACT,
 			GuiSizeClass.LayoutMode.PHONE,
 			GuiSizeClass.LayoutMode.PHONE_LANDSCAPE
 		]:
-			if mode != GuiSizeClass.LayoutMode.WIDE and _session.get_view().seats.size() > 7:
+			if (
+				mode in [GuiSizeClass.LayoutMode.PHONE, GuiSizeClass.LayoutMode.PHONE_LANDSCAPE]
+				and _session.get_view().seats.size() > 7
+			):
 				continue
 			var scene: PackedScene = (
 				_root.WideScene
 				if mode == GuiSizeClass.LayoutMode.WIDE
 				else (
-					_root.PhoneScene
-					if mode == GuiSizeClass.LayoutMode.PHONE
-					else _root.LandscapeScene
+					_root.TabletScene
+					if mode == GuiSizeClass.LayoutMode.WIDE_COMPACT
+					else (
+						_root.PhoneScene
+						if mode == GuiSizeClass.LayoutMode.PHONE
+						else _root.LandscapeScene
+					)
 				)
 			)
 			var probe: GuiTableComposition = scene.instantiate()
 			probe.theme = GuiTypography.for_density(density)
 			layer.add_child(probe)
 			probe.size = Vector2(viewport.size)
+			if probe is GuiPhoneTableLayout:
+				probe.size = _geometry.usable_rect.size
+				(probe as GuiPhoneTableLayout).set_allocation_limit(_geometry.usable_rect.size)
 			probe.use_keypad(modality)
 			probe.render(_model_for_density.call(density))
 			probes.append(probe)
@@ -329,7 +351,7 @@ func _measure_candidates(generation: int) -> Array[GuiFitCandidate]:
 			_probes += 1
 			_active_probes += 1
 			_peak_probes = maxi(_peak_probes, _active_probes)
-	for frame: int in 10:
+	for frame: int in 16:
 		await _root.frame_tick
 		if (
 			not _root.is_inside_tree()
@@ -349,34 +371,7 @@ func _measure_candidates(generation: int) -> Array[GuiFitCandidate]:
 		)
 		if candidate.valid:
 			values.append(candidate)
-		if modes[index] == GuiSizeClass.LayoutMode.WIDE:
-			values.append(
-				probes[index].get_fit_candidate(
-					GuiSizeClass.LayoutMode.WIDE_COMPACT, densities[index], flow
-				)
-			)
-		elif candidate.valid:
-			(probes[index] as GuiPhoneTableLayout).set_allocation_limit(
-				Vector2(candidate.minimum.x - 1.0, viewport.size.y)
-			)
-	for frame: int in 6:
-		await _root.frame_tick
-		if (
-			not _root.is_inside_tree()
-			or generation != _model_generation
-			or modality != _keypad
-			or not _bound
-		):
-			_discard_probes(viewport, probes.size())
-			return []
-	for index: int in probes.size():
-		if modes[index] == GuiSizeClass.LayoutMode.WIDE:
-			continue
-		var alternate: GuiFitCandidate = probes[index].get_fit_candidate(
-			modes[index], densities[index], flow
-		)
-		if alternate.valid:
-			values.append(alternate)
+
 	_discard_probes(viewport, probes.size())
 	return values
 

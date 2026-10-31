@@ -169,8 +169,8 @@ func test_hero_allocates_more_space_avatar_and_preferred_text_than_bots() -> voi
 	await wait_process_frames(4)
 	var bot_avatar: TextureRect = seat.get_node("%Avatar")
 	var hero_avatar: TextureRect = hero.get_node("%Avatar")
-	assert_gt(hero_avatar.custom_minimum_size.x, bot_avatar.custom_minimum_size.x)
-	assert_gt(hero_avatar.custom_minimum_size.y, bot_avatar.custom_minimum_size.y)
+	assert_gt(hero_avatar.size.x, bot_avatar.size.x)
+	assert_gt(hero_avatar.size.y, bot_avatar.size.y)
 	assert_gt(hero.get_combined_minimum_size().y, seat.get_combined_minimum_size().y)
 	assert_gt(
 		(hero.get_node("%Name") as Label).get_theme_font_size("font_size"),
@@ -301,7 +301,7 @@ func _assert_wide_bot_corner_states() -> void:
 				var cards: Control = seat.get_field(&"cards")
 				var markers: Control = seat.get_field(&"markers")
 				var avatar: Control = seat.get_field(&"avatar")
-				assert_eq(avatar.custom_minimum_size, Vector2(64, 64))
+				_assert_scaled_avatar(seat)
 				var name_label: Control = seat.get_field(&"name")
 				var star: Control = seat.get_field(&"winner")
 				assert_almost_eq(
@@ -459,7 +459,7 @@ func _assert_human_corner_layout() -> void:
 				var avatar: Control = hero.get_field(&"avatar")
 				var name_label: Control = hero.get_field(&"name")
 				var star: Control = hero.get_field(&"winner")
-				assert_eq(avatar.custom_minimum_size, Vector2(80, 80))
+				_assert_scaled_avatar(hero)
 				assert_almost_eq(
 					avatar.global_position.x,
 					panel.global_position.x + style.get_margin(SIDE_LEFT),
@@ -886,3 +886,17 @@ func test_native_container_recovers_exact_initial_minimum_after_a_large_allocati
 				_assert_complete(recovered)
 				root.remove_child(host)
 				host.free()
+
+
+func _assert_scaled_avatar(seat: Control) -> void:
+	var panel := seat.get_node("Panel") as Control
+	var avatar := seat.get_node("%Avatar") as TextureRect
+	var style: StyleBox = panel.get_theme_stylebox("panel")
+	assert_almost_eq(avatar.size.y, panel.size.y * 0.5, 1.0)
+	assert_almost_eq(avatar.size.x, avatar.size.y, 1.0)
+	assert_almost_eq(
+		avatar.global_position.x, panel.global_position.x + style.get_margin(SIDE_LEFT), 0.1
+	)
+	assert_almost_eq(
+		avatar.global_position.y, panel.global_position.y + style.get_margin(SIDE_TOP), 0.1
+	)

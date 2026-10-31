@@ -9,7 +9,7 @@ const Content := preload("res://tests/support/gui_snapshot_content_assertions.gd
 var _viewport: SubViewport
 
 
-func test_fixed_corner_layout_preserves_positions_cards_and_compact_height() -> void:
+func test_compact_copy_column_preserves_positions_cards_and_readable_height() -> void:
 	var root: Control = _root()
 	for metrics: Theme in [GuiTypography.Compact, GuiTypography.Regular]:
 		var token: GuiSeatToken = TokenScene.instantiate()
@@ -41,9 +41,9 @@ func test_fixed_corner_layout_preserves_positions_cards_and_compact_height() -> 
 				var markers: Control = token.get_node("%Markers")
 				if model.is_dealer:
 					assert_almost_eq(
-						markers.get_global_rect().end.x, content.get_global_rect().end.x, 0.1
+						markers.get_global_rect().end.x, cards.get_global_rect().end.x, 1.0
 					)
-					assert_almost_eq(markers.global_position.y, content.global_position.y, 0.1)
+					assert_lte(markers.get_global_rect().end.y, cards.global_position.y)
 					assert_false(markers.get_global_rect().intersects(cards.get_global_rect()))
 				var name: Control = token.get_field(&"name")
 				var star: Control = token.get_field(&"winner")
@@ -200,7 +200,7 @@ func test_dealer_and_blind_markers_have_separate_equal_readable_allocations() ->
 		assert_gte(blind.get_theme_font_size("font_size"), 18)
 		assert_false(dealer.get_global_rect().intersects(blind.get_global_rect()))
 		var blind_size: Vector2 = blind.size
-		assert_eq(blind_size, Vector2(30, 30))
+		assert_eq(blind_size, Vector2(26, 26))
 		assert_eq(dealer.get_parent_control().size, blind_size)
 		_assert_complete(token.get_seat_snapshot(root))
 
@@ -279,7 +279,8 @@ func test_resizing_keeps_horizontal_pair_gap_and_identity() -> void:
 		var second: Rect2 = snapshot.cards[1].element.rect
 		var card_width: float = (first.size.x + second.size.x) * 0.5
 		assert_eq(first.position.y, second.position.y)
-		assert_almost_eq(second.position.x - first.end.x, card_width * 0.06, 1.5)
+		var fraction: float = token.get_field(&"cards").get_theme_constant("gap_percent") / 100.0
+		assert_almost_eq(second.position.x - first.end.x, card_width * fraction, 1.5)
 		assert_eq(snapshot.fields[&"name"].text, "Emiliano")
 		_assert_complete(snapshot)
 
@@ -367,13 +368,46 @@ func test_native_focus_remains_visible_for_normal_acting_and_folded_tokens() -> 
 		assert_same(panel.get_theme_stylebox("panel"), original_style, state)
 
 
+func test_tight_leading_preserves_visible_ink_for_names_and_status_copy() -> void:
+	var root: Control = _root()
+	var token: GuiSeatToken = TokenScene.instantiate()
+	root.add_child(token)
+	var copy: PackedStringArray = GuiNameCatalog.default_names()
+	copy.append_array(
+		PackedStringArray(
+			["Human", "9000000", "Bet 1000000", "gjpqy ÅÉØŁŞİĆñö", "Straight flush", "Winner"]
+		)
+	)
+	for role: StringName in [&"TokenText", &"TokenWinningText"]:
+		var font: Font = token.get_theme_font("font", role)
+		var specimens: PackedStringArray = (
+			PackedStringArray(
+				[
+					"Winner",
+					"Straight flush",
+					"Full house",
+					"Two pair",
+					"All In 1000000",
+					"Aces / Kings"
+				]
+			)
+			if role == &"TokenWinningText"
+			else copy
+		)
+		for text: String in specimens:
+			var ink: Rect2 = GuiCardInk.bounds(font, text, 18)
+			var top: float = ink.position.y + font.get_ascent(18)
+			assert_gte(top, 0.0, text)
+			assert_lte(top + ink.size.y, font.get_height(18), text)
+
+
 func test_replacement_token_palette_keeps_legacy_padding_and_unique_resource_ids() -> void:
 	var legacy: StyleBox = Palette.get_stylebox("panel", "PhoneToken")
 	var replacement: StyleBox = Palette.get_stylebox("panel", "SeatTokenFrame")
 	assert_not_same(legacy, replacement)
 	for side: Side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
 		assert_eq(legacy.get_content_margin(side), 6.0)
-		assert_eq(replacement.get_content_margin(side), 4.0)
+		assert_eq(replacement.get_content_margin(side), 3.0)
 	var pattern := RegEx.new()
 	assert_eq(pattern.compile('\\[sub_resource[^\\n]*id="([^"]+)"'), OK)
 	var source: String = FileAccess.get_file_as_string("res://resources/gui_theme.tres")

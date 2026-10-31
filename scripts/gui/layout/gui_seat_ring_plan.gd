@@ -141,13 +141,6 @@ static func resolve(
 			x = padding.x
 		elif slot.x == 2:
 			x = available.x - padding.x - extent.x
-		if slot.y == 0 and result.rows[0].size() == 2:
-			var left_id: int = result.rows[0][0]
-			var right_id: int = result.rows[0][1]
-			var pair_width: float = minima[left_id].x + pair_gap + minima[right_id].x
-			x = (available.x - pair_width) * 0.5
-			if id == right_id:
-				x += minima[left_id].x + pair_gap
 		var y: float = row_y[slot.y]
 		if slot.y == bottom:
 			y += row_heights[bottom] - extent.y

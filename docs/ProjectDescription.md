@@ -401,9 +401,39 @@ cards were actually shown.
   rim or perimeter margins. Place the community-card/pot/wager group directly
   above the human seat/action area. Opponent seats use clear measured-content
   rows without overlapping names, stacks, markers, cards or action/showdown
-  text. Phone portrait has at most two opponent seats per row. For an odd
-  opponent count, the top row contains one centered seat with the same width
-  as seats in paired rows. Other layouts retain the maximum of three seats.
+  text.
+- Arrange bots in mirrored left/right pairs around the vertical center. An odd
+  bot count starts with one centered top seat, as wide as seats in paired rows.
+  No row contains more than two bots, except that small-phone landscape may
+  use three bots in the top row when needed to fit. The human occupies a
+  separate bottom row, centered horizontally, with proportions comparable to
+  bot seats. Preserve clockwise core-seat identities across every arrangement.
+- Let seat and community-area allocations grow and shrink with usable screen
+  space. Use measured content minimums, aspect-preserving card groups and
+  disjoint panel/status footprints; retain text and touch-target floors.
+  A screen-size classification selects a preferred composition, while measured
+  fit decides whether it is usable. Touch input alone must not select narrow
+  phone seats on a tablet.
+- Whenever a player seat shows an avatar, place it at the upper-left corner
+  inside the visual seat box's normal padding. Scale it with that box, targeting
+  an avatar height of approximately half the box's height, excluding the reserved
+  action/showdown band below. Preserve the avatar's aspect ratio and keep it
+  clear of text, cards and markers. Apply this to both human and bot seats;
+  fixed pixel dimensions must not prevent proportional resizing.
+- Tablet seats show their assigned avatars in portrait and landscape, including
+  the human. Dealer and SB/BB markers occupy the upper-right seat area above
+  the cards. Compact seats reserve a marker band and use smaller cards below
+  it. Hole cards anchor to the lower-right corner and scale toward two-thirds
+  of the visual seat-box height, excluding the status band below. Keep dealer
+  and blind badges above them in the upper-right region, while preserving
+  measured ink, card aspect, required copy and text floors.
+- On compact tablets, size the community-card group to the human seat's visual
+  width. Center the card slots horizontally and vertically on the usable table
+  surface where they fit; otherwise use the nearest clear allocation. Put
+  Pot/Wager and blind/level text directly
+  below the cards with normal content gaps. Align side action buttons with the
+  bottom of the human's visual frame, excluding its reserved status band; keep
+  complete seat/status footprints clear on denser allocations.
 - Show board, pots, stacks, blinds, the acting player through an enhanced seat
   frame, the human's cards,
   active/eliminated players, and the tournament winner.
@@ -412,9 +442,17 @@ cards were actually shown.
   all-in, and free-entry amounts. The Pot wager shortcut displays the observed
   pot contribution separately from the internal street total, uses both from
   the same bound view, and is disabled when that target is
-  not a legal bet or raise the human can cover.
-- Provide a clearly visible `Quit` control at all times and request
-  confirmation before quitting.
+  not a legal bet or raise the human can cover. Show Min and Pot directly
+  on the main table when the complete action area fits; retain a reachable
+  wager-entry fallback when it does not. Keypad selection does not determine
+  whether these shortcuts are visible.
+- Keep Quit reachable from the table or its visible More/menu control and
+  request confirmation before quitting. Number entry must be closed first.
+- On supported phone browsers, request actual document fullscreen from a valid
+  Start tournament gesture. Provide a Fullscreen menu action to re-enter after
+  browser exit. Preserve orientation, match state and wager drafts during
+  fullscreen/viewport changes. Unsupported or refused fullscreen must not
+  prevent ordinary browser play; genuinely infeasible space still uses guidance.
 - Use one main table scene. The default window is 1920 × 1080, and the table
   must reflow without overlap at representative desktop and mobile aspect
   ratios.
@@ -445,9 +483,10 @@ cards were actually shown.
   the same location used for a showdown hand summary. Keep that completed-hand
   presentation visible for the configured showdown pause (five seconds by
   default) before starting any next hand.
-- Place compact, explicit two-row action controls beside the human seat. The
-  event log is scrollable, high contrast, and cannot cover seats or their
-  reserved status bands. At showdown, show each revealed player's best hand in
+- Place the action area beside the centered human when the measured symmetric
+  width budget permits; otherwise place it below. Preserve complete wager/input
+  units and use one or two rows according to measured fit. The event log is
+  scrollable, high contrast, and cannot cover seats or reserved status bands. At showdown, show each revealed player's best hand in
   that player's shared below-seat status band.
 - Player-facing text uses Godot's built-in plain non-serif UI font. Seat copy
   (names, stacks, markers, actions and the reserved showdown/status band) may
@@ -487,9 +526,6 @@ cards were actually shown.
   Keep seats clear of the surrounding felt's rounded border. Where the event
   log is docked beside the human panel and action area, align all three at
   both their top and bottom edges.
-  Every horizontal row contains at most three player seats on every screen,
-  in both orientations and at every supported player count; include the human
-  when sharing a row. Preserve clockwise core-seat order when using more rows.
   A documented single layout owner may assign explicit rectangles to a
   specialized region, provided no `Container` competes for those child
   rectangles. Mobile touch targets are at least 48 × 48 px; horizontal text

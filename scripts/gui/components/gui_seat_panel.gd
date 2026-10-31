@@ -146,10 +146,6 @@ func _refresh_metrics() -> void:
 	if _preferred() != _last_preferred:
 		_last_preferred = _preferred()
 		_reset_copy_fonts()
-	var avatar: TextureRect = get_node("%Avatar")
-	var role: StringName = &"HeroPanel" if hero_presentation else &"SeatPanel"
-	var extent: float = get_theme_constant("avatar_size", role)
-	avatar.custom_minimum_size = Vector2(extent, extent)
 	var status: Label = get_node("Status")
 	var normal: Font = get_theme_font("font", &"HeroText" if hero_presentation else &"SeatText")
 	var bold: Font = get_theme_font("font", &"WinningHandText")
@@ -162,13 +158,10 @@ func _refresh_metrics() -> void:
 	)
 	# Model status may contain two explicit lines; blank and filled share this band.
 	status.custom_minimum_size.y = reserved.y
-	var body: HBoxContainer = get_node("%Body")
-	body.custom_minimum_size.y = maxf(
-		extent,
-		(
-			ceilf(normal.get_height(_preferred())) * 3.0
-			+ 2.0 * (get_node("%Copy") as VBoxContainer).get_theme_constant("separation")
-		)
+	var body: GuiSeatContentRow = get_node("%Body")
+	body.custom_minimum_size.y = (
+		ceilf(normal.get_height(_preferred())) * 3.0
+		+ 2.0 * (get_node("%Copy") as VBoxContainer).get_theme_constant("separation")
 	)
 	for path: String in ["%Name", "%Stack", "%Wager"]:
 		(get_node(path) as Label).theme_type_variation = (
@@ -204,6 +197,7 @@ func _refresh_metrics() -> void:
 	for name: String in ["Name", "Stack", "Wager"]:
 		var label: Label = get_node("%" + name)
 		label.custom_minimum_size.y = ceilf(normal.get_height(_preferred()))
+	body.queue_sort()
 	_queue_fit()
 
 

@@ -26,11 +26,11 @@ The user accepted all no-scroll `rg11-review6-startup` captures and all five
 `rg11-review7-*` two-column phone captures on 2026-10-29. Keep their local
 metadata as review evidence; this acceptance does not complete later device
 testing or the replacement component migration.
-Also exercise a seven-way split with maximum supported chip values and long
-names at 360×640. Preserve every winner name, card rank and reserved status
-line. The last compact candidate may stack revealed card pairs vertically;
-verify that resize/rebinding restores ordinary horizontal cards when space
-allows, and that previously accepted compositions remain unchanged.
+The earlier 360×640 seven-way-split review is historical stress evidence,
+not a blanket supported-size promise. Exercise maximum values and long names
+against current measured fit: show all required content or explicit guidance
+without dropping participants or private-card protections. Retired vertical-pair
+prototypes do not prescribe the replacement's card hierarchy or geometry.
 
 Preview-review requirements (2026-10-29, RG-11R): event-log body text uses a
 dedicated 18 logical/CSS px floor; its headings/actions and other non-seat text
@@ -41,13 +41,16 @@ bounds. Keypad digit positions remain `1 2 3 / 4 5 6 / 7 8 9` with centered
 `0` below `8`; compact layouts reflow utilities separately. Capture and inspect
 both revised previews before acceptance. Earlier five-column captures are
 rejected design evidence, even where their rectangular fit checks passed.
-Replacement row/slot tests must enforce at most three player seats per
-horizontal row for all supported counts/modes and both orientations.
-Phone portrait has a stricter two-opponent-seat maximum. For odd opponent
+Replacement row/slot tests enforce at most two bots per horizontal row,
+except the top row on small-phone landscape may contain three. The human
+occupies a separate centered row with proportions comparable to bot seats. For odd opponent
 counts, verify one centered, equal-width seat in the top row and pairs below,
-including reduced-height portrait and the single-opponent case. A
-six-player preview cannot establish compliance for the legacy small-desktop
-or nine-player paths, which still contain four-seat rows.
+including reduced-height portrait and the single-opponent case. Verify
+upper-right D/SB/BB above cards, tablet avatars, inline Min/Pot, and phone
+Start fullscreen entry, exit, menu retry, and unsupported-browser play. A
+six-player preview cannot establish nine-player compliance. The reference
+small-desktop/nine-player paths with four-seat rows were retired in RG-54;
+current replacement captures must satisfy the paired-row contract.
 
 Keypad review refinement (2026-10-29, RG-11R2): preserve the approved digit grid
 and explicit wager limits; utility buttons form a neat filled rectangle with
@@ -68,6 +71,64 @@ fields keep their earlier white/dark-text palette; this exception is Total only.
 The final table capture also checks that Quit is visibly a rounded, bordered
 button, with normal/hover/pressed/focus/disabled styling matching Raise.
 
+Physical-browser corrections (RG-63–RG-66): verify ordinary browser and
+fullscreen touch layouts at 390×744/844 for six/seven players, plus representative
+six-player 360×720/780 portrait and 780×360 landscape emulations; also cover six-player
+844×390 and seven-player 932×430 landscape, and iPad at 1194×676 and 834×1030
+with 2, 6 and 9 players. Verify the five-bot arrangement is 1/2/2 with the
+human alone below, and that human/bot seat proportions remain comparable.
+For the accepted six-player 1194×676 seat arrangement, verify unchanged panel
+rectangles, community-card group width equal to the human panel and slot center
+equal to the usable table center on both axes where feasible, metadata
+immediately below the cards, and side buttons' bottom equal to the human
+visual frame bottom (excluding its status band). Denser/narrower layouts must
+still clear all seat/result footprints and preserve readable metadata. Verify
+hole cards anchor at the lower right, scale toward two-thirds of the visual
+panel height and leave D/SB/BB above at the upper right. The user accepted
+these layout/card details in the `scaled-centered-ipad` six-player preview
+on 2026-10-31; this is visual acceptance, with physical checks still pending.
+Check avatars on every tablet seat, inline Min/Pot
+when the measured action budget permits, grouped community-card growth, and
+rotation without changing match state or avatar assignments. Include DPR
+1/2/2.625/3, browser chrome/safe areas, maximum amounts and showdown text.
+Browser emulation records capabilities explicitly and cannot establish
+physical-device acceptance. Measure the Galaxy S25's actual usable CSS size,
+DPR, browser/version and chrome state instead of assuming emulation matches it.
+Test fullscreen Start, browser exit and menu retry in both phone orientations,
+and normal play with the API unavailable or the request refused. Automated
+passes and revised previews do not imply user acceptance of RG-63–RG-66.
+
+The physical Chrome review on 2026-10-31 accepted desktop and iPad landscape,
+but found stale portrait geometry after iPad rotation (a portrait reload fixed
+it), phone guidance after actions, and phone-landscape card anchoring/height
+defects. Recheck an entire real hand through settlement with long winner names,
+then the next hand; initial fit alone is insufficient. Verify marked, unmarked
+and folded landscape seats all keep hole cards at the lower right, while
+community slots remain taller. `run_web_geometry_tests.py` includes a delayed
+visual-viewport rotation case without a second resize event, requiring portrait
+tablet recovery with avatars. This synthetic reproduction supplements the
+physical rotation recheck; it does not prove Chrome on iPad is fixed.
+
+Avatar sizing is implemented by `GuiSeatContentRow`: whenever visible, an
+avatar sits at the upper left inside panel padding and scales toward half
+the visual seat box height, excluding its status band.
+Verify both human and bot seats through growth/shrink and rotation, retaining
+aspect and clear copy/card regions. Existing seat tests now check this ratio,
+both metric densities and minimum → large → minimum recovery; the tablet
+rotation test also checks each avatar's size and anchor. Older fixed-size
+samples do not override this rule.
+
+The repeated phone warning is also covered by the exported input case
+`phone-live-inset-start-actions-next-hand`: six players, 1000 chips, 360×780
+canvas with a representative 36 px top inset, long bot names, automatic bot
+pacing, four actual Check/Call taps, settlement and return to a human turn on
+hand two. Its observer counts visible guidance on every frame, including
+pending layout frames; `warning_frames` must remain zero. Do not skip bot-turn
+snapshots or accept a later settled table as evidence that no warning flashed.
+The native controller has the equivalent paced regression. The component
+regression verifies that status copy is measured against its human-aligned
+column rather than the lone More button's width.
+
 ## Current support and acceptance
 
 This document owns GUI evidence terminology. The product specification owns
@@ -75,9 +136,9 @@ player limits; active acceptance checkboxes stay in their owning backlog.
 
 | Profile | Product scope | Automated coverage | Physical/browser acceptance |
 | --- | --- | --- | --- |
-| Phone portrait and landscape | 2–7 players; default 6 | Replacement phone suite: 45 layout and public-state cases, including reduced-height guidance | Archived [phone acceptance record](arkiv/OptimizingPhoneGuiTasks.md); open recorded checks are not completed by archive placement |
-| Tablet/iPad | 2–9 players; landscape primary, portrait regression | Replacement iPad suite: 16 cases across canonical orientations, reduced height, and the observed surface | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
-| Small desktop/desktop | 2–9 players | Replacement desktop suite: 52 cases across compact and wide allocations; the 99-case M3 suite also covers wide states | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
+| Phone portrait and landscape | 2–7 players; default 6 | Replacement phone suite: 49 layout and public-state cases, including reduced-height guidance | Archived [phone acceptance record](arkiv/OptimizingPhoneGuiTasks.md); open recorded checks are not completed by archive placement |
+| Tablet/iPad | 2–9 players; landscape primary, portrait regression | Replacement iPad suite: 24 cases across canonical orientations, reduced height, and the observed surface | Historical user iPad acceptance in [archived record](arkiv/OptimizingIpadTasks.md), limited to that evidence |
+| Small desktop/desktop | 2–9 players | Replacement desktop suite: 54 cases across compact and wide allocations; the 99-case M3 suite also covers wide states | [Archived implementation record](arkiv/OptimizingDesktopGuiTasks.md) has no recorded exact hosted measurements or final visual sign-off |
 
 `make gui-current-invariant-gate` runs replacement-owned schema-2 invariants for
 the complete 99-case M3 matrix and the phone, iPad, and desktop category suites.
@@ -103,11 +164,11 @@ work remains required before claiming the corresponding phone/device support.
 
 ### Avatar sources and display
 
-All sixteen PNGs in `assets/avatars/` are 64 × 64 source pixels. Full seat
-panels have base logical avatar regions of 112 × 112 for opponents and
-128 × 128 for the human; responsive layouts adapt these regions. Phone tokens
-omit avatars. These values are not physical screen pixels: record usable
-viewport and DPR separately when assessing the actual device output.
+All sixteen PNGs in `assets/avatars/` are 64 × 64 source pixels. Full human/bot
+panels and tablet tokens display them at the upper left, targeting half the
+visual panel height with aspect preserved and text/card space reserved.
+Source pixels do not prescribe display size. Phone tokens omit avatars.
+Record usable viewport and DPR separately when assessing actual device output.
 
 ## Canonical viewport fixtures
 
@@ -642,6 +703,7 @@ still pass without failures. The local audit is
 `localtmp/restructure_rg31/characterization-migration-audit.json`.
 
 For a seven-player phone action profile, use `--profiles phone --players 7
---viewport 390 1000`; at 390 × 844 the measured composition shows space
-guidance and cannot execute the action workload. Profiling records synthetic
+--viewport 390 1000`; RG-63 adds playable six/seven-player touch fixtures at 390 × 744 and
+390 × 844. Use fresh evidence when profiling a corrected build; keyboard
+entry and maximum-value stress can have different measured envelopes. Profiling records synthetic
 host timings and does not replace physical-device acceptance.

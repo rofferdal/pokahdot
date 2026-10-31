@@ -2,6 +2,11 @@
 
 This document provides an instructive reference to the architecture and structural design of Pokahdot. It is written to give developers an intuitive, clear understanding of how the components fit together, where boundaries lie, and how data flows through the system.
 
+The [product specification](../../docs/ProjectDescription.md) owns requirements;
+[ARCHITECTURE.md](../../docs/ARCHITECTURE.md) owns implementation decisions.
+This reference explains those contracts. For scenes, reusable controls and
+responsive geometry, see [GUI composition](gui-composition.md).
+
 ---
 
 ## 1. High-Level Architectural Pattern: Hexagonal / Ports & Adapters
@@ -17,7 +22,7 @@ flowchart TD
     end
 
     subgraph Adapters["Presentation & Adapter Layers"]
-        GUI_Adapter["GUI Table Controller\n& Action Pacer\n(uses PlayableBotRoster)"]
+        GUI_Adapter["GuiReplacementTableController\nGuiTableSession / detached view models\n(GuiMatchFactory uses PlayableBotRoster)"]
         CLI_Adapter["CLI Command Loop\n& Renderer\n(uses PlayableBotRoster)"]
         SIM_Adapter["Simulation Match Factory\n& Metrics Collector"]
     end
@@ -73,7 +78,7 @@ flowchart TD
 
 ### Key Architectural Rule: Dependency Direction
 **All dependencies point inward.**
-- `scripts/core/` depends **only** on core Godot types (`RefCounted`, `Resource`, `RandomNumberGenerator`).
+- `scripts/core/` may use Godot base types such as `RefCounted`, `Resource`, `RandomNumberGenerator`, typed signals and value containers.
 - `scripts/core/` has **zero dependencies** on `Control`, `SceneTree`, UI components, or standard I/O (`stdin`/`stdout`).
 - Presentation layers (`scripts/gui/`, `scripts/cli/`) and simulation (`scripts/simulation/`) depend on `scripts/core/`, never the other way around.
 
@@ -177,7 +182,7 @@ intentionally differs from the conventional Pot Limit post-call formula
 
 ### 3.4 Pot Management & Side Pots (`PotManager`)
 `PotManager` records each player's chip contributions across the hand.
-- At settlement, it decomposes total contributions into stacked `PotLayer` instances (Main Pot, Side Pot 1, Side Pot 2...).
+- Ordinary unequal wagers remain one pot until an all-in establishes contribution boundaries. At settlement, contributions form canonical `PotLayer` instances (main and side pots); adjacent layers with identical eligibility merge, and unmatched excess returns to its contributor rather than becoming a one-player pot.
 - Each `PotLayer` maintains a list of eligible seat indices.
 - Odd chip rule: Remainder chips from integer division split pots are awarded to the first eligible seat clockwise from the dealer button.
 
@@ -205,15 +210,15 @@ Table / HandController (Internal State)
 GameView for Seat 0
    ├── hero_seat: 0
    ├── hero_hole_cards: [ A♠, K♠ ]
-   ├── revealed_hole_cards: {} (empty until showdown!)
+   ├── revealed_hole_cards: {} (only legitimate showdown reveals)
    ├── community_cards: [ 10♠, J♠, 4♦ ] (public)
    └── legal_actions: [ FOLD, CALL, RAISE, ALL_IN ]
 ```
 
 - When `get_view_for(seat)` is called, a fresh `GameView` snapshot is generated.
 - `hero_hole_cards` contains cards **only** for the requesting seat.
-- Opponent hole cards are **never present** in the view until `SHOWDOWN` is reached.
-- Presentation layers and bots interact solely with `GameView`.
+- Opponent cards appear only when legitimately revealed at showdown; folded players' hidden cards remain absent. A fold win does not reveal opponents.
+- Adapters and bots read recipient-safe state through `GameView`. Reusable GUI controls receive detached presentation models, not `GameView`, `CardData`, or mutable core objects. The adapter alone binds the match and delegates validated actions.
 
 ---
 
@@ -355,7 +360,7 @@ flowchart TD
 When modifying or extending Pokahdot, keep these rules in mind:
 
 - [ ] **No UI in Core**: Never import or reference `Control`, `Node`, `SceneTree`, `print()`, or `OS` inside `scripts/core/`.
-- [ ] **Always Use `GameView`**: Agents and presentation code must only read state through `GameView`.
+- [ ] **Recipient-Safe State**: Agents and adapters read `GameView`; reusable GUI controls read detached view models. Never inspect mutable core state to render hidden information.
 - [ ] **Target Total Wagers**: When constructing `PlayerAction.bet_to(n)` or `PlayerAction.raise_to(n)`, `n` is the total street wager.
 - [ ] **Immutable Configs**: Use `TournamentConfig` for UI/editor defaults, but always pass `ResolvedTournamentConfig` to live matches.
 - [ ] **Catalog Invariance**: Never remove required legacy profiles from `PlayableBotRoster`.

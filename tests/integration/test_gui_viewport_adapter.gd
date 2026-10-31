@@ -33,7 +33,8 @@ func test_startup_and_full_bleed_phone_table_share_injected_safe_geometry() -> v
 	assert_true(await _settle(main))
 	var table: GuiLayoutSnapshot = main.get_layout_snapshot()
 	assert_eq(table.usable_rect, usable)
-	assert_false(table.fit_guidance.is_empty())
+	assert_true(table.ready or not table.fit_guidance.is_empty())
+	assert_eq(Invariants.validate_snapshot(table), PackedStringArray())
 	assert_not_null(main.startup_adapter.match_instance)
 	assert_eq(main.get_viewport_adapter().get_geometry().usable_rect, usable)
 

@@ -37,7 +37,7 @@ func test_counts_modes_densities_and_states_render_at_actual_native_minima() -> 
 					assert_eq(snapshot.seats.size(), count)
 					assert_eq(Invariants.validate_snapshot(snapshot), PackedStringArray())
 					for row: PackedInt32Array in snapshot.seat_rows:
-						assert_lte(row.size(), 2)
+						assert_lte(row.size(), 3 if landscape else 2)
 				layout.free()
 
 
@@ -58,7 +58,11 @@ func test_actual_default_and_large_amount_phone_capability_is_reported_without_h
 				)
 				await wait_process_frames(12)
 				var snapshot: GuiLayoutSnapshot = layout.get_layout_snapshot(_root)
-				assert_eq(Invariants.validate_snapshot(snapshot), PackedStringArray())
+				assert_eq(
+					Invariants.validate_snapshot(snapshot),
+					PackedStringArray(),
+					"landscape=%s large=%s count=%d" % [landscape, large, count]
+				)
 				var minimum: Vector2 = layout.get_combined_minimum_size()
 				observations.append(
 					{
@@ -121,8 +125,10 @@ func test_resize_boundaries_and_grow_shrink_recover_minima_and_exact_drafts() ->
 		layout.size = minimum
 		await wait_process_frames(10)
 		assert_true(layout.get_layout_snapshot(_root).ready)
-		for missing: Vector2 in [Vector2(1, 0), Vector2(0, 1)]:
-			layout.set_allocation_limit(minimum - missing)
+		# A one-pixel reduction can now select a different valid row/preset flow.
+		# Verify guidance at dimensions that cannot contain any complete control.
+		for constrained: Vector2 in [Vector2(1, minimum.y), Vector2(minimum.x, 1)]:
+			layout.set_allocation_limit(constrained)
 			await wait_process_frames(8)
 			var failed: GuiLayoutSnapshot = layout.get_layout_snapshot(_root)
 			assert_false(failed.ready)

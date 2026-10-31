@@ -10,12 +10,23 @@ static func resolve(
 	actions: Control,
 	landscape: bool,
 	available: Vector2,
-	gap: float
+	gap: float,
+	tablet: bool = false
 ) -> GuiPhoneTablePlan:
 	var ids := sorted_ids(seats)
 	var minima: Dictionary[int, Vector2] = {}
 	for id: int in seats:
 		minima[id] = seats[id].get_combined_minimum_size()
+	if tablet:
+		return GuiTabletTablePlan.resolve(
+			ids,
+			hero,
+			minima,
+			center.get_combined_minimum_size(),
+			actions.get_combined_minimum_size(),
+			available,
+			gap
+		)
 	return GuiPhoneTablePlan.resolve(
 		ids,
 		hero,

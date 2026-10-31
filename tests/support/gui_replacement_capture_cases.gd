@@ -46,9 +46,9 @@ static func supported_layout_cases() -> Array[Dictionary]:
 		{"size": Vector2i(1600, 1200), "count": 2, "ready": true},
 		{"size": Vector2i(1600, 1200), "count": 6, "ready": true},
 		{"size": Vector2i(1920, 1300), "count": 9, "ready": true},
-		{"size": Vector2i(390, 844), "count": 6, "ready": false},
+		{"size": Vector2i(390, 844), "count": 6, "ready": true},
 		{"size": Vector2i(390, 844), "count": 9, "ready": false},
-		{"size": Vector2i(640, 360), "count": 2, "ready": false},
+		{"size": Vector2i(640, 360), "count": 2, "ready": true},
 	]:
 		cases.append(_layout_case(item.size, item.count, item.ready, "initial"))
 	for count: int in [2, 3]:
@@ -88,11 +88,20 @@ static func cases_for_category(category: StringName) -> Array[Dictionary]:
 				if item.category == &"phone":
 					cases.append(item)
 			cases.append_array(phone_state_cases())
+			for item: Dictionary in [
+				{"size": Vector2i(390, 744), "count": 6},
+				{"size": Vector2i(390, 744), "count": 7},
+				{"size": Vector2i(844, 390), "count": 6},
+				{"size": Vector2i(932, 430), "count": 7},
+			]:
+				cases.append(_layout_case(item.size, item.count, true, "browser-correction"))
 		&"ipad":
 			for size: Vector2i in [
 				Vector2i(768, 1024),
 				Vector2i(1024, 768),
 				Vector2i(1194, 696),
+				Vector2i(1194, 676),
+				Vector2i(834, 1030),
 				Vector2i(2388, 1450),
 			]:
 				for count: int in [2, 4, 6, 9]:
@@ -102,6 +111,8 @@ static func cases_for_category(category: StringName) -> Array[Dictionary]:
 				if item.category == &"desktop":
 					cases.append(item)
 			cases.append_array(wide_state_cases())
+			for count: int in [6, 9]:
+				cases.append(_layout_case(Vector2i(1280, 720), count, true, "browser-correction"))
 	return cases
 
 

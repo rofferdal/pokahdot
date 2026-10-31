@@ -95,6 +95,10 @@ func _verify_minimum() -> void:
 	var available: Vector2 = state.geometry.usable_rect.size
 	if minimum.x <= available.x and minimum.y <= available.y:
 		return
+	# A responsive composition must finish reflowing its previous allocation
+	# before the host can reject its minimum for the new geometry.
+	if _composition.get_layout_snapshot(self).pending:
+		return
 	state = GuiCompositionState.from_fit(state.geometry, state.fit)
 	state.status = GuiCompositionState.Status.CONTENT_MINIMUM
 	state.guidance = GuiFitPolicy.insufficient_space_message(state.mode)

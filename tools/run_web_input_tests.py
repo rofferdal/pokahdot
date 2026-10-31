@@ -108,7 +108,7 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
             assert state["winner_names"], "Real settlement must identify at least one winner"
             for winner_name in state["winner_names"]:
                 assert winner_name in state["result_text"], state["result_text"]
-            assert "More" in state["result_button"]
+            assert state["result_button"] in ("More", "More / Pots", "…")
             assert not state["summary_open"], "Result must be visible with the cards"
             hand_number = state["hand_number"]
             click("PhoneMoreButton")
@@ -235,6 +235,176 @@ def exercise(browser, base_url: str, work: Path, fixture: str, mobile: bool) -> 
         context.close()
 
 
+def exercise_tablet_presets(browser, base_url: str, work: Path,
+                            portrait: bool, preset: str) -> dict:
+    """Tap real inline presets after rotating a six-player tablet tournament."""
+    target = {"width": 834, "height": 1030} if portrait else {"width": 1194, "height": 676}
+    initial = {"width": 1194, "height": 676} if portrait else {"width": 834, "height": 1030}
+    context = browser.new_context(viewport=initial, device_scale_factor=2,
+                                  has_touch=True, is_mobile=True)
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: errors.append(message.text)
+            if message.type == "error" else None)
+    page.set_default_timeout(30000)
+    name = f"tablet-{preset}-{'portrait' if portrait else 'landscape'}"
+
+    def wait(expression: str) -> dict:
+        page.wait_for_function("window.pokahdotInput && (" + expression + ")")
+        return page.evaluate("window.pokahdotInput")
+
+    try:
+        page.goto(base_url + "/index.html?table-presets")
+        state = wait("window.pokahdotInput.frame > 20 && "
+                     "window.pokahdotInput.controls.MinimumButton?.visible && "
+                     "window.pokahdotInput.controls.PotButton?.visible")
+        assert state["avatar_count"] == 6
+        history, draft, hand = state["history_count"], state["raw_draft"], state["hand_number"]
+        page.set_viewport_size(target)
+        state = wait(f"window.pokahdotInput.viewport[0] === {target['width']} && "
+                     f"window.pokahdotInput.viewport[1] === {target['height']} && "
+                     "window.pokahdotInput.controls.MinimumButton?.visible && "
+                     "window.pokahdotInput.controls.PotButton?.visible")
+        assert state["layout_mode"] == 3 and state["avatar_count"] == 6
+        assert state["history_count"] == history and state["raw_draft"] == draft
+        assert state["hand_number"] == hand
+        control = state["controls"]["MinimumButton" if preset == "minimum" else "PotButton"]
+        assert control["enabled"]
+        x, y, width, height = control["rect"]
+        assert width >= 48 and height >= 48
+        canvas = page.locator("canvas").bounding_box()
+        assert canvas is not None
+        expected = state["minimum_total" if preset == "minimum" else "pot_total"]
+        page.touchscreen.tap(canvas["x"] + (x + width / 2) * canvas["width"] / target["width"],
+                             canvas["y"] + (y + height / 2) * canvas["height"] / target["height"])
+        after = wait(f"window.pokahdotInput.hero_wager === {expected} && "
+                     f"window.pokahdotInput.history_count === {history + 1}")
+        assert not after["popup"] and not after["menu"]
+        assert not errors, errors
+        page.screenshot(path=str(work / (name + ".png")))
+        return {"case": name, "passed": True, "submitted_street_total": expected}
+    except Exception:
+        page.screenshot(path=str(work / (name + "-failed.png")))
+        (work / (name + "-errors.json")).write_text(json.dumps(errors, indent=2))
+        raise
+    finally:
+        context.close()
+
+
+def exercise_live_phone(browser, base_url: str, work: Path) -> dict:
+    """Play through paced bots and settlement; the observer counts transient warnings."""
+    context = browser.new_context(viewport={"width": 360, "height": 780},
+                                  device_scale_factor=3, has_touch=True, is_mobile=True)
+    page = context.new_page()
+    page.set_default_timeout(30000)
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    try:
+        page.goto(base_url + "/index.html?table&phone-live")
+        actions = 0
+        while actions < 12:
+            page.wait_for_function("window.pokahdotLive?.ready && "
+                                   "!window.pokahdotLive.pending && window.pokahdotLive.human_turn")
+            state = page.evaluate("window.pokahdotLive")
+            assert state["warning_frames"] == 0, state
+            if state["hand"] >= 2:
+                break
+            control = state["controls"]["check_call"]
+            assert control["visible"] and control["enabled"], state
+            x, y, width, height = control["rect"]
+            canvas = page.locator("canvas").bounding_box()
+            assert canvas is not None
+            page.touchscreen.tap(canvas["x"] + (x + width / 2) * canvas["width"] / state["viewport"][0],
+                                 canvas["y"] + (y + height / 2) * canvas["height"] / state["viewport"][1])
+            page.wait_for_function("s => window.pokahdotLive.hand !== s.hand || "
+                                   "window.pokahdotLive.history !== s.history", arg=state)
+            actions += 1
+        assert state["hand"] >= 2, state
+        assert actions >= 4, actions
+        # Ready bot frames depend on rendering speed versus pacing. Reaching
+        # hand two proves bot progression; warning_frames observes every frame.
+        assert not errors, errors
+        page.screenshot(path=str(work / "phone-live-next-hand.png"))
+        return {"case": "phone-live-inset-start-actions-next-hand", "passed": True,
+                "human_actions": actions, "snapshot": state}
+    except Exception:
+        page.screenshot(path=str(work / "phone-live-failed.png"))
+        (work / "phone-live-failed.json").write_text(json.dumps({
+            "snapshot": page.evaluate("window.pokahdotLive || null"),
+            "browser_errors": errors,
+        }, indent=2) + "\n")
+        raise
+    finally:
+        context.close()
+
+
+def exercise_fullscreen(browser, base_url: str, work: Path, supported: bool, landscape: bool = False) -> dict:
+    """Use actual Start/menu taps; the observer exposes no input API."""
+    dimensions = {"width": 780, "height": 360} if landscape else {"width": 360, "height": 780}
+    context = browser.new_context(viewport=dimensions,
+                                  screen=dimensions,
+                                  device_scale_factor=3, has_touch=True, is_mobile=True)
+    if not supported:
+        context.add_init_script("Object.defineProperty(Element.prototype, 'requestFullscreen', "
+                                "{value: undefined}); "
+                                "Object.defineProperty(Element.prototype, 'webkitRequestFullscreen', "
+                                "{value: undefined}); "
+                                "Object.defineProperty(document, 'webkitFullscreenEnabled', "
+                                "{get: () => false}); "
+                                "Object.defineProperty(document, 'fullscreenEnabled', "
+                                "{get: () => false});")
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.set_default_timeout(30000)
+
+    def wait(expression: str) -> dict:
+        page.wait_for_function("window.pokahdotFullscreen && (" + expression + ")")
+        return page.evaluate("window.pokahdotFullscreen")
+
+    def click(key: str) -> None:
+        state = wait(f"window.pokahdotFullscreen.controls.{key}?.visible")
+        x, y, width, height = state["controls"][key]["rect"]
+        canvas = page.locator("canvas").bounding_box()
+        assert canvas is not None
+        page.touchscreen.tap(canvas["x"] + (x + width / 2) * canvas["width"] / state["viewport"][0],
+                             canvas["y"] + (y + height / 2) * canvas["height"] / state["viewport"][1])
+
+    try:
+        page.goto(base_url + "/index.html?fullscreen")
+        wait("window.pokahdotFullscreen.frame > 20 && window.pokahdotFullscreen.ready")
+        click("start")
+        state = wait("window.pokahdotFullscreen.playing && window.pokahdotFullscreen.ready && "
+                     "!window.pokahdotFullscreen.pending && window.pokahdotFullscreen.human_turn")
+        if supported:
+            page.wait_for_function("!!document.fullscreenElement")
+            page.evaluate("document.exitFullscreen()")
+            page.wait_for_function("!document.fullscreenElement")
+            wait(f"window.pokahdotFullscreen.frame > {state['frame'] + 8} && "
+                 "window.pokahdotFullscreen.ready && !window.pokahdotFullscreen.pending")
+            click("more")
+            click("menu_fullscreen")
+            page.wait_for_function("!!document.fullscreenElement")
+            after = wait("window.pokahdotFullscreen.ready && !window.pokahdotFullscreen.pending")
+            assert after["hand"] == state["hand"]
+            assert after["history"] == state["history"]
+            assert after["draft"] == state["draft"]
+        else:
+            assert not page.evaluate("!!document.fullscreenElement")
+            click("more")
+            click("menu_close")
+        assert not errors, errors
+        name = "phone-fullscreen" if supported else "phone-fullscreen-unavailable"
+        if landscape:
+            name += "-landscape"
+        page.screenshot(path=str(work / (name + ".png")))
+        return {"case": name, "passed": True}
+    finally:
+        context.close()
+
+
 def exercise_replacement(browser, base_url: str, work: Path) -> dict:
     """Drive the replacement only through canvas input and its semantic observer."""
     context = browser.new_context(viewport={"width": 1000, "height": 1000},
@@ -331,6 +501,16 @@ def main() -> None:
                        for fixture in ("startup", "table") for mobile in (False, True)]
             results.append(exercise(browser, f"http://127.0.0.1:{server.server_port}", args.output,
                                     "table-showdown", True))
+            results.append(exercise_live_phone(
+                browser, f"http://127.0.0.1:{server.server_port}", args.output))
+            results.extend(exercise_fullscreen(browser, f"http://127.0.0.1:{server.server_port}",
+                                               args.output, supported)
+                           for supported in (True, False))
+            results.append(exercise_fullscreen(browser, f"http://127.0.0.1:{server.server_port}",
+                                               args.output, True, True))
+            results.extend(exercise_tablet_presets(
+                browser, f"http://127.0.0.1:{server.server_port}", args.output, portrait, preset)
+                for portrait in (False, True) for preset in ("minimum", "pot"))
             replacement_server = http.server.ThreadingHTTPServer(("127.0.0.1", 0),
                 functools.partial(QuietHandler, directory=str(replacement_output)))
             replacement_thread = threading.Thread(

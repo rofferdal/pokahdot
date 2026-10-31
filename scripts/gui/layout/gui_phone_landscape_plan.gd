@@ -22,8 +22,30 @@ static func resolve(
 	available: Vector2,
 	gap: float = 4.0
 ) -> GuiPhoneLandscapePlan:
+	var symmetric: GuiPhoneLandscapePlan = _symmetric(
+		ids, hero, minima, board, action_minimum, available, gap
+	)
+	if not symmetric.valid or symmetric.feasible or ids.size() < 4:
+		return symmetric
+	var side: GuiPhoneLandscapePlan = GuiPhoneSidePlan.resolve(
+		ids, hero, minima, board, action_minimum, available, gap
+	)
+	return side if side.feasible else symmetric
+
+
+static func _symmetric(
+	ids: PackedInt32Array,
+	hero: int,
+	minima: Dictionary[int, Vector2],
+	board: Vector2,
+	action_minimum: Vector2,
+	available: Vector2,
+	gap: float = 4.0,
+	capacity: int = 7,
+	top_triple: bool = false
+) -> GuiPhoneLandscapePlan:
 	var result := GuiPhoneLandscapePlan.new()
-	if ids.size() < 2 or ids.size() > 7 or minima.size() != ids.size():
+	if ids.size() < 2 or ids.size() > capacity or minima.size() != ids.size():
 		return result
 	if not _positive(board) or not _positive(action_minimum) or not available.is_finite():
 		return result
@@ -32,38 +54,44 @@ static func resolve(
 	for id: int in ids:
 		if not minima.has(id) or not _positive(minima[id]):
 			return result
-	var ordered: GuiSeatRows = GuiSeatRows.compose(ids, hero, true)
+	var ordered: GuiSeatRows = GuiSeatRows.compose(ids, hero, true, top_triple)
 	if not ordered.valid:
 		return result
 	result.rows = ordered.rows.duplicate()
 	for id: int in ids:
 		if id != hero:
 			result.opponent_width = maxf(result.opponent_width, minima[id].x)
-	result.hero_width = maxf(minima[hero].x, result.opponent_width + 2.0 * gap)
-	var has_apex: bool = result.rows[0].size() == 1
-	var body_top: float = minima[result.rows[0][0]].y + gap if has_apex else 0.0
+	result.opponent_width = maxf(result.opponent_width, minima[hero].x)
+	result.hero_width = result.opponent_width
+	var seat_height: float = 0.0
+	for value: Vector2 in minima.values():
+		seat_height = maxf(seat_height, value.y)
+	var has_apex: bool = result.rows[0].size() != 2
+	var body_top: float = seat_height + gap if has_apex else 0.0
 	var pair_heights: Array[float] = []
 	var side_height: float = 0.0
 	for index: int in range(1 if has_apex else 0, result.rows.size() - 1):
 		var row: PackedInt32Array = result.rows[index]
-		var height: float = maxf(minima[row[0]].y, minima[row[1]].y)
+		var height: float = seat_height
 		pair_heights.append(height)
 		side_height += height + (gap if pair_heights.size() > 1 else 0.0)
 	var center_width: float = maxf(board.x, result.hero_width)
 	var upper_width: float = board.x
 	if not pair_heights.is_empty():
 		upper_width += 2.0 * (result.opponent_width + gap)
+	if top_triple and result.rows[0].size() == 3:
+		upper_width = maxf(upper_width, 3.0 * result.opponent_width + 2.0 * gap)
 	result.minimum = Vector2(
 		maxf(upper_width, center_width + 2.0 * (action_minimum.x + gap)),
-		body_top + maxf(side_height, board.y) + gap + maxf(minima[hero].y, action_minimum.y)
+		body_top + maxf(side_height, board.y) + gap + maxf(seat_height, action_minimum.y)
 	)
 	result.valid = result.minimum.is_finite()
 	if not result.valid or available.x < result.minimum.x or available.y < result.minimum.y:
 		return result
 	result.feasible = true
 	result.seats[hero] = Rect2(
-		Vector2((available.x - result.hero_width) * 0.5, available.y - minima[hero].y),
-		Vector2(result.hero_width, minima[hero].y)
+		Vector2((available.x - result.hero_width) * 0.5, available.y - seat_height),
+		Vector2(result.hero_width, seat_height)
 	)
 	result.center = Rect2(
 		Vector2((available.x - board.x) * 0.5, result.seats[hero].position.y - gap - board.y), board
@@ -73,11 +101,12 @@ static func resolve(
 		action_minimum
 	)
 	if has_apex:
-		var apex: int = result.rows[0][0]
-		result.seats[apex] = Rect2(
-			Vector2((available.x - result.opponent_width) * 0.5, 0),
-			Vector2(result.opponent_width, minima[apex].y)
-		)
+		for index: int in result.rows[0].size():
+			var apex: int = result.rows[0][index]
+			var x: float = (available.x - result.opponent_width) * 0.5
+			if result.rows[0].size() == 3 and index != 1:
+				x = 0.0 if index == 0 else available.x - result.opponent_width
+			result.seats[apex] = Rect2(Vector2(x, 0), Vector2(result.opponent_width, seat_height))
 	var y: float = body_top
 	for index: int in pair_heights.size():
 		var row: PackedInt32Array = result.rows[index + (1 if has_apex else 0)]

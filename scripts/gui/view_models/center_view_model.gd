@@ -11,6 +11,8 @@ var phone_pot_text: String = ""
 var wager_text: String = ""
 var phone_wager_text: String = ""
 var blind_level_text: String = ""
+var compact_blind_text: String = ""
+var compact_wager_text: String = ""
 var large_values: bool = false
 var wager_count: int = 0
 var current_wager: int = 0
@@ -46,6 +48,11 @@ static func build(
 	result.phone_wager_text = "Current wager: %d" % result.current_wager
 	result.blind_level_text = (
 		"Blinds %d / %d  ·  Level %d  ·  %d hands to next level"
+		% [view.small_blind, view.big_blind, view.blind_level, view.hands_until_next_level]
+	)
+	result.compact_wager_text = "Wager: %d" % result.current_wager
+	result.compact_blind_text = (
+		"Blinds %d / %d · L%d · Next: %d hands"
 		% [view.small_blind, view.big_blind, view.blind_level, view.hands_until_next_level]
 	)
 	return result

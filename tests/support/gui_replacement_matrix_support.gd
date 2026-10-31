@@ -14,14 +14,18 @@ static func mount(host: Node, case: Dictionary) -> Dictionary:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	host.add_child(viewport)
 	var table := TableScene.instantiate() as GuiReplacementTableController
-	table.touch_entry = case.category == &"phone"
+	table.touch_entry = case.category in [&"phone", &"ipad"]
 	table.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	table.size = Vector2(case.size)
 	viewport.add_child(table)
 	table.set_layout_mode_override(case.layout_mode_override)
 	table.set_viewport_geometry(GuiViewportGeometry.injected(Vector2(case.size)))
 	var fixture: Dictionary = Cases.fixture(case)
-	var bound: bool = table.bind_view(fixture.view, {}, {})
+	var avatars: Dictionary[int, String] = {}
+	var paths: PackedStringArray = GuiAvatarCatalog.default_avatar_paths()
+	for seat: PlayerView in (fixture.view as GameView).seats:
+		avatars[seat.seat] = paths[seat.seat]
+	var bound: bool = table.bind_view(fixture.view, avatars, {})
 	return {"viewport": viewport, "table": table, "fixture": fixture, "bound": bound}
 
 

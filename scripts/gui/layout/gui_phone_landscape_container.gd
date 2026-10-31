@@ -2,6 +2,8 @@ class_name GuiPhoneLandscapeContainer
 extends Container
 
 ## Sole landscape geometry owner; native child containers own seat interiors.
+@export var separation: float = 2.0
+@export var tablet_mode: bool = false
 var _seats: Dictionary[int, Control] = {}
 var _hero: int = -1
 var _center: Control
@@ -67,14 +69,17 @@ func _resolve(available: Vector2) -> GuiPhoneLandscapePlan:
 		minima[id] = _seats[id].get_combined_minimum_size()
 	var ids := PackedInt32Array(_seats.keys())
 	ids.sort()
-	return GuiPhoneLandscapePlan.resolve(
+	var planner: Callable = (
+		GuiTabletTablePlan.geometry if tablet_mode else GuiPhoneLandscapePlan.resolve
+	)
+	return planner.call(
 		ids,
 		_hero,
 		minima,
 		_center.get_combined_minimum_size(),
 		_actions.get_combined_minimum_size(),
 		available,
-		get_theme_constant("separation", &"VBoxContainer")
+		separation
 	)
 
 
@@ -94,6 +99,17 @@ func _arrange() -> void:
 		return
 	for id: int in plan.seats:
 		fit_child_in_rect(_seats[id], plan.seats[id])
+	if tablet_mode:
+		var hero := _seats[_hero] as GuiSeatToken
+		var panel := hero.get_node("Panel") as Control
+		(_center as GuiCenterBoard).set_card_group_width(floorf(plan.seats[_hero].size.x))
+		_align_tablet_actions(plan, hero.position.y + panel.position.y + panel.size.y)
+		GuiTabletTablePlan.center_board(
+			plan,
+			_limit if _limit.x > 0 else size,
+			(_center as GuiCenterBoard).get_card_group_height(),
+			separation
+		)
 	fit_child_in_rect(_center, plan.center)
 	fit_child_in_rect(_actions, plan.actions)
 
@@ -101,3 +117,18 @@ func _arrange() -> void:
 func _invalidate() -> void:
 	update_minimum_size()
 	queue_sort()
+
+
+func _align_tablet_actions(plan: GuiPhoneLandscapePlan, panel_bottom: float) -> void:
+	# Below-seat actions keep their own band; only the side rail shares this edge.
+	if plan.actions.position.x < plan.seats[_hero].end.x:
+		return
+	var desired: float = panel_bottom - plan.actions.size.y
+	var clearance: float = 0.0
+	for id: int in plan.seats:
+		if id == _hero:
+			continue
+		var rect: Rect2 = plan.seats[id]
+		if rect.position.x < plan.actions.end.x and rect.end.x > plan.actions.position.x:
+			clearance = maxf(clearance, rect.end.y + separation)
+	plan.actions.position.y = minf(plan.actions.position.y, maxf(desired, clearance))

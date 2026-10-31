@@ -2,6 +2,12 @@
 
 This document provides a concise, instructive reference for the core domain types, data models, and API contracts located in `scripts/core/`.
 
+Requirements live in the [product specification](../../docs/ProjectDescription.md)
+and implementation decisions in [ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+The core supports 2–9 players; the phone startup product range is 2–7 and never
+changes a running match's roster during resize. See
+[GUI composition](gui-composition.md) for the presentation boundary.
+
 ---
 
 ## 1. Domain Entities & State Types
@@ -18,6 +24,7 @@ The top-level orchestrator of a single-table tournament.
   - `advance_until_blocked(max_transitions: int = 32) -> StepResult`: Advances until input, completion, an error, or the budget is reached. Next-hand setup preserves that budget; nonpositive budgets normalize to one step.
   - `advance_one_action() -> StepResult`: Performs one bot action or automatic street/settlement step. Human turns wait for explicit submission, including when the mailbox contains an action.
   - `submit_human_action(action: PlayerAction) -> StepResult`: Submits the human move and advances until blocked.
+  - `submit_human_action_without_advance(action: PlayerAction) -> StepResult`: Submits one human move without advancing subsequent bot actions; the GUI session uses this to retain visual pacing.
   - `request_quit() -> StepResult`: Instantly aborts the active hand and finishes the tournament without a winner (`end_reason = &"player_quit"`).
   - `get_view_for(seat: int) -> GameView`: Returns the recipient-safe snapshot for a seat.
 
@@ -103,6 +110,12 @@ Tracks contributions and derives main and side pots.
 - `derive_pots(players: Array[Player]) -> Array[PotLayer]`: Breaks contributions into layered pots.
 - `award_showdown(players, hand_ranks, button_seat) -> Array[PotAward]`: Distributes chips to best eligible hands, handling ties and odd chips.
 
+Unequal wagers alone do not create side pots: an all-in fixes a contribution
+boundary. Adjacent layers with identical eligibility merge; unmatched excess
+returns to its contributor and is not a one-player pot. Folded contributions
+remain in the pot but their owners cannot win. Odd chips go clockwise from the
+dealer among the tied eligible winners.
+
 ---
 
 ## 3. Cards & Evaluation
@@ -153,10 +166,10 @@ The recipient-specific, read-only snapshot provided to agents and UI.
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `street` | `StringName` | `&"preflop"`, `&"flop"`, `&"turn"`, `&"river"`. |
+| `street` | `StringName` | `&"preflop"`, `&"flop"`, `&"turn"`, `&"river"`, `&"showdown"`, or `&"hand_end"` after settlement. |
 | `hero_seat` | `int` | Seat index of the recipient. |
 | `hero_hole_cards` | `Array[CardData]` | Recipient's hole cards (only non-empty for hero). |
-| `revealed_hole_cards` | `Dictionary[int, Array]` | Showdown cards (empty until showdown). |
+| `revealed_hole_cards` | `Dictionary[int, Array]` | Legitimately revealed showdown cards; folded opponents remain hidden and fold wins do not reveal cards. |
 | `community_cards` | `Array[CardData]` | Public face-up board cards. |
 | `acting_seat` | `int` | Seat whose turn it is to act. |
 | `legal_actions` | `Array[PlayerAction.Kind]` | Allowed actions for the recipient; empty unless the recipient is acting. |
@@ -165,6 +178,10 @@ The recipient-specific, read-only snapshot provided to agents and UI.
 | `minimum_wager_total`| `int` | Minimum bet/raise total. |
 | `maximum_wager_total`| `int` | All-in wager total. |
 | `seats` | `Array[PlayerView]` | Public info for all seats (stacks, bets, folded/busted status). |
+
+The GUI session derives detached `TableViewModel` children from this snapshot.
+Components render those values without retaining `GameView`, `CardData`, or a
+live match. See the [GUI data and input flow](gui-composition.md#data-and-input-flow).
 
 GUI, CLI, and strategic-agent pot-size presets derive target totals entirely from
 this recipient-safe snapshot. With pot `P`, the recipient's existing street

@@ -21,6 +21,7 @@ static func encode(snapshot: GuiLayoutSnapshot) -> Dictionary:
 					"rect": rect(seat.panel.rect),
 					"status_rect": rect(seat.status.rect),
 					"footprint": rect(seat.footprint),
+					"avatar": element(seat.fields[&"avatar"]) if seat.fields.has(&"avatar") else {},
 				}
 			)
 		)

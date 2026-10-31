@@ -2,6 +2,7 @@ class_name GuiHoleCards
 extends AspectRatioContainer
 
 ## Fit the pair as one native aspect group so spare cell space cannot split it.
+@export var horizontal_glyphs: bool = false
 @export var vertical_pair: bool = false
 var cards: Array[GuiPlayingCard]:
 	get:
@@ -9,6 +10,8 @@ var cards: Array[GuiPlayingCard]:
 
 
 func _ready() -> void:
+	for card: GuiPlayingCard in (get_node("Row") as GuiCardRow).get_children():
+		card.configure_glyphs(horizontal_glyphs)
 	_refresh_layout()
 
 

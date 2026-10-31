@@ -10,12 +10,12 @@ func test_authored_templates_have_explicit_capped_rows_and_bottom_center_hero() 
 	var populations: Dictionary[int, PackedInt32Array] = {
 		2: PackedInt32Array([1, 1]),
 		3: PackedInt32Array([2, 1]),
-		4: PackedInt32Array([1, 3]),
-		5: PackedInt32Array([2, 3]),
-		6: PackedInt32Array([1, 2, 3]),
-		7: PackedInt32Array([2, 2, 3]),
-		8: PackedInt32Array([1, 2, 2, 3]),
-		9: PackedInt32Array([2, 2, 2, 3])
+		4: PackedInt32Array([1, 2, 1]),
+		5: PackedInt32Array([2, 2, 1]),
+		6: PackedInt32Array([1, 2, 2, 1]),
+		7: PackedInt32Array([2, 2, 2, 1]),
+		8: PackedInt32Array([1, 2, 2, 2, 1]),
+		9: PackedInt32Array([2, 2, 2, 2, 1])
 	}
 	for count: int in range(2, 10):
 		var template: GuiSeatSlotTemplate = Template.load_for_count(count)
@@ -64,7 +64,13 @@ func test_clockwise_seat_order_is_independent_of_dictionary_insertion_order_and_
 		_minima(6, 0), 0, Template.load_for_count(6), CENTER, LOWER, Vector2.ZERO
 	)
 	assert_eq(
-		six.rows, [PackedInt32Array([3]), PackedInt32Array([2, 4]), PackedInt32Array([1, 0, 5])]
+		six.rows,
+		[
+			PackedInt32Array([3]),
+			PackedInt32Array([2, 4]),
+			PackedInt32Array([1, 5]),
+			PackedInt32Array([0])
+		]
 	)
 	var nine: GuiSeatRingPlan = Plan.resolve(
 		_minima(9, 0), 0, Template.load_for_count(9), CENTER, LOWER, Vector2.ZERO
@@ -75,12 +81,13 @@ func test_clockwise_seat_order_is_independent_of_dictionary_insertion_order_and_
 			PackedInt32Array([4, 5]),
 			PackedInt32Array([3, 6]),
 			PackedInt32Array([2, 7]),
-			PackedInt32Array([1, 0, 8])
+			PackedInt32Array([1, 8]),
+			PackedInt32Array([0])
 		]
 	)
 
 
-func test_top_pairs_are_centered_with_themed_gap_and_other_rows_keep_their_columns() -> void:
+func test_top_pairs_use_the_outer_columns_and_keep_themed_clearance() -> void:
 	for count: int in [3, 5, 7, 9]:
 		for hero: int in count:
 			for gap: float in [0.0, 8.0, 16.0]:
@@ -122,15 +129,13 @@ func test_top_pairs_are_centered_with_themed_gap_and_other_rows_keep_their_colum
 				assert_eq(plan.rows[0].size(), 2)
 				var left: Rect2 = plan.seats[plan.rows[0][0]]
 				var right: Rect2 = plan.seats[plan.rows[0][1]]
-				assert_almost_eq(right.position.x - left.end.x, gap, 0.001)
+				assert_gte(right.position.x - left.end.x, gap)
 				assert_almost_eq(left.merge(right).get_center().x, allocation.x * 0.5, 0.001)
-				assert_gt(left.position.x, 22.0, "Top pair moves inward from the outer column")
-				assert_lt(right.end.x, allocation.x - 22.0)
+				assert_eq(left.position.x, 22.0)
+				assert_eq(right.end.x, allocation.x - 22.0)
 				for id: int in minima:
 					var slot: Vector2i = template.slots[plan.visual_slots[id]]
-					var expected_shift: float = 150.0
-					if slot.y != 0:
-						expected_shift = slot.x * 150.0
+					var expected_shift: float = slot.x * 150.0
 					assert_almost_eq(
 						grown.seats[id].position.x - plan.seats[id].position.x,
 						expected_shift,
@@ -141,7 +146,7 @@ func test_top_pairs_are_centered_with_themed_gap_and_other_rows_keep_their_colum
 				_assert_geometry(grown, minima, allocation + Vector2(300, 0), 36, 4)
 
 
-func test_avatar_sized_apex_gap_is_measured_and_centered_for_all_top_pairs() -> void:
+func test_apex_clearance_remains_a_minimum_when_pairs_move_to_outer_columns() -> void:
 	for count: int in [3, 5, 7, 9]:
 		for hero: int in count:
 			for apex: float in [64.0, 96.0]:
@@ -185,7 +190,7 @@ func test_avatar_sized_apex_gap_is_measured_and_centered_for_all_top_pairs() -> 
 						assert_eq(plan.rows, probe.rows)
 						var left: Rect2 = plan.seats[plan.rows[0][0]]
 						var right: Rect2 = plan.seats[plan.rows[0][1]]
-						assert_almost_eq(right.position.x - left.end.x, maxf(gap, apex), 0.001)
+						assert_gte(right.position.x - left.end.x, maxf(gap, apex))
 						assert_gte(right.position.x - left.end.x, apex)
 						assert_almost_eq(
 							left.merge(right).get_center().x, allocation.x * 0.5, 0.001
@@ -407,7 +412,9 @@ func test_nonconsecutive_nonnegative_seat_ids_use_sorted_clockwise_rank() -> voi
 		minima, 20, Template.load_for_count(5), CENTER, LOWER, probe.minimum
 	)
 	assert_true(plan.feasible)
-	assert_eq(plan.rows, [PackedInt32Array([105, 3]), PackedInt32Array([100, 20, 7])])
+	assert_eq(
+		plan.rows, [PackedInt32Array([105, 3]), PackedInt32Array([100, 7]), PackedInt32Array([20])]
+	)
 	assert_eq(plan.visual_slots, {3: 0, 7: 1, 20: 2, 100: 3, 105: 4})
 	_assert_geometry(plan, minima, plan.minimum, 0.0, 0.0)
 
@@ -608,7 +615,7 @@ func _assert_geometry(
 		rectangles.append(plan.lower)
 	var seen := PackedInt32Array()
 	for row: PackedInt32Array in plan.rows:
-		assert_lte(row.size(), 3)
+		assert_lte(row.size(), 2)
 		var last_x: float = -INF
 		for id: int in row:
 			assert_false(id in seen)

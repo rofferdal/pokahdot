@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_table_layout.gd" id="1"]
 [ext_resource type="Theme" path="res://resources/gui_theme.tres" id="2"]
@@ -7,10 +7,11 @@
 [ext_resource type="PackedScene" path="res://scenes/gui/components/SpaceGuidance.tscn" id="5"]
 
 [ext_resource type="Script" path="res://scripts/gui/layout/gui_phone_landscape_container.gd" id="6"]
-[ext_resource type="PackedScene" path="res://scenes/gui/components/CenterBoard.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/CompactCenterBoard.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/ActionBar.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/SeatToken.tscn" id="9"]
 [ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_seat_rows.gd" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/LandscapeSeatToken.tscn" id="11"]
 
 [node name="PhoneTableLayout" type="MarginContainer"]
 mouse_filter = 2
@@ -58,6 +59,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Portrait" type="VBoxContainer" parent="Boundary/Content"]
+theme_override_constants/separation = 1
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -110,7 +112,9 @@ mouse_filter = 2
 
 [node name="CenterBoard" parent="Boundary/Content/Portrait" instance=ExtResource("7")]
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
+size_flags_vertical = 3
+compact_copy = true
 
 [node name="HeroSlot" type="CenterContainer" parent="Boundary/Content/Portrait"]
 layout_mode = 2
@@ -139,49 +143,54 @@ grow_vertical = 2
 mouse_filter = 2
 
 script = ExtResource("6")
+separation = 1.0
+theme_override_constants/separation = 1
 
 [node name="CenterBoard" parent="Boundary/Content/Landscape" instance=ExtResource("7")]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_constants/separation = 2
+compact_copy = true
+horizontal_cards = false
 
 [node name="ActionBar" parent="Boundary/Content/Landscape" instance=ExtResource("8")]
 layout_mode = 2
 compact_controls = true
+show_status = false
 
-[node name="Seat0" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat0" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat1" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat1" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat2" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat2" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat3" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat3" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat4" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat4" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat5" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat5" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat6" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat6" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat7" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat7" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 
-[node name="Seat8" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+[node name="Seat8" parent="Boundary/Content/Landscape" instance=ExtResource("11")]
 visible = false
 layout_mode = 2
 

@@ -1,6 +1,7 @@
 class_name GuiPlayingCard
 extends AspectRatioContainer
 
+@export var horizontal_glyphs: bool = false
 var _state: CardViewModel.State = CardViewModel.State.EMPTY
 
 
@@ -26,6 +27,15 @@ func render(model: CardViewModel) -> void:
 
 
 func _ready() -> void:
+	configure_glyphs(horizontal_glyphs)
+
+
+func configure_glyphs(horizontal: bool) -> void:
+	horizontal_glyphs = horizontal
+	(get_node("Face/Glyphs") as GuiCardGlyphs).horizontal = horizontal
+	(get_node("Face/Glyphs") as GuiCardGlyphs).update_minimum_size()
+	if horizontal:
+		ratio = 2.0
 	_update_slot_minimum()
 
 
@@ -44,7 +54,9 @@ func _update_slot_minimum() -> void:
 
 func _minimum_card_size() -> Vector2:
 	var content: Vector2 = GuiCardInk.minimum_content(
-		get_theme_font("font", &"CardRank"), get_theme_constant("glyph_separation", &"CardGlyphs")
+		get_theme_font("font", &"CardRank"),
+		get_theme_constant("glyph_separation", &"CardGlyphs"),
+		horizontal_glyphs
 	)
 	var minimum: Vector2 = content + get_theme_stylebox("panel", &"CardFace").get_minimum_size()
 	var width: float = ceilf(maxf(minimum.x, minimum.y * ratio))

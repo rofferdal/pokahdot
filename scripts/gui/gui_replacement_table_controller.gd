@@ -8,6 +8,7 @@ signal tournament_quit_confirmed
 signal return_to_startup_requested
 signal frame_tick
 const WideScene := preload("res://scenes/gui/layouts/WideTableLayout.tscn")
+const TabletScene := preload("res://scenes/gui/layouts/TabletTableLayout.tscn")
 const PhoneScene := preload("res://scenes/gui/layouts/PhoneTableLayout.tscn")
 const LandscapeScene := preload("res://scenes/gui/layouts/PhoneLandscapeLayout.tscn")
 @export var action_timing_config: Resource
@@ -48,10 +49,8 @@ func _ready() -> void:
 	resized.connect(_request_resolution)
 	visibility_changed.connect(_on_visibility_changed)
 	_ever_visible = is_visible_in_tree()
-	for mode: GuiSizeClass.LayoutMode in [
-		GuiSizeClass.LayoutMode.WIDE_COMPACT, GuiSizeClass.LayoutMode.WIDE
-	]:
-		_host().register_composition(mode, WideScene)
+	_host().register_composition(GuiSizeClass.LayoutMode.WIDE, WideScene)
+	_host().register_composition(GuiSizeClass.LayoutMode.WIDE_COMPACT, TabletScene)
 	_host().register_composition(GuiSizeClass.LayoutMode.PHONE, PhoneScene)
 	_host().register_composition(GuiSizeClass.LayoutMode.PHONE_LANDSCAPE, LandscapeScene)
 	_host().measurements_invalidated.connect(_request_resolution)

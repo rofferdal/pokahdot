@@ -61,6 +61,7 @@ func test_builtin_font_and_stress_copy_fit_actual_phone_allocations() -> void:
 	for role: StringName in [&"name", &"stack", &"action"]:
 		var value: GuiLayoutElement = opponent.fields[role]
 		assert_lte(value.required_size.x, value.allocated_size.x + 0.5, String(role))
+
 		assert_lte(value.required_size.y, value.allocated_size.y + 0.5, String(role))
 	var compact_action: GuiLayoutElement = snapshot.elements[&"action/check_call"]
 	assert_eq(compact_action.text, "Call 1000000")
@@ -68,6 +69,75 @@ func test_builtin_font_and_stress_copy_fit_actual_phone_allocations() -> void:
 	assert_lte(compact_action.required_size.y, compact_action.allocated_size.y + 0.5)
 	for control: Control in _table.get_composition().get_seat_controls().values():
 		assert_true(control.get_theme_font("font").resource_path.is_empty())
+
+
+func test_phone_keeps_playable_table_through_live_action_and_street_changes() -> void:
+	_setup(Vector2(360, 780), GuiSizeClass.LayoutMode.PHONE)
+	var game: TournamentMatch = _game(6)
+	var timing := GuiActionTimingConfig.new()
+	timing.default_pause_seconds = 10000.0
+	timing.showdown_pause_seconds = 10000.0
+	_table.set_action_timing_config(timing)
+	assert_true(_table.bind_match(game, 0, _avatars(6), _names(6)))
+	assert_true(await _settle())
+	for transition: int in 40:
+		var before: GameView = game.get_view_for(0)
+		if before.hand_complete:
+			break
+		if before.acting_seat == 0:
+			var action: PlayerAction = (
+				PlayerAction.check_action()
+				if PlayerAction.Kind.CHECK in before.legal_actions
+				else PlayerAction.call_action()
+			)
+			assert_ne(
+				game.submit_human_action_without_advance(action).status, StepResult.Status.ERROR
+			)
+		else:
+			assert_ne(game.advance_one_action().status, StepResult.Status.ERROR)
+		assert_true(_table.refresh_from_match())
+		assert_true(await _settle())
+		var snapshot: GuiLayoutSnapshot = _table.get_layout_snapshot()
+		assert_true(snapshot.ready, "Transition %d: %s" % [transition, snapshot.fit_guidance])
+		assert_true(snapshot.fit_guidance.is_empty())
+		if not snapshot.ready:
+			break
+	assert_true(game.get_view_for(0).hand_complete, "The phone must reach settlement.")
+
+
+func test_inset_phone_stays_visible_from_start_through_paced_bots_and_next_hand() -> void:
+	_setup(Vector2(360, 780), GuiSizeClass.LayoutMode.PHONE)
+	_table.set_viewport_geometry(
+		GuiViewportGeometry.injected(Vector2(360, 780), Rect2(0, 36, 360, 744))
+	)
+	var timing := GuiActionTimingConfig.new()
+	timing.default_pause_seconds = 0.04
+	timing.showdown_pause_seconds = 0.04
+	_table.set_action_timing_config(timing)
+	var game: TournamentMatch = _game(6, 1000, 1)
+	assert_true(_table.bind_match(game, 0, _avatars(6), _names(6)))
+	var warning := _table.get_node("CompositionHost/LayoutSlot/SpaceGuidance") as Control
+	var reached_next_turn: bool = false
+	var human_actions: int = 0
+	for frame: int in 900:
+		await wait_process_frames(1)
+		var snapshot: GuiLayoutSnapshot = _table.get_layout_snapshot()
+		if warning.is_visible_in_tree():
+			fail_test("Phone displayed space guidance during live play: " + snapshot.fit_guidance)
+			break
+		if not snapshot.ready:
+			continue
+		var view: GameView = game.get_view_for(0)
+		if view.acting_seat != 0:
+			continue
+		if view.hand_number > 1:
+			reached_next_turn = true
+			break
+		assert_ne(_table.submit_intent(&"check_call").status, StepResult.Status.ERROR)
+		human_actions += 1
+	assert_true(reached_next_turn, "Paced bots must return control on the next hand.")
+	assert_gte(human_actions, 4)
+	assert_eq(Invariants.validate_snapshot(_table.get_layout_snapshot()), PackedStringArray())
 
 
 func test_safe_origin_is_applied_once_and_geometry_reuses_active_composition_and_value_cache(
@@ -232,7 +302,7 @@ func test_detail_snapshots_redact_unauthorized_child_faces_and_leave_bound_cards
 
 
 func test_guidance_keeps_menu_quit_reachable_and_stops_the_adopted_match() -> void:
-	_setup(Vector2(390, 844), GuiSizeClass.LayoutMode.PHONE)
+	_setup(Vector2(320, 480), GuiSizeClass.LayoutMode.PHONE)
 	var game: TournamentMatch = _game(6)
 	assert_true(_table.bind_match(game, 0, _avatars(6), _names(6)))
 	assert_true(await _settle())
@@ -343,15 +413,15 @@ func _avatars(count: int) -> Dictionary[int, String]:
 	return avatars
 
 
-func _game(count: int) -> TournamentMatch:
+func _game(count: int, stack: int = 100, transitions: int = 32) -> TournamentMatch:
 	var ids: Dictionary[int, StringName] = {}
 	var agents: Dictionary[int, Agent] = {}
 	for id: int in count:
 		ids[id] = &"human" if id == 0 else &"scripted"
 		agents[id] = HumanAgent.new() if id == 0 else PassiveAgent.new()
-	var config := ResolvedTournamentConfig.new(count, 100, 5, 10, 9123, &"single_table", ids)
+	var config := ResolvedTournamentConfig.new(count, stack, 5, 10, 9123, &"single_table", ids)
 	var game := TournamentMatch.new(config, agents)
-	assert_ne(game.start().status, StepResult.Status.ERROR)
+	assert_ne(game.start(transitions).status, StepResult.Status.ERROR)
 	return game
 
 

@@ -52,13 +52,15 @@ static func bounds(font: Font, copy: String, font_size: int) -> Rect2:
 	return result
 
 
-static func minimum_content(font: Font, gap: float) -> Vector2:
+static func minimum_content(font: Font, gap: float, horizontal: bool = false) -> Vector2:
 	var rank_size := Vector2.ZERO
 	var suit_size := Vector2.ZERO
 	for copy: String in ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]:
 		rank_size = rank_size.max(bounds(font, copy, 20).size.ceil())
 	for copy: String in ["♣", "♦", "♥", "♠"]:
 		suit_size = suit_size.max(bounds(font, copy, 20).size.ceil())
+	if horizontal:
+		return Vector2(rank_size.x + suit_size.x + gap, maxf(rank_size.y, suit_size.y))
 	return Vector2(maxf(rank_size.x, suit_size.x), rank_size.y + suit_size.y + gap)
 
 

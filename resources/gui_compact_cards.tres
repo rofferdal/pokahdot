@@ -1,0 +1,40 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[sub_resource type="StyleBoxFlat" id="CardFaceNormal"]
+bg_color = Color(0.960784314, 0.941176471, 0.862745098, 1.000000000)
+border_color = Color(0.850980392, 0.709803922, 0.427450980, 1.000000000)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
+
+[sub_resource type="StyleBoxFlat" id="CardBackNormal"]
+bg_color = Color(0.160784314, 0.298039216, 0.360784314, 1.000000000)
+border_color = Color(0.509803922, 0.588235294, 0.545098039, 1.000000000)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
+
+[resource]
+CardFace/styles/panel = SubResource("CardFaceNormal")
+CardBack/styles/panel = SubResource("CardBackNormal")
+CardEmpty/styles/panel = SubResource("CardBackNormal")
+CardGlyphs/constants/glyph_separation = 0
+CardBackMark/font_sizes/font_size = 16

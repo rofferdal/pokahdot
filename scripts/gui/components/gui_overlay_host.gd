@@ -43,6 +43,7 @@ func _init_controls() -> void:
 		_panels[kind] = get_node("Area/Center/" + str(kind)) as Control
 	var labels: Dictionary[StringName, String] = {
 		&"menu_log": "Log",
+		&"menu_fullscreen": "Fullscreen",
 		&"menu_summary": "Pots / Summary",
 		&"menu_quit": "Quit",
 		&"menu_close": "Close",
@@ -96,6 +97,8 @@ func set_quit_confirmation_required(required: bool) -> void:
 
 
 func open_menu() -> void:
+	_init_controls()
+	_controls[&"menu_fullscreen"].visible = GuiBrowserFullscreen.is_supported()
 	_activate(&"menu")
 
 
@@ -321,6 +324,9 @@ func _on_action(role: StringName) -> void:
 	if not is_active():
 		return
 	match role:
+		&"menu_fullscreen":
+			GuiBrowserFullscreen.request()
+			close()
 		&"menu_log":
 			open_log()
 		&"menu_summary":

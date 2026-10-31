@@ -38,7 +38,7 @@ static func capture(root: Control, layout: GuiPhoneTableLayout, data: Data) -> G
 	var seats: Dictionary[int, Control] = layout.get_seat_controls()
 	var roles: Dictionary[StringName, Control] = {
 		&"center": center,
-		&"board": center.get_node("Cards"),
+		&"board": center.get_cards(),
 		&"pot": center.get_node("Totals/Pot"),
 		&"wager": center.get_node("Totals/Wager"),
 		&"action": actions,
@@ -67,7 +67,7 @@ static func capture(root: Control, layout: GuiPhoneTableLayout, data: Data) -> G
 	snapshot.elements[&"event"] = event
 	for id: int in seats:
 		snapshot.seats[id] = (seats[id] as GuiSeatToken).get_seat_snapshot(root)
-	var cards := center.get_node("Cards") as GuiCardRow
+	var cards := center.get_cards() as GuiCardRow
 	for index: int in cards.cards.size():
 		snapshot.board_cards.append(
 			cards.cards[index].get_card_snapshot(root, StringName("board/%d" % index), true)

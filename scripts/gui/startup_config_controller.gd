@@ -161,6 +161,8 @@ func _on_start_pressed() -> void:
 		_render_errors()
 		return
 	if startup_adapter.try_start():
+		if GuiSizeClass.classify(_usable_size(), _layout_mode_override).is_phone():
+			GuiBrowserFullscreen.request()
 		_clear_errors()
 		(
 			_poker_table

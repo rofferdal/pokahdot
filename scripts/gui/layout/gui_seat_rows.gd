@@ -8,7 +8,9 @@ var rows: Array[PackedInt32Array] = []
 var clockwise_ids := PackedInt32Array()
 
 
-static func compose(ids: PackedInt32Array, recipient: int, portrait_phone: bool) -> GuiSeatRows:
+static func compose(
+	ids: PackedInt32Array, recipient: int, _portrait_phone: bool, top_triple: bool = false
+) -> GuiSeatRows:
 	var result := GuiSeatRows.new()
 	if ids.size() < 2 or ids.size() > 9 or not ids.has(recipient):
 		return result
@@ -25,7 +27,7 @@ static func compose(ids: PackedInt32Array, recipient: int, portrait_phone: bool)
 	# Portrait odd counts have a centered apex; wide uses the same symmetric
 	# ring topology with complete left/right rows around its reserved center.
 	var apex_count: int = 1 if opponents % 2 == 1 else 2
-	if not portrait_phone and opponents >= 3 and opponents % 2 == 1:
+	if top_triple and opponents >= 3 and opponents % 2 == 1:
 		apex_count = 3
 	var side_rows: int = (opponents - apex_count) / 2
 	result.rows.append(PackedInt32Array())

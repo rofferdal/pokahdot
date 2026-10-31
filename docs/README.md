@@ -6,6 +6,11 @@
   specification and poker-rule authority.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) is the authoritative implementation
   design. It may refine structure but cannot change the product rules.
+- Current GUI layout principles are specified in
+  [ProjectDescription §7.1](ProjectDescription.md#71-gui) and implemented under
+  [ARCHITECTURE → GUI adapter](ARCHITECTURE.md#gui-adapter). Dated galleries,
+  retired reference measurements and completed-task wording are historical
+  where superseded by RG-63–RG-66. Preview/physical acceptance stays in the backlog.
 
 ## Current task index
 
@@ -43,7 +48,15 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   coverage, exported layout and font-parity gates are complete. The replacement
   is the default, and RG-54 retirement and final verification are complete. The
   user accepted its phone-portrait, phone-landscape and wide synthetic layouts
-  on 2026-10-30. Physical-device and gameplay acceptance are separate later tasks.
+  on 2026-10-30. RG-63–RG-66 follow-up implements symmetric tablet pairs, a centered
+  human, upper-right markers, phone browser fit and fullscreen entry/retry,
+  with avatars and inline Min/Pot retained. Automated verification passes
+  (863 tests, four native matrices, 138 strict browser layouts and fourteen input
+  cases). The centered six-player iPad layout and proportional lower-right hole
+  cards are visually accepted. The latest physical Chrome review reports no
+  remaining errors across desktop, phone and iPad. Proportional upper-left
+  avatars are implemented and verified; RG-63–RG-66 are complete. Broader device/
+  gameplay acceptance remains open.
 
 - [`RulesInGameTasks.md`](RulesInGameTasks.md) — planned, independent workstream:
   a concise Pokahdot tournament-rules reference from the GUI Start screen and
@@ -94,6 +107,9 @@ as historical evidence; retain their recorded names and limitations.
   Web publishing and optional hosted browser/device verification runbook.
 - [`ProvisionalGUILayoutGuidance.md`](ProvisionalGUILayoutGuidance.md) —
   provisional responsive Godot GUI guidance consistent with the architecture.
+- [GUI composition](../devdocs/reference/gui-composition.md) — reusable scenes,
+  layout ownership, detached presentation models, viewport fit and input flow,
+  illustrated with Mermaid diagrams.
 - [`GuiModelCoverage.md`](GuiModelCoverage.md) — RG-21 old-to-new presentation
   coverage map, retained adapter checks and measured runtime.
 - [`GUI_VISUAL_TESTING.md`](GUI_VISUAL_TESTING.md) — canonical GUI viewport and

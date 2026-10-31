@@ -56,9 +56,32 @@ instead of reading GameView or calculating poker-derived text themselves.
 
 Use containers and anchors for ordinary content. Calculated table regions
 must have one layout owner that assigns parent and child rectangles from the
-same geometry snapshot. `GuiPhoneLayoutPlan` and `GuiPhoneSeatLayout` supply
-current phone geometry; preserve tournament state and core seat IDs on resize.
+same geometry snapshot. `GuiPhoneTablePlan` supplies portrait envelopes;
+`GuiPhoneLandscapePlan` supplies symmetric landscape geometry, with
+`GuiPhoneSidePlan` limited to the permitted top-triple fallback.
+`GuiTabletTablePlan` supplies compact tablet geometry with actions beside the
+centered human or below when the symmetric width budget does not fit.
+Preserve tournament state and core seat IDs on resize. Seats use available
+space within the measured center/action constraints; community cards grow as
+one aspect-preserving group. On compact tablets the community-card group
+matches the human panel width and centers its slots on both screen axes where
+possible, using the nearest clear vertical band otherwise. Pot/Wager and
+blind/level copy sit directly below. Side actions align to the
+human's visual bottom, subject to clearance from other seat/status footprints.
+Narrow tablets put the board in its own band above the human when the shared
+side corridor is too narrow. Tablet compositions retain assigned opponent and
+human avatars in both orientations. The
+[current layout principles](ARCHITECTURE.md#gui-adapter) supersede older gallery
+proportions and reference geometry.
 Do not add a competing container or controller for those rectangles.
+
+On Web, compare settled canvas and visual-viewport metrics as well as handling
+resize events; late rotation metrics must replace the previous landscape height
+without a page reload. Phone portrait winner stars share the stack row so long
+winner names do not widen both columns at settlement. Phone-landscape hole
+cards use the same lower-right allocation owner as tablet cards, with a reserved
+marker band on unmarked seats too. Their short horizontal glyph layout does
+not force community cards to use that same shape.
 
 ## Typography, input, and assets
 
@@ -102,11 +125,12 @@ The theme is `resources/gui_theme.tres`. Keep the plain non-serif face across
 startup, table, keypad, and overlays. Avoid post-render scaling of desktop
 text; adapt owned geometry and source font sizes instead.
 
-Sixteen avatar PNGs have 64 × 64 source pixels. Full seat panel base display
-regions are 112 × 112 logical pixels for opponents and 128 × 128 for the human,
-with layout adaptation; phone tokens omit avatars. These are reference sizes;
-replacement larger-screen seat surfaces must display their assigned avatar
-using measured aspect-preserving allocation (the theme gallery uses 64×64).
+Sixteen avatar PNGs have 64 × 64 source pixels. `GuiSeatContentRow` displays
+assigned avatars at the upper left in full human/bot panels and tablet tokens,
+targeting half the visual panel height while preserving aspect and sibling
+content space. Intrinsic minima remain independent of allocation, so growth
+does not prevent later shrinking. Older fixed display/gallery sizes are
+historical samples; phone tokens omit avatars.
 Resize/rotation must not reselect an avatar. Assignment is GUI-owned,
 unique per tournament, and independent of game RNG. Physical output also
 depends on DPR; source dimensions are not a browser display measurement.
@@ -123,14 +147,17 @@ separately instead of changing digit columns. Preserve 48 px targets and draft
 transactions. Docked event log, human panel and action area share both top and
 bottom edges. Seat allocation also clears the curved felt border; a rectangle
 inside the felt's bounding box can still intersect a rounded corner.
-Replacement layouts contain no more than three player seats in any horizontal
-row, on every screen and orientation. Phone portrait has the stricter maximum
-of two opponent seats per row, including short portrait screens. An odd
-opponent count starts with one centered, equal-width seat above paired rows.
-Preserve clockwise seat identities;
-some existing small-desktop/nine-seat reference paths still violate this new
-contract. RG-12 defines capped rows; RG-42/50–52 must allocate them in the
-replacement compositions.
+Replacement layouts contain at most two bot seats per horizontal row, except
+the top row on small-phone landscape may contain three. The human occupies
+a separate centered row with comparable proportions to bots. An odd
+opponent count starts with one centered, equal-width seat above mirrored pairs,
+subject to the short-landscape top-triple exception. Compact seats place
+D/SB/BB at the upper right above lower-right hole cards. Cards scale toward
+two-thirds of the visual seat box height, excluding the status band, while
+preserving marker clearance, aspect and readable rank/suit ink. Tablet tokens
+implement this through `GuiSeatCardsColumn`; the ratio is not a fixed pixel size.
+Preserve clockwise seat identities and complete status footprints. Reference
+paths with four-seat bands were retired in RG-54 and are historical defects.
 The accepted compact side-by-side keypad is landscape-only; portrait stacks
 utilities below digits even if a future theme's minima could fit them beside.
 
@@ -146,22 +173,23 @@ Treat seven-player phone fit in both orientations as an early design stress
 case, preserving readability and 48×48 action targets. Tablet/desktop layouts
 must also verify nine players; phone geometry is not a scaled desktop layout.
 Tablet, small-desktop, desktop, CLI, and core retain 2–9 support. Never clamp
-an active tournament when its viewport changes. Phone densities are standard
-for 2–4, compact for 5–6, and minimal for 7 players.
+an active tournament when its viewport changes. Choose content density and composition from measured fit rather than fixed
+player-count tiers. Touch input selects keypad entry independently.
 
 Keep supported chip totals exact, including accumulated stacks up to seven
 million on phones. Numeric overflow reflows portrait tokens and the center
-rather than shrinking text below 20 px; ordinary values restore compact rows.
-Compact larger layouts keep Min/Pot presets visible and open free wager entry
-through the keypad when large values need the action space. See the
+rather than shrinking seat copy below 18 px or other text below 20 px; ordinary values restore compact rows.
+Expose Min and Pot directly when the complete measured action/table budget
+fits them; keyboard/keypad choice must not hide otherwise fitting presets.
+Keep a reachable wager-entry fallback on smaller allocations. See the
 [implemented numeric layout contract](ARCHITECTURE.md).
 
 Retain each seat's assigned name, numeric stack, role/state, two card fields,
 and latest public action within the owned token regions. More/detail and
-summary overlays expose recipient-safe details. Completed phone hands name all
-pot winners in the existing status region; Pots opens exact award details
-without navigating More. Keep the revealed cards visible and return the button
-to More on the next hand. The reference phone omits event history; the
+summary overlays expose recipient-safe details. Completed hands keep recipient-safe winning descriptions in the reserved
+seat bands. More / Pots opens the menu, where Pots / Summary exposes exact
+award details. Keep revealed cards visible through the completed-hand pause.
+The retired reference phone's direct Pots behavior is historical. The
 replacement provides a reachable Log action/menu whenever its dock is hidden,
 including phones and completed-hand states. Docked and overlay log views share
 one recipient-safe history model. One table overlay is
@@ -170,6 +198,12 @@ and advancement waits until the overlay closes. Close/Cancel remains reachable;
 tournament Quit is reached outside number entry, after cancelling/closing the
 keypad. See the [modal contract](ARCHITECTURE.md#gui-adapter) for focus,
 Escape, engine-back and browser-history distinctions.
+
+On supported phone browsers, a valid Start gesture requests document
+fullscreen. **More / Pots → Fullscreen** retries after browser exit. Do not
+require fullscreen to start a tournament or force orientation; browser refusal
+leaves normal browser play available subject to measured fit. Verify actual
+browser usable geometry, fullscreen exit/re-entry, and state/draft preservation.
 
 Run `make check gui-current-invariant-gate` after layout changes and review
 rendered captures under the visual testing contract. Historical physical acceptance
@@ -191,9 +225,9 @@ implementation; theme-gallery measurements are preview evidence only.
 The latest RG-30 review requires fully grayscale folded surfaces, including
 avatars/text/borders; reuse the authored grayscale shader/material and preserve
 its descendant inheritance. The new acting border is six pixels, stronger than
-the reference layout's three-pixel treatment. Wide human seats should receive
-more reading space and larger identity copy/avatar than bot seats where measured
-fit permits. Card glyph fitting must consider visible ink rather than unused
+the reference layout's three-pixel treatment. The historical gallery preference
+for a more prominent human identity does not permit a wide human strip: the
+current table rule requires a centered human with proportions comparable to bots. Card glyph fitting must consider visible ink rather than unused
 line leading: scale size with container space, keep positive padding and the
 20 px text floor, and preserve 5:7-or-wider actual allocations. The gallery's
 403×112 human face and 90/91 px card samples illustrate this preference; RG-40/41

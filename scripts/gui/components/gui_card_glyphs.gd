@@ -1,6 +1,7 @@
 class_name GuiCardGlyphs
 extends Control
 
+@export var horizontal: bool = false
 var rank_text: String = ""
 var suit_text: String = ""
 var font_size: int = 20
@@ -17,7 +18,7 @@ func render(model: CardViewModel) -> void:
 
 
 func _get_minimum_size() -> Vector2:
-	return GuiCardInk.minimum_content(get_theme_font("font"), gap())
+	return GuiCardInk.minimum_content(get_theme_font("font"), gap(), horizontal)
 
 
 func gap() -> float:
@@ -41,6 +42,10 @@ func _fits(candidate: int) -> bool:
 	var font: Font = get_theme_font("font")
 	var rank_size: Vector2 = GuiCardInk.bounds(font, rank_text, candidate).size.ceil()
 	var suit_size: Vector2 = GuiCardInk.bounds(font, suit_text, candidate).size.ceil()
+	if horizontal:
+		return (
+			rank_size.x + suit_size.x + gap() <= size.x and maxf(rank_size.y, suit_size.y) <= size.y
+		)
 	return maxf(rank_size.x, suit_size.x) <= size.x and rank_size.y + suit_size.y + gap() <= size.y
 
 
@@ -75,6 +80,15 @@ func get_ink_rects() -> Array[Rect2]:
 	var font: Font = get_theme_font("font")
 	var rank: Rect2 = GuiCardInk.bounds(font, rank_text, font_size)
 	var suit: Rect2 = GuiCardInk.bounds(font, suit_text, font_size)
+	if horizontal:
+		var left: float = floorf((size.x - rank.size.x - suit.size.x - gap()) * 0.5)
+		result.append(Rect2(Vector2(left, floorf((size.y - rank.size.y) * 0.5)), rank.size))
+		result.append(
+			Rect2(
+				Vector2(left + rank.size.x + gap(), floorf((size.y - suit.size.y) * 0.5)), suit.size
+			)
+		)
+		return result
 	var height: float = rank.size.y + suit.size.y + gap()
 	var top: float = floorf((size.y - height) * 0.5)
 	result.append(Rect2(Vector2(floorf((size.x - rank.size.x) * 0.5), top), rank.size))

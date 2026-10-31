@@ -322,8 +322,18 @@ static func _rows(snapshot: GuiLayoutSnapshot, failures: PackedStringArray) -> v
 	var heroes: int = 0
 	for row: PackedInt32Array in snapshot.seat_rows:
 		_require(
-			not row.is_empty() and row.size() <= 3,
-			"row-cap: each explicit row needs one to three seats",
+			(
+				not row.is_empty()
+				and (
+					row.size() <= 2
+					or (
+						snapshot.layout_mode == Modes.LayoutMode.PHONE_LANDSCAPE
+						and row == snapshot.seat_rows[0]
+						and row.size() == 3
+					)
+				)
+			),
+			"row-cap: each row has at most two seats except the phone landscape top triple",
 			failures
 		)
 		var row_heroes: int = 0
@@ -338,12 +348,9 @@ static func _rows(snapshot: GuiLayoutSnapshot, failures: PackedStringArray) -> v
 			if seat != null and seat.hero:
 				row_heroes += 1
 				heroes += 1
-		if snapshot.layout_mode == Modes.LayoutMode.PHONE:
-			_require(
-				row.size() - row_heroes <= 2 and (row_heroes == 0 or row.size() == 1),
-				"row-cap: portrait requires at most two opponents and a separate hero row",
-				failures
-			)
+		_require(
+			row_heroes == 0 or row.size() == 1, "row-cap: human requires a separate row", failures
+		)
 	_require(
 		seen.size() == snapshot.seats.size() and heroes == 1,
 		"row-cap: rows must cover every seat and one hero exactly once",
@@ -379,6 +386,19 @@ static func _actual_bands(snapshot: GuiLayoutSnapshot, failures: PackedStringArr
 				population += 1
 				if not seat.hero:
 					opponents += 1
+		var top_end: float = 0.0
+		for seat: GuiSeatSnapshot in visible:
+			if seat.footprint.position.y == boundaries[0]:
+				top_end = maxf(top_end, seat.footprint.end.y)
+		var allowed: int = (
+			3 if snapshot.layout_mode == Modes.LayoutMode.PHONE_LANDSCAPE and y < top_end else 2
+		)
+		_require(
+			population <= allowed, "row-cap: only phone landscape top band permits three", failures
+		)
+		_require(
+			population == opponents or population == 1, "row-cap: human shares a band", failures
+		)
 		maximum = maxi(maximum, population)
 		maximum_opponents = maxi(maximum_opponents, opponents)
 	_require(

@@ -1,0 +1,54 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/gui/components/gui_center_board.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/CardRow.tscn" id="2"]
+
+[ext_resource type="Theme" path="res://resources/gui_compact_cards.tres" id="3"]
+
+[node name="CenterBoard" type="VBoxContainer"]
+mouse_filter = 2
+script = ExtResource("1")
+compact_copy = true
+
+[node name="BoardTitle" type="Label" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"BodyText"
+horizontal_alignment = 1
+
+[node name="CardsFrame" type="AspectRatioContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+ratio = 4.0
+stretch_mode = 2
+
+[node name="Cards" parent="CardsFrame" instance=ExtResource("2")]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("3")
+size_flags_vertical = 3
+
+[node name="Totals" type="HFlowContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+
+theme_type_variation = &"CenterTotals"
+
+[node name="Pot" type="Label" parent="Totals"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"BodyText"
+
+[node name="Wager" type="Label" parent="Totals"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"BodyText"
+
+[node name="BlindLevel" type="Label" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"BodyText"
+horizontal_alignment = 1
+autowrap_mode = 3

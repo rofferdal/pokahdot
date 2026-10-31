@@ -1,0 +1,211 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_table_layout.gd" id="1"]
+[ext_resource type="Theme" path="res://resources/gui_theme.tres" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/BrandLogo.tscn" id="3"]
+[ext_resource type="Material" path="res://resources/gui_table_logo_material.tres" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/SpaceGuidance.tscn" id="5"]
+
+[ext_resource type="Script" path="res://scripts/gui/layout/gui_phone_landscape_container.gd" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/CompactCenterBoard.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/ActionBar.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/gui/components/TabletSeatToken.tscn" id="9"]
+[ext_resource type="Script" path="res://scripts/gui/compositions/gui_phone_seat_rows.gd" id="10"]
+
+[node name="TabletTableLayout" type="MarginContainer"]
+mouse_filter = 2
+theme = ExtResource("2")
+script = ExtResource("1")
+tablet_mode = true
+landscape_mode = true
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="Boundary" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Felt" type="ColorRect" parent="Boundary"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.04, 0.34, 0.19, 1)
+
+[node name="BrandLogo" parent="Boundary" instance=ExtResource("3")]
+material = ExtResource("4")
+layout_mode = 1
+anchor_left = 0.1
+anchor_top = 0.08
+anchor_right = 0.9
+anchor_bottom = 0.62
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Content" type="Control" parent="Boundary"]
+modulate = Color(1, 1, 1, 0)
+mouse_behavior_recursive = 1
+focus_behavior_recursive = 1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Portrait" type="VBoxContainer" parent="Boundary/Content"]
+theme_override_constants/separation = 2
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Rows" type="Container" parent="Boundary/Content/Portrait"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("10")
+
+[node name="Opponent0" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent1" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent2" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent3" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent4" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent5" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent6" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Opponent7" parent="Boundary/Content/Portrait/Rows" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="Boundary/Content/Portrait"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="CenterBoard" parent="Boundary/Content/Portrait" instance=ExtResource("7")]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+compact_copy = true
+
+[node name="Lower" type="HBoxContainer" parent="Boundary/Content/Portrait"]
+theme_override_constants/separation = 2
+layout_mode = 2
+alignment = 1
+mouse_filter = 2
+
+[node name="HeroSlot" type="MarginContainer" parent="Boundary/Content/Portrait/Lower"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="HeroCell" type="MarginContainer" parent="Boundary/Content/Portrait/Lower/HeroSlot"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Hero" parent="Boundary/Content/Portrait/Lower/HeroSlot/HeroCell" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="ActionBar" parent="Boundary/Content/Portrait/Lower" instance=ExtResource("8")]
+layout_mode = 2
+size_flags_horizontal = 3
+compact_status = true
+
+[node name="Landscape" type="Container" parent="Boundary/Content"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+script = ExtResource("6")
+separation = 2.0
+tablet_mode = true
+theme_override_constants/separation = 2
+
+[node name="CenterBoard" parent="Boundary/Content/Landscape" instance=ExtResource("7")]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+compact_copy = true
+
+[node name="ActionBar" parent="Boundary/Content/Landscape" instance=ExtResource("8")]
+layout_mode = 2
+compact_status = true
+
+[node name="Seat0" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat1" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat2" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat3" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat4" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat5" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat6" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat7" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Seat8" parent="Boundary/Content/Landscape" instance=ExtResource("9")]
+visible = false
+layout_mode = 2
+
+[node name="Guidance" parent="Boundary" instance=ExtResource("5")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

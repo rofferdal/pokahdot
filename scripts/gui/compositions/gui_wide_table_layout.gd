@@ -344,7 +344,7 @@ func get_layout_snapshot(root: Control) -> GuiLayoutSnapshot:
 	snapshot.menu_routes = {&"quit": &"more", &"event": &"more"}
 	var roles: Dictionary[StringName, Control] = {
 		&"center": _center,
-		&"board": _center.get_node("Cards"),
+		&"board": _center.get_cards(),
 		&"pot": _center.get_node("Totals/Pot"),
 		&"wager": _center.get_node("Totals/Wager"),
 		&"action": _actions,
@@ -373,7 +373,7 @@ func get_layout_snapshot(root: Control) -> GuiLayoutSnapshot:
 	snapshot.measured.append(event)
 	for id: int in _seats:
 		snapshot.seats[id] = (_seats[id] as GuiSeatPanel).get_seat_snapshot(root)
-	var cards := _center.get_node("Cards") as GuiCardRow
+	var cards := _center.get_cards() as GuiCardRow
 	for index: int in cards.cards.size():
 		snapshot.board_cards.append(
 			cards.cards[index].get_card_snapshot(root, StringName("board/%d" % index), true)

@@ -1,7 +1,14 @@
-[gd_resource type="Theme" load_steps=51 format=3]
+[gd_resource type="Theme" load_steps=53 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/ui/checkbox_unchecked.svg" id="StartupUnchecked"]
 [ext_resource type="Texture2D" path="res://assets/ui/checkbox_checked.svg" id="StartupChecked"]
+
+[sub_resource type="FontVariation" id="TokenFont"]
+spacing_top = -2
+
+[sub_resource type="FontVariation" id="TokenBoldFont"]
+spacing_top = -2
+variation_embolden = 0.8
 
 [sub_resource type="FontVariation" id="WinnerBold"]
 variation_embolden = 0.8
@@ -504,10 +511,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="TokenActing"]
 bg_color = Color(0.063,0.176,0.129,1)
@@ -520,10 +527,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="TokenFocused"]
 bg_color = Color(0.063,0.176,0.129,1)
@@ -536,10 +543,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="TokenFolded"]
 bg_color = Color(0.141,0.141,0.141,1)
@@ -552,10 +559,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_left = 8
 corner_radius_bottom_right = 8
-content_margin_left = 4.0
-content_margin_top = 4.0
-content_margin_right = 4.0
-content_margin_bottom = 4.0
+content_margin_left = 3.0
+content_margin_top = 3.0
+content_margin_right = 3.0
+content_margin_bottom = 3.0
 
 [sub_resource type="StyleBoxFlat" id="TokenDealerFace"]
 bg_color = Color(1,1,1,1)
@@ -568,10 +575,10 @@ corner_radius_top_left = 15
 corner_radius_top_right = 15
 corner_radius_bottom_left = 15
 corner_radius_bottom_right = 15
-content_margin_left = 2.0
-content_margin_top = 2.0
-content_margin_right = 2.0
-content_margin_bottom = 2.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 
 [sub_resource type="StyleBoxFlat" id="TokenBlindFace"]
 bg_color = Color(0.07,0.235,0.16,1)
@@ -584,10 +591,10 @@ corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_left = 4
 corner_radius_bottom_right = 4
-content_margin_left = 2.0
-content_margin_top = 2.0
-content_margin_right = 2.0
-content_margin_bottom = 2.0
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
 
 [sub_resource type="StyleBoxFlat" id="NumberInlineFace"]
 bg_color = Color(1, 1, 1, 1)
@@ -908,18 +915,24 @@ SeatTokenFolded/styles/panel = SubResource("TokenFolded")
 TokenDealer/base_type = &"PanelContainer"
 TokenDealer/styles/panel = SubResource("TokenDealerFace")
 TokenDealerText/base_type = &"DealerText"
+TokenDealerText/fonts/font = SubResource("TokenFont")
 TokenDealerText/font_sizes/font_size = 18
 TokenBlind/base_type = &"BlindMarker"
+TokenBlind/fonts/font = SubResource("TokenFont")
 TokenBlind/font_sizes/font_size = 18
 TokenBlind/styles/normal = SubResource("TokenBlindFace")
 TokenWinnerStar/base_type = &"WinnerStar"
 TokenWinnerStar/font_sizes/font_size = 28
 TokenText/base_type = &"SeatText"
 TokenText/font_sizes/font_size = 18
+TokenText/fonts/font = SubResource("TokenFont")
 TokenWinningText/base_type = &"WinningHandText"
 TokenWinningText/font_sizes/font_size = 18
+TokenWinningText/fonts/font = SubResource("TokenBoldFont")
 TokenColumn/base_type = &"BoxContainer"
-TokenColumn/constants/separation = 2
+TokenColumn/constants/separation = 0
+TokenRow/base_type = &"HBoxContainer"
+TokenRow/constants/separation = 4
 ActionRows/base_type = &"BoxContainer"
 ActionRows/constants/separation = 4
 OverlayArea/base_type = &"MarginContainer"

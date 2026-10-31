@@ -1,13 +1,16 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/gui/components/gui_seat_token.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/gui/components/HoleCards.tscn" id="2"]
 [ext_resource type="Script" path="res://scripts/gui/components/gui_seat_star.gd" id="3"]
 
+[ext_resource type="Theme" path="res://resources/gui_compact_cards.tres" id="4"]
+
 [node name="SeatToken" type="VBoxContainer"]
 mouse_filter = 0
 focus_mode = 2
 script = ExtResource("1")
+theme_override_constants/separation = 2
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 2
@@ -15,32 +18,51 @@ size_flags_vertical = 3
 mouse_filter = 2
 theme_type_variation = &"SeatTokenFrame"
 
-[node name="Content" type="VBoxContainer" parent="Panel"]
+[node name="Content" type="HBoxContainer" parent="Panel"]
 layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TokenRow"
+theme_override_constants/separation = 3
+
+[node name="Copy" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"TokenColumn"
 
-[node name="Header" type="HBoxContainer" parent="Panel/Content"]
-custom_minimum_size = Vector2(0, 30)
+[node name="Header" type="HBoxContainer" parent="Panel/Content/Copy"]
+custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"TokenColumn"
+theme_type_variation = &"TokenRow"
 
-[node name="Title" type="HBoxContainer" parent="Panel/Content/Header"]
+[node name="Title" type="HBoxContainer" parent="Panel/Content/Copy/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 mouse_filter = 2
-theme_type_variation = &"TokenColumn"
+theme_type_variation = &"TokenRow"
 
-[node name="Name" type="Label" parent="Panel/Content/Header/Title"]
+[node name="Name" type="Label" parent="Panel/Content/Copy/Header/Title"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"TokenText"
 clip_text = true
 
-[node name="Winner" type="Control" parent="Panel/Content/Header/Title"]
+[node name="StackRow" type="HBoxContainer" parent="Panel/Content/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TokenRow"
+
+[node name="Stack" type="Label" parent="Panel/Content/Copy/StackRow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TokenText"
+clip_text = true
+
+[node name="Winner" type="Control" parent="Panel/Content/Copy/StackRow"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
@@ -49,23 +71,43 @@ mouse_filter = 2
 theme_type_variation = &"TokenWinnerStar"
 script = ExtResource("3")
 
-[node name="Markers" type="HBoxContainer" parent="Panel/Content/Header"]
+[node name="WagerRow" type="HBoxContainer" parent="Panel/Content/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TokenRow"
+
+[node name="Wager" type="Label" parent="Panel/Content/Copy/WagerRow"]
 unique_name_in_owner = true
 layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TokenText"
+clip_text = true
+
+[node name="Right" type="VBoxContainer" parent="Panel/Content"]
+alignment = 2
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Markers" type="HBoxContainer" parent="Panel/Content/Right"]
+custom_minimum_size = Vector2(0, 26)
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 2
 size_flags_vertical = 0
 mouse_filter = 2
-theme_type_variation = &"TokenColumn"
+theme_type_variation = &"TokenRow"
 
-[node name="Dealer" type="PanelContainer" parent="Panel/Content/Header/Markers"]
+[node name="Dealer" type="PanelContainer" parent="Panel/Content/Right/Markers"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(30, 30)
+custom_minimum_size = Vector2(26, 26)
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
 theme_type_variation = &"TokenDealer"
 
-[node name="D" type="Label" parent="Panel/Content/Header/Markers/Dealer"]
+[node name="D" type="Label" parent="Panel/Content/Right/Markers/Dealer"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
@@ -74,10 +116,10 @@ text = "D"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SB" type="Label" parent="Panel/Content/Header/Markers"]
+[node name="SB" type="Label" parent="Panel/Content/Right/Markers"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(30, 30)
+custom_minimum_size = Vector2(26, 26)
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -86,10 +128,10 @@ text = "SB"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="BB" type="Label" parent="Panel/Content/Header/Markers"]
+[node name="BB" type="Label" parent="Panel/Content/Right/Markers"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(30, 30)
+custom_minimum_size = Vector2(26, 26)
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
@@ -98,38 +140,13 @@ text = "BB"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Body" type="HBoxContainer" parent="Panel/Content"]
-layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 2
-theme_type_variation = &"TokenColumn"
-
-[node name="Copy" type="VBoxContainer" parent="Panel/Content/Body"]
-layout_mode = 2
-size_flags_horizontal = 3
-mouse_filter = 2
-theme_type_variation = &"TokenColumn"
-alignment = 2
-
-[node name="Stack" type="Label" parent="Panel/Content/Body/Copy"]
+[node name="PairCards" parent="Panel/Content/Right" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"TokenText"
-clip_text = true
-
-[node name="Wager" type="Label" parent="Panel/Content/Body/Copy"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_type_variation = &"TokenText"
-clip_text = true
-
-[node name="PairCards" parent="Panel/Content/Body" instance=ExtResource("2")]
-unique_name_in_owner = true
-layout_mode = 2
+theme = ExtResource("4")
 size_flags_horizontal = 8
 size_flags_vertical = 8
+theme_override_constants/gap_percent = 3
 
 [node name="Status" type="Label" parent="."]
 layout_mode = 2

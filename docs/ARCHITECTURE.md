@@ -742,6 +742,163 @@ or recipient-role changes; a refresh of the same roster preserves panel identity
 and resize alone does not rebuild seats. A layout mode switch replaces the
 composition subtree while the session and overlay state remain outside it.
 
+Physical-browser corrections (RG-63–RG-65): `WIDE_COMPACT` mounts the authored
+`TabletTableLayout`, while `WIDE` retains the desktop ring. The tablet shares
+the phone component host and uses `GuiTabletTablePlan` for mirrored side
+pairs, a single centered apex for odd bot counts, and a separate centered
+human with the same seat dimensions. Actions sit beside the human when the
+symmetric width budget permits, otherwise below. Tablet tokens retain avatars.
+Short landscape phones can use `GuiPhoneSidePlan` to replace an apex plus
+pair with a top triple when the ordinary symmetric composition does not fit.
+No other row permits three bots, and the human always has a separate row.
+Every plan includes permanent two-line status bands. Native containers
+distribute spare space to seat footprints and community cards where permitted;
+content minima, text floors and card aspect ratios remain authoritative.
+Compact community copy retains pot, current wager, blinds, level and hands until
+the next level. Its authored aspect container grows the five-card group
+together instead of spreading fixed-size cards across the entire width.
+Tablet action controls expose Min/Pot directly, independently of touch keypad
+selection. Compact phone actions shorten More and reserve one row
+only when the complete measured buttons fit. Geometry-dependent candidates are
+measured against usable bounds and invalidated when those bounds change.
+
+Tablet community/action refinement (2026-10-31): the reviewed six-player
+1194×676 seat rectangles are preserved. `GuiPhoneLandscapeContainer` supplies
+the human panel's snapped visual width to `GuiCenterBoard.set_card_group_width()`.
+The board's aspect frame uses the authored card ratios and row gaps, stops
+expanding vertically, and lets its VBox place Pot/Wager and blind/level copy
+directly below. `GuiTabletTablePlan` allocates the measured board height rather
+than scaling the whole metadata region into the central corridor. The card slots themselves prefer
+both horizontal and vertical centering on the usable table surface; metadata
+stays directly below them. A finite set of free vertical bands determines the
+closest feasible position when seat/status/action rectangles prevent exact
+centering. Narrow
+tablets stack the board between the bot rows and human/action rows when a
+human-width card group cannot share the side-seat corridor.
+
+The same container raises side actions to the human panel's visual bottom,
+excluding the permanent status band. The move is bounded by other complete
+seat/status footprints; dense tables retain clearance instead of covering a
+bot's result text. Below-seat action rows keep their own band. These operations
+remain inside the single tablet geometry owner.
+
+**Avatar placement and scale (2026-10-31)**
+
+Whenever an avatar is visible, anchor it at the upper-left corner inside the
+player seat's normal panel padding. Its height scales with the visual seat
+box, targeting approximately one-half of that box's height, excluding the
+reserved action/showdown band below. Preserve aspect ratio and reserve clear
+space beside it for copy and the right-hand card/marker column. The same rule
+applies to human and bot seats, in every composition that displays avatars.
+Allocation belongs to the seat interior's layout owner; growth must not feed
+back into intrinsic minima or leave a previous large size latched after shrinking.
+
+`GuiSeatContentRow` implements this rule in full opponent/human panels and
+tablet tokens. It is the sole owner of the avatar and sibling-column rectangles.
+The intrinsic minimum reserves an avatar allowance derived from sibling content
+minima and panel padding, independently of the assigned rectangle. At layout
+time the avatar targets half the visual panel height, with its original texture
+aspect; growth is bounded by the width left after reserving sibling minima.
+The avatar itself has no fixed pixel minimum. Full panels fill their assigned
+vertical allocation, and one logical pixel of rounding keeps nested containers
+aligned. Shrinking restores the original minimum rather than retaining a
+previously enlarged avatar. Phone compositions that omit avatars are unchanged.
+
+**Hole-card placement and scale (2026-10-31)**
+
+Hole cards belong in the lower-right corner of each player's visual seat box.
+Their height scales with that box, targeting two-thirds of its height; the
+reserved action/showdown band below the box is excluded from that measurement.
+Dealer, SB and BB occupy the upper-right region above the cards, with separate
+readable badge cells. Preserve card aspect, visible rank/suit ink, and text
+floors; the composition must reserve enough room for the card/marker column
+alongside the name, stack, wager and avatar rather than leaving the cards at a
+fixed intrinsic size as the seat grows. On constrained allocations, measured
+fit and disjoint content remain authoritative.
+
+`GuiSeatCardsColumn` implements this allocation for tablet and phone-landscape
+tokens. It publishes
+only intrinsic marker/card minima and uses its assigned rectangle to grow and
+bottom/right-align the pair, bounding growth by the marker band and available
+width. Allocation-driven growth must not become a latched intrinsic minimum
+that prevents later shrinking. Full-panel and phone components must retain the
+same placement/scale principle when their interiors are revised; earlier fixed
+card samples are historical measurements, not the desired sizing rule.
+
+Physical-device follow-up (2026-10-31): phone-landscape tokens reserve the
+marker band even when no role marker is visible, so unmarked and folded seats
+keep their hole cards at the same lower-right anchor. Short landscape hole
+cards retain horizontal rank/suit composition; community cards use taller,
+vertical rank/suit composition independently. In phone portrait, the winner
+star shares the stack row rather than extending the name row: a long winner
+name must not widen both opponent columns and turn a playable hand into
+space guidance at settlement.
+
+The Web geometry boundary compares current canvas, layout/visual viewport and
+DPR metrics as well as observing resize notifications. Mobile rotation can
+notify before the visual viewport settles; subsequent metric changes must
+invalidate geometry and remeasure the composition even without a second
+notification. This remains inside `GuiWebGeometryProbe`/`GuiViewportAdapter`;
+compositions do not infer device/browser dimensions themselves.
+
+Phone status measurement follows the assigned status column, independently
+of action-button packing. `GuiActionBar` uses the explicitly available width,
+bounded by the human-aligned column, when measuring wrapped status text. A
+bot turn can leave only the More button visible; that button's intrinsic
+width must not turn a one-line status into several reserved lines and reject
+the entire table. This applies from the initial deal through automated bot
+turns, settlement and the next hand. Compositions without an explicit width
+retain their intrinsic packing constraints.
+
+**Current layout principles (RG-63–RG-66, 2026-10-31)**
+
+The [GUI product requirements](ProjectDescription.md#71-gui) own the visual
+contract. Earlier galleries and reference-path measurements below are historical
+where they conflict with these rules:
+
+- Use at most two bots per actual horizontal band. Odd bot counts have one
+  centered top bot, followed by mirrored left/right pairs. Only short phone
+  landscape may replace an apex plus pair with a top triple when necessary.
+- Keep the human in a separate, horizontally centered bottom row with seat
+  proportions comparable to bots. A right-hand action area reserves equal
+  empty width on the left so it cannot push the human off center; tablet
+  actions move below when that symmetric width budget does not fit.
+- Derive fit from complete seat/status, board and action minima in the adapter's
+  usable rectangle. Grow seats and grouped community cards where space permits.
+  Growth is bounded by the center corridor and other regions; do not stretch
+  every component to fill all remaining space or scale text below its floor.
+- Compact tablet community cards use the human visual panel's width and center
+  their slots on both usable-screen axes where feasible, choosing the nearest
+  clear vertical band otherwise. Pot/Wager and blind/level copy sit immediately
+  below. Side action buttons align
+  to that panel's bottom where the complete footprint budget permits, rather
+  than the bottom of its reserved result/status band.
+- Retain tablet avatars in both orientations. Put compact D/SB/BB at the upper
+  right above the cards. The approximate one-third marker/two-thirds card
+  split is a review preference, not a hardcoded dimension or new breakpoint.
+- Show Min/Pot inline when the complete measured action/table budget permits.
+  Input modality selects keyboard/keypad independently of composition and
+  shortcut availability. Keep More, Log and Quit routes reachable.
+- Resize, rotation and fullscreen preserve the match, seat IDs, avatar/name
+  assignments and committed/raw wager state. Guidance is for infeasible space,
+  not an accepted outcome for required playable regression cases.
+
+**Phone browser fullscreen (RG-63)**
+
+After valid phone startup, the Start gesture calls `GuiBrowserFullscreen` to
+request document fullscreen with hidden navigation UI. Supported Web exports
+expose a Fullscreen menu action for retrying after exit. Requests preserve
+orientation and tournament state. Unsupported or rejected browser requests
+leave the normal browser game available; fullscreen never gates playability.
+
+Compact seat interiors keep a right-hand role-marker band above smaller
+aspect-preserving cards. Phone landscape uses horizontal rank/suit ink in
+short cards; visible face glyphs retain the 20 px floor. Tablet and portrait
+retain vertical face glyphs. Compact card padding and the decorative back
+mark can shrink independently of face typography. Landscape status bands
+use one pixel less line spacing to accommodate browser card-ink measurements
+without reducing text or target sizes.
+
 The reference scene/controller, factories, runtime builders, classification
 and geometry helpers, collision/correction passes and reference-only observers
 have been retired. Independent replacement component, state, lifetime, Web
@@ -810,8 +967,9 @@ text floors. Desktop branding remains as accepted. This is a selected visual
 increment; authored replacement components and device acceptance remain in
 their owning later tasks. The latest portrait review requires an odd opponent
 count to start with one centered seat, equal in width to seats in paired rows;
-this also applies to short portrait screens. Other compositions retain the
-general maximum of three seats per row.
+this also applies to short portrait screens. The 2026-10-31 review extends
+the two-bot limit to other layouts, with only a small-phone landscape top
+triple permitted and the human always in a separate centered row.
 The reviewed implementation uses measured name/stack/card rows and permanently
 reserved two-line status bands, with an 18 px fallback limited to seat copy.
 Short-screen fit reduces internal padding and row gaps; card text stays at
@@ -864,11 +1022,10 @@ into five columns. RG-11R implements the selected preview corrections before
 continuing; replacement components/containers inherit these requirements in
 RG-30/31/39/44/45/50/51. Revised implementation evidence belongs in the backlog.
 
-Seat-row cap (2026-10-29, user confirmed): all replacement layouts enforce at
-most three player seats per horizontal row on every screen/orientation and
-supported count, including the hero when sharing that row. Pure slot plans
-also enforce the later, stricter two-opponent cap in phone portrait, with a
-centered single top seat for odd opponent counts. They
+Seat-row cap (updated 2026-10-31, user confirmed): replacement layouts enforce
+at most two bots per row. Only the top row on small-phone landscape may have
+three bots. The human has a separate centered row; odd bot counts otherwise
+start with a single centered top seat. Pure slot plans
 record row membership and preserve clockwise seat IDs; cosmetic staggering
 does not satisfy the limit. Existing small-desktop and nine-seat wide/tablet
 reference paths contain four-seat rows. Those paths are retired; their four-seat rows were not accepted replacement behavior. RG-12 now defines explicit capped rows;
@@ -885,7 +1042,7 @@ Phone fit is the priority constraint (user clarification, 2026-10-29): retain
 the 2–7-player phone target in both orientations and 2–9 on tablets/desktops.
 Use seven-player phone and nine-player wide fixtures early when measuring
 component minima and action flow. Fit must preserve text floors, 48×48 targets
-and the three-seat row cap. An infeasible viewport shows guidance without
+and the current paired-row contract. An infeasible viewport shows guidance without
 changing active participants; the design is not a scaled-down desktop layout.
 
 Additional presentation decisions (user clarification, 2026-10-28): a seat's
@@ -1132,15 +1289,13 @@ containment; envelope fit is not device acceptance.
 
 `GuiSeatRows` fixes row membership before allocation. It rotates supplied
 clockwise core IDs around the recipient without renumbering them. The recipient
-has its own bottom row. Portrait phones use one centered apex for an odd number
-of opponents, two top seats otherwise, then left/right pairs. Landscape phones
-use the same two-opponent cap, reserving the possible third seat in any horizontal
-band for the separate hero rail. Wide plans use three top seats for odd opponent
-counts of at least three, two for even counts, then left/right pairs. Traversal
+has its own bottom row. All ordinary plans use a single centered apex for odd
+bot counts and mirrored left/right pairs otherwise. Short phone landscape
+may substitute a top triple for apex plus pair when needed to fit. Traversal
 is bottom-left upward, top left-to-right, then right downward and recipient.
-No row has more than three seats, including the recipient. Future containers
-must preserve those explicit bands and centered slots, not stagger four seats
-or repair collisions after placement.
+No other row contains three bots; the human never shares a row. Explicit bands
+and centered slots are part of the contract, including actual rendered bands.
+
 
 `GuiFitPolicy.resolve()` consumes one geometry value, clockwise IDs, recipient
 and measured candidates. It prefers a fitting candidate matching the classifier,
@@ -1303,11 +1458,12 @@ Eight `resources/gui_seat_slots/seats_*.tres` Resources describe explicit
 left/center/right columns and row membership in clockwise visual-slot order.
 The recipient maps to the bottom-center slot, preserving the prior modulo
 mapping for contiguous core IDs. Sorted ID rank also supports nonconsecutive
-IDs independently of dictionary/child order. Rows contain at most three seats,
-including the recipient's lower row. Nine seats use rows of 2/2/2/3; six seats
-use 1/2/3. A two-seat apex is centered as one measured group with a gap at
-least the widest opponent avatar-size theme metric (currently 64); its slots/clockwise IDs remain unchanged. These are ring topologies,
+IDs independently of dictionary/child order. Wide rows contain at most two
+bots with an exclusive human bottom row: nine seats use 2/2/2/2/1; six use
+1/2/2/1. Pairs occupy the left/right columns. The apex clearance remains a
+minimum, rather than pulling the top pair inward. These are ring topologies,
 independent of device breakpoints.
+
 
 `GuiSeatRingPlan` is a detached measured plan with separate valid/feasible flags,
 explicit rows and a truthful minimum. It reserves the middle band for the board,
@@ -1352,8 +1508,8 @@ human seat's top and the action rail's bottom, with the heading above that span.
 Docking depends on measured available space and never increases the undocked
 minimum. More/Pots retains Log and Quit access when history is hidden.
 
-Fit candidates report actual settled native component minima for both wide
-modes. Content that cannot fit shows guidance and retains its model and raw
+Fit candidates report settled native minima for the desktop ring and the
+compact tablet composition. Content that cannot fit shows guidance and retains its model and raw
 wager draft. Refresh reuses seats by public ID; recipient-role changes replace
 only the affected seat scenes. Keyboard selection and caret survive ordinary
 refresh, and keypad modality is explicit rather than inferred from width.
@@ -1373,15 +1529,18 @@ center board, a centered recipient token and actions. The recipient panel is
 two theme gaps wider than the bot cells unless intrinsic copy requires more;
 one-column allocation preserves that budget within the available width.
 `GuiPhoneTablePlan` compares complete measured portrait one/two-column envelopes.
-Landscape uses `GuiPhoneLandscapePlan` and `GuiPhoneLandscapeContainer`: opponents
+Landscape uses `GuiPhoneLandscapePlan` and `GuiPhoneLandscapeContainer`. When
+the symmetric arrangement does not fit, RG-63 permits a top triple through
+`GuiPhoneSidePlan`, retaining the separate bottom-center human and clockwise identity.
+In the symmetric arrangement, opponents
 form mirrored pairs at the sides, an odd opponent count reserves a centered
 apex, the board sits directly above the bottom-center human, and actions sit
 to the right of the shared center column. All minima come from native content.
 A landscape-only two-pixel center-board separation retains all fonts/card/target
 sizes while allowing the three-seat layout in a 756×369 usable rectangle.
 Both plans support two through seven seats. Portrait has at most two
-opponents per row; no horizontal band exceeds three complete seat footprints,
-including the recipient. It does not reuse the reference phone position tables.
+opponents per row; only the phone landscape top band permits three bots.
+The recipient never shares a seat row or horizontal band. It does not reuse the reference phone position tables.
 
 All seats use the approved tokens and their detached semantic snapshots. Counts
 eight and nine retain their models and show capacity guidance. Available space
@@ -1396,16 +1555,14 @@ retain opacity while measuring. This prevents both inflated first-layout minima
 and repeated action-time flicker. Schema-2 invariants check physical horizontal
 bands as well as declared rows, so staggering seats cannot evade capacity checks.
 
-Current measured fixture limits are explicit: at 390×844, ordinary two-to-five
-player examples fit, while six/seven require 991 px height. Symmetric landscape
-fits three ordinary seats at 844×390 (minimum 694×368), including a representative
-756×369 safe allocation. Two/four seats require 527 px height, five require 473,
-and six/seven require 632. The centered single-opponent apex accounts for the
-heads-up height requirement. Larger values can require more space. Unsupported
-short landscape advises portrait mode or a larger screen and preserves the
-match. These are content measurements, not viewport breakpoints or device
-acceptance. A six-seat 480×1040 test canvas is used for review; the earlier
-390×1100 sample was only a minimum-fit illustration, not a device profile.
+Current touch fixtures cover six/seven-player portrait at 390×744 and
+390×844, six-player landscape at 844×390, and seven-player landscape at
+932×430. Avatar-bearing tablet fixtures cover 2, 6 and 9 players at
+1194×676 and 834×1030. These are tested content envelopes, not viewport
+breakpoints or physical-device acceptance. Large values, additional keyboard
+entry fields and genuinely smaller usable dimensions can require more space;
+guidance preserves the match. Earlier 991 px phone measurements and standalone
+480×1040 review canvases describe superseded compositions.
 
 **Replacement orchestration and lifetime (RG-53)**
 
@@ -1517,20 +1674,22 @@ replacement decision permits keyed component reuse and bounded transient probes.
 **Phone seat token (RG-42)**
 
 `SeatToken.tscn` binds the same safe seat model with exact numeric stack/wager,
-matching 30×30 passive position markers, shared card faces/backs/slots and a
-compact winning/status band. The RG-45R user review replaces content-dependent
-row/column arrangements with one authored native structure: name and adjacent
-winner star at upper left, dealer/SB/BB markers at upper right, stack/wager at
-left and a horizontal hole-card pair at bottom right. Header and body boxes
-reserve separate allocations, so position markers and cards never overlap.
-The 30-unit header and tightly packed lower copy remove excess panel height.
-Native minimums preserve complete 18 px text and card size rather than switching
-orientation or moving fields between rows. Wider/taller allocations retain these
-corners and recover the same intrinsic minimum. The unused replacement row
-planner and reference helpers were removed at cutover.
+matching 26×26 passive position markers, shared card faces/backs/slots and a
+compact winning/status band. RG-63/RG-64 replace the taller RG-45R header/body
+arrangement with a left copy column and a right marker/card column. Portrait
+and tablet copy stacks name, stack and wager; phone landscape uses two copy
+lines with stack and wager side by side. The right column places D/SB/BB above
+cards at the upper right; tablet tokens also show each assigned avatar. Native
+containers keep fields disjoint and preserve exact chip values. Token theme
+metrics remove two pixels of unused top leading while retaining 18 px glyphs;
+name/diacritic and winning-copy ink tests protect the resulting line boxes.
+Three-pixel panel padding clears acting/focus borders, and the status band
+still reserves two lines. The RG-45R arrangement remains accepted historical
+evidence; the RG-63/RG-64 arrangements await physical review.
 
-`GuiHoleCards` retains the proportional 6%-of-card-width visible gap. Tokens
-keep the pair at its intrinsic size when the containing cell grows. Snapshot
+`GuiHoleCards` uses a proportional visible gap (6% by default, 3% for portrait
+phone tokens). Pair allocation is aspect-preserving and bounded by the right
+column; a wider seat does not split the pair or guarantee larger cards. Snapshot
 permission is detached per card. Deferred status binding waits for native width;
 blank bands reserve two lines and winners retain bold yellow copy. Pointer,
 touch and keyboard emit detail intent with emulated-mouse deduplication.
@@ -1543,8 +1702,10 @@ establish device acceptance. RG-45R component design is user-accepted (2026-10-2
 `ActionBar.tscn` composes the RG-39 ActionButton/InputField scenes, one complete
 Total/Bet-or-Raise unit and a shared-card HeroActionSummary. `GuiActionRows`
 measures contiguous one/two-row partitions over visible full-copy units. Native
-HBox/VBox rows own geometry; the canonical two-row minimum remains independent
-of the currently wider layout. No viewport classifier or rule logic is used.
+action rows own geometry. Full controls retain a canonical two-row
+reservation. Compact phone controls may use a measured single row and expose
+Min/Pot when both width and the whole-table height budget permit them; More
+opens the same menu with shorter compact copy. No viewport classifier or rule logic is used.
 `use_keypad()` changes input modality explicitly; it does not infer touch from
 size. Input text, caret and selection remain exact across refreshes and mode
 changes. In keypad mode the wager action emits entry intent; in keyboard mode
@@ -1641,7 +1802,7 @@ card ranks and other controls use at least 20, event-log body 18.
 
 The gallery at `tests/visual/gui_theme_gallery.tscn` is a theme-role review,
 not a finished table or reusable component completion. It shows separate
-reserved status bands and at most three seat samples per row. Simultaneous
+reserved status bands and at most two seat samples per ordinary row. Simultaneous
 hover/pressed/focus samples reuse the authored styles through fixture-only
 overrides; production components must select variations, not copy those
 fixture overrides. Larger-screen samples now show existing assigned avatars; phone samples may
@@ -1737,19 +1898,22 @@ and `G` the applicable measured gaps/margins. Evaluate finite container plans:
 
 | Composition / counts | Minimum feasibility definition |
 | --- | --- |
-| Phone portrait, 2–7 | Choose a fitting token-column count. Width contains each complete row plus `B`, `H` and `A`; height contains `ceil((count−1)/columns)` token rows plus `B + H + A + G`. Standard/compact/minimal densities change spacing and row plans; font/target floors remain constant. |
-| Phone landscape, 2–7 | Evaluate horizontal board/opponent and action/hero regions. Width contains both region minima plus gaps; height contains the larger of opponent-grid-plus-board and action-flow-plus-hero minima. Choose columns and action rows from measured fit. |
-| Wide, 2–9, either orientation | The seat-ring Container derives its minimum from complete seat/status footprints, center and lower regions, theme gaps and the count's template. Compact/regular density and action flow are finite measured candidates. Tablet portrait and landscape consume the same available-space contract. |
+| Phone portrait, 2–7 | Compare complete two-column and one-column envelopes. Include the odd centered apex, measured bot row heights, board, separate human and actions, plus authored gaps. Native wrapped-copy minima remain authoritative. |
+| Phone landscape, 2–7 | Use equal complete seat footprints in symmetric side rows, a centered board above the separate human, and actions to the right with a symmetric width reserve. If needed, compare the permitted top-triple alternative; other rows stay paired. |
+| Compact tablet, 2–9, either orientation | `GuiTabletTablePlan` compares a shared side-seat corridor with side or below-human actions, then fully stacked board/human/action bands when the human-width cards cannot share that corridor. Native card/metadata height and complete seat/status minima determine fit. |
+| Wide, 2–9 | The seat-ring Container derives its minimum from complete seat/status footprints, center and lower regions, theme gaps and the count's paired-row template. The human has its own bottom row. Compact/regular density and action flow are finite measured candidates. |
 | Infeasible or invalid space | Preserve tournament/configuration state and show explicit resize/rotate guidance. Phone counts 8–9 require a feasible wider composition. Never hide required copy, clamp seat counts or scale text below its floor. |
 
 The replacement must retain a feasible candidate as space grows, even when a
 preferred size class changes. Component minimum-size propagation and Container
 sorting own actual allocations. RG-12 implements the pure envelopes;
 RG-40–52 supply measured components and verify final compositions for these
-functions; no table of historical screen sizes replaces them. The reference
-fit probe's 64 passing cases at 950×532 and 1250×700 demonstrate feasible logical
-allocations for counts 2–9 and ordinary/large content; they are regression
-samples. The recorded 650×900 and eight-player 1920×1080 defects remain open.
+functions; no table of historical screen sizes replaces them. The retired
+reference probe's 64 cases at 950×532 and 1250×700, and its recorded 650×900 /
+eight-player 1920×1080 defects, are historical evidence. Current replacement
+support and pending physical acceptance belong to
+[GUI visual testing](GUI_VISUAL_TESTING.md#current-support-and-acceptance) and
+the active backlog; retired defects are not new supported-size exceptions.
 
 This policy follows [Godot's scaling guidance](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html),
 using the documented [Window virtual base](https://docs.godotengine.org/en/stable/classes/class_window.html#class-window-property-content-scale-size)
@@ -1951,10 +2115,11 @@ replacement permits seat copy to scale to 18 logical/CSS px; card ranks and
 other GUI text retain 20 px, with the same log exception. Reflow uses measured minimums at those role-specific
 floors. Mobile controls provide at least 48 × 48 px touch targets, with approximately 160 × 50 px targets for horizontal text buttons where space allows.
 
-The sixteen `assets/avatars/*.png` sources are 64 × 64 pixels. Full seat
-panels use base avatar regions of 112 × 112 logical pixels for opponents and
-128 × 128 for the human (`GuiTableSeatFactory` constants); responsive layout
-may scale or reflow them. Phone tokens omit avatars. Source pixels, logical
+The sixteen `assets/avatars/*.png` sources are 64 × 64 pixels. Full human/bot
+panels and tablet tokens use `GuiSeatContentRow` to anchor avatars upper-left
+and scale them toward half the visual panel height, preserving aspect and
+space for sibling content. Older fixed avatar sizes belong to the retired
+reference layout. Phone tokens omit avatars. Source pixels, logical
 display size, and physical pixels at browser DPR are distinct quantities. At GUI tournament creation, a GUI-owned avatar assignment service selects distinct avatar asset IDs without replacement and retains its `seat -> avatar ID` mapping until that tournament ends. It uses a presentation-local RNG stream (injectable and seedable in adapter tests), never the core tournament RNG streams. The mapping is not stored in `Player`, `GameView`, match configuration, domain events, or any core rule module. If the configured avatar catalog cannot provide one unique avatar per seat, GUI startup must fail clearly rather than reuse an avatar silently.
 
 GUI display names follow the same presentation boundary through a separate
@@ -1979,6 +2144,11 @@ defensive copies of both visual mappings in `GuiMatchCreationResult`.
 `PokerTableController` reuses them for every recipient-safe rerender and layout
 pass. This also gives an unseeded GUI tournament one shared nonzero effective
 seed without placing `gui_names` or `gui_avatars` state in the core.
+
+Historical Milestone 3 implementation (retired in RG-54): the following
+reference geometry, font allocations and observer names describe that build.
+Current composition ownership and layout rules are defined above under
+[GUI adapter](#gui-adapter); these records do not prescribe the replacement.
 
 Live seat panels show stacks directly below player names, position badges, and
 two visible card backs for opponents until cards are legitimately revealed.

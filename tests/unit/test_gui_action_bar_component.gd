@@ -457,6 +457,28 @@ func _assert_button_units_do_not_overlap(bar: GuiActionBar) -> void:
 			)
 
 
+func test_bot_status_uses_the_hero_column_instead_of_the_lone_menu_button_width() -> void:
+	var root: Control = _root()
+	var bar: GuiActionBar = BarScene.instantiate()
+	bar.compact_controls = true
+	root.add_child(bar)
+	bar.use_keypad(true)
+	bar.set_available_width(360.0)
+	bar.align_with_hero(181.0)
+	bar.size = Vector2(360, 200)
+	var view: GameView = GuiBrowserCaptureFixture.descriptor(6).view
+	view.acting_seat = 1
+	bar.render(ActionBarViewModel.build(view, {1: "Emiliano"}))
+	await wait_process_frames(10)
+	var status := bar.get_control(&"status") as Label
+	assert_eq(status.text, "Act: Emiliano")
+	assert_eq(status.get_line_count(), 1)
+	assert_almost_eq(
+		status.custom_minimum_size.y, ceilf(status.get_theme_font("font").get_height(20)), 1.0
+	)
+	assert_lt(bar.get_combined_minimum_size().y, 100.0)
+
+
 func _model() -> ActionBarViewModel:
 	var result := ActionBarViewModel.new()
 	result.valid = true

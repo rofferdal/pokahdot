@@ -14,9 +14,9 @@ func test_replacement_supported_layouts_and_guidance() -> void:
 		{"size": Vector2i(1600, 1200), "count": 2, "ready": true},
 		{"size": Vector2i(1600, 1200), "count": 6, "ready": true},
 		{"size": Vector2i(1920, 1300), "count": 9, "ready": true},
-		{"size": Vector2i(390, 844), "count": 6, "ready": false},
+		{"size": Vector2i(390, 844), "count": 6, "ready": true},
 		{"size": Vector2i(390, 844), "count": 9, "ready": false},
-		{"size": Vector2i(640, 360), "count": 2, "ready": false},
+		{"size": Vector2i(640, 360), "count": 2, "ready": true},
 	]
 	for count: int in [2, 3]:
 		cases.append({"size": Vector2i(1200, 590), "count": count, "ready": true})

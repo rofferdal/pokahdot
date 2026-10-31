@@ -3,6 +3,7 @@ extends GuiTableComposition
 
 ## Authored orientation and measured native rows; no viewport or core inference.
 @export var landscape_mode: bool = false
+@export var tablet_mode: bool = false
 var _seats: Dictionary[int, Control] = {}
 var _hero: int = -1
 var _layout_mode: GuiSizeClass.LayoutMode = GuiSizeClass.LayoutMode.PHONE
@@ -54,19 +55,30 @@ func _ensure_regions() -> void:
 	if _center != null:
 		return
 	var portrait: Control = get_node("Boundary/Content/Portrait")
+	portrait.minimum_size_changed.connect(_queue_layout)
 	var landscape: Control = get_node("Boundary/Content/Landscape")
 	_layout_mode = (
-		GuiSizeClass.LayoutMode.PHONE_LANDSCAPE if landscape_mode else GuiSizeClass.LayoutMode.PHONE
+		GuiSizeClass.LayoutMode.WIDE_COMPACT
+		if tablet_mode
+		else (
+			GuiSizeClass.LayoutMode.PHONE_LANDSCAPE
+			if landscape_mode
+			else GuiSizeClass.LayoutMode.PHONE
+		)
 	)
 	portrait.visible = not landscape_mode
 	landscape.visible = landscape_mode
 	_landscape = landscape as GuiPhoneLandscapeContainer
 	_rows = get_node("Boundary/Content/Portrait/Rows") as GuiPhoneSeatRows
-	_hero_cell = get_node("Boundary/Content/Portrait/HeroSlot/HeroCell") as MarginContainer
+	var hero_path: String = "Lower/HeroSlot/HeroCell" if tablet_mode else "HeroSlot/HeroCell"
+	_hero_cell = portrait.get_node(hero_path) as MarginContainer
 	var active: Control = landscape if landscape_mode else portrait
 	_center = active.get_node("CenterBoard") as GuiCenterBoard
-	_actions = active.get_node("ActionBar") as GuiActionBar
-	_hero_token = get_node("Boundary/Content/Portrait/HeroSlot/HeroCell/Hero") as GuiSeatToken
+	_actions = (
+		active.get_node("Lower/ActionBar" if tablet_mode and not landscape_mode else "ActionBar")
+		as GuiActionBar
+	)
+	_hero_token = _hero_cell.get_node("Hero") as GuiSeatToken
 	(
 		_slots
 		. assign(
@@ -104,6 +116,7 @@ func _ensure_regions() -> void:
 		token.detail_requested.connect(func(id: int) -> void: seat_detail_requested.emit(id))
 	_center.minimum_size_changed.connect(_queue_layout)
 	_actions.minimum_size_changed.connect(_queue_layout)
+	_actions.layout_resolved.connect(_queue_layout)
 	_actions.action_requested.connect(
 		func(intent: StringName) -> void: action_requested.emit(intent)
 	)
@@ -140,7 +153,7 @@ func render(model: TableViewModel) -> bool:
 	)
 	_measured_theme = theme
 	_has_model = true
-	_capacity = ids.size() <= 7
+	_capacity = ids.size() <= (9 if tablet_mode else 7)
 	_legal_actions = model.actions.legal_actions.duplicate()
 	_action_roles = model.actions.action_roles.duplicate(true)
 	_board_count = 0
@@ -262,7 +275,11 @@ func _complete_layout_frame() -> void:
 
 
 func _gap() -> float:
-	return get_theme_constant("separation", &"VBoxContainer")
+	return (
+		_landscape.separation
+		if landscape_mode
+		else (get_node("Boundary/Content/Portrait") as Control).get_theme_constant("separation")
+	)
 
 
 func _layout() -> void:
@@ -272,13 +289,29 @@ func _layout() -> void:
 	var available: Vector2 = boundary.size.min(_limit) if _limit.x > 0 else boundary.size
 	var content: Control = get_node("Boundary/Content")
 	content.size = available
+	content.position = Vector2.ZERO
+	var native: Control = get_node(
+		"Boundary/Content/Landscape" if landscape_mode else "Boundary/Content/Portrait"
+	)
+	# Minimum-size growth can shift a full-rect Control's offsets. Reapply the
+	# owned allocation on shrink so an earlier wide frame cannot leave an inset.
+	native.size = available
+	native.position = Vector2.ZERO
+	if not landscape_mode and not tablet_mode:
+		_actions.set_available_width(available.x)
 	_plan = (
 		GuiPhoneMeasuredPlan.resolve(
-			_seats, _hero, _center, _actions, landscape_mode, available, _gap()
+			_seats, _hero, _center, _actions, landscape_mode, available, _gap(), tablet_mode
 		)
 		if _has_model and _capacity
 		else GuiPhoneTablePlan.new()
 	)
+	if _plan.valid and not landscape_mode:
+		# Include native wrapped-copy and row allocations after they settle. The
+		# outer plan must never promise less space than its authored container.
+		var portrait: Control = get_node("Boundary/Content/Portrait")
+		_plan.minimum.y = maxf(_plan.minimum.y, portrait.get_combined_minimum_size().y)
+		_plan.feasible = available.x >= _plan.minimum.x and available.y >= _plan.minimum.y
 	var minimum: Vector2 = _plan.minimum if _plan.valid else Vector2.ZERO
 	if not _measuring and custom_minimum_size != minimum:
 		custom_minimum_size = minimum
@@ -311,6 +344,13 @@ func _layout() -> void:
 		return
 	if not _plan.valid:
 		return
+	if not tablet_mode:
+		_actions.set_inline_budget(
+			Vector2(
+				available.x,
+				maxf(0.0, available.y - _plan.minimum.y + _actions.get_combined_minimum_size().y)
+			)
+		)
 	var cell_width: float = maxf(
 		_plan.opponent_width,
 		floorf(
@@ -321,8 +361,10 @@ func _layout() -> void:
 		)
 	)
 	_rows.configure(_plan.rows, _seats, _hero, cell_width, _gap())
-	var hero_width: float = maxf(
-		_seats[_hero].get_combined_minimum_size().x, cell_width + 2.0 * _gap()
+	var hero_width: float = (
+		_seats[_hero].get_combined_minimum_size().x
+		if tablet_mode
+		else maxf(_seats[_hero].get_combined_minimum_size().x, cell_width + 2.0 * _gap())
 	)
 	if _hero_cell.custom_minimum_size.x != hero_width:
 		_hero_cell.custom_minimum_size.x = hero_width
@@ -361,6 +403,7 @@ func get_fit_candidate(
 		or not _capacity
 		or _pending
 		or _measuring
+		or _actions.is_layout_pending()
 		or mode != _layout_mode
 		or not _plan.valid
 	):
@@ -369,7 +412,9 @@ func get_fit_candidate(
 	result.density = density
 	result.action_flow = flow
 	result.minimum = _plan.minimum
-	result.seats = GuiSeatRows.compose(GuiPhoneMeasuredPlan.sorted_ids(_seats), _hero, true)
+	result.seats = GuiSeatRows.compose(
+		GuiPhoneMeasuredPlan.sorted_ids(_seats), _hero, not tablet_mode
+	)
 	result.seats.rows = _plan.rows.duplicate()
 	result.evidence = &"phone-native-components"
 	result.valid = result.seats.valid
@@ -383,7 +428,7 @@ func get_layout_snapshot(root: Control) -> GuiLayoutSnapshot:
 	data.generation = (
 		policy.geometry.generation if policy != null and policy.geometry != null else _generation
 	)
-	data.pending = _pending or _measuring
+	data.pending = _pending or _measuring or _actions.is_layout_pending()
 	data.ready = (
 		_has_model
 		and _plan.feasible

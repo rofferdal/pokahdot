@@ -9,6 +9,26 @@ const Content := preload("res://tests/support/gui_snapshot_content_assertions.gd
 const IndependentInk := preload("res://tests/visual/gui_card_glyph_sample.gd")
 
 
+func test_short_landscape_faces_keep_all_rank_and_suit_ink_at_twenty_pixels() -> void:
+	var root: Control = _root()
+	var card: GuiPlayingCard = CardScene.instantiate()
+	card.theme = load("res://resources/gui_compact_cards.tres") as Theme
+	root.add_child(card)
+	card.configure_glyphs(true)
+	for rank: int in range(2, 15):
+		for suit: int in 4:
+			card.render(CardViewModel.face(CardData.new(rank, suit)))
+			card.size = card.get_combined_minimum_size()
+			await wait_process_frames(2)
+			var snapshot: GuiCardSnapshot = card.get_card_snapshot(root, &"card", true)
+			assert_gte(snapshot.rank.font_size, 20)
+			assert_gte(snapshot.suit.font_size, 20)
+			assert_true(snapshot.element.rect.encloses(snapshot.rank.rect))
+			assert_true(snapshot.element.rect.encloses(snapshot.suit.rect))
+			assert_lte(snapshot.rank.rect.end.x, snapshot.suit.rect.position.x)
+			assert_lt(snapshot.element.rect.size.y, snapshot.element.rect.size.x)
+
+
 func test_missing_suit_font_uses_visible_safe_ink_without_invalid_textserver_calls() -> void:
 	var font := ThemeDB.fallback_font.duplicate() as FontFile
 	font.allow_system_fallback = false

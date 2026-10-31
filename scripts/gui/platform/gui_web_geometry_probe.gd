@@ -46,6 +46,28 @@ const READ_SCRIPT: String = """
 })()
 """
 
+## Events can precede settled browser metrics during rotation/chrome transitions.
+const REVISION_SCRIPT: String = """
+(() => {
+ const state = window.__pokahdotGeometryState;
+ if (!state) return 0;
+ const canvas = document.getElementById('canvas') || document.querySelector('canvas');
+ if (!canvas) return state.revision;
+ const rect = canvas.getBoundingClientRect(), visual = window.visualViewport;
+ const signature = JSON.stringify([
+   rect.x, rect.y, rect.width, rect.height,
+   innerWidth, innerHeight, document.documentElement.clientWidth,
+   document.documentElement.clientHeight, devicePixelRatio,
+   visual ? [visual.offsetLeft, visual.offsetTop, visual.width, visual.height] : null
+ ]);
+ if (signature !== state.signature) {
+   state.signature = signature;
+   state.revision++;
+ }
+ return state.revision;
+})()
+"""
+
 
 static func capture(backing_size: Vector2i) -> GuiViewportGeometry:
 	if not OS.has_feature("web"):
@@ -70,9 +92,7 @@ static func capture(backing_size: Vector2i) -> GuiViewportGeometry:
 static func revision() -> int:
 	if not OS.has_feature("web"):
 		return 0
-	var value: Variant = JavaScriptBridge.eval(
-		"window.__pokahdotGeometryState ? window.__pokahdotGeometryState.revision : 0"
-	)
+	var value: Variant = JavaScriptBridge.eval(REVISION_SCRIPT)
 	return int(value) if value != null else 0
 
 

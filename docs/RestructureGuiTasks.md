@@ -29,7 +29,13 @@ Its refreshed six/nine-seat previews are accepted. RG-51 is verified; complete
 RG-53 before requesting another design review. RG-60–RG-62 and RG-54 are now
 implemented and verified. The user accepted all three final RG-54 synthetic
 layouts (phone portrait, phone landscape and wide) on 2026-10-30. Physical-device
-acceptance remains separate in RG-80–RG-82.
+acceptance remains separate in RG-80–RG-82. Physical-browser feedback has
+identified phone playability, narrow iPad seats and hidden wager shortcuts.
+RG-63–RG-65 passed the initial automated gates (2026-10-31). The subsequent
+Galaxy S25 clarification and iPad review superseded the initial grid layout.
+Symmetric pairs, a centered human, upper-right markers and phone fullscreen
+entry/retry are implemented and automatically verified. Physical review is
+tracked below.
 Reviewed: 2026-10-27 against source commit
 `0669f41b7fc203d60640a6250f661b933ee33247` and the current working tree.
 This documentation review is not RG-00 baseline execution or device acceptance.
@@ -112,7 +118,8 @@ landscape. Reflow utility controls separately rather than widening the digit
 grid to five columns. RG-11R revises the previews; RG-30/31/44/45/50/51 retain
 these contracts in the replacement. The original previews are not accepted.
 
-Seat-row clarification (2026-10-29, user confirmed): every horizontal row on
+Historical seat-row clarification (2026-10-29; superseded by the
+2026-10-31 RG-63–RG-66 paired-row requirements below): every horizontal row on
 every screen/layout contains at most three player seats, including the human
 when it occupies that row. This applies to all supported player counts and
 both orientations, not only the upper row or one device family. Preserve
@@ -253,7 +260,9 @@ the checkboxes in the owning tasks remain the completion record.
 | Smaller log copy, aligned lower row and clear upper corners | Log body uses 18 px; docked log/hero/actions share top and bottom edges; no seat intersects the rounded felt border. | Dedicated log typography role, shared lower-row allocation and measured rounded-border clearance in the seat plan/container. RG-11R, RG-30/31/44/50/51. | Revised 1280×720 capture, exact row alignment and curved-border clearance checks; no other text-floor relaxation. |
 | Conventional numeric keypad in every orientation | Digits stay in three ordered columns with centered 0 below 8. | Stable digit grid plus separately composed utility/actions; compact layout reflows surrounding regions. RG-11R, RG-39/45. | Portrait/compact-landscape captures and row/column order, fit, 48 px targets and transactional input checks. |
 | Rectangular keypad utilities, no tournament Quit | Uniform utility cells form a filled rectangle; approved digits and visible limits remain. Cancel discards the draft; Done commits the draft for adapter validation. | One utility grid contains editing/preset/commit/cancel controls. Remove tournament-exit signal/button/wiring from number entry. RG-11R2, RG-39/45. | Inspect compact/portrait and plain-number/wager states; verify aligned cells, no Quit action, exact cancel/commit semantics and limits. |
-| At most three seats side by side; two opponents in phone portrait | Every horizontal row contains at most three players. Phone portrait uses pairs; odd opponent counts start with one centered, equal-width seat. | Row/slot plans and content-derived minimums enforce these caps while retaining clockwise seat IDs and the human at the bottom. RG-11R6, RG-12/42/50–52. | Test every supported count and mode, including short phone portrait, 8/9-player wide layouts and live rotation; no cosmetic staggering to evade row limits. |
+| Symmetric bot pairs and a separate centered human (updated 2026-10-31) | At most two bots per actual horizontal band; odd counts begin with one centered top bot. Only short phone landscape may use a top triple. The human has a separate centered row with comparable proportions. | Pure row/slot plans preserve clockwise seat IDs and complete footprints; RG-63/RG-64 supersede earlier three-seat caps and top-pair placement. | Verify 2–7 phone and 2–9 tablet/desktop counts, both orientations, equal-width apex/pairs and human proportions; staggering cannot evade the cap. |
+| Flexible tablet seats and upper-right markers | Seats and grouped community cards adapt to usable space, tablet avatars remain visible, and compact D/SB/BB sit above cards at the upper right. Min/Pot are inline when the complete budget fits. | Measured tablet geometry and shared compact components; input modality remains independent. RG-63–RG-65. | Avatar/identity/draft preservation, role-marker/card separation, large values and complete status bands across resize. |
+| Phone browser fullscreen without blocking play | Valid Start requests fullscreen where supported; More / Pots exposes a Fullscreen retry after exit. Ordinary browser play remains available subject to fit. | GUI-only browser helper; viewport adapter owns geometry changes. RG-63/RG-66. | Actual Start, exit and retry in both orientations, unsupported/refused requests, and preserved hand/draft state. |
 | Prioritize readable, tappable phone layouts; larger screens support nine players | Phones target 2–7 players and tablets/desktops 2–9, with readable copy and large enough actions. | Phone-constrained component minima and action flow inform unified fit policy and both compositions. RG-12/31/39–43/50–52. | Seven-player phone portrait/landscape stress fixtures, nine-player wide fixtures and live resize retain typography/targets and tournament state. |
 | All actions, including Quit, share a defined button view | Rounded dark-green buttons with white text cover startup, wagering, menus, Quit, confirmations and keypad keys. | Shared theme variations and reusable `ActionButton`; compose it throughout components instead of local runtime styling. RG-30, RG-39, RG-43/45, RG-54. | Review normal/focus/hover/pressed/disabled states, keyboard/touch activation and minimum target sizes. |
 | Fields must look different from buttons | Generic fields are sharp-cornered white/dark-green; Total uses light-grey on dark green with a shorter centered face. Touch entry retains its field presentation. | Separate `InputField`/`NumberField` and `WagerTotalField` theme variations; adapters retain validation and transactional drafts. RG-11R4, RG-30/39/43/45. | Compare normal/focus/read-only/error states, drawn face versus 48 px hit area, exact drafts and cancel/commit behavior. |
@@ -296,6 +305,13 @@ coverage, not legacy node trees, pixel coordinates, visual defects or internal
 APIs. Cut over only after the replacement and its tests satisfy the contracts.
 
 ## 2. Current structure and reusable foundations
+
+Historical planning snapshot: sections 2–6 describe the pre-replacement review,
+including then-current owners, defects and migration proposals. For current GUI
+layout principles use [ProjectDescription](ProjectDescription.md#71-gui) and
+[ARCHITECTURE](ARCHITECTURE.md#gui-adapter); for implementation/review status use
+the task checkboxes and RG-63–RG-66 evidence. Dated gallery proportions and old
+three-seat caps do not override the latest paired-row requirements.
 
 The inventory below describes the pre-migration reviewed source, not current
 acceptance evidence or size limits. RG-11 has since moved Window normalization
@@ -657,6 +673,11 @@ clear ownership, correct minimum-size propagation and responsive behavior.
   reference any other font file or system font; vary only font sizes.
 
 ## 7. Tasks
+
+Completed tasks retain their original acceptance wording as history. For current
+row limits, proportions, marker placement and browser behavior, RG-63–RG-66 and
+the product/architecture principles supersede earlier three-seat caps and
+reference geometry. Historical checkmarks do not approve the latest previews.
 
 Each task lists status, mode, scope and completion condition. Complete them
 in phase order unless the user selects another task. RG-54 is intentionally
@@ -1260,9 +1281,134 @@ statuses current and present the combined integrated result after RG-53.
   (2026-10-30); pushed to `origin/gui-restructure`. The unrelated user-owned
   `AGENTS.md` working-tree edit remains uncommitted.
 
+### Physical-browser corrections — before documentation and device acceptance
+
+Review input: `localtmp/gui-elements/ipad_browser.png` shows a six-player
+iPad browser table with narrow compact seats, missing player avatars, substantial unused felt and
+Min/Pot available only through wager entry. The user reports that a phone
+browser shows only “A little more room” even in fullscreen. The user clarified
+on 2026-10-31 that this was a Samsung Galaxy S25 in both portrait and landscape;
+the Start/configuration screen worked. Browser/version, player count, exact
+usable CSS dimensions and DPR have not yet been confirmed. The comparison
+capture `localtmp/gui-elements/macos_desktop_browser.png` visibly shows macOS
+Vivaldi browser chrome and a wider layout with inline Min/Pot; the user also
+described that file as an iPad capture, so confirm its device provenance when
+recording reproduction evidence. Treat it as a visual comparison only.
+These ignored local files are session evidence and may be absent elsewhere.
+Earlier synthetic layout acceptance remains historical evidence; it does not
+complete these corrections or physical-device acceptance.
+
+- [x] **RG-63 — Make ordinary phone browser viewports playable.** Status:
+  Complete (2026-10-31). The user reports no remaining errors across desktop,
+  phone and iPad with `d09fbfe9`. The startup/bot-turn warning correction is
+  accepted; final avatar-regression gates also pass in published `599a8f18`.
+  A real-hand regression reproduces winner-name/star width growth at settlement;
+  the compact winner star now shares the stack row. Six/seven-player touch
+  portrait at 390×744/844 and both landscape targets have regression coverage.
+  The seven-player portrait preview is visually accepted (2026-10-31);
+  S25 portrait gameplay is visually accepted before the failure; landscape is
+  physically playable, with community height and bottom-right card fixes
+  verified. Device review acceptance is recorded below without inventing
+  browser-version or exact physical viewport measurements.
+  Request fullscreen from a valid Start gesture where supported, and expose
+  a reachable Fullscreen menu retry after browser exit. Browser refusal or
+  lack of support must leave ordinary browser play available.
+  Mode: Senior Software Engineer, then QA with user. Reproduce
+  the reported guidance-only state and record actual canvas CSS dimensions,
+  visual viewport, DPR, safe-area insets, orientation, browser/fullscreen mode,
+  player count and selected composition/fit rejection. Check viewport
+  normalization and measured content requirements before selecting a fix.
+  Reflow seats, board, human panel and actions to support the default six-player
+  game at 390×844 and the reported physical phone's usable viewport; retain
+  the 2–7-player phone target and verify both orientations. Keep the 18 px
+  seat-copy / 20 px other-text floors, 48×48 targets, clockwise seat order and
+  two-opponent portrait row cap. Guidance remains appropriate for genuinely
+  infeasible dimensions/counts, with match state and menu/Quit preserved.
+  Done: a default tournament can start and accept human actions on the
+  reported phone in fullscreen and ordinary browser mode; automated tests
+  assert playable content at the reproduced supported sizes rather than
+  accepting guidance as a pass. Rotation and browser-chrome changes preserve
+  the hand, cards, stacks and reachable controls.
+
+- [x] **RG-64 — Widen iPad player seats and restore avatars.** Status:
+  Complete (2026-10-31). Seat layout, community/card placement, avatars and
+  rotation corrections are accepted in the latest device review. The remaining
+  proportional avatar rule is implemented by `GuiSeatContentRow` in tablet and
+  full human/bot panels: upper-left, approximately half the visual panel height,
+  aspect preserved, and no allocation-dependent minimum. Full checks and fresh
+  captures pass; 456 avatars satisfy the rule across 62 strict browser cases.
+  The user subsequently accepted `599a8f18`, including the avatar update:
+  “It looks good on all devices now.”
+  Mode: Senior Software Engineer, then QA with user. Reproduce
+  the supplied iPad capture at its measured CSS viewport and inspect why it
+  selects compact seats. Allocate wider opponent and human panels from the
+  usable tablet space. Show the assigned avatar on every opponent seat and
+  the human panel in both iPad orientations; preserve tournament-stable avatar
+  assignments and existing folded/eliminated grayscale styling. Keep names, stacks, wagers, cards, role markers and
+  reserved action/showdown bands readable and balanced. Use measured fit to
+  choose the composition; touch input alone must not force narrow phone
+  tokens. Preserve the desktop layout's successful proportions as a visual
+  reference; compact iPad layouts must retain avatars. For odd bot counts,
+  use one centered top bot followed by symmetric left/right pairs. Keep the
+  human alone in a centered row with comparable seat proportions. Three bots
+  are permitted only in the top row on small-phone landscape. Put D/SB/BB
+  in the upper-right band above smaller cards.
+  Done: user-reviewed six-player iPad captures show wider seats, visible
+  opponent/human avatars and better
+  use of available space, with no clipping/overlap at 2, 6 and 9 players in
+  portrait and landscape, including long names, large amounts and showdown
+  text. Rotation preserves tournament state, avatar assignments and touch entry.
+
+- [x] **RG-65 — Show Min and Pot directly on the table when they fit.**
+  Status: Complete (2026-10-31). Implementation, legal-action coverage and
+  real Min/Pot taps in both tablet orientations pass; the latest device review
+  reports no remaining errors. Final avatar-regression input checks also pass.
+  Mode: Senior
+  Software Engineer. On the iPad viewport
+  from RG-64 and other layouts with enough measured action-area space, show
+  both Min and Pot beside the main wager controls, without opening the
+  Bet/Raise dialog. Choose shortcut visibility from available space rather
+  than a blanket phone/tablet or touch rule; keep a reachable compact fallback
+  for smaller phones. Reuse existing action models and validated wager
+  behavior, including minimum street total, Pot contribution versus street
+  total, unavailable/disabled states and current amount labels. Preserve
+  Fold, Check/Call, Bet/Raise, All-in, More/Pots, Log and Quit access.
+  Done: both shortcuts are simultaneously visible and tappable on the
+  reproduced iPad, with 48×48 targets and no seat/action overlap. Binding and
+  input tests cover minimum raises, opening bets, short stacks, closed raise
+  rights, illegal Pot targets and resize between inline and compact controls;
+  the existing desktop shortcuts continue to work.
+
+- [x] **RG-66 — Verify physical-browser corrections and desktop regression.**
+  Status: Complete (2026-10-31). The latest user review found no remaining
+  errors on desktop, phone and iPad. Final verification passes 863 tests, all
+  four native matrices, 138 strict browser layouts and 14 input cases. Fresh
+  avatar captures, source identity and checked LAN build `599a8f18` are recorded
+  below. The user's subsequent all-device review also accepts this avatar
+  revision; RG-80–RG-82 remain separate.
+  Mode: QA with user.
+  Depends on RG-63–RG-65. Add the
+  reproduced phone and iPad CSS viewports to the exported layout/input
+  coverage, distinguishing required playable cases from genuinely unsupported
+  guidance cases. Include ordinary browser/fullscreen transitions, chrome
+  expansion/collapse, safe areas, rotation during a hand and touch keypad
+  cancellation/commit, fullscreen Start/exit/menu retry, and play without
+  browser fullscreen support. Compare desktop at 1280×720 and 1920×1080, preserving
+  readable seat proportions and inline shortcuts. Run the complete existing
+  checks and relevant phone/iPad/desktop GUI matrices; record fresh captures,
+  build identity and device/browser metadata under `localtmp/`.
+  Done: automated checks pass and the user confirms phone playability, wider
+  iPad seats with avatars and inline Min/Pot. Record that evidence for RG-80–RG-82 without
+  marking broader device acceptance complete until its own criteria pass.
+
 ### Phase 7 — Documentation
 
-- [ ] **RG-70 — Update current documentation.** Status: Not started. Mode:
+- [x] **RG-70 — Update current documentation.** Status: Complete (2026-10-31)
+  under the user's explicit documentation audit requests. Updated current
+  product/architecture, responsive and visual-testing guidance, README/indexes,
+  LAN how-to and all developer reference documents; added the GUI composition
+  guide with three Mermaid diagrams. `make docs-check` passes (17 regressions,
+  31 Markdown files, zero documentation/policy/coverage errors). Mode:
   Documentation Updater. Update the GUI adapter section of
   [ARCHITECTURE.md](ARCHITECTURE.md#gui-adapter),
   [ProvisionalGUILayoutGuidance.md](ProvisionalGUILayoutGuidance.md),
@@ -1307,6 +1453,98 @@ accepts it. Both phone orientations are part of replacement acceptance.
   Documentation Updater. Summarize accepted scope and remaining limitations
   at the top of this file and move it to `docs/arkiv/` when the user agrees.
   Done: status line updated; index in [README.md](README.md) updated.
+
+### Phase 9 — Cleaning up redundant code, tests and docs after extensive error correction loops
+
+When fixing GUI issues, a lot of tests have been introduced and each problem has caused the
+need to correct something and then a new test has been added. At some point, I think this must have
+lead to redundancy in tests and probably in application code, too.  There may also be cases where
+Godot Best Practice principles have not been followed for each correction. In this phase, code may
+need to be deleted.
+
+- [ ] **CUR-90 — Clean up redundant code** Status: Not started.
+  Search for code that are not used, overridden or duplicated by fixes and make it
+  clean.
+
+- [ ] **CUR-91 — Clean up redundant tests.** Status: Not started.
+  During error corrections, tests are often introduced that are too specific and
+  not necessary once the problem is fixed. Identify and remove tests that are not
+  verifying actual requirements.
+
+- [ ] **CUR-92 — Clean up documentation.** Status: Not started.
+  During error correction, some new decisions about the how the application is
+  constructed and how it works functionally is changed.  Verify doc in docs and
+  devdocs and see to it that it does not contradict what is implemented.
+  ProjectDescription.md and ARCHITECTURE.md are the overriding spec, though, so
+  in case documentation contradicts these files, the other file need to be corrected
+
+## RG-63–RG-66 correction evidence — 2026-10-31
+
+The user also requested flexible seat and community-area sizing. The compact
+composition now uses available row width for seats and shares spare height
+with an aspect-preserving community-card group. Tablet tokens retain assigned
+avatars, and their human/action lower band can grow horizontally. Phone
+portrait retains paired opponents and a separate centered human; short
+landscape can use measured side bands. Copy remains at least 18 px for seats
+and 20 px elsewhere, with 48×48 action targets and permanent two-line status
+bands. Tighter leading is checked against visible name/diacritic and winning
+text ink. Horizontal stack/wager spacing remains explicit.
+
+The layout resolver now measures compact candidates at usable viewport sizes,
+invalidates geometry-dependent measurements on resize, and waits for native
+reflow before rejecting an old minimum. Allocation resets prevent stale
+negative offsets after growing and shrinking. Min/Pot use existing view-model
+availability and core delegation; phone shortcut visibility also accounts for
+the complete table's available height. Core poker rules are unchanged.
+
+Verification evidence is under ignored `localtmp/rg63-66/`. Baseline
+`make check` passed 842 GUT tests before implementation. Fresh native stress
+coverage checks large
+amounts, all tablet avatars, folded/eliminated grayscale, long showdown copy,
+rotations, stable seat identity, raw wager drafts and invalid geometry. The
+expanded category matrices contain 99 M3, 49 phone, 24 iPad and 54 desktop
+cases, all passing. Final results:
+
+- `check-verified.log`: complete `make check` passes, including 851 GUT tests
+  (308,582 assertions), Python suites, documentation, lint and formatting.
+- `matrices-verified.log`: all four `gui-current-invariant-gate` categories pass.
+- `web-verified/results.json`: 139 exported cases at DPR 1/2/2.625/3;
+  all 135 supported layout/resize/rotation cases pass with no browser errors.
+  The 650×360 report-only diagnostic correctly retains space guidance.
+- `input-verified/results.json`: six exported browser input cases pass.
+- `web-verified/strict-phone-browser-portrait-automatic-dpr2.png` and
+  `web-verified/strict-ipad-browser-automatic-dpr2.png`: corrected phone/iPad
+  review previews. The same directory contains nine-player and rotated captures.
+
+Evidence identifies source HEAD `e1084f5915b18045f0384609130d9c6dbab54759`
+plus working-tree changes, Godot 4.7.2, browser/viewport/touch metadata and
+copied-source/export/screenshot checksums. The final exported production
+scripts, scenes and resources match the working tree. Physical review is not
+completed by these automated results.
+
+Device acceptance remains open: the phone is confirmed as a Samsung Galaxy
+S25, but browser/version, player count, exact CSS viewport and DPR remain
+unconfirmed. The original failure affected both orientations while Start
+worked. No physical review of the corrected build has been performed. The iPad viewport fixtures are representative
+emulation targets, not a claim that the original capture's CSS geometry was
+measured. Existing accepted layouts remain historical evidence. These correction tasks retain their unchecked acceptance status until their required
+physical evidence and user review exist.
+
+### Galaxy S25 follow-up — 2026-10-31
+
+The user identified the original phone and confirmed failure in both
+orientations, with Start/configuration working. Representative six-player
+360×780 portrait and 780×360 landscape probes were added; these are not
+measurements from the user's device. The portrait probe still showed guidance
+before this follow-up, while landscape already fit. This narrowed the remaining
+failure to paired-seat width and the portrait action/human footprint.
+
+The follow-up reduces only the portrait opponent pair's gap budget, uses the
+existing two-line human token, and gives compact More a standard ellipsis face
+with an explicit `More / Pots` accessible name and tooltip. Text and 48×48
+target floors remain intact. New regression coverage includes 360×720 browser
+height and a late default-tournament 5,000-chip wager. Fresh full verification
+results will be recorded after those checks complete.
 
 ## Review evidence and execution status
 
@@ -2961,3 +3199,441 @@ scripts, 1,103 tests and 323,860 assertions, including unchanged
 9,994-input / 1,098-known-failure historical characterization. Evidence is in
 `localtmp/rg62-web-layout-final5/`. RG-62 changes no product GUI design and
 creates no new visual-review checkpoint.
+
+
+### Layout review and fullscreen follow-up — 2026-10-31
+
+The user rejected `web-verified/strict-ipad-browser-explicit-dpr2.png`. Its
+three-column grid and shared lower seat band do not meet the revised layout
+contract. For odd bot counts, use one centered top bot followed by mirrored
+left/right pairs. The human must be centered horizontally in a separate row
+with about the same aspect ratio as bots. Three bots are allowed only in the
+top row on small-phone landscape. Seats and community area resize from
+available space while respecting measured content minima.
+
+The general phone portrait composition in
+`web-verified/strict-phone-browser-portrait-automatic-dpr2.png` was accepted
+as a visual direction. D/SB/BB must return to the upper-right corner above
+smaller cards, with approximately one third of that column for markers and
+two thirds for cards. Assigned avatars remain required on tablet seats.
+
+The user also requested actual fullscreen from a phone browser. Request it
+from the valid Start gesture and provide a reachable Fullscreen retry action
+where the browser supports it. Browser refusal must leave play available in
+ordinary browser space. Fresh native and exported-browser checks are in
+progress; the earlier automated evidence does not verify these revisions.
+
+
+### Final revised-layout verification — 2026-10-31
+
+The revised implementation supersedes the rejected iPad grid. Tablet layouts
+use mirrored pairs, a single centered apex for odd bot counts, and a separate
+centered human with matching seat dimensions. Compact seats place D/SB/BB
+above the cards at the upper right. Short phone landscape alone may use a
+top triple. Tablet avatars and inline Min/Pot remain visible. Phone Start
+requests browser fullscreen; the menu provides a supported-browser retry.
+
+Verified against Godot `4.7.2.stable.official.ed1daf0bf` and Chromium
+`140.0.7339.16`:
+
+- `localtmp/rg63-66/final-check.log`: `make check` passed, including all
+  **855 GUT tests / 310,045 assertions**, Python checks, lint, formatting,
+  policy and documentation checks.
+- `localtmp/rg63-66/final-matrices.log`: all four native GUI matrix gates
+  passed (99 replacement, 49 phone, 24 iPad and 54 desktop cases).
+- `localtmp/rg63-66/final-web/results.json`: **142 browser cases**, including
+  **138 strict passes** and four diagnostic cases. Only the report-only
+  650×360 boundary renders guidance. No browser errors. Coverage includes
+  DPR 1/2/2.625/3, six/seven-player phones, nine-player tablets, safe areas,
+  resize, identity and wager-draft preservation.
+- `localtmp/rg63-66/final-input/results.json`: **nine input cases passed**,
+  including real Start fullscreen entry, browser exit and menu retry in
+  portrait and landscape, unsupported fullscreen, keypad transactions and
+  normal game actions.
+- Both browser exports' production scripts/scenes/resources/assets match
+  the working tree byte-for-byte. Layout export pack SHA-256:
+  `e13f813bfa37e4578d78f04c8d57dcb0e612e12e94ee02809faf01262d8801a1`.
+
+Fresh review captures are under `localtmp/rg63-66/final-web/`, especially
+`strict-ipad-browser-explicit-dpr2.png`,
+`strict-phone-browser-portrait-automatic-dpr2.png`,
+`strict-narrow-phone-browser-dpr3.png`, and
+`strict-phone-landscape-seven-explicit-dpr2.png`. Browser fullscreen captures
+are under `localtmp/rg63-66/final-input/`.
+
+Physical S25/iPad review remains pending. The 360×720/780 portrait and
+780×360 landscape targets are representative emulations, not measured S25
+CSS dimensions. Keep RG-63–RG-66 unchecked until their physical acceptance
+criteria are met; this does not complete RG-80–RG-82.
+
+
+### GUI layout documentation audit — 2026-10-31
+
+Reconciled the normative GUI specification, current architecture, responsive
+guidance, visual-testing workflow, README/index and LAN testing guidance against
+the implemented RG-63–RG-66 planners/components and the latest user instructions.
+Current guidance now consistently distinguishes paired rows and centered human
+proportions, measured flexible allocations, upper-right compact markers, tablet
+avatars, adaptive action placement/Min/Pot and optional browser fullscreen.
+Corrected stale compact-marker/copy descriptions and scoped retired reference
+geometry and completed-task wording as historical. Moved fullscreen details
+into the GUI architecture section. Preview and physical acceptance remain
+pending; no implementation or acceptance checkboxes changed in this audit.
+
+Validation: `make docs-check` passed (30 current Markdown files, no documentation
+errors, GUI policy violations or coverage-map errors). Log:
+`localtmp/rg63-66/gui-principles-docs-check.log`.
+
+
+### iPad community/action refinement — 2026-10-31
+
+The user accepted the player-seat area sizes and placement in
+`localtmp/rg63-66/final-web/strict-ipad-browser-explicit-dpr2.png`. This is
+limited six-player visual acceptance, not physical-device sign-off or blanket
+approval of the center/action areas. The requested follow-up is implemented:
+community-card slots match the human visual panel width, Pot/Wager and
+blind/level text sit directly below, and the side action collection is raised
+to the human visual frame bottom, excluding its reserved status band.
+
+A rendered regression locks the accepted six-player seat rectangles and checks
+card width/centering, adjacent metadata and button alignment. Narrow tablets
+use a separate board band above the human when equal-width community cards
+cannot fit between side seats; dense tables preserve complete status-footprint
+clearance. Targeted corrections passed 10/10 before and 12/12 after (397
+assertions), including the reduced-safe-area tablet with pointer/keyboard input.
+Fresh preview: `localtmp/rg63-66/ipad-center-review-v2/`. Full check,
+four native matrices and the full exported browser matrix now pass; final
+evidence is recorded below. RG-64/RG-65 physical review remains open.
+
+
+### Seven-player portrait visual acceptance — 2026-10-31
+
+The user explicitly accepted
+`localtmp/rg63-66/final-web/strict-phone-browser-portrait-seven-automatic-dpr2.png`
+as looking great. This is visual acceptance of that exported 390×744,
+seven-player portrait composition at emulated DPR 2. It does not supply the
+S25's actual CSS viewport, browser/version, fullscreen behavior or on-device
+input/rotation evidence. The current iPad-only refinement preserves this
+accepted phone presentation. Keep the remaining physical criteria in RG-63
+and RG-66 open; do not infer landscape or RG-80 acceptance.
+
+Remaining RG-6x execution is RG-63–RG-66; RG-60–RG-62 are already complete.
+Additional RG-65/RG-66 input coverage now drives actual Min and Pot taps on
+six-player tablet tournaments after rotating between 1194×676 and 834×1030.
+All four preset cases preserve hand/history/raw draft and six avatars during
+resize, submit the exact bound legal street total without a dialog, and pass
+with the nine existing browser input cases (13/13 total). Evidence:
+`localtmp/rg63-66/center-review-input-final/results.json`.
+
+
+### Remaining RG-6x automated verification — 2026-10-31
+
+The iPad community/action refinement and inline-preset input coverage are
+implemented and verified. The accepted six-player seat sizes/positions remain
+unchanged across eight automatic/explicit browser captures at DPR 1/2/2.625/3.
+The community group matches the human visual width; Pot/Wager sit immediately
+below; the side action rail ends at the human visual frame bottom. Native
+checks also verify the blind/level row follows Totals directly. Evidence:
+`localtmp/rg63-66/center-review-alignment-evidence.json`.
+
+- `center-review-check-final.log`: `make check` passed, including **857 GUT
+  tests / 310,089 assertions**, Python checks, lint and formatting.
+- `center-review-matrices-final.log`: all four native matrix gates passed
+  (99 replacement, 49 phone, 24 iPad and 54 desktop cases).
+- `center-review-web-final/results.json`: **142 exported cases; 138 strict
+  passes**. Only the report-only 650×360 boundary renders guidance; no
+  browser errors. Production scripts/scenes/resources/assets match the working
+  tree byte-for-byte.
+- `center-review-input-final/results.json`: **13 input cases passed**, including
+  four real six-player iPad Min/Pot tap cases after orientation changes,
+  fullscreen entry/exit/retry in both phone orientations, unsupported
+  fullscreen, keypad transactions and normal actions. Its production sources
+  also match the working tree.
+
+All paths above are beneath `localtmp/rg63-66/`. The new iPad preview is
+`center-review-web-final/strict-ipad-browser-explicit-dpr2.png`. This refinement
+remains pending visual review; the earlier six-player seat acceptance and
+seven-player portrait acceptance remain recorded separately.
+
+| Task | Completed implementation/automated work | Remaining acceptance |
+| --- | --- | --- |
+| RG-63 | Required phone browser sizes, fullscreen entry/retry, input regressions; seven-player portrait visually accepted. | Actual S25 browser/version/usable geometry and playability in both orientations, including browser/fullscreen transitions. |
+| RG-64 | Tablet avatars, symmetric seats and flexible fit; six-player layout, centered community and seat-card sizes/placement accepted in `scaled-centered-ipad`. | Physical iPad checks, including rotation and stress cases. |
+| RG-65 | Inline Min/Pot fit and legality coverage, actual taps in both iPad orientations after resize. | Physical iPad shortcut confirmation alongside the revised layout. |
+| RG-66 | Full checks, all four native matrices, exported layout/input evidence and candidate source identity. | Physical browser metadata and user confirmation; this does not complete RG-80–RG-82. |
+
+### Reference documentation follow-up — 2026-10-31
+
+At the user's explicit request, a separate agent audited both existing
+`devdocs/reference/` documents against the product specification, architecture
+and source. It corrected the adapter/view-model boundary, safe card disclosure,
+canonical pot/unmatched-return descriptions and paced human-action API, and
+added `devdocs/reference/gui-composition.md` with three Mermaid diagrams for
+scene/state ownership, data/input flow and geometry/fit. Developer and current
+document indexes link the new guide. The parent review corrected the stale
+root README claim that Pots bypasses More: current controls open the menu,
+then Pots / Summary when available. `make docs-check` passes (17 documentation
+regressions, 31 current Markdown files, zero link/format/policy violations).
+
+
+### Production candidate for remaining device checks — 2026-10-31
+
+An isolated production Web build is ready under
+`localtmp/rg63-66/device-candidate/`, using the normal `scenes/main.tscn`
+entry point rather than a test observer. Build ID:
+`4230c27a43cb4469915e5b41cf26031c`. Public metadata and payload hashes:
+`builds/4230c27a43cb4469915e5b41cf26031c/export/build-info.json`; private
+check/import/export logs and source snapshot are beside that export.
+Its own `make check` passed all 857 GUT tests; import/export passed with
+no unexpected engine/script errors. The dirty working tree is identified by
+execution-source SHA-256
+`357094480c09387ac55b55dd28a257cd600aef9e9a5ecf4c3abb5c3bcbf484ad`.
+This is a local candidate prepared for review, not a recorded physical-device
+pass. The normal LAN output/server was not selected by this isolated build.
+
+Production startup smoke also passed at 360×780 / DPR 3 (phone) and
+1194×676 / DPR 2 (tablet), with exact canvas CSS extents and no browser errors.
+Evidence: `localtmp/rg63-66/device-candidate-smoke/results.json` and its PNGs.
+
+
+### Active RG-63–RG-66 continuation — centered community and scaled hole cards
+
+The user reaffirmed that intermediate instructions refine these active tasks
+and must not stop their execution. Latest iPad refinements: center the
+community-card slots horizontally and vertically where space permits, with
+Pot/Wager and blind/level copy immediately below. Hole cards belong at the
+lower right and scale toward two-thirds of the visual seat-box height; D/SB/BB
+remain above at the upper right. `GuiSeatCardsColumn` implements tablet card
+growth without allocation-dependent intrinsic minima. The user explicitly
+accepted the layout and the size/placement of seat cards in
+`localtmp/rg63-66/scaled-centered-ipad/strict-ipad-browser-explicit-dpr2.png`.
+Targeted native verification passed all 13 cases (427 assertions), and the
+focused exported-browser run passed all 14 strict cases. Full verification
+passed 858 GUT tests (310,115 assertions), all four native matrices, 138 strict
+exported layouts (plus four separate diagnostics), and all 13 browser input
+cases. The expected unsupported 650×360 report-only case retains guidance;
+it is not part of the playable gate. Across eight six-player iPad cases at DPR
+1/2/2.625/3, accepted seat rectangles remain unchanged, community slots match
+the human width and center on both axes, copy sits directly below, and the
+action rail meets the human frame bottom. Captured production sources match
+the working tree. Evidence: `scaled-centered-web-final`,
+`scaled-centered-input-final`, `scaled-centered-matrices.log` and
+`scaled-centered-alignment-evidence.json` under `localtmp/rg63-66/`. Physical
+phone/iPad checks remain distinct from this accepted visual preview.
+
+For physical phone checks, the normal LAN output was refreshed from the old
+`c515226e` build to `482caa9321344b7194ebe9cee934ba73`, and HTTPS was renewed
+for Wi-Fi address `192.168.39.163` using the existing CA. The running server
+initially redirected the root URL to that checked build. It contains the phone
+fixes and previous iPad alignment; the latest centering/card-scale refinement
+is published separately below. Existing pinned games remain on their
+original build. The user said they would check the devices; no physical result
+has yet been reported. The first latest-source build (`12b9cca4`) exceeded the
+builder's ten-minute check timeout immediately before its GUT child reported
+all 858 tests passing, so it was correctly not published. The allowance is now
+twenty minutes, with all 35 LAN-tool regressions passing before and after the
+change. Fresh build `f5f9377d8c7e401d850710489ddce8f3` is now ready after the
+complete check passed again (858 tests, 310,117 assertions), isolated import,
+release export and artifact verification. The running HTTPS root at
+`https://192.168.39.163:8080/` redirects to this build; its served
+`build-info.json` matches. Evidence: `scaled-centered-live-rebuild.log` and
+`served-build-info.json`. No failed build was published as the latest candidate.
+The published production export also passes phone/tablet startup smoke checks
+at 360×780 / DPR 3 and 1194×676 / DPR 2, with exact canvas CSS extents and no
+browser errors (`localtmp/rg63-66/accepted-build-smoke/results.json`).
+
+Additional exported checks deliberately reject the browser fullscreen Promise
+in both phone orientations. Real Start and menu retry taps leave the table
+ready on the human turn, with hand, history and wager draft preserved and no
+page errors. Both cases pass; evidence and the session harness are in
+`localtmp/rg63-66/fullscreen-refused/` and `check_refused_fullscreen.py`.
+These complement the maintained success/API-unavailable input regressions;
+they do not establish physical S25 browser acceptance.
+
+### Physical Chrome review and correction pass — 2026-10-31
+
+The user tested the LAN preview on all devices with Chrome. Desktop and iPad
+landscape look good. Portrait iPad fails after rotating from landscape, but a
+portrait reload fixes it. The supplied portrait capture loses the lower usable
+area, selects avatar-free phone seats, flattens community cards and omits inline
+Min/Pot. These are consequences consistent with retaining the old landscape
+height, rather than a reason to redesign the accepted tablet arrangement.
+
+The Web probe now compares actual canvas/layout/visual-viewport/DPR metrics in
+addition to resize notifications. A maintained exported regression rotates a
+six-player table from 1194×676 to 834×1030 while the visual viewport reports the
+old height, then settles its height without another resize notification. The
+previous export fails to recover; the corrected export restores the tablet
+composition and all avatars. All 25 exported geometry cases pass. Evidence:
+`localtmp/rg63-66/device-followup/web-geometry/` and
+`rotation-before-after.json`. This reproduces a failure mechanism; the physical
+iPad rotation recheck is still required.
+
+The Galaxy S25 portrait game initially looks good, but guidance can replace it
+after an action and sometimes persists. A real six-player hand reproduces a
+settlement failure with winner `Emiliano`: the star beside the name increases
+that seat's minimum to 193 px and the equal-width row requires 387 px in a
+360 px viewport. The portrait compact star now shares the stack row, retaining
+winner emphasis without widening the name row. A maintained regression reaches
+settlement through all actions/streets without losing playable content; it
+fails before this correction and passes afterward. Native controller regressions
+pass all 14 cases. Evidence: `live-actions-diagnostic2.log`,
+`live-actions-after.log` and `native.log` in the same session folder.
+
+Phone landscape is physically playable. Its remaining card defects are corrected:
+community slots use taller vertical glyph composition independently of the
+short horizontal hole cards. `LandscapeSeatToken` uses `GuiSeatCardsColumn`
+with a permanent marker band so marked, unmarked and folded seats all anchor
+hole cards at the lower right. All 14 native correction tests pass, including
+780×360 / 844×390 card-anchor/aspect checks (477 assertions). The narrower board
+also makes two-player 640×360 playable; its old expected-guidance fixture now
+requires ready content and retains all independent invariants. Full input,
+layout matrices and the checked LAN rebuild are in progress; physical
+settlement/rotation confirmation and inline Min/Pot acceptance remain open.
+
+The device-correction candidate is now verified and published:
+`daf17dfa81a740e2ba43d2e304600c69`. The full `make check` passes (860 GUT tests,
+310,310 assertions), all four native matrices pass, and exported checks pass
+138 strict layouts plus four separate diagnostics, 25 geometry cases and 13
+input cases. The unsupported 650×360 report-only case still retains guidance.
+Across eight six-player iPad captures at DPR 1/2/2.625/3, the previously accepted
+seat rectangles and community/action alignment remain unchanged. Exported
+layout/input project sources match the working tree. Evidence under
+`localtmp/rg63-66/device-followup/`: `web-layout/`, `web-input-recheck/`,
+`web-geometry/`, `native-matrices-final.log`, `accepted-ipad-alignment.json`,
+`lan-final.log`, and `served-build-info.json`.
+
+The HTTPS root `https://192.168.39.163:8080/` redirects to this verified build.
+Open the root URL rather than refreshing an older pinned build for the physical
+Chrome recheck. RG-63–RG-66 remain open for sustained phone play, iPad portrait
+rotation recovery and shortcut confirmation. The additional avatar principle
+requested during verification is now normative in `ProjectDescription.md` and
+`ARCHITECTURE.md`: visible avatars anchor upper left, preserve aspect, and scale
+toward half the visual seat box height, excluding the status band. Current
+fixed-minimum/centered tablet avatar allocation is explicitly recorded as
+pending RG-64 implementation; it is not claimed as part of this candidate.
+
+Production startup smoke checks also pass for the published candidate at phone
+360×780 / DPR 3 and iPad 1194×676 / DPR 2, with exact CSS canvas dimensions and
+no browser errors (`device-followup/production-smoke/results.json`).
+
+### Repeated phone warning: bot-turn status measurement — 2026-10-31
+
+The user reports that the warning still appears after actions on the physical
+phone, sometimes permanently, and adds that it also appears briefly before
+initial play. The prior settlement/star correction did not resolve this report.
+A separate reduced-height reproduction now isolates the bot-turn action bar:
+only More is visible, so status copy was measured against its approximately
+48 px button width rather than the approximately 181 px human-aligned status
+column. `Act: Emiliano` fits on one actual line but reserved three measured
+lines (84–90 px depending on the metric theme). This increased the table's
+height requirement to 774 px and rejected a 360×744 usable rectangle. A bot
+can act before the first human turn as well as after an action, making this
+mechanism consistent with both reported timings. The representative inset is
+an automated test input, not a measurement of the physical S25's browser.
+
+`GuiActionBar._measure_status` now uses the explicit available width bounded by
+the human column, independently of button packing. Compositions without an
+explicit allocation retain their existing intrinsic width constraints. No
+poker/core logic or real unsupported-space checks are changed.
+
+Before-fix component and reduced-height phone regressions fail; after-fix all
+47 focused action-bar, phone correction and controller regressions pass.
+A new native test observes every frame from initial deal through automatic bot
+pacing, four human Check/Call actions, settlement and return to hand two with
+a 36 px top inset. The exported browser input suite now has 14 passing cases:
+the equivalent live phone case observes 13 ready bot frames, four real canvas
+taps and return to a human turn on hand two, with `warning_frames == 0` throughout.
+Evidence under `localtmp/rg63-66/phone-warning/`: `status-before.log`,
+`bot-reduced-before.log`, `native-after.log` and `web-input-final/results.json`.
+Full checks, all native matrices, exported layout coverage and a fresh checked
+LAN build are in progress. Physical phone acceptance remains open.
+
+Candidate `d09fbfe98b1944f89cd1d386c377ca31` is now ready and served from
+`https://192.168.39.163:8080/`. The trusted HTTPS redirect and served
+`build-info.json` match. Full `make check` passes (863 GUT tests, 310,328
+assertions), all four native GUI matrices pass, and exported coverage passes
+138 required layouts plus four separate diagnostics and all 14 input cases.
+The unsupported 650×360 diagnostic still reports guidance separately. The eight
+accepted six-player iPad alignment cases remain unchanged across DPR 1/2/2.625/3.
+Exported input/layout production sources match the working tree, and the input
+observer also matches. Published production startup smoke checks pass for phone
+and iPad with exact CSS canvas dimensions and no browser errors.
+
+The isolated before-fix browser comparison uses the previously published action
+bar, a 360×744 usable region and normal two-second bot pauses. An actual
+Check/Call tap reproduces visible guidance; `before-fix-warning.png` captures
+the same “A little more room” presentation. Evidence in the session folder:
+`browser-before-fix.json`, `browser-before-fix-action.log`, `web-layout/`,
+`web-input-final/`, `native-matrices.log`, `accepted-ipad-alignment.json`,
+`served-build-info.json`, `production-smoke/`, and `lan-build.log`.
+Physical S25 confirmation remains required; the previous physical failures are
+not marked resolved solely by these automated passes.
+
+The corrected export additionally passes the same full live flow with normal
+**two-second** bot pauses: four real human actions, 866 ready bot-turn frames,
+hand two reached, zero warning frames. The before-fix export shows guidance
+under this pacing after a human action. The paired evidence and source/pack
+hashes are in `localtmp/rg63-66/phone-warning/browser-before-after.json`; the
+fixed slow-run capture and state are in `real-pacing-fixed-evidence/`.
+
+
+### Final RG-63–RG-66 device review and avatar implementation — 2026-10-31
+
+The user reports no remaining errors while testing the latest LAN changes on
+desktop, phone and iPad. This accepts the device corrections in `d09fbfe9`,
+including the repeated phone warning fix. Record that report as acceptance of
+the reviewed baseline; do not invent browser versions or measured CSS/DPR values.
+Broader RG-80–RG-82 acceptance remains a separate milestone.
+
+The remaining avatar rule is now implemented, rather than only documented.
+`GuiSeatContentRow` is the sole owner of avatar/sibling-column rectangles in
+`TabletSeatToken`, `SeatPanel` and `HeroPanel`. Avatars have no fixed pixel
+minimum, anchor upper-left inside normal padding and scale toward half the
+visual panel height, excluding the status band. Texture aspect is preserved;
+width growth is bounded by space left after sibling minima. Intrinsic row
+minima use content measurements and panel padding, never the last allocation.
+Full panels fill their assigned vertical space. One logical pixel of rounding
+keeps native child containers aligned. Avatar assignment, folded/busted
+materials, core state, text floors and card/marker anchors are retained.
+
+Existing requirement tests were extended rather than creating another parallel
+seat suite. The before-change seat/browser tests passed 35 cases (4,814
+assertions); after the change all 35 pass (5,121 assertions). Fixed 64/80 px
+assertions were replaced with the actual half-height/upper-left contract.
+Coverage includes human/bot panels, both metric densities, minimum → large →
+minimum recovery, and tablet growth/rotation with stable avatar identity/draft.
+Evidence: `localtmp/rg63-66/avatars/before.log` and `third-check.log`.
+Final checks, exported evidence and the published build are recorded below;
+the four tasks are now complete. Phase 9 cleanup tasks
+added by the user are not selected by this RG-63–RG-66 continuation.
+
+Final verification is complete. Published build:
+`599a8f18161b445c826bca3c03f5070f`, available from
+`https://192.168.39.163:8080/`; the trusted HTTPS redirect and served build
+metadata match. Full `make check` passes: **863 tests, 310,635 assertions**.
+All four native matrices pass, as do 138 strict exported layouts (plus four
+separate diagnostics) and all 14 input cases. The live inset-phone flow reaches
+hand two after four real human actions with zero warning frames. A sampled
+ready-bot-frame count proved dependent on render speed under concurrent checks;
+that redundant diagnostic assertion was removed, retaining every-frame warning
+counting and actual next-hand progression requirements.
+
+An additional browser measurement audit verifies **456 avatars across 62 strict
+cases**: half the visual panel height within one logical pixel, original aspect,
+upper-left padding and containment. The eight accepted six-player iPad
+seat/community/action alignment cases remain unchanged across DPR 1/2/2.625/3.
+Exported production sources match the working tree. Fresh iPad landscape,
+portrait-nine and desktop captures were visually inspected. Evidence under
+`localtmp/rg63-66/avatars/`: `avatar-geometry-evidence.json`,
+`accepted-ipad-alignment.json`, `web-layout/`, `web-input-final/`,
+`native-matrices.log`, `lan-final.log`, `served-build-info.json` and
+`docs-final.log`. The independent remaining-work audit found no known feature
+work left after these checks; its stale fixed-avatar paragraph was reconciled.
+
+RG-63, RG-64, RG-65 and RG-66 are marked complete. After publication of
+`599a8f18161b445c826bca3c03f5070f`, the user confirmed on 2026-10-31:
+“It looks good on all devices now.” This records all-device visual acceptance
+of the latest revision, including proportional avatar sizing, in addition to
+the native/browser/capture evidence above.
+Broader RG-80–RG-82 and Phase 9 cleanup are not closed by this scoped completion.

@@ -40,6 +40,16 @@ func _process(_delta: float) -> void:
 	var snapshot: Dictionary = Json.encode(layout)
 	snapshot["classified_mode"] = SizeClass.classify(layout.usable_rect.size, _mode_override()).mode
 	snapshot["frame"] = _frame
+	snapshot["wager_draft"] = _table.get_wager_draft()
+	var composition: GuiTableComposition = _table.get_composition()
+	if composition != null:
+		snapshot["composition_minimum"] = [
+			composition.get_combined_minimum_size().x, composition.get_combined_minimum_size().y
+		]
+		snapshot["seat_minima"] = {}
+		for id: int in composition.get_seat_controls():
+			var minimum: Vector2 = composition.get_seat_controls()[id].get_combined_minimum_size()
+			snapshot["seat_minima"][str(id)] = [minimum.x, minimum.y]
 	snapshot["button_seat"] = _descriptor.view.button_seat
 	snapshot["small_blind_seat"] = _descriptor.view.small_blind_seat
 	snapshot["big_blind_seat"] = _descriptor.view.big_blind_seat
@@ -150,7 +160,7 @@ func _player_count() -> int:
 	return clampi(
 		int(JavaScriptBridge.eval("new URL(location.href).searchParams.get('players') || '6'")),
 		2,
-		6
+		9
 	)
 
 

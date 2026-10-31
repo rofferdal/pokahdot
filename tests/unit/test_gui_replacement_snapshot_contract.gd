@@ -71,13 +71,13 @@ func test_phone_portrait_limits_opponents_to_two_and_keeps_hero_in_its_own_row()
 	snapshot.layout_mode = Modes.LayoutMode.PHONE
 	assert_eq(Invariants.validate_snapshot(snapshot), PackedStringArray())
 	snapshot.seat_rows = [PackedInt32Array([1, 0])]
-	_assert_failure(snapshot, "portrait requires")
+	_assert_failure(snapshot, "row-cap:")
 	snapshot = _fixture()
 	snapshot.layout_mode = Modes.LayoutMode.PHONE
 	snapshot.seats[2] = _seat(2, Vector2(400, 100))
 	snapshot.seats[3] = _seat(3, Vector2(700, 100))
 	snapshot.seat_rows = [PackedInt32Array([1, 2, 3]), PackedInt32Array([0])]
-	_assert_failure(snapshot, "portrait requires")
+	_assert_failure(snapshot, "row-cap:")
 
 
 func test_actual_horizontal_bands_cannot_be_hidden_by_declared_rows_or_staggering() -> void:

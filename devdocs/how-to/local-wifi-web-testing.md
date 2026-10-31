@@ -2,8 +2,10 @@
 
 Use this workflow to test the current working tree on the development Mac,
 an iPad or an Android phone without pushing or merging. The completed server workflow is recorded in
-[`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). GUI device-review evidence and
-remaining acceptance limitations are recorded in the archived
+[`LanTestTasks.md`](../../docs/arkiv/LanTestTasks.md). Current GUI device-review
+evidence and remaining acceptance criteria live in RG-63–RG-66 of
+[`RestructureGuiTasks.md`](../../docs/RestructureGuiTasks.md). Earlier evidence is
+preserved in the archived
 [`OptimizingPhoneGuiTasks.md`](../../docs/arkiv/OptimizingPhoneGuiTasks.md)
 and section 5 of the archived [`AstraSuggestionTasks.md`](../../docs/arkiv/AstraSuggestionTasks.md).
 
@@ -288,8 +290,11 @@ server-workflow archive unchanged.
   record the game canvas's CSS bounding rectangle, backing width/height,
   `visualViewport` dimensions/offsets and computed safe-area insets separately.
   Mark unavailable measurements pending rather than inferring a device pass.
-- On phones, review 2-, 4-, 6-, and 7-player portrait tables. On larger layouts,
-  include 9 players. Cover human/bot turns, large supported amounts, folds,
+- On phones, review 2-, 4-, 6-, and 7-player tables in both orientations.
+  On larger layouts, include 9 players. Verify mirrored bot pairs, a centered
+  top bot for odd counts, and a separate centered human; only short phone
+  landscape may use a top triple. Tablet seats retain avatars, compact
+  D/SB/BB sit upper right above cards, and Min/Pot remain inline when they fit. Cover human/bot turns, large supported amounts, folds,
   all-ins, showdown, elimination and a named tournament winner.
 - Open the hand summary and check named main/split/side-pot awards where
   reached. Open each overlay, wait beyond the usual hand pause, and check its
@@ -297,7 +302,11 @@ server-workflow archive unchanged.
 - Check keypad Cancel with valid, invalid, blank and whitespace text; use Done
   separately to commit. Exercise address bars, keyboard/keypad opening,
   desktop resize, Escape and device/browser Back; record browser navigation
-  separately from in-game dismissal. Phone landscape remains deferred.
+  separately from in-game dismissal. On supported phone browsers, Start should
+  request fullscreen; test browser exit and **More / Pots → Fullscreen** retry
+  in portrait and landscape. Also test play without fullscreen support. Phone
+  landscape implementation is covered automatically; physical acceptance remains
+  pending in RG-63–RG-66 and RG-80–RG-82.
 - Attach screenshots and the pinned build identity to each defect, including
   the last action and browser state needed to reproduce it. Untested states
   and a second independent browser/device remain pending until observed.
@@ -333,8 +342,9 @@ certificate and that Wi-Fi access required HTTPS. The user accepted LAN-04–06,
 including best-effort game/rebuild verification despite issues at some
 resolutions. Exact device/OS/browser versions and affected resolutions were
 not supplied. This acceptance closes the LAN workflow; it does not establish
-that every layout passed. Remaining phone layout checks and deferred landscape
-support remain recorded in the archived
-[phone review](../../docs/arkiv/OptimizingPhoneGuiTasks.md).
+that every layout passed. Deferred landscape checks in the archived
+[phone review](../../docs/arkiv/OptimizingPhoneGuiTasks.md) remain historical;
+current implementation and pending physical acceptance are tracked in the
+[GUI backlog](../../docs/RestructureGuiTasks.md).
 Build identities, host/browser evidence and the acceptance decision are
 recorded in [LanTestTasks.md](../../docs/arkiv/LanTestTasks.md).

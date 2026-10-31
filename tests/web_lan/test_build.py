@@ -49,10 +49,20 @@ class BuildTests(unittest.TestCase):
                 return subprocess.CompletedProcess(arguments, 2)
             if self.mode == "check_error":
                 kwargs["stdout"].write("ERROR: Unexpected check error\n")
+            if self.mode in {"check_expected_error", "check_expected_then_unexpected"}:
+                kwargs["stdout"].write(
+                    "\x1b[31mERROR: Deliberate validation error\x1b[0m\n"
+                    "   at: push_error (variant_utility.cpp:1023)\n"
+                    "\x1b[34m[ExpectedError]\x1b[0m\n"
+                )
+            if self.mode == "check_expected_then_unexpected":
+                kwargs["stdout"].write("ERROR: Unexpected error after acknowledged block\n")
             if self.mode == "source_changed":
                 (self.root / "scripts/game.gd").write_text("extends Resource\n")
-        if "--import" in arguments and self.mode == "import_failure":
+        if "--import" in arguments and self.mode in {"import_failure", "import_expected_marker"}:
             kwargs["stdout"].write("SCRIPT ERROR: Broken script\n")
+            if self.mode == "import_expected_marker":
+                kwargs["stdout"].write("[ExpectedError]\n")
         if "--export-release" in arguments:
             if self.mode == "missing_template":
                 kwargs["stdout"].write("ERROR: No export template found at expected location.\n")
@@ -131,6 +141,7 @@ class BuildTests(unittest.TestCase):
 
     def test_zero_exit_import_error_and_missing_template_never_publish(self) -> None:
         for mode, message in (("import_failure", "Broken script"),
+                              ("import_expected_marker", "Broken script"),
                               ("missing_template", "No export template")):
             with self.subTest(mode=mode):
                 self.mode = mode
@@ -139,7 +150,8 @@ class BuildTests(unittest.TestCase):
                 self.assertEqual(load_status(self.output, self.root)["state"], "failed")
 
     def test_failed_checks_and_source_change_stop_before_export(self) -> None:
-        for mode in ("check_failure", "check_error", "source_changed"):
+        for mode in ("check_failure", "check_error", "check_expected_then_unexpected",
+                     "source_changed"):
             with self.subTest(mode=mode):
                 self.mode = mode
                 self.calls.clear()
@@ -147,6 +159,12 @@ class BuildTests(unittest.TestCase):
                     self.build()
                 self.assertFalse(any("--export-release" in call for call in self.calls))
                 self.assertEqual(load_status(self.output, self.root)["state"], "failed")
+
+    def test_gut_expected_error_blocks_do_not_fail_a_passing_check(self) -> None:
+        self.mode = "check_expected_error"
+        metadata = self.build()
+        self.assertEqual(metadata["source_tree_state"], "clean")
+        self.assertEqual(load_status(self.output, self.root)["state"], "ready")
 
     def test_output_escape_and_invalid_build_id_are_rejected(self) -> None:
         with self.assertRaises(BuildError):

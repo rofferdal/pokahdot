@@ -6,7 +6,18 @@ extends RefCounted
 
 
 static func descriptor(player_count: int = 6, font_stress: bool = false) -> Dictionary:
-	player_count = clampi(player_count, 2, 6)
+	player_count = clampi(player_count, 2, 9)
+	if player_count > 6:
+		var fixture: Dictionary = GuiVisualStateFixtures.replacement_flop(player_count)
+		var names: Dictionary[int, String] = {}
+		var avatars: Dictionary[int, String] = {}
+		var paths: PackedStringArray = GuiAvatarCatalog.default_avatar_paths()
+		for seat: int in player_count:
+			names[seat] = "Human" if seat == 0 else "Annalise"
+			avatars[seat] = paths[seat]
+		fixture.names = names
+		fixture.avatars = avatars
+		return fixture
 	var view := GameView.new()
 	view.hand_number = 1
 	view.hero_seat = 0

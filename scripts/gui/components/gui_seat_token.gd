@@ -5,6 +5,7 @@ extends VBoxContainer
 signal detail_requested(seat: int)
 
 const Grayscale := preload("res://resources/gui_grayscale_material.tres")
+@export var preferred_width: float = 0.0
 var _bound: bool = false
 var _seat: int = -1
 var _folded: bool = false
@@ -54,7 +55,7 @@ func render(model: SeatViewModel) -> void:
 	_emphasized = model.winner_emphasis
 	_hero = model.is_hero
 	focus_mode = Control.FOCUS_ALL
-	material = Grayscale if _folded else null
+	material = Grayscale if _folded or _busted else null
 	(_fields["Name"] as Label).text = model.display_name
 	(_fields["Stack"] as Label).text = model.stack_value_text
 	(_fields["Wager"] as Label).text = model.wager_text
@@ -66,6 +67,14 @@ func render(model: SeatViewModel) -> void:
 	_authorization.clear()
 	for card: CardViewModel in model.cards.cards:
 		_authorization.append(card != null and card.state == CardViewModel.State.FACE)
+	var avatar := get_node_or_null("%Avatar") as TextureRect
+	if avatar != null:
+		avatar.texture = null
+		if not model.avatar_path.is_empty():
+			if ResourceLoader.exists(model.avatar_path, "Texture2D"):
+				avatar.texture = load(model.avatar_path) as Texture2D
+			else:
+				push_error("SeatToken avatar texture does not exist: %s" % model.avatar_path)
 	(get_node("%PairCards") as GuiHoleCards).render(model.cards)
 	(get_node("%Dealer") as Control).visible = model.is_dealer
 	(get_node("%SB") as Control).visible = model.is_small_blind
@@ -93,6 +102,9 @@ func _clear() -> void:
 	_authorization.clear()
 	_required_badges = ""
 	material = null
+	var avatar := get_node_or_null("%Avatar") as TextureRect
+	if avatar != null:
+		avatar.texture = null
 	focus_mode = Control.FOCUS_NONE
 	if has_focus():
 		release_focus()
@@ -116,7 +128,7 @@ func _apply_frame() -> void:
 		if has_focus()
 		else (
 			&"SeatTokenFolded"
-			if _folded
+			if _folded or _busted
 			else (&"SeatTokenActing" if _acting else &"SeatTokenFrame")
 		)
 	)
@@ -134,6 +146,8 @@ func _measure() -> void:
 			. ceil()
 		)
 		label.custom_minimum_size.x = extent.x
+	if get_node("Panel/Content") is GuiSeatContentRow:
+		(get_node("Panel/Content") as GuiSeatContentRow).queue_sort()
 	var content_minimum: Vector2 = (
 		(get_node("Panel/Content") as Control).get_combined_minimum_size()
 	)
@@ -142,7 +156,7 @@ func _measure() -> void:
 		(get_node("Panel") as Control).get_theme_stylebox("panel").get_minimum_size()
 	)
 	var paragraph := TextParagraph.new()
-	paragraph.width = content_minimum.x + panel_padding.x
+	paragraph.width = maxf(preferred_width, content_minimum.x + panel_padding.x)
 	paragraph.break_flags = (
 		TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE | TextServer.BREAK_MANDATORY
 	)
@@ -160,7 +174,7 @@ func _measure() -> void:
 		)
 	)
 	status.custom_minimum_size.y = minimum_height
-	custom_minimum_size.x = maxf(48.0, content_minimum.x + panel_padding.x)
+	custom_minimum_size.x = maxf(maxf(48.0, preferred_width), content_minimum.x + panel_padding.x)
 
 
 func _queue_status() -> void:
@@ -193,6 +207,8 @@ func get_field(role: StringName) -> Control:
 		&"badge_row_2": "BB",
 		&"winner": "Winner"
 	}
+	if role == &"avatar":
+		return get_node_or_null("%Avatar") as Control
 	if role == &"cards":
 		return get_node("%PairCards") as Control
 	return get_node("%" + names[role]) as Control if names.has(role) else null
@@ -219,7 +235,7 @@ func get_seat_snapshot(root: Control) -> GuiSeatSnapshot:
 	)
 	result.footprint = GuiSnapshotMeasurement.rect(self, root)
 	for role: StringName in [
-		&"name", &"stack", &"action", &"marker", &"badge", &"badge_row_2", &"cards"
+		&"name", &"stack", &"action", &"marker", &"badge", &"badge_row_2", &"cards", &"avatar"
 	]:
 		result.fields[role] = GuiSnapshotMeasurement.element(
 			get_field(role), root, StringName("seat/%d/%s" % [_seat, role])

@@ -22,6 +22,11 @@ var _table: GuiReplacementTableController
 var _table_fixture: bool = false
 var _showdown_fixture: bool = false
 var _showdown_advance_pending: bool = false
+var _fullscreen_fixture: bool = false
+var _preset_fixture: bool = false
+var _live_fixture: bool = false
+var _warning_frames: int = 0
+var _bot_frames: int = 0
 var _frame: int = 0
 var _match: TournamentMatch
 
@@ -31,6 +36,9 @@ func _ready() -> void:
 	if not OS.has_feature("web"):
 		set_process(false)
 		return
+	_fullscreen_fixture = bool(JavaScriptBridge.eval("location.search.includes('fullscreen')"))
+	_preset_fixture = bool(JavaScriptBridge.eval("location.search.includes('presets')"))
+	_live_fixture = bool(JavaScriptBridge.eval("location.search.includes('phone-live')"))
 	_table_fixture = bool(JavaScriptBridge.eval("location.search.includes('table')"))
 	_showdown_fixture = bool(JavaScriptBridge.eval("location.search.includes('showdown')"))
 	print("Web input fixture instantiating production main")
@@ -41,28 +49,50 @@ func _ready() -> void:
 		(_main.get_node("Center") as Control).hide()
 		_table.show()
 	if _table_fixture:
-		var count: int = 2
+		var count: int = 6 if _preset_fixture or _live_fixture else 2
 		var roles: Dictionary[int, StringName] = {0: &"human"}
 		var agents: Dictionary[int, Agent] = {0: HumanAgent.new()}
 		var names: Dictionary[int, String] = {0: "Human"}
 		for seat: int in range(1, count):
 			roles[seat] = &"scripted"
 			agents[seat] = CallingAgent.new()
-			names[seat] = "Alex%d" % seat
+			names[seat] = "Emiliano" if _live_fixture else "Alex%d" % seat
 		_match = TournamentMatch.new(
 			ResolvedTournamentConfig.new(
 				count, 1000, 5, 10, 2 if _showdown_fixture else 9123, &"single_table", roles
 			),
 			agents
 		)
-		_match.start()
+		_match.start(1 if _live_fixture else 32)
+		if _preset_fixture:
+			for step: int in count:
+				if _match.get_view_for(0).acting_seat == 0:
+					break
+				_match.advance_one_action()
 		if _showdown_fixture:
 			_prepare_showdown()
 		var timing := GuiActionTimingConfig.new()
-		timing.default_pause_seconds = 60.0
-		timing.showdown_pause_seconds = 60.0
+		timing.default_pause_seconds = 0.25 if _live_fixture else 60.0
+		timing.showdown_pause_seconds = 0.25 if _live_fixture else 60.0
 		_table.set_action_timing_config(timing)
-		_table.bind_match(_match, 0, {}, names)
+		var avatars: Dictionary[int, String] = {}
+		if _preset_fixture:
+			var paths: PackedStringArray = GuiAvatarCatalog.default_avatar_paths()
+			for seat: int in count:
+				avatars[seat] = paths[seat]
+		if _live_fixture:
+			for frame: int in 120:
+				await get_tree().process_frame
+				var geometry: GuiViewportGeometry = _main.get_viewport_adapter().get_geometry()
+				if geometry.valid:
+					_main.get_viewport_adapter().inject_geometry(
+						GuiViewportGeometry.injected(
+							geometry.full_rect.size,
+							Rect2(0, 36, geometry.logical_size.x, geometry.logical_size.y - 36)
+						)
+					)
+					break
+		_table.bind_match(_match, 0, avatars, names)
 		_table.set_wager_draft("75")
 		if _showdown_fixture:
 			_showdown_advance_pending = true
@@ -89,6 +119,12 @@ func _prepare_showdown() -> void:
 func _process(_delta: float) -> void:
 	_frame += 1
 	var layout: GuiLayoutSnapshot = _main.get_layout_snapshot()
+	if _live_fixture:
+		_publish_live_phone(layout)
+		return
+	if _fullscreen_fixture:
+		_publish_fullscreen(layout)
+		return
 	var input_role: StringName = &"action/total" if _table_fixture else &"startup/starting_stack"
 	if _table_fixture and (not layout.ready or layout.pending):
 		return
@@ -105,6 +141,8 @@ func _process(_delta: float) -> void:
 	if _table_fixture:
 		controls["PhoneMoreButton"] = Json.element(layout.elements[&"action/more"])
 		controls["FoldButton"] = Json.element(layout.elements[&"action/fold"])
+		controls["MinimumButton"] = Json.element(layout.elements[&"action/minimum"])
+		controls["PotButton"] = Json.element(layout.elements[&"action/pot"])
 		controls["PhoneMenuCloseButton"] = _overlay_host_control(&"menu_close")
 		controls["PhoneMenuQuitButton"] = _overlay_host_control(&"menu_quit")
 		controls["PhoneQuitContinueButton"] = _overlay_host_control(&"quit_keep")
@@ -143,6 +181,16 @@ func _process(_delta: float) -> void:
 	if _match != null:
 		var view: GameView = _match.get_view_for(0)
 		snapshot["hero_wager"] = view.seats[0].bet_this_round
+		var model: TableViewModel = _table.get_table_view_model()
+		snapshot["minimum_total"] = model.actions.minimum_total
+		snapshot["pot_total"] = model.actions.pot_total
+		snapshot["raw_draft"] = _table.get_wager_draft()
+		snapshot["layout_mode"] = layout.layout_mode
+		snapshot["avatar_count"] = 0
+		for seat: GuiSeatSnapshot in layout.seats.values():
+			var avatar: GuiLayoutElement = seat.fields.get(&"avatar")
+			if avatar != null and avatar.visible and avatar.texture_present:
+				snapshot["avatar_count"] += 1
 		snapshot["history_count"] = view.action_history.size()
 		snapshot["hand_complete"] = view.hand_complete
 		snapshot["hand_number"] = view.hand_number
@@ -196,3 +244,55 @@ func _has_focus(overlay: GuiOverlaySnapshot) -> bool:
 		if element.focused:
 			return true
 	return false
+
+
+func _publish_live_phone(layout: GuiLayoutSnapshot) -> void:
+	var warning := _table.get_node("CompositionHost/LayoutSlot/SpaceGuidance") as Control
+	if warning.is_visible_in_tree() or layout.fit_guidance.begins_with("More space"):
+		_warning_frames += 1
+	var view: GameView = _match.get_view_for(0)
+	if layout.ready and view.acting_seat != 0 and not view.hand_complete:
+		_bot_frames += 1
+	var controls: Dictionary = {}
+	if layout.elements.has(&"action/check_call"):
+		controls["check_call"] = Json.element(layout.elements[&"action/check_call"])
+	var state: Dictionary = {
+		"frame": _frame,
+		"ready": layout.ready,
+		"pending": layout.pending,
+		"viewport": [layout.viewport_rect.size.x, layout.viewport_rect.size.y],
+		"controls": controls,
+		"human_turn": view.acting_seat == 0,
+		"hand": view.hand_number,
+		"history": view.action_history.size(),
+		"warning_frames": _warning_frames,
+		"bot_frames": _bot_frames,
+	}
+	JavaScriptBridge.eval("window.pokahdotLive = " + JSON.stringify(state) + "; void 0")
+
+
+func _publish_fullscreen(layout: GuiLayoutSnapshot) -> void:
+	var playing: bool = _table.is_visible_in_tree()
+	var controls: Dictionary = {}
+	if playing:
+		if layout.elements.has(&"action/more"):
+			controls["more"] = Json.element(layout.elements[&"action/more"])
+		for role: StringName in [&"menu_fullscreen", &"menu_close"]:
+			controls[role] = _overlay_host_control(role)
+	else:
+		controls["start"] = Json.element(layout.elements[&"startup/start"])
+	var state: Dictionary = {
+		"frame": _frame,
+		"playing": playing,
+		"ready": layout.ready,
+		"pending": layout.pending,
+		"viewport": [layout.viewport_rect.size.x, layout.viewport_rect.size.y],
+		"controls": controls,
+		"draft": _table.get_wager_draft(),
+	}
+	if playing:
+		var view: GameView = _main.startup_adapter.match_instance.get_view_for(0)
+		state["hand"] = view.hand_number
+		state["human_turn"] = view.acting_seat == 0
+		state["history"] = view.action_history.size()
+	JavaScriptBridge.eval("window.pokahdotFullscreen = " + JSON.stringify(state) + "; void 0")

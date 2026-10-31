@@ -15,7 +15,7 @@ import threading
 from playwright.sync_api import sync_playwright
 
 from run_web_input_tests import ROOT, QuietHandler, export_fixture
-from run_web_layout_tests import SUPPORT
+from run_web_layout_tests import MODES, SUPPORT
 from web_geometry_assertions import check_geometry
 
 
@@ -50,6 +50,44 @@ def settle(page) -> tuple[dict, dict]:
                 return snapshot, observed["environment"]
         page.wait_for_timeout(100)
     raise AssertionError("Exported geometry did not settle within 30 seconds")
+
+
+def delayed_tablet_rotation(browser, base_url: str, work: Path) -> dict:
+    """A visual viewport can settle after its resize notification has fired."""
+    context = browser.new_context(viewport={"width": 1194, "height": 676},
+                                  device_scale_factor=2, has_touch=True)
+    context.add_init_script("""(() => {
+        const visual = window.visualViewport;
+        const height = Object.getOwnPropertyDescriptor(VisualViewport.prototype, 'height').get;
+        window.testVisualHeight = 676;
+        Object.defineProperty(visual, 'height', {get() {
+            return window.testVisualHeight ?? height.call(visual);
+        }});
+    })();""")
+    page = context.new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    try:
+        page.goto(base_url + "/index.html?players=6")
+        settle(page)
+        page.set_viewport_size({"width": 834, "height": 1030})
+        settle(page)
+        # Change the reported metric after all resize notifications have settled.
+        page.evaluate("window.testVisualHeight = 1030")
+        page.wait_for_function("window.pokahdotLayout?.usable_rect?.[3] > 1000")
+        snapshot, environment = settle(page)
+        failures = check_geometry(snapshot, environment, "ordinary")
+        if snapshot["layout_mode"] != MODES["wide_compact"]:
+            failures.append("rotation: portrait tablet lost its tablet composition")
+        if not all(seat["avatar"]["visible"] for seat in snapshot["seats"]):
+            failures.append("rotation: tablet avatars missing")
+        failures.extend(errors)
+        page.screenshot(path=str(work / "delayed-tablet-rotation.png"))
+        return {"id": "delayed-tablet-rotation", "preset": "ordinary",
+                "requested_css_size": [834, 1030], "requested_dpr": 2,
+                "environment": environment, "snapshot": snapshot, "failures": failures}
+    finally:
+        context.close()
 
 
 def main() -> None:
@@ -97,6 +135,8 @@ def main() -> None:
                             "environment": environment, "snapshot": snapshot, "failures": failures})
                         print(f"{identity}: {len(failures)} failures", flush=True)
                 context.close()
+            measurements.append(delayed_tablet_rotation(
+                browser, f"http://127.0.0.1:{server.server_port}", work))
             browser.close()
         report = {"schema_version": 1, "suite": "exported_viewport_geometry_v1",
             "captured_utc": datetime.now(timezone.utc).isoformat(), "browser": browser_version,

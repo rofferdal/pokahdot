@@ -211,7 +211,9 @@ fixtures. The replacement wide and phone compositions are now the default.
 Earlier RG-51–53 and review2 PNGs under `localtmp/gui-elements/` remain
 historical session evidence; the six-player fitted portrait example uses a
 480×1040 synthetic canvas rather than a claimed device size. Use the fresh
-destination capture commands below for new review evidence. Unsupported sizes
+destination capture commands below for new review evidence. RG-63–RG-66 add
+phone browser-height fixtures, flexible tablet seats with avatars and inline
+wager shortcuts. Their physical-device review remains separate. Unsupported sizes
 present guidance without changing the match or player count.
 
 Run all replacement regression matrices without producing screenshots:
@@ -267,6 +269,11 @@ viewport gate with a fresh output directory:
 make GODOT=/Applications/Godot.app/Contents/MacOS/Godot web-geometry-test \
   WEB_GEOMETRY_OUTPUT=localtmp/geometry-review-01
 ```
+
+The exported layout gate also retains one table through phone browser-height
+changes and iPad rotation. For a focused rerun, use
+`tools/run_web_layout_tests.py --transitions-only --strict` with the same
+`--godot` and a fresh `--output` directory.
 
 It uses the same pinned Playwright setup as the input gate. If browsers were
 installed under `localtmp/playwright-browsers`, set
@@ -539,3 +546,9 @@ as a replacement for retained screenshots. The same check runs with `make check`
 Development pins: Godot and Web templates 4.7.2; CI Python 3.12; GUT 9.7.1;
 `requirements-dev.txt` pins gdtoolkit 4.5.0 and `requirements-web-test.txt` pins
 Playwright 1.55.0. Keep engine/templates aligned for reproducible exports.
+
+For RG-63–RG-66 phone browser review, test Start requesting fullscreen, browser
+exit, and **More / Pots → Fullscreen** retry. Also test without the Fullscreen
+API: normal browser play must remain available. Capture actual usable CSS
+dimensions and browser version on the Galaxy S25; representative emulation
+at 360×720/780 and 780×360 does not establish physical-device acceptance.

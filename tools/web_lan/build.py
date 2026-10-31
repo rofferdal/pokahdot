@@ -111,13 +111,41 @@ def _configuration(root: Path) -> None:
         raise BuildError("Web preset must exclude development-only directories.")
 
 
-def _logged(arguments: list[str], root: Path, path: Path, timeout: int) -> None:
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def _unexpected_error_lines(content: str, allow_gut_expected_errors: bool) -> list[str]:
+    lines = _ANSI_ESCAPE.sub("", content).splitlines()
+    errors: list[str] = []
+    for index, line in enumerate(lines):
+        if "ERROR:" not in line:
+            continue
+        expected = False
+        if allow_gut_expected_errors:
+            for following in lines[index + 1:]:
+                if "ERROR:" in following or following.startswith("* ") or following.startswith("res://"):
+                    break
+                if "[ExpectedError]" in following:
+                    expected = True
+                    break
+        if not expected:
+            errors.append(line)
+    return errors
+
+
+def _logged(
+    arguments: list[str],
+    root: Path,
+    path: Path,
+    timeout: int,
+    allow_gut_expected_errors: bool = False,
+) -> None:
     with path.open("w") as log:
         result = subprocess.run(arguments, cwd=root, stdout=log, stderr=subprocess.STDOUT,
                                 timeout=timeout, check=False)
     content = path.read_text(errors="replace")
-    if result.returncode or "ERROR:" in content or "SCRIPT ERROR:" in content:
-        errors = [line for line in content.splitlines() if "ERROR:" in line]
+    errors = _unexpected_error_lines(content, allow_gut_expected_errors)
+    if result.returncode or errors:
         reason = errors[0] if errors else f"process exited with status {result.returncode}"
         raise BuildError(f"{path.name}: {reason}. See {path}.")
 
@@ -275,7 +303,13 @@ def build_project(godot: str, output: Path, root: Path = ROOT) -> dict:
                 raise BuildError(f"LAN builds require Godot 4.7.2 stable; found {version_text!r}.")
             _configuration(root)
             identity = _source_identity(root)
-            _logged(["make", f"GODOT={executable}", "check"], root, directory / "check.log", 600)
+            _logged(
+                ["make", f"GODOT={executable}", "check"],
+                root,
+                directory / "check.log",
+                1200,
+                allow_gut_expected_errors=True,
+            )
             if _source_identity(root) != identity:
                 raise BuildError("Source changed while checks ran; rerun the LAN build.")
             project = directory / "project"

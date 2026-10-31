@@ -34,7 +34,7 @@ func _slot_schema_error(hero_slot: int, bottom: int) -> String:
 			return "template-slot"
 		seen[slot] = true
 		populations[slot.y] = populations.get(slot.y, 0) + 1
-		if populations[slot.y] > 3:
+		if populations[slot.y] > 2 or (slot.y == bottom and index != hero_slot):
 			return "template-row-cap"
 		var reflected: Vector2i = slots[posmod(2 * hero_slot - index, seat_count)]
 		if reflected != Vector2i(2 - slot.x, slot.y):

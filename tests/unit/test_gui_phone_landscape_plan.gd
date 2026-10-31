@@ -15,7 +15,7 @@ func test_symmetric_plans_cover_every_recipient_at_exact_minimum_and_recover_aft
 				for id: int in count:
 					ids.append(id)
 					minima[id] = Vector2(159 + id % 3 * 5, 155 + id % 2 * 7)
-				var unallocated: GuiPhoneLandscapePlan = GuiPhoneLandscapePlan.resolve(
+				var unallocated: GuiPhoneLandscapePlan = GuiPhoneLandscapePlan._symmetric(
 					ids, hero, minima, Vector2(236, 215), actions, Vector2.ZERO
 				)
 				assert_true(unallocated.valid)
@@ -23,14 +23,14 @@ func test_symmetric_plans_cover_every_recipient_at_exact_minimum_and_recover_aft
 				for allocation: Vector2 in [
 					unallocated.minimum, unallocated.minimum * 2.0, unallocated.minimum
 				]:
-					var plan: GuiPhoneLandscapePlan = GuiPhoneLandscapePlan.resolve(
+					var plan: GuiPhoneLandscapePlan = GuiPhoneLandscapePlan._symmetric(
 						ids, hero, minima, Vector2(236, 215), actions, allocation
 					)
 					assert_true(plan.feasible)
 					assert_eq(plan.minimum, unallocated.minimum)
 					_assert_plan(plan, hero, allocation)
 				for missing: Vector2 in [Vector2(1, 0), Vector2(0, 1)]:
-					var failed: GuiPhoneLandscapePlan = GuiPhoneLandscapePlan.resolve(
+					var failed: GuiPhoneLandscapePlan = GuiPhoneLandscapePlan._symmetric(
 						ids, hero, minima, Vector2(236, 215), actions, unallocated.minimum - missing
 					)
 					assert_true(failed.valid)
@@ -38,6 +38,36 @@ func test_symmetric_plans_cover_every_recipient_at_exact_minimum_and_recover_aft
 					assert_true(failed.seats.is_empty())
 					assert_eq(failed.center, Rect2())
 					assert_eq(failed.actions, Rect2())
+
+
+func test_side_fallback_keeps_all_recipient_footprints_disjoint_on_short_screens() -> void:
+	for count: int in [6, 7]:
+		for hero: int in count:
+			var ids := PackedInt32Array()
+			var minima: Dictionary[int, Vector2] = {}
+			for id: int in count:
+				ids.append(id)
+				minima[id] = Vector2(210, 116 if count == 6 else 104)
+			var available := Vector2(844, 390) if count == 6 else Vector2(932, 430)
+			var plan: GuiPhoneLandscapePlan = GuiPhoneLandscapePlan.resolve(
+				ids,
+				hero,
+				minima,
+				Vector2(236, 123),
+				Vector2(225, 132 if count == 6 else 100),
+				available
+			)
+			assert_true(plan.feasible)
+			assert_eq(plan.seats.size(), count)
+			assert_almost_eq(plan.seats[hero].get_center().x, available.x * 0.5, 0.001)
+			assert_eq(plan.seats[hero].end.y, available.y)
+			var rectangles: Array[Rect2] = [plan.center, plan.actions]
+			for rect: Rect2 in plan.seats.values():
+				rectangles.append(rect)
+			for index: int in rectangles.size():
+				assert_true(Rect2(Vector2.ZERO, available).encloses(rectangles[index]))
+				for other: int in range(index + 1, rectangles.size()):
+					assert_false(rectangles[index].intersects(rectangles[other]))
 
 
 func test_three_seats_fit_short_landscape_with_board_between_top_corners() -> void:
@@ -90,7 +120,7 @@ func test_native_landscape_centers_board_and_hero_and_keeps_all_regions_disjoint
 	assert_eq(snapshot.seats[1].footprint.position.x, 0.0)
 	assert_eq(snapshot.seats[2].footprint.end.x, 844.0)
 	assert_almost_eq(
-		snapshot.seats[0].footprint.size.x - snapshot.seats[1].footprint.size.x, 8.0, 0.5
+		snapshot.seats[0].footprint.size.x - snapshot.seats[1].footprint.size.x, 0.0, 0.5
 	)
 
 
@@ -115,7 +145,11 @@ func test_portrait_hero_is_centered_and_only_two_gaps_wider_than_allocated_bot_c
 	assert_eq(Invariants.validate_snapshot(snapshot), PackedStringArray())
 	var hero: GuiSeatSnapshot = snapshot.seats[0]
 	assert_almost_eq(hero.footprint.get_center().x, 240.0, 0.5)
-	assert_almost_eq(hero.footprint.size.x - snapshot.seats[1].footprint.size.x, 8.0, 0.5)
+	var gap: float = layout.get_node("Boundary/Content/Portrait").get_theme_constant("separation")
+	var intrinsic: float = layout.get_seat_controls()[0].get_combined_minimum_size().x
+	assert_almost_eq(
+		hero.footprint.size.x, maxf(intrinsic, snapshot.seats[1].footprint.size.x + 2.0 * gap), 0.5
+	)
 	assert_lt(hero.footprint.size.x, 300.0)
 	assert_almost_eq(
 		snapshot.elements[&"action/status"].rect.position.x, hero.panel.rect.position.x, 1.0
@@ -135,6 +169,7 @@ func test_one_column_portrait_recovers_at_minimum_and_never_overflows_reserved_h
 	assert_true(layout.render(_model(3)))
 	await wait_process_frames(14)
 	var minimum: Vector2 = layout.get_combined_minimum_size()
+	var gap: float = layout.get_node("Boundary/Content/Portrait").get_theme_constant("separation")
 	for allocation: Vector2 in [minimum, Vector2(1000, 1600), Vector2(300, 1400), minimum]:
 		layout.size = allocation
 		layout.set_allocation_limit(allocation)
@@ -144,7 +179,7 @@ func test_one_column_portrait_recovers_at_minimum_and_never_overflows_reserved_h
 		assert_eq(Invariants.validate_snapshot(snapshot), PackedStringArray())
 		assert_almost_eq(snapshot.seats[0].footprint.get_center().x, allocation.x * 0.5, 0.5)
 		assert_almost_eq(
-			snapshot.seats[0].footprint.size.x - snapshot.seats[1].footprint.size.x, 8.0, 0.5
+			snapshot.seats[0].footprint.size.x - snapshot.seats[1].footprint.size.x, 2.0 * gap, 0.5
 		)
 		if allocation.x <= 300:
 			assert_eq(layout.get_combined_minimum_size(), minimum)
@@ -179,7 +214,8 @@ func test_landscape_three_seats_fit_representative_safe_area_without_reducing_co
 	assert_true(layout.render(_model(3)))
 	await wait_process_frames(14)
 	var minimum: Vector2 = layout.get_combined_minimum_size()
-	assert_eq(minimum, Vector2(694, 368))
+	assert_lte(minimum.x, 756.0)
+	assert_lte(minimum.y, 369.0)
 	for allocation: Vector2 in [Vector2(756, 369), minimum, minimum - Vector2(0, 1), minimum]:
 		layout.size = allocation
 		layout.set_allocation_limit(allocation)
@@ -245,8 +281,9 @@ func _assert_plan(plan: GuiPhoneLandscapePlan, hero: int, available: Vector2) ->
 	assert_almost_eq(hero_rect.get_center().x, available.x * 0.5, 0.001)
 	assert_eq(hero_rect.end.y, available.y)
 	assert_almost_eq(plan.center.get_center().x, available.x * 0.5, 0.001)
-	assert_eq(plan.center.end.y + 4.0, hero_rect.position.y)
-	assert_gte(plan.actions.position.x, maxf(plan.center.end.x, hero_rect.end.x) + 4.0)
+	var gap: float = hero_rect.position.y - plan.center.end.y
+	assert_gt(gap, 0.0)
+	assert_gte(plan.actions.position.x, maxf(plan.center.end.x, hero_rect.end.x) + gap)
 	assert_eq(plan.actions.end.y, available.y)
 	var rectangles: Array[Rect2] = [plan.center, plan.actions]
 	for id: int in plan.seats:

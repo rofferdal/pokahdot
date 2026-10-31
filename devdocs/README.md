@@ -55,9 +55,14 @@ Practical step-by-step instructions to get everyday development tasks done.
 - **[Replacing In-Game Bot Profiles](how-to/replacing-in-game-bot-profiles.md)**: The exact workflow and checklist for candidate confirmation, consolidated human promotion review, profile publishing, and updating `PlayableBotRoster`.
 
 ### 3. Reference (Information-Oriented)
-Instructive, authoritative descriptions of the system machinery, architecture, and APIs.
+Descriptions of system machinery, architecture, and APIs. The
+[product specification](../docs/ProjectDescription.md) owns requirements and
+[ARCHITECTURE.md](../docs/ARCHITECTURE.md) owns implementation decisions.
 - **[Architecture Reference](reference/architecture.md)**: An instructive guide to Pokahdot's layered architecture, module boundaries, composition roots, and the external profile-evolution subsystem.
 - **[Core Domain Reference](reference/core-domain.md)**: Reference guide to key domain classes (`TournamentMatch`, `HandController`, `BettingRound`, `PotManager`, `GameView`, `PlayerAction`, `PlayableBotRoster`).
+- **[GUI Composition](reference/gui-composition.md)**: Scene ownership, reusable
+  controls, detached presentation models, measured responsive layouts, input
+  and overlay lifetimes, and extension/testing guidance.
 
 ### 4. Explanation (Understanding-Oriented)
 Background context, architectural motivations, and design rationales.

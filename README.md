@@ -21,7 +21,9 @@ The project is under development. Active work is indexed in
    1000 chips, and 5/10 blinds. Select **Start tournament** without editing to
    use those defaults, or change any value before starting.
 3. The form validates whole-number input and the tournament constraints inline.
-   A match is created only after all values are valid.
+   A match is created only after all values are valid. On phones in supported
+   browsers, Start also requests fullscreen. Use **More / Pots → Fullscreen**
+   to re-enter after exiting; ordinary browser play remains available.
    Small-phone layouts support 2–7 players; tablet, small-desktop, desktop,
    CLI, and core configuration retain 2–9 support. Touch presses open the
    in-canvas number pad, while pointer focus leaves ordinary physical-keyboard
@@ -67,10 +69,30 @@ composition is verified, including adaptive history docking and the embossed
 logo. RG-52 phone composition and RG-53 session/controller are implemented,
 with revised Phase 5 designs user-accepted. RG-60–62 replacement coverage,
 exported layout and font-parity checks are complete. The replacement is the
-default; RG-54 retirement and verification are in progress. At 390×844 the
-current ordinary phone fixtures fit two
-through five players; six/seven need more height. Guidance preserves the match
-and retains menu/Quit access.
+default; RG-54 retirement and verification are complete. RG-63–RG-66 add
+content-driven phone fit, wider tablet seats with avatars, and inline Min/Pot
+shortcuts when the measured action area has room. Seats and community cards
+adapt to usable space while preserving text and touch-target floors. Visible
+avatars anchor at the upper left and scale toward half the visual seat panel's
+height, preserving aspect and space for text/cards. Compact
+tablet community cards match the human panel width and center on both axes
+where space permits, with pot/blind information directly below and side actions
+raised toward the human frame's bottom. Phone
+checks cover six/seven players at 390×744 and 390×844, six at 844×390, and seven
+at 932×430 with touch entry, plus representative six-player 360×720/780 and
+780×360 browser sizes. Bots use mirrored pairs with a single centered top seat
+for odd counts. A live exported phone regression also checks startup, bot
+pacing, human actions, settlement and the next hand with a top inset, counting
+transient space warnings on every frame. Only short phone landscape may use a
+top triple. The human
+occupies a separate centered row with proportions comparable to bots. Compact
+D/SB/BB sit above cards at the upper right; hole cards anchor at the lower right
+and scale toward two-thirds of the visual seat box height. The revised
+six-player iPad layout and card placement are visually accepted. Larger amounts or genuinely
+insufficient usable space can still require guidance; match state and menu/Quit
+remain available.
+The latest desktop, phone and iPad review found no remaining errors. The
+proportional avatar update is verified and RG-63–RG-66 are complete.
 
 ## Start headless (terminal)
 
@@ -433,17 +455,21 @@ header content without scrolling or shrinking essential controls. The active
 [GUI replacement backlog](docs/RestructureGuiTasks.md) records current visual
 reviews, including the accepted phone-portrait redesign: two opponent seats per
 row, a centered top seat for odd opponent counts, and the community group above
-the human controls. These reviewed increments precede the remaining component
-and layout replacement work.
+the human controls. The replacement implementation is complete; the latest
+symmetric tablet/phone refinements still await visual and physical-device
+acceptance. The [product specification](docs/ProjectDescription.md#71-gui) owns
+current layout principles, including the short-landscape-only top-triple exception.
+The [GUI composition reference](devdocs/reference/gui-composition.md) explains
+reusable components, scene/layout ownership and state/input flow with diagrams.
 
 The GUI waits two seconds after rendering each player action and each flop,
 turn, or river reveal, then five seconds after a completed hand. Opening a
 table overlay holds advancement until it closes, so hand summaries remain
-readable. Non-phone seat-status bands show showdown hands or `Winner` for fold
-wins. On phones, completed-hand feedback names the winners while keeping cards
-visible; **Pots** opens exact main/split/side-pot awards directly. During play,
-the same button remains **More**. Overlays block underlying actions, contain keyboard
-focus, and offer Close/Cancel. Tournament Quit stays outside numeric entry;
+readable. Seat-status bands show recipient-safe showdown hands or `Winner`
+for fold wins while revealed cards remain visible. **More / Pots** (drawn as
+**…** on compact phones) opens the menu; **Pots / Summary** opens exact
+main/split/side-pot awards when available. Overlays block underlying actions,
+contain keyboard focus, and offer Close/Cancel. Tournament Quit stays outside numeric entry;
 cancel/close the keypad before using table/menu Quit. Keypad Cancel preserves the original
 text exactly; only Done commits.
 
