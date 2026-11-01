@@ -23,6 +23,8 @@ Before adopting any persona, ensure all code and architectural decisions comply 
 *   **Temporary files that should not persist to remote git** Files generated or captured during the agent processes, including screenshots, that is only 
 relevant for the current session, should be placed in the localtmp folder, since this is defined in .gitignore
 
+*   Tests and CI checks must work from a fresh checkout with no `localtmp/` directory. Create required directories and generate temporary inputs during the current run; keep reusable fixtures in tracked `tests/fixtures/`. Never depend on previous local runs, ignored captures, or cached reports. Report consumers must run only after their producer succeeds, and missing output after a successful producer must fail validation.
+
 ---
 
 ## 🎯 Agent Personas & Modes

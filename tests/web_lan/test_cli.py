@@ -15,6 +15,9 @@ from tools.web_lan.cli import main
 
 
 class CliTests(unittest.TestCase):
+    def setUp(self):
+        (ROOT / "localtmp").mkdir(parents=True, exist_ok=True)
+
     def test_failed_build_exits_nonzero_and_invalidates_latest_status(self) -> None:
         with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as name:
             output = Path(name)

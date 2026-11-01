@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("ci_gut", ROOT / "tools/run_ci_gut.py")
@@ -71,3 +72,40 @@ class CiSuitePartitionTests(unittest.TestCase):
             CI_GUT.quality_config(ROOT, {"dirs": [], "tests": ["res://other.gd"]}, run_gui_tests=True)
         with self.assertRaisesRegex(ValueError, "must not be empty"):
             CI_GUT.quality_config(ROOT, {"dirs": [], "tests": [CI_GUT.PHONE_SUITE]})
+
+    def test_runner_creates_config_before_launch_in_a_fresh_project(self):
+        output = ROOT / "localtmp"
+        output.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=output) as directory:
+            root = Path(directory)
+            (root / ".gutconfig.json").write_text(json.dumps({
+                "dirs": [], "tests": ["res://tests/unit/test_example.gd"],
+                "should_exit": True,
+            }))
+            config_path = root / "localtmp/ci-layout/quality.gutconfig.json"
+            self.assertFalse((root / "localtmp").exists())
+
+            def launch(command, **kwargs):
+                config = json.loads(config_path.read_text())
+                self.assertEqual(config["tests"], ["res://tests/unit/test_example.gd"])
+                self.assertEqual(config["junit_xml_file"], "res://localtmp/ci-layout/quality.xml")
+                self.assertIn("-gconfig=res://localtmp/ci-layout/quality.gutconfig.json", command)
+                self.assertEqual(kwargs["cwd"], root)
+                return Mock(returncode=0)
+
+            with patch.object(CI_GUT, "ROOT", root), \
+                    patch("sys.argv", ["run_ci_gut.py", "--godot", "fixture-godot"]), \
+                    patch.object(CI_GUT.subprocess, "run", side_effect=launch) as run:
+                self.assertEqual(CI_GUT.main(), 0)
+                run.assert_called_once()
+
+    def test_report_validation_requires_successful_producer_but_upload_is_unconditional(self):
+        for name in ("check-quality.yml", "check-native-layouts.yml"):
+            with self.subTest(workflow=name):
+                workflow = (ROOT / ".github/workflows" / name).read_text()
+                summary = workflow.split("- name: Validate coverage and summarize slow tests", 1)[1]
+                summary, upload = summary.split("- name: Retain test timing report", 1)
+                self.assertIn("if: success()", summary)
+                self.assertNotIn("if: always()", summary)
+                self.assertIn("tools/summarize_gut_report.py", summary)
+                self.assertIn("if: always()", upload)

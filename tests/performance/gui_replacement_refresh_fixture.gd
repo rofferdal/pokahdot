@@ -526,6 +526,13 @@ func _publish(result: Dictionary) -> void:
 		JavaScriptBridge.eval("window.pokahdotProfileResult = %s; void 0" % JSON.stringify(result))
 	else:
 		var output: String = _options.get("output", "res://localtmp/gui-profile.json")
+		var directory: String = output.get_base_dir()
+		var directory_error := DirAccess.make_dir_recursive_absolute(
+			directory if not directory.is_empty() else "."
+		)
+		if directory_error != OK:
+			_fail("Cannot create profiling output directory: %s" % directory)
+			return
 		var file: FileAccess = FileAccess.open(output, FileAccess.WRITE)
 		if file == null:
 			_fail("Cannot write profiling result: %s" % output)

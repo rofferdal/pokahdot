@@ -73,6 +73,7 @@ options. Copy those options to repeat the game using the same source/roster
 and command sequence. A saved stdin transcript includes the initial Enter:
 
 ```bash
+mkdir -p localtmp
 printf '\nstate\nhistory\nraise 20\nquit\n' > localtmp/cli-transcript.txt
 godot --headless --no-header --path . --script res://scripts/cli/cli_app.gd -- \
   --players 3 --stack 100 --seed 4242 < localtmp/cli-transcript.txt \
@@ -586,6 +587,13 @@ tools/profile-evolution inspect-lineage --registry artifacts/lineage.json --cand
 ---
 
 ## 5. Code Quality & Pre-Commit Verification
+
+Tests and CI checks must work from a fresh checkout with no `localtmp/` directory. Create required directories and generate temporary inputs during the current run; keep reusable fixtures in tracked `tests/fixtures/`. Never depend on previous local runs, ignored captures, or cached reports. Report consumers must run only after their producer succeeds, and missing output after a successful producer must fail validation.
+
+The CI quality runner generates `localtmp/ci-layout/quality.gutconfig.json`
+before launching GUT. Coverage summaries run after successful checks; artifact
+uploads still run after failures to retain any available diagnostics. If an
+earlier check fails, fix that first instead of supplying a saved config.
 
 Before submitting pull requests, ensure all tests and linters pass.
 

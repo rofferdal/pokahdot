@@ -60,7 +60,8 @@ jobs:
           make require-clean-worktree
 
       - name: Validate coverage and summarize slow tests
-        if: always()
+        # Required after successful checks; earlier failures may leave no report.
+        if: success()
         run: python3 tools/summarize_gut_report.py localtmp/ci-layout/quality.xml --config localtmp/ci-layout/quality.gutconfig.json
 
       - name: Retain test timing report

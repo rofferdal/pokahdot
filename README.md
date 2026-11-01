@@ -9,6 +9,9 @@ through either the graphical interface or the terminal.
 The project is under development. Active work is indexed in
 [docs/README.md](docs/README.md).
 
+Tests create their own temporary inputs and outputs; no pre-existing `localtmp/`
+directory or files are required. See the [testing guide](devdocs/how-to/running-and-testing.md).
+
 ## Requirements
 
 - Godot **4.7.2** (GDScript, Compatibility renderer)
@@ -46,7 +49,7 @@ have no profile popup; touch and keyboard seat-detail activation retain their
 existing behavior. Player details now show `Profile: <profile name>` (or
 `Profile: Human`) between the name and chips. The details box expands to show
 all information without scrolling when space allows. The native desktop and compact previews were accepted on
-2026-11-01; [verification evidence](docs/GuiProfileHoverTasks.md) records the
+2026-11-01; [verification evidence](docs/arkiv/GuiProfileHoverTasks.md) records the
 scope and browser/device limits.
 
 The game defaults to uninterrupted best-effort layouts instead of the

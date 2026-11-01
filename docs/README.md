@@ -13,13 +13,20 @@
   where superseded by RG-63–RG-66. Final preview/device acceptance and cleanup
   evidence are preserved in the archived GUI record below.
 
+Tests must generate any `localtmp/` inputs during the current run; ignored
+session evidence is never a test prerequisite. See the [testing rules](../devdocs/how-to/running-and-testing.md#5-code-quality--pre-commit-verification).
+
 ## Current task index
 
 This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
-- [`GuiProfileHoverTasks.md`](GuiProfileHoverTasks.md) — complete, independent
+No active backlog is currently listed.
+
+## Archived task records
+
+- [`arkiv/GuiProfileHoverTasks.md`](arkiv/GuiProfileHoverTasks.md) — complete, independent
   workstream: hovering a bot seat's display name reveals its public bot profile
   name. The user accepted desktop and compact long-name previews on 2026-11-01.
   Full checks pass with 914 Godot tests, 237 Python tests and all four GUI
@@ -28,9 +35,6 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   profile line and fits complete text without scrolling when space permits;
   follow-up regression passes 916 Godot tests. This preserves the accepted GUI
   replacement baseline.
-
-
-## Archived task records
 
 - [`arkiv/GuiSpaceWarningTasks.md`](arkiv/GuiSpaceWarningTasks.md) — complete: configure
   the space warning, defaulting to best-effort play with edge overflow.

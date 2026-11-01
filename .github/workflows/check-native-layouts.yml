@@ -79,7 +79,8 @@ jobs:
           make "$LAYOUT_TARGET" GUT_REPORT=res://localtmp/ci-layout/layout.xml
           make require-clean-worktree
       - name: Validate coverage and summarize slow tests
-        if: always()
+        # Required after successful checks; earlier failures may leave no report.
+        if: success()
         run: python3 tools/summarize_gut_report.py localtmp/ci-layout/layout.xml
 
       - name: Retain test timing report

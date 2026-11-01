@@ -190,7 +190,7 @@ follow-up exposes profile text through existing touch and keyboard detail
 activation; verify name/profile/chips line order, complete text without scrolling
 when space permits, and constrained-screen scrolling with reachable Close.
 Complete verification and acceptance
-records live in [GuiProfileHoverTasks.md](GuiProfileHoverTasks.md).
+records live in [GuiProfileHoverTasks.md](arkiv/GuiProfileHoverTasks.md).
 
 ## Current support and acceptance
 

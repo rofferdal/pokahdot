@@ -1608,7 +1608,7 @@ Implementation reference consultation used the official Godot
 documentation, including `DEVICE_ID_EMULATION`, inherited theme lookup and
 pointer-passive controls. The user accepted the desktop and compact long-name
 native previews on 2026-11-01. Their scope and automated evidence are recorded
-in [the profile-hover backlog](GuiProfileHoverTasks.md); browser/device
+in [the profile-hover backlog](arkiv/GuiProfileHoverTasks.md); browser/device
 acceptance remains separate.
 
 **Complete seat components (RG-41, reconciled in RG-50S)**

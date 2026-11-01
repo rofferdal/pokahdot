@@ -11,3 +11,4 @@
 - Complete and verify one task at a time; update its owning backlog before moving on. Archived records preserve history and do not select active work.
 - Test refactoring before and after changes. Run the existing checks for builds.
 - Put session-only generated files, logs, and screenshots under ignored `localtmp/`.
+- Tests and CI checks must work from a fresh checkout with no `localtmp/` directory. Create required directories and generate temporary inputs during the current run; keep reusable fixtures in tracked `tests/fixtures/`. Never depend on previous local runs, ignored captures, or cached reports. Report consumers must run only after their producer succeeds, and missing output after a successful producer must fail validation.

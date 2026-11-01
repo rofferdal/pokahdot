@@ -13,6 +13,9 @@ from tools.profile_gui_refresh import ROOT, WebErrorLog, argument_parser, enrich
 
 
 class GuiProfileReportTests(unittest.TestCase):
+    def setUp(self):
+        (ROOT / "localtmp").mkdir(parents=True, exist_ok=True)
+
     def test_native_launch_preserves_results_and_owns_only_its_new_session(self):
         for implementation, players in (("replacement", None), ("replacement", 2)):
             with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as folder:

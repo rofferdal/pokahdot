@@ -12,6 +12,9 @@ from tools.web_lan.tls import create_certificates
 
 
 class TlsTests(unittest.TestCase):
+    def setUp(self):
+        (ROOT / "localtmp").mkdir(parents=True, exist_ok=True)
+
     def test_ca_is_reused_and_server_cert_covers_localhost_and_lan(self) -> None:
         with tempfile.TemporaryDirectory(dir=ROOT / "localtmp") as name:
             root = Path(name)
