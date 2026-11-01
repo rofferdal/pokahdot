@@ -185,8 +185,11 @@ touch-emulation suppression, detail taps and keyboard activation, modal/rebind
 cleanup, refresh/actions, elimination and safe-area/rotation changes. For future
 visual changes, also verify that leaving a name closes the popup, unchanged
 pointer position cannot reopen it after lifecycle cancellation, and all non-name
-seat regions remain free of profile hover. Keyboard access to profile text and
-a touch equivalent are not delivered. Complete verification and acceptance
+seat regions remain free of profile hover. The subsequent player-details
+follow-up exposes profile text through existing touch and keyboard detail
+activation; verify name/profile/chips line order, complete text without scrolling
+when space permits, and constrained-screen scrolling with reachable Close.
+Complete verification and acceptance
 records live in [GuiProfileHoverTasks.md](GuiProfileHoverTasks.md).
 
 ## Current support and acceptance

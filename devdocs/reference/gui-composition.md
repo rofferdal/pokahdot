@@ -97,7 +97,10 @@ a new real-pointer motion rearms it. Touch-emulated input cannot arm it.
 The passive popup inherits OverlayPanel/BodyText styling and wraps full plain
 text at 20 px inside the injected usable area. It suppresses text that cannot
 physically fit there in full. It introduces no seat/card minima or focus stops.
-Keyboard profile descriptions and touch equivalents remain future scope.
+Existing seat-detail taps and keyboard activation expose `Profile: <name>`
+between the name and chips (`Profile: Human` for the human). The larger details
+box measures its complete text at the allocated width and expands vertically
+when space permits, retaining body scrolling only when constrained.
 The user accepted native desktop and compact previews on 2026-11-01; see
 [visual verification](../../docs/GUI_VISUAL_TESTING.md#bot-profile-hover-checkpoint)
 for reproducible evidence and browser/device limits.

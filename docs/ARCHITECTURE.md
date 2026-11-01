@@ -1554,11 +1554,12 @@ intercepting detail presses or changing mouse filters. Those root handlers
 and their keyboard focus order are preserved. Hero presentation uses the same
 contract but human metadata remains empty.
 
-The hover popup is pointer-passive and non-focusable. Existing SeatToken focus
-could host a future explicit accessible description without adding tab stops,
-but no equivalent focus target exists for full seats. Keyboard profile
-information and a touch equivalent are separate future scope decisions; this
-feature does not add labels to the tab order or show a popup on focus/touch.
+The hover popup is pointer-passive and non-focusable. Existing SeatToken detail
+activation now exposes profile information through touch and keyboard as well.
+The pure seat model supplies `profile_detail_text`, derived from the authoritative
+human flag and validated public profile name: `Profile: Human`, `Profile: <name>`
+or `Profile: Unavailable`. The detail body inserts it between display name and
+chip count. This adds no tab stops or unsolicited focus/touch popup.
 Use real-pointer events, excluding touch-emulated mouse input, with one
 consistent hover delay. Close on leaving/switching names, modal opening, name
 removal, rebind, teardown or composition rebuild, and close or reposition on
@@ -1939,6 +1940,13 @@ cancels pending advancement. Replacement confirmations use no native dialogs.
 
 The host accepts one root-local usable rectangle. Native containers own panel
 geometry; deferred settling reapplies that rectangle after minimum changes.
+Seat details prefer 440 px width and a reading area of at least 192 px when
+space permits. The host measures the complete rich-text content at its allocated
+width and expands the body to avoid scrolling, capped by usable height after
+reserving the title, cards, Close and padding. Compact allocations reduce these
+preferences to the existing fit floor. When unusually long details cannot fit
+vertically, the box uses additional available width before requiring scrolling.
+Only constrained bodies need scrolling.
 Insufficient-space guidance retains the requested panel and recovers on resize.
 Same-panel reflow preserves descendant focus. Mode exit cancels numeric entry
 without commit, while other modal panels reflow. Teardown cancels drafts and

@@ -582,8 +582,11 @@ cards were actually shown.
   changes. New tournaments replace the mapping; reset and failure clear it.
 - The popup is passive and non-focusable. Touch-emulated mouse input cannot
   trigger it; existing detail taps, keyboard focus order and game actions stay
-  available. Keyboard access to profile information and a touch equivalent
-  remain separate future decisions.
+  available. Existing seat-detail activation also exposes `Profile: <display_name>`
+  between the player name and chips, or `Profile: Human` for the authoritative
+  human seat. Missing metadata reads `Profile: Unavailable`. The details box
+  expands to display all information without scrolling whenever usable space
+  permits; constrained screens retain a scrollable body and reachable Close.
 - Use the shared theme and built-in font at no less than 20 logical/CSS px,
   wrapping the complete name inside actual usable bounds without changing
   seat/card geometry. If the entire text cannot physically fit at that floor,

@@ -24,7 +24,10 @@ section. Keep completion evidence and checkboxes in the owning backlog.
   name. The user accepted desktop and compact long-name previews on 2026-11-01.
   Full checks pass with 914 Godot tests, 237 Python tests and all four GUI
   invariant matrices. Native evidence remains separate from browser/device
-  acceptance. This preserves the accepted GUI replacement baseline.
+  acceptance. The requested larger player-details box now includes the public
+  profile line and fits complete text without scrolling when space permits;
+  follow-up regression passes 916 Godot tests. This preserves the accepted GUI
+  replacement baseline.
 
 
 ## Archived task records

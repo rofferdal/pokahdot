@@ -403,6 +403,76 @@ func test_seat_detail_keeps_unrevealed_cards_private_with_a_nonzero_usable_origi
 	assert_false(_host.is_active())
 
 
+func test_seat_details_show_public_profile_between_name_and_chips_and_resize_to_fit() -> void:
+	_setup()
+	var view: GameView = GuiVisualStateFixtures.replacement_flop(3).view
+	var names: Dictionary[int, String] = {1: "Amina"}
+	var profiles: Dictionary[int, String] = {0: "Wrong human metadata", 1: "Tight Passive"}
+	for seat: int in [1, 0, 2]:
+		var model := SeatViewModel.build(
+			view.seats[seat], view, names, {}, null, null, GuiFitCandidate.Density.FULL, profiles
+		)
+		_host.open_seat(model)
+		await wait_process_frames(7)
+		var lines: PackedStringArray = (
+			(_host.get_control(&"seat_body") as RichTextLabel).text.split("\n")
+		)
+		assert_eq(lines[0], model.display_name)
+		assert_eq(
+			lines[1], ["Profile: Human", "Profile: Tight Passive", "Profile: Unavailable"][seat]
+		)
+		assert_eq(lines[2], model.stack_text)
+		assert_eq(lines[3], model.wager_text)
+		assert_false((_host.get_control(&"seat_body") as RichTextLabel).bbcode_enabled)
+	assert_eq(_host.get_control(&"active").size.x, 440.0)
+	assert_gte(_host.get_control(&"seat_body").size.y, 192.0)
+	for usable: Rect2 in [Rect2(12, 24, 366, 790), Rect2(24, 12, 732, 336)]:
+		_host.set_usable_rect(usable)
+		await wait_process_frames(7)
+		assert_eq(_host.get_active_kind(), &"seat")
+		assert_true(usable.encloses(_host.get_control(&"active").get_global_rect()))
+		assert_true(usable.encloses(_host.get_control(&"seat_close").get_global_rect()))
+	_host.set_usable_rect(Rect2(0, 0, 1100, 1000))
+	await wait_process_frames(7)
+	assert_eq(_host.get_control(&"active").size.x, 440.0)
+	assert_gte(_host.get_control(&"seat_body").size.y, 192.0)
+
+
+func test_seat_details_expand_to_show_complete_information_without_scrolling_when_it_fits() -> void:
+	_setup()
+	var view: GameView = GuiVisualStateFixtures.replacement_flop(3).view
+	var model := SeatViewModel.build(
+		view.seats[1],
+		view,
+		{},
+		{},
+		null,
+		null,
+		GuiFitCandidate.Density.FULL,
+		{1: "A long strategic public profile with a complete and unambiguous identity"}
+	)
+	model.markers = "D SB BB"
+	model.state_text = "All In"
+	model.status_text = "Two Pair, Aces and Kings\nAce kicker"
+	for usable: Rect2 in [Rect2(0, 0, 1100, 1000), Rect2(12, 24, 366, 790)]:
+		_host.set_usable_rect(usable)
+		_host.open_seat(model)
+		await wait_process_frames(7)
+		var body := _host.get_control(&"seat_body") as RichTextLabel
+		assert_eq(_host.get_active_kind(), &"seat")
+		assert_true(usable.encloses(_host.get_control(&"active").get_global_rect()))
+		assert_gte(body.size.y, float(body.get_content_height()))
+		assert_false(body.get_v_scroll_bar().visible, "All details fit without scrolling.")
+	model.status_text = "Public showdown detail ".repeat(70)
+	_host.set_usable_rect(Rect2(0, 0, 1100, 1000))
+	_host.open_seat(model)
+	await wait_process_frames(7)
+	var expanded_body := _host.get_control(&"seat_body") as RichTextLabel
+	assert_gt(_host.get_control(&"active").size.x, 440.0)
+	assert_gte(expanded_body.size.y, float(expanded_body.get_content_height()))
+	assert_false(expanded_body.get_v_scroll_bar().visible)
+
+
 func test_active_number_removal_cancels_once_and_reentry_recovers_a_closed_host() -> void:
 	_setup()
 	watch_signals(_host)

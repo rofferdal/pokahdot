@@ -43,7 +43,9 @@ native fixtures recorded in [RIG-02](docs/arkiv/RulesInGameTasks.md).
 Hover a bot's displayed name for half a second to see `Bot profile: <profile
 name>`. This works with a real pointer on full and compact tables. Human names
 have no profile popup; touch and keyboard seat-detail activation retain their
-existing behavior. The native desktop and compact previews were accepted on
+existing behavior. Player details now show `Profile: <profile name>` (or
+`Profile: Human`) between the name and chips. The details box expands to show
+all information without scrolling when space allows. The native desktop and compact previews were accepted on
 2026-11-01; [verification evidence](docs/GuiProfileHoverTasks.md) records the
 scope and browser/device limits.
 

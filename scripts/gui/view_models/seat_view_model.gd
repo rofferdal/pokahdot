@@ -10,6 +10,7 @@ var avatar_path: String = ""
 var bot_profile_name: String = ""
 var bot_profile_tooltip_text: String = ""
 var bot_profile_tooltip_eligible: bool = false
+var profile_detail_text: String = "Profile: Unavailable"
 var stack_text: String = ""
 var stack_value_text: String = ""
 var wager_text: String = ""
@@ -66,6 +67,10 @@ static func build(
 		result.bot_profile_name = profile_name
 		result.bot_profile_tooltip_text = "Bot profile: " + profile_name
 		result.bot_profile_tooltip_eligible = true
+	if player.is_human:
+		result.profile_detail_text = "Profile: Human"
+	elif result.bot_profile_tooltip_eligible:
+		result.profile_detail_text = "Profile: " + result.bot_profile_name
 	result.stack_value_text = str(player.stack)
 	result.stack_text = str(player.stack) if player.stack >= 100000 else "%d chips" % player.stack
 	result.wager_text = "Bet %d" % player.bet_this_round

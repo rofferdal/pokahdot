@@ -115,7 +115,9 @@ func open_seat(model: SeatViewModel) -> void:
 	if model == null or not model.valid or model.cards == null:
 		push_error("OverlayHost seat details require a valid safe seat model.")
 		return
-	var lines: Array[String] = [model.display_name, model.stack_text, model.wager_text]
+	var lines: Array[String] = [
+		model.display_name, model.profile_detail_text, model.stack_text, model.wager_text
+	]
 	if not model.markers.is_empty():
 		lines.append(model.markers)
 	if not model.state_text.is_empty():
@@ -274,6 +276,8 @@ func _reflow() -> void:
 		area.get_theme_constant("margin_left") + area.get_theme_constant("margin_right"),
 		area.get_theme_constant("margin_top") + area.get_theme_constant("margin_bottom")
 	)
+	if _requested_kind == &"seat":
+		_size_seat_details((rect.size - margins).max(Vector2.ZERO))
 	if _requested_kind == &"number" and get_keypad().is_active():
 		var frame: Control = get_node("Area/Center/number")
 		var padding: Vector2 = frame.get_theme_stylebox("panel").get_minimum_size()
@@ -296,6 +300,32 @@ func _reflow() -> void:
 	if not _area_pending and is_inside_tree():
 		_area_pending = true
 		call_deferred("_settle_area")
+
+
+func _size_seat_details(available: Vector2) -> void:
+	var panel: Control = _panels[&"seat"]
+	var content := panel.get_node("Content") as VBoxContainer
+	var body := get_control(&"seat_body") as RichTextLabel
+	var padding: Vector2 = panel.get_theme_stylebox("panel").get_minimum_size()
+	var reserved_height: float = padding.y
+	var count: int = 0
+	for child: Node in content.get_children():
+		if child is Control and (child as Control).visible:
+			count += 1
+			if child != body:
+				reserved_height += (child as Control).get_combined_minimum_size().y
+	reserved_height += maxi(0, count - 1) * content.get_theme_constant("separation")
+	# Prefer a roomier reading area; compact windows retain the existing fit floor.
+	panel.custom_minimum_size.x = minf(440.0, available.x)
+	body.size.x = maxf(body.custom_minimum_size.x, panel.custom_minimum_size.x - padding.x)
+	var reading_height: float = maxf(192.0, ceilf(body.get_content_height()))
+	var available_height: float = maxf(96.0, available.y - reserved_height)
+	if reading_height > available_height and panel.custom_minimum_size.x < available.x:
+		# Use spare horizontal space before requiring the player to scroll.
+		panel.custom_minimum_size.x = available.x
+		body.size.x = maxf(body.custom_minimum_size.x, available.x - padding.x)
+		reading_height = maxf(192.0, ceilf(body.get_content_height()))
+	body.custom_minimum_size.y = minf(reading_height, available_height)
 
 
 func _settle_area() -> void:

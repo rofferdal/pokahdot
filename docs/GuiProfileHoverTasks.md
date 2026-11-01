@@ -1,6 +1,7 @@
 # GUI Bot Profile Hover Tasks
 
-Status: complete; GPH-01–GPH-05 verified and native previews user-accepted on 2026-11-01.
+Status: complete; GPH-01–GPH-05 native previews user-accepted and the requested
+GPH-06 seat-details follow-up implemented and verified on 2026-11-01.
 
 Owner: GUI presentation and tournament composition adapters.
 
@@ -268,3 +269,46 @@ acceptance are preserved. `make docs-check` passes (27 tests, 29 Markdown files,
 64 GUI policy scripts, coverage observer checks); `git diff --check` passes.
 Logs: `localtmp/gph05-agent-docs-check.log`, `localtmp/gph05-agent-diff-check.log`,
 and final root verification under `localtmp/gph-final-*.log`.
+
+### GPH-06 — Enlarge player details and expose the public profile
+
+Status: complete (2026-11-01); requested follow-up implemented and verified.
+
+- [x] Insert `Profile: <public profile display_name>` between the assigned player
+  name and chip count. Use the authoritative human flag for `Profile: Human`;
+  unavailable metadata reads `Profile: Unavailable` without guessing identity.
+- [x] Enlarge the details box and measure full text at its available width so
+  all information is visible without scrolling whenever usable space allows.
+  Keep constrained-screen body scrolling and Close reachable.
+- [x] Verify profile line order, privacy, full-content fit and resize recovery;
+  update current documentation and run the full regression/quality checks.
+
+Focused baseline passed 24 tests / 955 assertions before changes. Updated
+overlay/model/privacy suites passed 37 tests / 4,547 assertions; the expanded
+overlay suite passed 19 tests / 725 assertions including no-scroll checks with
+long profile names and showdown descriptions on desktop and compact portrait.
+An unusually long description also verifies use of spare horizontal space
+before scrolling is required.
+Logs: `localtmp/seat-details-before.log`, `seat-details-focused.log` and
+`seat-details-fit.log` in the same directory.
+
+Native Compatibility captures: `localtmp/gui-elements/seat-details-desktop.png`
+(1600×1200), `seat-details-human.png` (1600×1200), and
+`seat-details-compact-edge-long.png` (390×844), with full visible profile copy
+and no body scrolling. The compact box is 350×409 px inside its inset usable
+area. The desktop bot box is 440×377 px; human is 440×381 px. Capture log and
+session-only script: `localtmp/seat-details-capture.log` and
+`localtmp/seat_details_capture.gd`. The user accepted the compact player-details
+preview on 2026-11-01: “I think the Compact preview looks good”. This acceptance
+covers that compact native preview; desktop/human previews have no separate
+visual acceptance claim, and native evidence does not certify browsers/devices.
+
+Full regression command:
+`make GODOT=/Applications/Godot.app/Contents/MacOS/Godot check` passed with
+916 Godot tests, 237 Python tests and 17 layout-characterization tests.
+The final widening refinement also passes the focused overlay suite above.
+Lint, formatting, documentation links, GUI policy/coverage and `git diff --check`
+pass. Logs: `localtmp/seat-details-check.log`, `seat-details-lint.log`,
+`seat-details-format.log`, `seat-details-docs-check.log` and
+`seat-details-diff-check.log` in the same directory. The existing error scanner
+reports zero unexpected engine errors (`localtmp/seat-details-error-scan.log`).

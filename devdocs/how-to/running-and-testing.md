@@ -158,8 +158,10 @@ device checks remain separate from native input/fit coverage.
 Hover a bot's displayed name with a real pointer for 0.5 seconds to see its
 public profile name. Humans and unavailable metadata show no popup. Compact
 seat-detail taps and keyboard activation retain their existing behavior;
-touch-emulated hover is suppressed. Profile-text keyboard/touch alternatives
-remain future scope.
+touch-emulated hover is suppressed. Existing detail activation shows the public
+profile line between name and chips, including `Profile: Human`. Verify the
+complete details fit without scrolling on large screens and compact portrait
+when space allows; shorter screens keep scrolling and Close reachable.
 
 Run the focused metadata/adapter and interaction suites:
 
