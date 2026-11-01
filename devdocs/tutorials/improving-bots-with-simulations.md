@@ -22,7 +22,7 @@ In Pokahdot, bot decisions are separated from personality tuning. The algorithm
 ([`StrategyDecisionModel`](../../scripts/core/agents/strategy_decision_model.gd))
 uses a bounded hand-potential heuristic, board texture and the price of calling.
 Its score is not equity or a hand-rank percentile. The current
-`street_response_v3` policy evaluates calling separately from value raising and
+`street_response_v4` policy evaluates calling separately from value raising and
 limits repeated weak bluffs. Its personality still uses **four integer
 percentage parameters (0–100)**:
 

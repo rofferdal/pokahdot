@@ -278,14 +278,19 @@ Automated players are structured in three decoupled tiers:
    - `StrategyDecisionModel`: Parameterized, threshold-based continuation and bluffing logic.
 4. **`BotProfile`**: A Godot `Resource` containing tunable parameters (`DecisionModelParameters`). Allows tweaking bot personalities in the inspector without writing code.
 
-The current `StrategyDecisionModel` policy, `street_response_v3`, keeps four
+The current `StrategyDecisionModel` policy, `street_response_v4`, keeps four
 profile parameters and separates cheap-call viability from value raising.
 Marginal hands facing resistance after their own aggression retain a bounded
 fraction of the existing `call_vs_raise` probability; strong-hand raising and
 opening bets retain their ordinary preferences. Weak bluffs have an initial
 window and a selective cheap flop window with backdoor potential. Applied
 street history closes further weak bluffs after own aggression or two actions,
-without retaining private lifecycle state.
+without retaining private lifecycle state. Successful bluffs favor
+the legal minimum with 80% probability; a 20% roll permits larger blind-based
+preflop targets or half/full-pot postflop contributions. Targets use the shared
+pot calculator, legal clamping and deduplication. Without a larger legal target,
+the minimum is used without a sizing roll. See
+[bluff sizes](strategic-bot-profiles.md#bluff-sizes).
 
 `StrategyStreetContext` derives street-specific aggression, the latest wager
 increase and contestable pot information from public action records. Private

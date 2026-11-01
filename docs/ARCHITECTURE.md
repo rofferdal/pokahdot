@@ -663,7 +663,7 @@ alternatives, and requested action. `BotAgent` exposes a copied trace only
 through the matching test/simulation hook. Traces are never added to
 `GameView`, public events, CLI output, GUI state, or opponent-visible data.
 
-Policy `street_response_v3` keeps a free check available and separates call
+Policy `street_response_v4` keeps a free check available and separates call
 viability from value aggression. Its base strength threshold remains
 `75 - 0.45 * tight_vs_loose`, plus eight times the additional-call price and
 four times the actor's stack pressure, minus a position credit capped at five.
@@ -700,8 +700,21 @@ at least two prior increases. Own aggression or two prior voluntary actions
 prevents further weak bluffs on that street. Direct draws often exceed the
 weak score band and are evaluated by ordinary continuation instead.
 
-An eligible opportunity uses `bluff_rate / 100` and the legal minimum target;
-ineligible decisions consume no bluff roll. An initial failed roll followed
+An eligible opportunity uses `bluff_rate / 100`; ineligible decisions consume
+no bluff roll. After a successful roll, sizing favors the legal minimum with an 80%
+probability. The remaining 20% can select a larger target: minimum plus one or
+two big blinds preflop, or half-pot/full-pot contributions postflop. Postflop
+calculations use `PotWagerTarget`, preserving
+the actor's existing street wager in the target total. Thus bluff sizes overlap
+with the existing marginal/strong value targets. Clamp targets to legal limits,
+remove duplicates and discard targets equal to the minimum. If any larger
+target remains, use one 20% sizing roll, then choose uniformly among those
+larger targets. With no larger target, always use the minimum without a sizing
+roll. The 20% probability is not a quota on finite observed samples. Unavailable/overflowing pot calculations use the legal
+minimum; short stacks can clamp to all-in. There is no separate deep-stack
+all-in bluff option. This replaces v3's minimum-only sizing; eligibility,
+calling thresholds, value sizing and the four profile parameters are retained.
+Historical campaign results belong to their original executable revision. An initial failed roll followed
 by a passive action may receive one explicitly distinct delayed opportunity.
 Eligibility is derived from applied public history, with no private attempt
 cache. Repeated calls on an unchanged snapshot resample the same opportunity;

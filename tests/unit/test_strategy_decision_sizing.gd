@@ -98,6 +98,119 @@ func test_marginal_raise_preserves_existing_wager_in_target_total() -> void:
 	assert_eq(_seat_view(view, view.hero_seat).bet_this_round, 5)
 
 
+func test_postflop_bluffs_mix_half_and_full_pot_on_every_street() -> void:
+	for scenario: Array in [
+		[&"flop", "3C 8D KH"],
+		[&"turn", "3C 8D KH JC"],
+		[&"river", "3C 8D KH JC 9C"],
+	]:
+		var view := _view_for_bet_with_cards("7S 2H", 101, 300, scenario[1])
+		view.street = scenario[0]
+		var model := _bluff_model(712)
+		var observed: Dictionary = {}
+		for _attempt: int in range(64):
+			var action := model.choose_action(view)
+			assert_eq(action.kind, PlayerAction.Kind.BET)
+			assert_has([view.minimum_wager_total, 50, 101], action.amount)
+			observed[action.amount] = true
+		assert_eq(observed.size(), 3, String(scenario[0]))
+
+
+func test_preflop_bluffs_mix_three_legal_raise_totals_reproducibly() -> void:
+	var view := _view_for_call_with_cards("7S 2H", 15, 10, 300, 0)
+	var first := _bluff_model(713)
+	var second := _bluff_model(713)
+	var observed: Dictionary = {}
+	for _attempt: int in range(64):
+		var action := first.choose_action(view)
+		var replay := second.choose_action(view)
+		assert_eq(action.kind, PlayerAction.Kind.RAISE)
+		assert_eq(action.amount, replay.amount)
+		assert_has([20, 30, 40], action.amount)
+		observed[action.amount] = true
+	assert_eq(observed.size(), 3)
+
+
+func test_postflop_bluff_raises_preserve_existing_wager_and_replay() -> void:
+	var view := _view_for_call_with_cards("7S 2H", 100, 10, 200, 0, "3C 8D KH", 5)
+	var first := _bluff_model(714)
+	var second := _bluff_model(714)
+	var observed: Dictionary = {}
+	for _attempt: int in range(64):
+		var action := first.choose_action(view)
+		assert_eq(action.kind, PlayerAction.Kind.RAISE)
+		assert_eq(action.amount, second.choose_action(view).amount)
+		assert_has([view.minimum_wager_total, 55, 105], action.amount)
+		assert_between(action.amount, view.minimum_wager_total, view.maximum_wager_total)
+		observed[action.amount] = true
+	assert_eq(observed.size(), 3)
+
+
+func test_bluff_sizing_clamps_short_stacks_empty_pots_and_large_minimums() -> void:
+	var model := _bluff_model(715)
+	for spec: Array in [[100, 30, 10, 30], [0, 300, 10, 10], [100, 300, 150, 150]]:
+		var view := _view_for_bet_with_cards("7S 2H", spec[0], spec[1])
+		view.minimum_wager_total = spec[2]
+		for _attempt: int in range(8):
+			assert_has([spec[2], spec[3]], model.choose_action(view).amount)
+	var short_raise := _view_for_call_with_cards("7S 2H", 15, 10, 25, 0)
+	for _attempt: int in range(8):
+		assert_has([20, 25], model.choose_action(short_raise).amount)
+
+
+func test_bluff_sizing_handles_integer_ceiling_without_overflow() -> void:
+	var model := _bluff_model(716)
+	var view := _view_for_call_with_cards("7S 2H", 15, 10, 100, 0)
+	view.minimum_wager_total = PotWagerTarget.MAX_INT_64 - 5
+	view.maximum_wager_total = PotWagerTarget.MAX_INT_64
+	for _attempt: int in range(8):
+		var action := model.choose_action(view)
+		assert_between(action.amount, view.minimum_wager_total, view.maximum_wager_total)
+	var overflowing := _view_for_call_with_cards("7S 2H", 100, 10, 200, 0, "3C 8D KH", 5)
+	overflowing.pot_amount = PotWagerTarget.MAX_INT_64
+	for _attempt: int in range(8):
+		var action := model.choose_action(overflowing)
+		assert_has(
+			[overflowing.minimum_wager_total, overflowing.maximum_wager_total], action.amount
+		)
+
+
+func test_minimum_bluff_size_is_preferred_before_and_after_flop() -> void:
+	var views: Array[GameView] = [
+		_view_for_call_with_cards("7S 2H", 15, 10, 300, 0),
+		_view_for_bet_with_cards("7S 2H", 100, 300),
+	]
+	for view: GameView in views:
+		var model := _bluff_model(717)
+		var larger_count: int = 0
+		for _attempt: int in range(2000):
+			var action := model.choose_action(view)
+			assert_between(action.amount, view.minimum_wager_total, view.maximum_wager_total)
+			if action.amount > view.minimum_wager_total:
+				larger_count += 1
+		# Fixed-seed distribution check catches uniform or inverted preference.
+		# A 20% chance does not cap the realized fraction in a finite sample.
+		assert_between(larger_count, 320, 480, String(view.street))
+
+
+func test_no_larger_legal_target_consumes_no_sizing_randomness() -> void:
+	var parameters := StrategyParametersScript.new()
+	parameters.bluff_rate = 100
+	var rng := _rng(718)
+	var model: DecisionModel = StrategyModelScript.new()
+	assert_true(model.configure(parameters, rng).is_empty())
+	var view := _view_for_bet_with_cards("7S 2H", 0, 100)
+	var before_state: int = rng.state
+	assert_eq(model.choose_action(view).amount, view.minimum_wager_total)
+	assert_eq(rng.state, before_state)
+
+
+func _bluff_model(seed_value: int) -> DecisionModel:
+	var parameters := StrategyParametersScript.new()
+	parameters.bluff_rate = 100
+	return _model_with_parameters(seed_value, parameters)
+
+
 func _seat_view(view: GameView, seat: int) -> PlayerView:
 	for player_view: PlayerView in view.seats:
 		if player_view.seat == seat:

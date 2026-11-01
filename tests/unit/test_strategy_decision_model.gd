@@ -300,7 +300,10 @@ func test_bluff_rate_hundred_bluffs_weak_hand_when_raise_is_legal() -> void:
 	var trace: Variant = model.get_last_decision_trace_for_testing()
 
 	assert_eq(action.kind, PlayerAction.Kind.RAISE)
-	assert_eq(action.amount, view.minimum_wager_total)
+	assert_has(
+		[view.minimum_wager_total, view.minimum_wager_total + 10, view.minimum_wager_total + 20],
+		action.amount
+	)
 	assert_eq(trace.hand_potential_band, &"weak")
 	assert_eq(trace.selected_branch, &"bluff_raise")
 
@@ -317,6 +320,7 @@ func test_seeded_bluff_rolls_are_reproducible_for_the_same_rate() -> void:
 
 	for _attempt: int in range(24):
 		var view := _view_for_bet_with_cards("7S 2H")
+		view.pot_amount = 100
 		first_actions.append(_action_signature(first.choose_action(view)))
 		second_actions.append(_action_signature(second.choose_action(view)))
 

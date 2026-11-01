@@ -162,11 +162,18 @@ and reports use those integer values. Non-integer parameter values are invalid.
 `bluff_rate` becomes a probability only at the decision point through
 `bluff_rate / 100.0`.
 
-The current decision policy, `street_response_v3`, keeps those four genes:
+The current decision policy, `street_response_v4`, keeps those four genes:
 `tight_vs_loose` controls the continuation threshold,
 `passive_vs_aggressive` selects opening bets, `call_vs_raise` supplies the
 value-raise probability, and `bluff_rate` selects eligible weak-hand bluffs.
 These are conditional preferences, not promised shares of all actions.
+Successful bluffs use the minimum legal size with 80% probability. A single
+20% roll permits a larger target: minimum-plus-one-or-two-big-blinds preflop,
+or half/full-pot contributions postflop. Clamp and deduplicate larger targets,
+then choose uniformly among them. With no larger legal target, always use the
+minimum. All rolls use the existing model RNG. Value sizing
+and eligibility are retained from v3. Historical campaign results remain tied
+to their recorded executable source; no old result is evidence of v4 strength.
 
 Call viability is evaluated separately from value-raise eligibility. For a
 heuristic score of at least 30, a reliable contestable pot and a call price

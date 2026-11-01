@@ -97,7 +97,7 @@ Beyond raw fitness, simulation reports provide style metrics that explain **why*
 - **`raise_share`**: Percentage of calls converted into raises (`call_raise_opportunities`).
   - Low raise share ($< 15\%$) indicates the bot never punishes weak bets.
 - **`eligible_bluff_frequency`**: Bluff actions divided by the policy's eligible
-  bluff opportunities. Under `street_response_v3`, the initial weak-hand window
+  bluff opportunities. Under `street_response_v4`, the initial weak-hand window
   requires a legal full Bet/Raise, no prior voluntary action by the actor on
   that street and fewer than two prior wager increases. Selective flop windows
   also permit re-raising after one Check/Call or on first entry after two or

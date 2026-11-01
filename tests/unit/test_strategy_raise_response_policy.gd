@@ -60,7 +60,7 @@ func test_weak_bluff_does_not_repeat_after_opponent_reraise_or_force_call() -> v
 	assert_eq(first.kind, PlayerAction.Kind.RAISE)
 	assert_eq(model.get_last_decision_trace_for_testing().selected_branch, &"bluff_raise")
 	_apply(fixture, 0, first)
-	_apply(fixture, 1, PlayerAction.raise_to(30))
+	_apply(fixture, 1, PlayerAction.raise_to(_view(fixture, 1).minimum_wager_total))
 	var action: PlayerAction = model.choose_action(_view(fixture, 0))
 	var diagnostics: StrategyDecisionDiagnostics = (
 		model.get_last_decision_trace_for_testing().diagnostics
@@ -493,7 +493,8 @@ func test_selective_bluff_sequences_reproduce_with_same_seed_and_applied_history
 			BANK.apply(fixture, fixture.hero, action)
 	assert_eq(first, second)
 	assert_has(first, "%d:%d" % [PlayerAction.Kind.FOLD, 0])
-	assert_has(first, "%d:%d" % [PlayerAction.Kind.RAISE, 20])
+	assert_has(first, "%d:%d" % [PlayerAction.Kind.RAISE, 25])
+	assert_has(first, "%d:%d" % [PlayerAction.Kind.RAISE, 50])
 
 
 func _bluff_spec(scenario: String) -> Dictionary:

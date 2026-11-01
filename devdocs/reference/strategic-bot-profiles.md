@@ -39,6 +39,34 @@ not measured action frequencies, strength rankings or guarantees of distinct
 personalities. Board cards, position, opponents, stack sizes and legal actions
 affect observed behavior. Names are labels and do not alter the policy.
 
+## Bluff sizes
+
+Policy `street_response_v4` varies bluff amounts after the bluff-frequency roll
+succeeds. All strategic profiles prefer the **minimum legal size 80%** of the
+time, with a **20% chance of a larger size** when one is available. Larger
+targets come from these options:
+
+- **Preflop:** minimum plus one or two big blinds. With 5/10 blinds and a
+  minimum raise to 20, the raise-to totals are **20 (80%), 30 (10%) or 40 (10%)**
+  when all three are legal.
+- **Flop, turn and river:** choose a **half-pot or full-pot contribution**, using
+  the same calculation as value aggression. With a pot of 100 and no existing
+  street wager and a legal minimum of 10, bluff sizes are **10 (80%), 50 (10%)
+  or 100 (10%)** when the stack permits. When raising, add the actor's
+  existing street wager to the chosen fraction of the currently visible pot,
+  then enforce the minimum legal raise-to total.
+
+Targets are capped by the legal maximum and raised to the legal minimum as
+needed. Duplicate targets and targets equal to the minimum are removed from
+the larger-size menu. The 20% roll is shared across all larger choices, not
+applied separately to each. With one larger choice it receives the entire 20%;
+with none, the minimum is used 100% of the time. These are probabilities, not
+quotas on finite samples. Short stacks or large minimum raises can leave one size;
+clamping may produce an all-in. Bluff chance controls frequency, not sizing.
+The same RNG seed and decision history reproduce the same sequence. Recorded
+campaign performance predates this sizing change and is not a new evaluation
+of the current policy.
+
 ## Style labels
 
 The **Style** column assigns the closest of the four core styles:

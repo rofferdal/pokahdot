@@ -4,7 +4,7 @@ extends RefCounted
 ## Private policy explanation copied only through test/simulation trace hooks.
 ## No cards or mutable game objects are retained.
 
-var policy_version: StringName = &"street_response_v3"
+var policy_version: StringName = &"street_response_v4"
 var street: StringName = &"unknown"
 var score: int = -1
 var call_amount: int = 0

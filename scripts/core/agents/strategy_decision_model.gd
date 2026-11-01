@@ -12,11 +12,12 @@ const HandPotentialEstimatorScript := preload(
 	"res://scripts/core/agents/hand_potential_estimator.gd"
 )
 const PotWagerTargetScript := preload("res://scripts/core/pot_wager_target.gd")
-const POLICY_VERSION: StringName = &"street_response_v3"
+const POLICY_VERSION: StringName = &"street_response_v4"
 const CHEAP_CALL_PRICE_LIMIT: float = 0.25
 const MAX_CALL_CREDIT: float = 4.0
 const HALF_POT_DIVISOR: int = 2
 const FULL_POT_DIVISOR: int = 1
+const LARGER_BLUFF_PERCENTAGE: float = 20.0
 
 var _parameters: DecisionModelParameters
 var _rng: RandomNumberGenerator
@@ -280,7 +281,38 @@ func _eligible_bluff(view: GameView) -> PlayerAction:
 	var parameters := _parameters as StrategyDecisionModelParameters
 	if not _bluff_roll_succeeds(parameters.bluff_rate):
 		return null
-	return _action_for(wager_kind, view)
+	var target_total: int = _bluff_wager_target(view)
+	if wager_kind == PlayerAction.Kind.BET:
+		return PlayerAction.bet_to(target_total)
+	return PlayerAction.raise_to(target_total)
+
+
+func _bluff_wager_target(view: GameView) -> int:
+	var targets: Array[int] = []
+	var minimum_total: int = _clamped_wager_target(view, view.minimum_wager_total)
+	if view.street == &"preflop":
+		var target: int = minimum_total
+		for _step: int in range(3):
+			if not targets.has(target):
+				targets.append(target)
+			# Limit the increment before adding, including at the integer ceiling.
+			target += mini(maxi(0, view.big_blind), view.maximum_wager_total - target)
+	else:
+		for divisor: int in [HALF_POT_DIVISOR, FULL_POT_DIVISOR]:
+			var fraction := PotWagerTargetScript.calculate_fraction(
+				view.pot_amount, _hero_existing_wager(view), view.call_amount, divisor
+			)
+			var target: int = minimum_total
+			if fraction.available:
+				target = _clamped_wager_target(view, fraction.wager_total)
+			if not targets.has(target):
+				targets.append(target)
+	targets.erase(minimum_total)
+	if targets.is_empty() or not _percentage_roll(LARGER_BLUFF_PERCENTAGE):
+		return minimum_total
+	if targets.size() == 1:
+		return targets[0]
+	return targets[_rng.randi_range(0, targets.size() - 1)]
 
 
 func _bluff_roll_succeeds(bluff_rate: int) -> bool:
