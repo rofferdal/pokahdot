@@ -89,6 +89,76 @@ and reports use those integer values. Non-integer parameter values are invalid.
 `bluff_rate` becomes a probability only at the decision point through
 `bluff_rate / 100.0`.
 
+The current decision policy, `street_response_v3`, keeps those four genes:
+`tight_vs_loose` controls the continuation threshold,
+`passive_vs_aggressive` selects opening bets, `call_vs_raise` supplies the
+value-raise probability, and `bluff_rate` selects eligible weak-hand bluffs.
+These are conditional preferences, not promised shares of all actions.
+
+Call viability is evaluated separately from value-raise eligibility. For a
+heuristic score of at least 30, a reliable contestable pot and a call price
+below 25%, only the call threshold receives the bounded credit
+`4 * (1 - price / 0.25) / (1 + 0.5 * max(0, active_opponents - 1))`.
+Call price is the additional call divided by the contestable pot after that
+call; inaccessible side-pot chips do not make a call cheaper. The ordinary
+continuation threshold still governs value raises.
+
+After an opponent increases the wager following the actor's own aggression,
+a qualifying score below 60 can still value re-raise. Its probability is the
+existing `call_vs_raise` percentage multiplied by a floating-point resistance
+factor bounded to 0.15–0.85. Better scores and cheaper calls favor raising;
+larger latest increases, more opponents and longer raise chains reduce it.
+The factor is
+`clamp(0.75 + 0.005 * (score - 45) - 0.5 * price - 0.25 * size_pressure - 0.05 * max(0, active_opponents - 1) - 0.05 * max(0, aggression_count - 2), 0.15, 0.85)`,
+where `size_pressure` divides the latest wager increase by
+`max(contestable_pot_before_call, big_blind, 1)`. One probability roll selects
+raise versus call. Strong scores of at least 60 and opening bets retain their
+ordinary profile probabilities. A zero raise preference remains zero; a
+100-percent preference is still discounted in this marginal resistance case.
+
+The hand estimator recognizes made hands, flush and straight draws, backdoor
+draws and pair-improvement potential, with no future-draw credit on the river.
+Its score and draw-quality ratings are heuristics, not winning or improvement
+probabilities: a flush-draw quality of 85 does not mean an 85% chance of making
+a flush. The model does not estimate equity against opponent ranges or compare
+that equity directly with pot odds to calculate expected value. Price affects
+thresholds and aggression alongside these heuristics; this does not establish
+optimal play.
+
+A weak-hand bluff roll requires a legal full Bet or Raise. The initial window
+is before the actor's first voluntary action on the street and before two
+wager increases. A selective window additionally permits a flop re-raise after
+exactly one Check/Call, or on first entry after at least two increases. That
+window requires flush- or straight-draw quality of at least 25, a reliable
+contestable pot, call price at most 20%, at most two live opponents, and legal
+Call and full Raise options. Generic pair-improvement potential alone does not
+qualify. Direct draws usually leave the weak score band and use normal
+continuation logic instead.
+
+Own aggression or two voluntary actions closes further weak-bluff eligibility.
+Thus an unsuccessful initial roll followed by an applied Check/Call can lead
+to one distinct selective opportunity, without another roll after every
+opponent raise. Bounds come from applied public history, with no private
+lifecycle cache. Blind postings do not count as voluntary actions or wager
+increases. Ineligible decisions consume no bluff RNG roll. Public action
+records carry street identity so prior streets do not affect these counts.
+`StrategyDecisionDiagnostics` records the effective raise percentage,
+resistance factor, reasons and bluff window (`initial`, `delayed`,
+`pressure_entry` or `none`) through copied private test/simulation hooks. These
+fields are not added to ordinary recipient views, user-interface output or
+serialized report traces.
+
+For current policy traces, `eligible_bluff_opportunities` counts the actual
+eligible decisions before the probability roll, including zero-percent
+profiles. Legacy traces without diagnostics retain the former weak-hand plus
+legal-wager definition. Compare denominators as well as rates, and do not pool
+those definitions as equivalent evidence. Manifest schema 2, strategy parameter
+schema 2, report schema 4 and command v6 remain unchanged; executable source
+identity distinguishes the changed policy and metric semantics. Retain the
+original published profiles and reports, and use fresh source-compatible
+evaluation evidence for promotion. See the
+[BFCR verification record](BotFoldVsCallAfterRaisesTasks.md).
+
 ## 3. Metrics and fitness
 
 ### 3.1 Outcome and style metrics

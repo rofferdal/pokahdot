@@ -206,6 +206,16 @@ selection is deterministic for a fixed tournament seed; diagnostics state
 whether legacy models are included and list every selected model and profile
 ID. Neither option exposes opponent hole cards.
 
+Strategic bots evaluate calling separately from further raising. They can call
+with a qualifying hand at a low price; marginal hands can still re-raise after
+resistance, with a reduced probability based on the existing profile settings.
+Weak-hand bluffs have an initial opportunity and a selective flop opportunity
+with backdoor potential, a cheap price and at most two opponents. Further weak
+bluffs stop after the bot's own aggression. All four profile parameters still
+control their styles. Hand and draw scores are heuristics rather than winning
+probabilities. See the
+[strategy policy and verification record](docs/BotFoldVsCallAfterRaisesTasks.md).
+
 ## Deterministic simulation and bot-profile workflow
 
 The non-interactive simulation command evaluates bot-only tournaments. It is

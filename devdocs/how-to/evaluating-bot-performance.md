@@ -96,8 +96,29 @@ Beyond raw fitness, simulation reports provide style metrics that explain **why*
   - $> 70\%$: Over-bluffs or over-values medium hands.
 - **`raise_share`**: Percentage of calls converted into raises (`call_raise_opportunities`).
   - Low raise share ($< 15\%$) indicates the bot never punishes weak bets.
-- **`eligible_bluff_frequency`**: Rate of bluffs when holding weak hands.
-  - An effective bluff rate is typically between $5\%$ and $15\%$. Rates above $25\%$ often turn into chip donation against calling stations.
+- **`eligible_bluff_frequency`**: Bluff actions divided by the policy's eligible
+  bluff opportunities. Under `street_response_v3`, the initial weak-hand window
+  requires a legal full Bet/Raise, no prior voluntary action by the actor on
+  that street and fewer than two prior wager increases. Selective flop windows
+  also permit re-raising after one Check/Call or on first entry after two or
+  more increases, with backdoor draw quality at least 25, reliable call price
+  at most 20%, at most two opponents and legal Call/Raise options. Own aggression
+  or two voluntary actions closes further weak bluffs. Eligibility is counted
+  before the probability roll, including for a zero-percent bluff profile.
+
+Older traces without policy diagnostics use the former weak-hand-plus-legal-
+wager denominator. Their bluff rates are not directly comparable to current
+rates. Retain raw numerators, denominators and executable source identity;
+compare profiles under the same policy and use independent confirmation seeds.
+A high conditional bluff frequency alone does not establish that a bot bluffs
+too often across all decisions. Examine post-aggression fold/call/raise rates,
+call prices and expensive-call behavior alongside the outcome metrics. Marginal
+value re-raises use the profile's `call_vs_raise` multiplied by a resistance
+factor; raising remains possible without changing the cheap-call rule. Scores
+and draw quality are heuristic ratings, so do not interpret them as equity or
+infer positive expected value merely from a cheap call. The
+[BFCR record](../../docs/BotFoldVsCallAfterRaisesTasks.md) describes the current
+policy and its validation limits.
 
 ### 3. Invalid Action Fallbacks (Immediate Disqualification)
 - **`invalid_action_fallbacks`**: Must be **zero**.

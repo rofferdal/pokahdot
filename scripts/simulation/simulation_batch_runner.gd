@@ -247,12 +247,16 @@ func _capture_decisions(
 			fallback_events[event.seat] = true
 			decision.action = PlayerAction.new(event.applied_action_kind)
 			if decision.trace != null:
-				decision.trace = StrategyDecisionTrace.new(
-					bots[event.seat].profile_id,
-					decision.trace.hand_potential_band,
-					&"fallback",
-					decision.legal_actions,
-					decision.action
+				decision.trace = (
+					StrategyDecisionTrace
+					. new(
+						bots[event.seat].profile_id,
+						decision.trace.hand_potential_band,
+						&"fallback",
+						decision.legal_actions,
+						decision.action,
+						decision.trace.diagnostics,
+					)
 				)
 		var trace: RefCounted = decision.trace
 		(

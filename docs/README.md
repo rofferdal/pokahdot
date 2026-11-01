@@ -22,7 +22,13 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
-No active backlog is currently listed.
+- [`BotFoldVsCallAfterRaisesTasks.md`](BotFoldVsCallAfterRaisesTasks.md) —
+  complete: BFCR-00–10. The v3 follow-up restores context-sensitive re-raising
+  and selective bluff opportunities while preserving fixed-state call quality
+  and the four existing profile parameters. Calibration and fresh confirmation
+  pass balanced criteria; full verification passes 956 Godot tests, 254 Python
+  tests, 17 layout checks and all four GUI invariant gates. Game interfaces
+  and profile Resources are unchanged.
 
 ## Archived task records
 

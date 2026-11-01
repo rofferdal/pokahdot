@@ -125,9 +125,15 @@ func observe_decision(
 			metric.raises_at_call_raise_opportunity += 1
 	if trace == null:
 		return
+	var diagnostics: StrategyDecisionDiagnostics = (
+		trace.diagnostics if trace is StrategyDecisionTrace else null
+	)
+	# Legacy test traces lack eligibility diagnostics. Current policy traces
+	# count only actual roll opportunities, including zero-percent profiles.
 	if (
 		trace.hand_potential_band == StrategyDecisionTrace.WEAK_BAND
 		and (has_full_bet or has_full_raise)
+		and (diagnostics == null or diagnostics.bluff_eligible)
 	):
 		metric.eligible_bluff_opportunities += 1
 		if trace.selected_branch in [&"bluff_bet", &"bluff_raise"]:

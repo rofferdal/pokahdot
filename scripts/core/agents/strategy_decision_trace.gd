@@ -29,6 +29,11 @@ var requested_action: PlayerAction:
 	get:
 		return _copy_action(_requested_action)
 
+var diagnostics: StrategyDecisionDiagnostics:
+	get:
+		return _diagnostics.copy() if _diagnostics != null else null
+
+var _diagnostics: StrategyDecisionDiagnostics
 var _profile_id: StringName
 var _hand_potential_band: StringName
 var _selected_branch: StringName
@@ -42,7 +47,9 @@ func _init(
 	trace_selected_branch: StringName,
 	trace_legal_alternatives: Array[PlayerAction.Kind],
 	trace_requested_action: PlayerAction,
+	trace_diagnostics: StrategyDecisionDiagnostics = null,
 ) -> void:
+	_diagnostics = trace_diagnostics.copy() if trace_diagnostics != null else null
 	_profile_id = trace_profile_id
 	_hand_potential_band = trace_hand_potential_band
 	_selected_branch = trace_selected_branch
@@ -73,6 +80,7 @@ func copy() -> RefCounted:
 			_selected_branch,
 			_legal_alternatives,
 			_requested_action,
+			_diagnostics,
 		)
 	)
 

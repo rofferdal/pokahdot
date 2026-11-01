@@ -551,8 +551,9 @@ only its per-seat injected RNG and recipient-safe `GameView`; it has no access
 to opponents' hole cards, the deck, or mutable poker state. Its initial
 foundation, public hand-potential estimator, and legal wagering policy are
 implemented and covered by the archived strategy milestones.
-The five immutable-at-runtime profile Resources are `nit_caller`,
-`tight_aggressive`, `loose_passive`, `loose_aggressive`, and `balanced`.
+The five hand-authored immutable-at-runtime profile Resources are `nit_caller`,
+`tight_aggressive`, `loose_passive`, `loose_aggressive`, and `balanced`; the
+current curated catalog also includes ten published strategic profiles.
 
 `StrategyDecisionTrace` is a typed, test/simulation-only value object for
 explaining a parameterized model decision. `AgentFactory` supplies the
@@ -562,32 +563,103 @@ alternatives, and requested action. `BotAgent` exposes a copied trace only
 through the matching test/simulation hook. Traces are never added to
 `GameView`, public events, CLI output, GUI state, or opponent-visible data.
 
-The initial action-policy phase keeps the free-check baseline, then applies a
-fold/continue threshold of `75 - 0.45 * tight_vs_loose` to the estimator's
-recipient-safe score. Call price and stack pressure increase the required
-strength, while later position supplies a bounded continuation credit. A
-missing estimate retains the safe check/call baseline. The eligible-bluff phase
-is separate: only a weak estimate with a legal bet or
-raise can consume one injected-RNG roll, with probability exactly
-`bluff_rate / 100`; `bluff_rate` is never used as a general aggression
-multiplier. Bluff wagers use the legal minimum target; ordinary aggressive
-continuation sizing is described below.
-When checking or betting are both legal, one injected-RNG roll applies
-`passive_vs_aggressive` to that opening decision. When calling or raising are
-both legal, one roll instead applies `call_vs_raise`. This context split
-replaced the schema-1 two-roll AND gate after controlled batches confirmed
-that the old controls were commutative aliases. If only one action class is
-legal, that class is selected without a roll. Aggressive continuation uses the estimator's
+Policy `street_response_v3` keeps a free check available and separates call
+viability from value aggression. Its base strength threshold remains
+`75 - 0.45 * tight_vs_loose`, plus eight times the additional-call price and
+four times the actor's stack pressure, minus a position credit capped at five.
+Price uses the prospective contestable pot described below; it is not an
+equity estimate. Stack pressure is `call / (remaining_hero_stack + call)`.
+A missing estimate retains the check/call baseline.
+
+For nonweak scores (at least 30), reliable pot context and price below 25%,
+the call threshold receives a bounded credit of
+`4 * (1 - price / 0.25) / (1 + 0.5 * max(0, active_opponents - 1))`.
+This lowers the strength required for an inexpensive call without lowering
+value-raising requirements. Core legal actions remain authoritative, including
+short all-ins and closed raising rights. Calling thresholds and viability are
+unchanged from `street_response_v2`.
+
+For marginal scores below 60 after an opponent increases the wager following
+the hero's own aggression, value raising remains eligible when the intrinsic
+strength/legal gate passes. Its existing `call_vs_raise` percentage is multiplied
+by `clamp(0.75 + 0.005*(score-45) - 0.5*price - 0.25*size_pressure
+- 0.05*max(0, opponents-1) - 0.05*max(0, increases-2), 0.15, 0.85)`.
+Here size pressure is the latest actual public wager increase divided by the
+larger of contestable pot, big blind and one. A single float percentage roll
+preserves positive low aggression settings; zero still chooses the passive
+alternative. Strong/premium value aggression and opening preferences retain
+their existing behavior. This replaces v2's absolute marginal re-raise veto.
+
+Weak-hand bluffs require a legal full Bet/Raise. The initial window before
+the hero's first voluntary action and fewer than two earlier wager increases
+is retained. Selective delayed or pressure-entry windows require the flop,
+backdoor draw quality at least 25, reliable contestable price at most 20%,
+at most two live opponents, and legal Call/Raise. A delayed opportunity follows
+exactly one prior Check/Call; pressure entry is the hero's first action after
+at least two prior increases. Own aggression or two prior voluntary actions
+prevents further weak bluffs on that street. Direct draws often exceed the
+weak score band and are evaluated by ordinary continuation instead.
+
+An eligible opportunity uses `bluff_rate / 100` and the legal minimum target;
+ineligible decisions consume no bluff roll. An initial failed roll followed
+by a passive action may receive one explicitly distinct delayed opportunity.
+Eligibility is derived from applied public history, with no private attempt
+cache. Repeated calls on an unchanged snapshot resample the same opportunity;
+the normal adapters request one action per turn. Declining a bluff proceeds
+to normal check/call/fold evaluation. No new profile parameter is added.
+
+When Check and a policy-eligible Bet are available, the opening decision uses
+`passive_vs_aggressive`; when Call and a policy-eligible Raise are available,
+it uses `call_vs_raise`. If only one class is eligible, it is chosen without
+an aggression roll. Bluff opportunities remain separate from these controls.
+Aggressive continuation uses the estimator's
 stable bands for discrete target totals: minimum for weak hands, approximately
 half-pot for marginal hands, approximately one pot for strong hands, and the
-maximum legal total for premium hands. The loose profile Resources use a
-`tight_vs_loose` value of 100 so their continuation threshold reaches the
-widest calibrated range. The calibrated continuation order is Nit Caller 60,
-Tight Aggressive 65, Balanced 70, then both loose profiles at 100; the first
-two still fold marginal hands but now contest premium and strong suited
-broadway hands. Each target is clamped to the
+maximum legal total for premium hands. The hand-authored base strength controls remain Nit Caller 60, Tight
+Aggressive 65, Balanced 70, then both loose profiles at 100. These values were
+calibrated under the earlier policy; current cheap-call behavior also depends
+on the separate price credit. Historical profile rankings do not establish
+current strength. Each target is clamped to the
 recipient-safe `GameView` minimum and maximum wager totals, and bet/raise
 requests always carry a target total rather than a chip delta.
+
+The [BFCR follow-up](BotFoldVsCallAfterRaisesTasks.md#follow-up-restore-sensible-aggression)
+uses fixed-state comparisons, isolated value/bluff ablations, all-profile
+calibration and fresh confirmation to evaluate aggression and calling together.
+The intermediate `street_response_v3_value` variant isolates value resistance;
+`street_response_v3_bluff` is an isolated test-project variant, not a product
+mode. Historical v2 results and its over-suppression remain in the backlog.
+
+`PublicActionRecord` supplies optional street identity (default preflop for
+existing callers); blinds are explicitly preflop and `HandController` stamps
+voluntary records with the current street. Copies preserve this public metadata;
+no private strength or bluff intent enters the record. Existing presentation
+consumers continue using their original fields.
+
+A pure typed `StrategyStreetContext` derives current-street hero actions,
+hero aggression, last voluntary action kind, latest actual wager increase
+and subsequent opponent aggression from the recipient-safe history. An all-in counts as aggression only when its target increases the
+current wager; preflop comparisons retain the nominal big-blind floor. Context
+is recomputed from snapshots, so hand and street resets require no private
+model lifecycle state. Whole-hand contribution reconstruction takes the final
+maximum street-total wager per seat/street, checks its sum against the pot,
+and caps each contribution at the hero's prospective total after calling.
+This includes folded chips while excluding inaccessible side pots. Ambiguous
+side-pot snapshots cannot receive a cheap-call policy credit.
+
+Private `StrategyDecisionDiagnostics` snapshots record the policy version,
+score, call cost, contestable pot and reliability, price, call/raise thresholds,
+viability/eligibility reasons, effective value-raise percentage, resistance
+factor, bluff opportunity window and current-street aggression counts. Both trace
+construction and copies detach these values. They never enter regular public
+views, events, GUI/CLI text or the existing bounded simulation trace schema.
+Simulation decision metrics use actual bluff eligibility when these diagnostics
+are present; legacy traces without diagnostics retain their historical
+weak-plus-legal-wager denominator. Fallback traces preserve private diagnostics.
+Report/manifest formats and the four Resource parameters are unchanged; source
+fingerprints distinguish the revised algorithm and earlier calibration must
+not be treated as current evidence. Quantitative verification and limitations
+are recorded in the backlog.
 
 The human Pot shortcut uses the displayed pre-action pot as its addition. Its
 typed result carries `contribution=P` and `wager_total=H+P` separately so GUI
@@ -608,7 +680,7 @@ tuning. The five bundled Resources were migrated with that formula; no loader
 silently upgrades an artifact. The evidence and exact mapped values are in
 `StrategyParameterValidation.md`.
 
-`HandPotentialEstimator` is a pure helper for the later policy stage. Its only
+`HandPotentialEstimator` is a pure strength/potential helper consumed by the policy. Its only
 inputs are the recipient's two hole cards, public board cards, and an explicit
 `HandPotentialContext` containing public scalar values: street, position
 ordinal, active opponents, pot, call amount, effective stack, and big blind.
@@ -630,7 +702,10 @@ potential. Once five public cards exist, draw quality, draw outs, and
 improvement potential are all zero: a missed river draw has no future-card
 value, while made-hand and board-texture diagnostics remain available. The
 estimate is a deterministic heuristic, not equity; it must not be rendered in
-normal player UI or used to reveal unshown cards.
+normal player UI or used to reveal unshown cards. Draw-quality scores are not
+completion probabilities; combined draw outs retain the larger individual
+count rather than a full distinct-out union. The policy does not estimate
+opponent-range equity or compare exact fold/call/raise expected values.
 
 There is no experimental game mode. `TournamentConfig` defaults
 `use_legacy_models` to false, `StartupOverrides` may explicitly select it,

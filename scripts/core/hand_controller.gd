@@ -257,7 +257,9 @@ func _fallback_action(seat: int) -> PlayerAction:
 func _record_action(seat: int, action: PlayerAction, committed: int) -> void:
 	_pots.record_contribution(seat, committed)
 	var public_amount: int = _table.get_player(seat).bet_this_round
-	var record := PublicActionRecord.new(seat, action.kind, public_amount)
+	var record := PublicActionRecord.new(
+		seat, action.kind, public_amount, PublicActionRecord.Kind.ACTION, _street_name()
+	)
 	_history.append(record)
 	_events.append(DomainEvent.new(DomainEvent.Kind.ACTION_APPLIED, seat, public_amount))
 	for player: Player in _table.players:

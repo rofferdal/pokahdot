@@ -278,6 +278,28 @@ Automated players are structured in three decoupled tiers:
    - `StrategyDecisionModel`: Parameterized, threshold-based continuation and bluffing logic.
 4. **`BotProfile`**: A Godot `Resource` containing tunable parameters (`DecisionModelParameters`). Allows tweaking bot personalities in the inspector without writing code.
 
+The current `StrategyDecisionModel` policy, `street_response_v3`, keeps four
+profile parameters and separates cheap-call viability from value raising.
+Marginal hands facing resistance after their own aggression retain a bounded
+fraction of the existing `call_vs_raise` probability; strong-hand raising and
+opening bets retain their ordinary preferences. Weak bluffs have an initial
+window and a selective cheap flop window with backdoor potential. Applied
+street history closes further weak bluffs after own aggression or two actions,
+without retaining private lifecycle state.
+
+`StrategyStreetContext` derives street-specific aggression, the latest wager
+increase and contestable pot information from public action records. Private
+`StrategyDecisionDiagnostics` explains effective raise probability, resistance,
+eligibility and bluff window through copied test/simulation traces. These
+fields stay outside ordinary recipient views, UI output and serialized report
+traces. The model recognizes postflop draws using hand-potential ratings;
+these are not equity, and no opponent-range expected-value calculation is
+performed. The authoritative
+[strategy policy contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#23-strategy-parameter-contract)
+defines the four parameter roles, resistance factor, bluff eligibility and
+metric semantics; the
+[BFCR record](../../docs/BotFoldVsCallAfterRaisesTasks.md) records verification.
+
 ---
 
 ## 6. Deterministic Pseudo-Random Generation (`RngStreams`)

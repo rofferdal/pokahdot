@@ -87,3 +87,49 @@ river-draw, context, raise-rights, ranking, and uncertainty fixes require fresh
 evaluation before relying on historical rankings. The current
 [simulation contract](Simulation_And_Evolutionary_Bot_Strategy.md) owns formats
 and promotion requirements; this record does not freeze decision algorithms.
+
+## Historical policy note: `street_response_v2`
+
+The initial fold-versus-call policy changed decision behavior without adding
+profile genes; the four schema-2 parameters remained the parameter contract.
+Calling can receive a bounded cheap-price credit independently of value-raise
+eligibility. Marginal hands stop value re-raising after an opponent increases
+the wager following their own aggression; strong hands can still re-raise.
+Weak bluffs are eligible only before the actor's first voluntary action on the
+street and before two wager increases have occurred. Eligibility is checked
+before consuming a bluff roll.
+
+Policy diagnostics count `eligible_bluff_opportunities` from the policy's actual
+eligibility decision, including opportunities for profiles with `bluff_rate = 0`.
+Older diagnostic-free traces retain the former weak-hand-plus-legal-wager
+definition. This changes the denominator's meaning, so the historical endpoint
+figures above are not current-policy benchmarks. Source identity distinguishes
+evaluation evidence; parameter, manifest and report formats remain unchanged.
+The [BFCR record](BotFoldVsCallAfterRaisesTasks.md) owns current verification
+results and limits. Published Resources and historical reports are preserved.
+
+## Current policy note: `street_response_v3`
+
+The follow-up replaces v2's marginal re-raise veto with a 0.15–0.85 resistance
+factor multiplying the existing `call_vs_raise` percentage. It preserves the
+cheap-call credit, original value threshold, opening-bet preference and strong
+hand raise probability. Selective weak flop backdoor re-raises supplement the
+initial bluff window; own aggression or two voluntary actions closes further
+weak bluffs. Eligibility still precedes the existing `bluff_rate` roll.
+
+All four genes remain active: `tight_vs_loose` sets continuation breadth,
+`passive_vs_aggressive` governs opening bets, `call_vs_raise` governs eligible
+raises, and `bluff_rate` governs eligible weak bluffs. Fixed-state paired-seed
+regressions check that increasing raise preference preserves monotonic raise
+choices under resistance, and that zero bluff preference suppresses bluffs
+while 100 selects every eligible opportunity. These checks establish parameter
+influence, not tournament strength or a guaranteed aggregate action rate.
+
+Hand-potential and draw-quality scores are ratings, not equity. The policy uses
+call price without calculating opponent-range equity or expected value. The
+[current strategy contract](Simulation_And_Evolutionary_Bot_Strategy.md#23-strategy-parameter-contract)
+defines the resistance factor and selective windows; the
+[BFCR record](BotFoldVsCallAfterRaisesTasks.md) owns verification evidence.
+Parameter and report formats, published profiles and historical figures above
+remain unchanged. Compare results only with matching executable provenance
+and compatible opportunity definitions.

@@ -22,11 +22,15 @@ var kind: PlayerAction.Kind:
 var amount: int:
 	get:
 		return _amount
+var street: StringName:
+	get:
+		return _street
 
 var _seat: int
 var _kind: PlayerAction.Kind
 var _amount: int
 var _record_kind: Kind
+var _street: StringName
 
 
 func _init(
@@ -34,11 +38,13 @@ func _init(
 	action_kind: PlayerAction.Kind,
 	public_amount: int = 0,
 	public_record_kind: Kind = Kind.ACTION,
+	action_street: StringName = &"preflop",
 ) -> void:
 	_seat = action_seat
 	_kind = action_kind
 	_amount = public_amount
 	_record_kind = public_record_kind
+	_street = action_street
 
 
 static func blind(action_seat: int, blind_amount: int, is_small_blind: bool) -> PublicActionRecord:
@@ -49,9 +55,10 @@ static func blind(action_seat: int, blind_amount: int, is_small_blind: bool) -> 
 			PlayerAction.Kind.CALL,
 			blind_amount,
 			Kind.SMALL_BLIND if is_small_blind else Kind.BIG_BLIND,
+			&"preflop",
 		)
 	)
 
 
 func copy() -> PublicActionRecord:
-	return PublicActionRecord.new(_seat, _kind, _amount, _record_kind)
+	return PublicActionRecord.new(_seat, _kind, _amount, _record_kind, _street)

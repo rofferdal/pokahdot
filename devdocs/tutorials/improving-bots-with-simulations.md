@@ -18,21 +18,51 @@ By the end of this tutorial, you will be able to:
 
 ## 2. The Mental Model: Bot Personalities & Parameters
 
-In Pokahdot, bot decisions are cleanly separated from personality tuning. The algorithm ([`StrategyDecisionModel`](../../scripts/core/agents/strategy_decision_model.gd)) evaluates board textures, hand rank percentiles, and pot odds. Its personality is governed by **four integer percentage parameters (0–100)**:
+In Pokahdot, bot decisions are separated from personality tuning. The algorithm
+([`StrategyDecisionModel`](../../scripts/core/agents/strategy_decision_model.gd))
+uses a bounded hand-potential heuristic, board texture and the price of calling.
+Its score is not equity or a hand-rank percentile. The current
+`street_response_v3` policy evaluates calling separately from value raising and
+limits repeated weak bluffs. Its personality still uses **four integer
+percentage parameters (0–100)**:
 
 | Parameter | Range | What it controls |
 | :--- | :--- | :--- |
 | `tight_vs_loose` | 0–100 | How loose the bot plays preflop and continues postflop (higher = plays more hands, higher VPIP). |
 | `passive_vs_aggressive` | 0–100 | Propensity to open-bet when check and bet are both legal. |
-| `call_vs_raise` | 0–100 | Propensity to raise instead of call when facing a bet. |
+| `call_vs_raise` | 0–100 | Base propensity to raise instead of call when eligible; discounted for marginal hands facing resistance after own aggression. |
 | `bluff_rate` | 0–100 | Percentage of eligible weak-hand opportunities converted into bluff bets/raises. |
 
-Existing baseline profiles include:
-- `nit_caller`: Overly tight (60), extremely passive (4/4), rarely bluffs (2). Easily pushed around.
-- `tight_aggressive`: Selective hand range (65), assertive betting and raising (53/53), disciplined bluffs (8).
-- `loose_passive`: Plays almost every hand (100), calls down passively (4/4), rarely bluffs (5). "Calling station".
-- `loose_aggressive`: Plays every hand (100), bets and raises constantly (72/72), bluffs heavily (22). "Maniac".
-- `balanced`: Well-rounded continuation (70), moderate aggression (28/28), selective bluffs (12).
+The initial weak-bluff window requires a legal full Bet/Raise, no earlier
+voluntary action by that bot on the street and fewer than two wager increases.
+A selective flop window allows re-raising after one Check/Call, or on first
+entry after two or more increases: backdoor draw quality must be at least 25,
+call price at most 20% with a reliable contestable pot, at most two opponents,
+and both Call and full Raise legal. Own aggression or two voluntary actions
+closes further weak bluffs. Eligibility is checked before the probability roll.
+
+Marginal value re-raises after resistance use `call_vs_raise` multiplied by a
+factor bounded to 0.15–0.85; strong hands and opening bets retain their ordinary
+preferences. This preserves profile variation while moderating raise chains.
+The call-price credit and resistance rules are shared policy, not additional
+genes. Draw quality is a rating, not a probability, and the model does not
+calculate equity against opponent ranges or compare it directly with pot odds
+for an expected-value decision. See the
+[current policy contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#23-strategy-parameter-contract).
+
+Existing hand-authored profiles include the following parameter settings.
+Measure their behavior under the current source before assigning performance
+labels:
+
+- `nit_caller`: Tightness 60, opening/raise preferences 4/4, bluff rate 2.
+- `tight_aggressive`: Tightness 65, opening/raise preferences 53/53, bluff rate 8.
+- `loose_passive`: Tightness 100, opening/raise preferences 4/4, bluff rate 5.
+- `loose_aggressive`: Tightness 100, opening/raise preferences 72/72, bluff rate 22.
+- `balanced`: Tightness 70, opening/raise preferences 28/28, bluff rate 12.
+
+Parameter values are conditional preferences, not promised percentages of all
+actions. Historical measurements from an earlier source or bluff-eligibility
+definition do not provide a current-policy baseline.
 
 ---
 

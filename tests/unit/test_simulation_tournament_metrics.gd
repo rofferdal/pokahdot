@@ -206,6 +206,31 @@ func test_decision_metrics_record_opportunities_splits_and_eligible_bluffs() -> 
 	assert_almost_eq(alpha.eligible_bluff_frequency, 1.0, 0.0001)
 
 
+func test_current_policy_counts_only_actual_bluff_attempt_opportunities() -> void:
+	var metrics := METRICS_SCRIPT.new({0: &"alpha"}, {0: 100})
+	var legal: Array[PlayerAction.Kind] = [PlayerAction.Kind.CALL, PlayerAction.Kind.RAISE]
+	var diagnostics := StrategyDecisionDiagnostics.new()
+	diagnostics.bluff_eligible = false
+	var suppressed := StrategyDecisionTrace.new(
+		&"alpha", &"weak", &"fold", legal, PlayerAction.fold_action(), diagnostics
+	)
+	metrics.observe_decision(0, legal, PlayerAction.fold_action(), suppressed)
+	diagnostics.bluff_eligible = true
+	var eligible := StrategyDecisionTrace.new(
+		&"alpha", &"weak", &"bluff_raise", legal, PlayerAction.raise_to(20), diagnostics
+	)
+	metrics.observe_decision(0, legal, PlayerAction.raise_to(20), eligible)
+	var zero_rate := StrategyDecisionTrace.new(
+		&"alpha", &"weak", &"fold", legal, PlayerAction.fold_action(), diagnostics
+	)
+	metrics.observe_decision(0, legal, PlayerAction.fold_action(), zero_rate)
+	metrics.finish({0: 100}, 0, 1)
+	var result: SimulationSeatMetrics = metrics.get_seat_metrics()[0]
+	assert_eq(result.eligible_bluff_opportunities, 2)
+	assert_eq(result.bluff_actions, 1)
+	assert_almost_eq(result.eligible_bluff_frequency, 0.5, 0.0001)
+
+
 func test_all_in_actions_are_classified_as_calls_bets_or_raises() -> void:
 	var metrics := METRICS_SCRIPT.new({0: &"raiser", 1: &"caller"}, {0: 100, 1: 100})
 	(

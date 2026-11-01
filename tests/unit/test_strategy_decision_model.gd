@@ -109,7 +109,7 @@ func test_policy_continues_strong_hand_when_call_price_is_reasonable() -> void:
 	assert_true(action.kind in [PlayerAction.Kind.CALL, PlayerAction.Kind.RAISE])
 
 
-func test_policy_uses_call_price_and_stack_pressure_for_marginal_hands() -> void:
+func test_policy_calls_cheap_marginal_hands_even_when_the_remaining_stack_is_short() -> void:
 	var cheap_call := _view_for_call_with_cards("QS JH", 100, 1, 100, 0)
 	var expensive_call := _view_for_call_with_cards("QS JH", 20, 80, 100, 0)
 	var deep_stack := _view_for_call_with_cards("QS JH", 100, 10, 100, 0)
@@ -123,7 +123,7 @@ func test_policy_uses_call_price_and_stack_pressure_for_marginal_hands() -> void
 	assert_true(cheap_action.kind in [PlayerAction.Kind.CALL, PlayerAction.Kind.RAISE])
 	assert_eq(expensive_action.kind, PlayerAction.Kind.FOLD)
 	assert_true(deep_action.kind in [PlayerAction.Kind.CALL, PlayerAction.Kind.RAISE])
-	assert_eq(short_action.kind, PlayerAction.Kind.FOLD)
+	assert_eq(short_action.kind, PlayerAction.Kind.CALL)
 
 
 func test_policy_uses_later_position_as_a_small_continuation_credit() -> void:
@@ -131,8 +131,15 @@ func test_policy_uses_later_position_as_a_small_continuation_credit() -> void:
 	var late := _view_for_call_with_cards("JS 10C", 100, 10, 100, 1)
 	var model := _model_with_tightness(47, 95)
 
-	assert_eq(model.choose_action(early).kind, PlayerAction.Kind.FOLD)
+	assert_eq(model.choose_action(early).kind, PlayerAction.Kind.CALL)
+	var early_threshold: float = (
+		model.get_last_decision_trace_for_testing().diagnostics.call_threshold
+	)
 	assert_eq(model.choose_action(late).kind, PlayerAction.Kind.CALL)
+	var late_threshold: float = (
+		model.get_last_decision_trace_for_testing().diagnostics.call_threshold
+	)
+	assert_lt(late_threshold, early_threshold)
 
 
 func test_context_uses_heads_up_preflop_and_postflop_action_order() -> void:

@@ -89,6 +89,32 @@ func test_band_for_score_is_bounded_and_stable() -> void:
 	assert_eq(TRACE_SCRIPT.band_for_score(101), TRACE_SCRIPT.UNKNOWN_BAND)
 
 
+func test_private_diagnostics_are_copied_and_preserved_without_public_fields() -> void:
+	var diagnostics := StrategyDecisionDiagnostics.new()
+	diagnostics.score = 33
+	diagnostics.call_threshold = 32.0
+	diagnostics.bluff_reason = &"already_acted"
+	var trace := StrategyDecisionTrace.new(
+		&"loose_aggressive",
+		&"marginal",
+		&"continue_passive",
+		[],
+		PlayerAction.call_action(),
+		diagnostics
+	)
+	diagnostics.score = 1
+	var returned: StrategyDecisionDiagnostics = trace.diagnostics
+	returned.call_threshold = 99.0
+	var copied: StrategyDecisionTrace = trace.copy()
+	assert_eq(copied.diagnostics.score, 33)
+	assert_eq(copied.diagnostics.call_threshold, 32.0)
+	assert_eq(copied.diagnostics.bluff_reason, &"already_acted")
+	assert_ne(copied.diagnostics, returned)
+	for object: Object in [GameView.new(), PublicActionRecord.new(0, PlayerAction.Kind.CALL)]:
+		assert_false("diagnostics" in _property_names(object))
+		assert_false("bluff_reason" in _property_names(object))
+
+
 func _property_names(object: Object) -> Array[StringName]:
 	var names: Array[StringName] = []
 	for property: Dictionary in object.get_property_list():
