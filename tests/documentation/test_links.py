@@ -5,6 +5,7 @@ import contextlib
 import importlib.util
 import io
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -57,6 +58,45 @@ class DocumentationLinksTests(unittest.TestCase):
         status, output = self.check_document('[evidence](localtmp/old.png)\n')
         self.assertEqual(status, 0)
         self.assertIn('Unavailable local-only evidence', output)
+
+    def test_missing_artifacts_remain_errors(self):
+        status, output = self.check_document('[evidence](artifacts/old.json)\n')
+        self.assertEqual(status, 1)
+        self.assertIn('Missing target', output)
+
+    def test_repository_links_work_without_untracked_or_ignored_files(self):
+        repository = Path(__file__).resolve().parents[2]
+        tracked = subprocess.run(
+            ['git', 'ls-files', '--cached', '-z'], cwd=repository,
+            check=True, capture_output=True,
+        ).stdout.decode('utf-8').split('\0')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            # Copy working-tree Markdown for anchors and changed documentation.
+            # Other tracked targets only need to exist for this link checker.
+            # Never copy ignored reports, caches, or untracked local evidence.
+            for name in filter(None, tracked):
+                source = repository / name
+                if not source.is_file():
+                    continue
+                destination = root / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if source.suffix == '.md':
+                    destination.write_text(source.read_text())
+                else:
+                    destination.touch()
+            self.assertFalse((root / 'artifacts').exists())
+            self.assertFalse((root / 'localtmp').exists())
+            original = CHECK.ROOT
+            CHECK.ROOT = root
+            output = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+                    status = CHECK.main()
+            finally:
+                CHECK.ROOT = original
+            self.assertEqual(status, 0, output.getvalue())
+            self.assertNotIn('Unavailable local-only evidence', output.getvalue())
 
     def test_unclosed_fence_fails(self):
         status, output = self.check_document('```text\nunclosed\n')

@@ -325,13 +325,21 @@ or the 30/10/20 accounting to avoid asking about a real blocker.
 
 ## Execution evidence
 
+These entries preserve the chronological history, including superseded inputs.
+Paths marked **local-only** identify session files excluded from Git; they are
+historical references, not portable evidence links. The tracked
+[campaign record](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/README.md)
+contains the final frozen campaign, both original round comparisons, human
+selection, publication provenance and verification. Use those records from a
+fresh checkout; reproducing documentation checks requires no session files.
+
 ### BRE-00 — verified 2026-11-01
 
 The existing evolution suite passes 114 tests. The Godot 4.7.2 simulation CLI
 exported and validated a nine-player baseline. All ten incumbent parameter
 snapshots match original lineage; the catalog contains exactly 10 published,
-five hand-authored strategic and three legacy profiles. See the tracked
-[preflight inventory](../artifacts/bot_roster_expansion_20261101/preflight/README.md).
+five hand-authored strategic and three legacy profiles. See the
+preflight inventory (local-only `artifacts/bot_roster_expansion_20261101/preflight/README.md`).
 
 Eight disjoint confirmation benchmarks are frozen there, including one
 actually selected Milestone 5 smoke champion. Its small historical sample is
@@ -345,7 +353,7 @@ campaign evidence for all ranking and confirmation.
 
 `tools/roster-campaign prepare` and `validate` create and verify an immutable
 campaign ledger using the existing artifact/no-clobber infrastructure.
-[Prepared inputs](../artifacts/bot_roster_expansion_20261101/prepared/campaign.json)
+Prepared inputs (local-only `artifacts/bot_roster_expansion_20261101/prepared/campaign.json`)
 bind the actual incumbent ancestry, aliases, fixed benchmark snapshots, seed
 reservations and cutoff/resource configuration. Later campaign stages fail
 closed until their evidence validators are implemented.
@@ -361,13 +369,13 @@ the last additional shared-benchmark test; the final focused twelve pass.
 
 ### BRE-02 — verified 2026-11-01
 
-The [original, superseded 30-contender ledger](../artifacts/bot_roster_expansion_20261101/candidates/campaign.json)
+The original, superseded 30-contender ledger (local-only `artifacts/bot_roster_expansion_20261101/candidates/campaign.json`)
 preserves all ten incumbents and adds ten broadly initialized profiles and ten
 incumbent descendants. `tools/roster-campaign generate-candidates` reuses
 `initialize_generation`; an explicit `campaign_mutation_v1` binds each archival
 parent, seeded delta, bounds and resulting genes without fabricating an old
 selection artifact. All creation attempts and name/parent/parameter labels are
-retained in the [generation artifact](../artifacts/bot_roster_expansion_20261101/candidates/candidate_generation.json).
+retained in the generation artifact (local-only `artifacts/bot_roster_expansion_20261101/candidates/candidate_generation.json`).
 
 All 30 contender vectors and names are unique; new vectors meet the L1 >=10
 strategic-benchmark gate and the initialized set covers both low and high
@@ -380,9 +388,9 @@ simulations have run.
 
 Before any campaign simulation ran, the user excluded legacy models and
 confirmed that the five hand-authored strategic bots must never be eliminated.
-The [corrected inventory](../artifacts/bot_roster_expansion_20261101/strategic_preflight/README.md),
-[prepared ledger](../artifacts/bot_roster_expansion_20261101/strategic_prepared/campaign.json)
-and [frozen contenders](../artifacts/bot_roster_expansion_20261101/strategic_candidates/campaign.json)
+The corrected inventory (local-only `artifacts/bot_roster_expansion_20261101/strategic_preflight/README.md`),
+prepared ledger (local-only `artifacts/bot_roster_expansion_20261101/strategic_prepared/campaign.json`)
+and frozen contenders (local-only `artifacts/bot_roster_expansion_20261101/strategic_candidates/campaign.json`)
 supersede the earlier unrun inputs. The earlier full-catalog export is an
 inventory snapshot, not a runnable campaign baseline. Tests and execution must
 use the corrected strategic-only inputs. There are still exactly 30 contenders
@@ -392,8 +400,8 @@ for 20 published slots; the five protected controls remain additional.
 
 The scheduler ports the existing roster exporter's difference-cover/cyclic
 translation algorithm to SplitMix64 without changing the product roster cap or
-Godot runner. Its independently audited [round-one manifest](../artifacts/bot_roster_expansion_20261101/round1/manifest.json)
-and [fairness certificate](../artifacts/bot_roster_expansion_20261101/round1/fairness.json)
+Godot runner. Its independently audited round-one manifest (local-only `artifacts/bot_roster_expansion_20261101/round1/manifest.json`)
+and fairness certificate (local-only `artifacts/bot_roster_expansion_20261101/round1/fairness.json`)
 give all 35 strategic profiles exactly 8,100 appearances and 900 in each
 starting seat. All 595 opponent pairs occur, with 900–4,500 shared tournaments
 per pair. The round-two 30-participant construction is fixture-verified with
@@ -404,7 +412,7 @@ Eleven focused schedule tests pass, including missing pair coverage, unequal
 seats, missing/duplicate participants and tables, illegal starting counts,
 legacy exclusion and seed overflow. The actual 36-tournament nine-player pilot
 completed with winner termination throughout; its measured
-[throughput and provenance](../artifacts/bot_roster_expansion_20261101/round1/pilot_metrics.json)
+throughput and provenance (local-only `artifacts/bot_roster_expansion_20261101/round1/pilot_metrics.json`)
 are separate from selection evidence. It took 10.98 seconds (~3.28 tournaments/s)
 and wrote ~11 KB/report tournament. Serial estimates are 2.67 hours for round
 one, 4.58 for round two and 3.05 for base confirmation, before optional full-round
@@ -417,13 +425,13 @@ and retain checkpoints instead of losing this work on interruption.
 ### Reduced budgets — verified 2026-11-01
 
 The user requested one third as many tournaments before either competition
-round ran. New [prepared inputs](../artifacts/bot_roster_expansion_20261101/reduced_prepared/campaign.json),
-[frozen contenders](../artifacts/bot_roster_expansion_20261101/reduced_candidates/campaign.json)
-and [round-one manifest](../artifacts/bot_roster_expansion_20261101/reduced_round1/manifest.json)
+round ran. New prepared inputs (local-only `artifacts/bot_roster_expansion_20261101/reduced_prepared/campaign.json`),
+frozen contenders (local-only `artifacts/bot_roster_expansion_20261101/reduced_candidates/campaign.json`)
+and round-one manifest (local-only `artifacts/bot_roster_expansion_20261101/reduced_round1/manifest.json`)
 replace all earlier unrun preparation. All genes and intended names are
 unchanged; descendant identities bind the corrected frozen configuration.
 
-The new [fairness certificate](../artifacts/bot_roster_expansion_20261101/reduced_round1/fairness.json)
+The new fairness certificate (local-only `artifacts/bot_roster_expansion_20261101/reduced_round1/fairness.json`)
 records 10,395 tournaments, 2,673 appearances/profile, 297/profile/seat and all
 595 pairs covered (297–1,485 shared tournaments per pair). Round two uses
 17,820 tournaments and 5,346 appearances/profile. Independent confirmation
@@ -466,7 +474,7 @@ nine appearances per player and all 595 pairs (35 once, 455 twice, 105 thrice).
 The same cyclic-shift method is retained for 30 participants with a validated
 30-player seed; no actual round-two campaign manifest has been generated.
 
-The [complete round-one review package](../localtmp/bot_roster_expansion_20261101/round1_review/REVIEW.md)
+The complete round-one review package (local-only `localtmp/bot_roster_expansion_20261101/round1_review/REVIEW.md`)
 contains the CLI manifest, full 0–34 identity mapping, all 35 numeric tables,
 counts and independent fairness certificate. Its manifest checksum is
 `d6a3520a07a83dad456dd1a2f14656e801639f6bd95009ed3c9ed28b10588d7b`.
@@ -535,14 +543,14 @@ LAN test ports; the permitted full run succeeded. See session log
 
 The user explicitly approved starting the displayed round-one manifest and
 requested its results plus preparation of round two. Approval is recorded in
-[the user approval record](../localtmp/bot_roster_expansion_20261101/round1_review/user_approval.json)
+the user approval record (local-only `localtmp/bot_roster_expansion_20261101/round1_review/user_approval.json`)
 for checksum `d6a3520a07a83dad456dd1a2f14656e801639f6bd95009ed3c9ed28b10588d7b`.
 Round-two execution still requires separate explicit approval after review.
 
 ### BRE-06 — completed and verified 2026-11-01
 
 All 10,395 approved tournaments completed through four existing Godot CLI
-shards and passed readiness validation. The [verified comparison](../localtmp/bot_roster_expansion_20261101/round1_comparison/comparison.json)
+shards and passed readiness validation. The [verified comparison](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json)
 confirms equal 2,673 appearances/profile, 297 observations/seat, all 595 pairs
 covered and zero invalid-action fallbacks. Exactly five contenders were
 rejected: Crimson Surge, Golden Veil, Silver Compass, Saffron Echo and Phantom
@@ -557,9 +565,9 @@ and shown for separate approval before any round-two execution.
 
 ### Actual round-two manifest — prepared 2026-11-01; subsequently approved and executed
 
-The [round-one results](../localtmp/bot_roster_expansion_20261101/round1_comparison/RESULTS.md)
+The [round-one results](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json)
 show all thirty rankings and the five rejections. The
-[round-two review](../localtmp/bot_roster_expansion_20261101/round2_review/REVIEW.md)
+round-two review (local-only `localtmp/bot_roster_expansion_20261101/round2_review/REVIEW.md`)
 was generated only after revalidating the actual first-round comparison
 `b78a5cf393456f18b976a77a238e69bc7e75b1e16961aabf67fb24ea52514b1a`.
 Its complete manifest checksum is
@@ -582,7 +590,7 @@ producer, shard, source-provenance and fairness checks. Each of thirty
 participants received 5,346 games and 594 starts in each seat; all 435 pairs
 meet and invalid-action fallbacks are zero. The five additional rejections and
 all twenty finalists are recorded in the
-[round-two results](../localtmp/bot_roster_expansion_20261101/round2_comparison/RESULTS.md).
+[round-two results](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round2_comparison.json).
 Exactly ten distinct contenders have been rejected across the two rounds;
 protected hand-authored bots remain outside elimination. No extension games
 were run. Independent publication eligibility is recorded under BRE-08 below.
@@ -595,8 +603,8 @@ batch, two batches per finalist, 11,880 tournaments total. The same eight
 strategic benchmarks were used for every finalist. The full campaign completed
 40,095 tournaments excluding its throughput pilot.
 
-The [confirmation report](../localtmp/bot_roster_expansion_20261101/promotion_review/REVIEW.md)
-and its linked immutable evidence show one eligible finalist, Jade Undertow,
+The [archived confirmation assessments](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/strict_confirmation_assessments.json)
+summarize the original immutable evidence: one eligible finalist, Jade Undertow,
 and 19 failures of `performance_not_demonstrated` under
 `nine_player_promotion_v1`. Ten have a negative estimated advantage against at
 least one benchmark; nine fail solely because positive estimates lack positive
@@ -636,8 +644,9 @@ policy must never rewrite those results as passing confirmation or change the
 existing strict validators. Publication and activation require validated,
 checksummed records of the exact selection and explicit user authorization.
 
-The [revised selection review](../localtmp/bot_roster_expansion_20261101/revised_selection/REVIEW.md)
-contains all twenty resource previews and the original round-two ranks. Final
+The [revised selection](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/selection.json)
+contains all twenty identities, names, parameters and original round-two ranks.
+Resource previews remain local-only session files. Final
 publication evidence belongs under
 `resources/bot_profiles/campaigns/bot_roster_expansion_20261101/`; temporary
 reports and previews remain in `localtmp/`. No additional games are needed
@@ -693,3 +702,12 @@ so the full rerun was stopped and the final scoped core/simulation suite was
 used. This record does not claim the initial full run passed. Logs are under
 `localtmp/bot_roster_expansion_20261101/revised_selection/`. Documentation and
 tracked campaign links were checked; temporary evidence is not a test dependency.
+
+### Documentation portability — corrected 2026-11-01
+
+Historical session artifacts are identified as local-only paths rather than
+repository links. Current evidence links target the tracked campaign record.
+The documentation regression suite builds a snapshot from Git-tracked paths
+using current Markdown contents, without ignored or untracked files, and checks
+all current documentation links there. Missing `artifacts/` targets remain
+errors; the checker has not been weakened to ignore them.
