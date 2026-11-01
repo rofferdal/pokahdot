@@ -192,6 +192,9 @@ the table. Phone layouts also expose wager presets in the number pad.
 
 ### Bot roster selection
 
+See the [strategic bot profile reference](devdocs/reference/strategic-bot-profiles.md)
+for every profile's display name, parameters and expected playing tendencies.
+
 Standard GUI and CLI games select strategic `StrategyDecisionModel` profiles
 only. To include legacy heuristic models in an interactive CLI game, pass this
 flag after Godot's `--` argument separator:

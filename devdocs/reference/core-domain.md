@@ -199,6 +199,8 @@ distinct from the conventional Pot Limit post-call formula `H + P + 2C`.
 
 ### `PlayableBotRoster` (`scripts/core/agents/playable_bot_roster.gd`)
 The centralized, curated bot catalog used by GUI and CLI presentation layers.
+See [Strategic Bot Profiles](strategic-bot-profiles.md) for the exact parameter
+values and behavioral interpretation of each active and historical profile.
 
 - **Constants**:
   - `ROSTER_VERSION: StringName`: Current catalog release version (`&"curated_v3"`); 25 strategic profiles and three optional legacy profiles.

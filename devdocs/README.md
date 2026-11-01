@@ -61,6 +61,7 @@ Descriptions of system machinery, architecture, and APIs. The
 [ARCHITECTURE.md](../docs/ARCHITECTURE.md) owns implementation decisions.
 - **[Architecture Reference](reference/architecture.md)**: An instructive guide to Pokahdot's layered architecture, module boundaries, composition roots, and the external profile-evolution subsystem.
 - **[Core Domain Reference](reference/core-domain.md)**: Reference guide to key domain classes (`TournamentMatch`, `HandController`, `BettingRound`, `PotManager`, `GameView`, `PlayerAction`, `PlayableBotRoster`).
+- **[Strategic Bot Profiles](reference/strategic-bot-profiles.md)**: Every active strategic profile by display name, its four parameters and expected behavior; historical inactive profiles are listed separately.
 - **[GUI Composition](reference/gui-composition.md)**: Scene ownership, reusable
   controls, detached presentation models, measured responsive layouts, input
   and overlay lifetimes, and extension/testing guidance.
