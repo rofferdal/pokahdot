@@ -21,7 +21,7 @@ The v1 boundary is one single-table tournament with 2–9 participants, equal st
 
 ## Simulation-selected roster expansion (2026-11-01)
 
-[BRE-00–11](BotRosterExpansionTasks.md) plans a 30-contender, two-round
+[BRE-00–11](arkiv/BotRosterExpansionTasks.md) plans a 30-contender, two-round
 campaign producing 20 published strategic survivors plus the five
 hand-authored strategic profiles. BRE-00–03A preflight, immutable ledger
 preparation, candidate generation, confirmation policy and

@@ -135,7 +135,7 @@ pair-count spread, and completed seat/tournament counts. An arbitrary seed is
 not automatically balanced. The campaign implementation and independent audit
 are in [`campaign_schedule.py`](../tools/profile_evolution/campaign_schedule.py).
 
-The [roster expansion](BotRosterExpansionTasks.md) has two competitive
+The [roster expansion](arkiv/BotRosterExpansionTasks.md) has two competitive
 manifests: 35 participants and 35 matchups in round one, then 30 and 30 in
 round two. Legacy-model bots are excluded; the five hand-authored strategic
 profiles participate as protected controls and cannot be eliminated. Generate

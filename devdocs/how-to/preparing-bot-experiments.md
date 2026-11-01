@@ -155,7 +155,7 @@ command makes or finalizes reviewer decisions.
 
 ## Nine-player roster campaign preparation
 
-The separate [roster expansion backlog](../../docs/BotRosterExpansionTasks.md)
+The separate [roster expansion backlog](../../docs/arkiv/BotRosterExpansionTasks.md)
 requires nine-player starts throughout. Its ledger preparation, candidate generation and cyclic scheduling are
 implemented. Competitive execution requires the user's explicit approval of
 the exact manifest; roster activation remains a later task.

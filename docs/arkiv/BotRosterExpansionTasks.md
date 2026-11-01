@@ -5,7 +5,7 @@ is published and active as `curated_v3`: Amber Horizon replaces Copper-Blaze
 Venture. The catalog has 25 strategic profiles and three optional legacy
 profiles. BRE-11 final verification is complete under the current scoped-test
 instructions in `AGENTS.md`.
-Created: 2026-11-01. Owner: this backlog, indexed by [docs/README](README.md).
+Created: 2026-11-01. Owner: this backlog, indexed by [docs/README](../README.md).
 
 ## Outcome and boundaries
 
@@ -26,10 +26,10 @@ Use the current `street_response_v3` policy and freeze executable provenance
 for the campaign. Do not reuse pre-policy performance scores. No game-rule,
 GUI, interactive CLI, or strategic-capacity changes are planned.
 
-References: [product specification](ProjectDescription.md),
-[architecture](ARCHITECTURE.md), [simulation contract](Simulation_And_Evolutionary_Bot_Strategy.md),
-[experiment preparation](../devdocs/how-to/preparing-bot-experiments.md), and
-[publication workflow](../devdocs/how-to/replacing-in-game-bot-profiles.md).
+References: [product specification](../ProjectDescription.md),
+[architecture](../ARCHITECTURE.md), [simulation contract](../Simulation_And_Evolutionary_Bot_Strategy.md),
+[experiment preparation](../../devdocs/how-to/preparing-bot-experiments.md), and
+[publication workflow](../../devdocs/how-to/replacing-in-game-bot-profiles.md).
 
 ## Fairness contract
 
@@ -301,7 +301,7 @@ BRE-07, and the consolidated promotion review at BRE-09. Manifest approval
 binds the exact checksum, matchup schedule and tournament budget; changed
 inputs require new approval. A continuation instruction is not approval of a
 manifest the user has not yet reviewed. The
-[existing publication workflow](../devdocs/how-to/replacing-in-game-bot-profiles.md#step-3-conduct-one-consolidated-human-promotion-review)
+[existing publication workflow](../../devdocs/how-to/replacing-in-game-bot-profiles.md#step-3-conduct-one-consolidated-human-promotion-review)
 requires explicit independent human approve/reject decisions; the execution
 agent must not fill those decisions itself. Present one combined review pack,
 not 20 separate interruptions. Review includes names and game roster activation
@@ -328,7 +328,7 @@ or the 30/10/20 accounting to avoid asking about a real blocker.
 These entries preserve the chronological history, including superseded inputs.
 Paths marked **local-only** identify session files excluded from Git; they are
 historical references, not portable evidence links. The tracked
-[campaign record](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/README.md)
+[campaign record](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/README.md)
 contains the final frozen campaign, both original round comparisons, human
 selection, publication provenance and verification. Use those records from a
 fresh checkout; reproducing documentation checks requires no session files.
@@ -550,7 +550,7 @@ Round-two execution still requires separate explicit approval after review.
 ### BRE-06 — completed and verified 2026-11-01
 
 All 10,395 approved tournaments completed through four existing Godot CLI
-shards and passed readiness validation. The [verified comparison](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json)
+shards and passed readiness validation. The [verified comparison](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json)
 confirms equal 2,673 appearances/profile, 297 observations/seat, all 595 pairs
 covered and zero invalid-action fallbacks. Exactly five contenders were
 rejected: Crimson Surge, Golden Veil, Silver Compass, Saffron Echo and Phantom
@@ -565,7 +565,7 @@ and shown for separate approval before any round-two execution.
 
 ### Actual round-two manifest — prepared 2026-11-01; subsequently approved and executed
 
-The [round-one results](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json)
+The [round-one results](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json)
 show all thirty rankings and the five rejections. The
 round-two review (local-only `localtmp/bot_roster_expansion_20261101/round2_review/REVIEW.md`)
 was generated only after revalidating the actual first-round comparison
@@ -590,7 +590,7 @@ producer, shard, source-provenance and fairness checks. Each of thirty
 participants received 5,346 games and 594 starts in each seat; all 435 pairs
 meet and invalid-action fallbacks are zero. The five additional rejections and
 all twenty finalists are recorded in the
-[round-two results](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round2_comparison.json).
+[round-two results](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round2_comparison.json).
 Exactly ten distinct contenders have been rejected across the two rounds;
 protected hand-authored bots remain outside elimination. No extension games
 were run. Independent publication eligibility is recorded under BRE-08 below.
@@ -603,7 +603,7 @@ batch, two batches per finalist, 11,880 tournaments total. The same eight
 strategic benchmarks were used for every finalist. The full campaign completed
 40,095 tournaments excluding its throughput pilot.
 
-The [archived confirmation assessments](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/strict_confirmation_assessments.json)
+The [archived confirmation assessments](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/strict_confirmation_assessments.json)
 summarize the original immutable evidence: one eligible finalist, Jade Undertow,
 and 19 failures of `performance_not_demonstrated` under
 `nine_player_promotion_v1`. Ten have a negative estimated advantage against at
@@ -644,7 +644,7 @@ policy must never rewrite those results as passing confirmation or change the
 existing strict validators. Publication and activation require validated,
 checksummed records of the exact selection and explicit user authorization.
 
-The [revised selection](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/selection.json)
+The [revised selection](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/selection.json)
 contains all twenty identities, names, parameters and original round-two ranks.
 Resource previews remain local-only session files. Final
 publication evidence belongs under
@@ -654,7 +654,7 @@ for the authorized policy amendment.
 
 ### BRE-09–10 — reviewed, published and activated, 2026-11-01
 
-The [human publication review](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/human_publication_review.json)
+The [human publication review](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/human_publication_review.json)
 records the user's exact twenty-profile selection and explicit replacement of
 the strict performance gate under `campaign_human_selection_publication_v1`.
 Its checksum is
@@ -662,7 +662,7 @@ Its checksum is
 Raw round-one and round-two evidence was independently revalidated before
 publication. The original comparison and confirmation results remain intact.
 
-The [publication result](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/publication_result.json)
+The [publication result](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/publication_result.json)
 binds fourteen new immutable Resources, six retained incumbent Resources and
 all twenty policy-specific provenance sidecars. The shared GUI/CLI roster is
 `curated_v3`, containing exactly these twenty, the five protected hand-authored
@@ -673,14 +673,14 @@ Removed incumbent Resources remain historical files.
 Roster, manifest and GUI/CLI composition checks pass 49 tests and 1,566
 assertions; see `localtmp/roster_activation_post.log`. Full verification and
 the post-activation baseline remain BRE-11 work. The
-[tracked campaign record](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/README.md)
+[tracked campaign record](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/README.md)
 describes evidence boundaries and replay inputs.
 
 ### BRE-11 — completed and verified 2026-11-01
 
-The [final roster](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/FINAL_ROSTER.md),
-[thirty-contender ledger](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/final_outcomes.json)
-and [verification record](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/verification.json)
+The [final roster](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/FINAL_ROSTER.md),
+[thirty-contender ledger](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/final_outcomes.json)
+and [verification record](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/verification.json)
 preserve exact membership, names, lineage, all ten rejections and publication
 hashes. Every published resource matches its approved snapshot; six incumbent
 resources remain unchanged. The strategic-only baseline contains 25 profiles,

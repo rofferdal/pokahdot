@@ -257,7 +257,7 @@ artifacts easy to distinguish.
 
 ## Nine-player campaign publication
 
-The [roster expansion campaign](../../docs/BotRosterExpansionTasks.md) uses
+The [roster expansion campaign](../../docs/arkiv/BotRosterExpansionTasks.md) uses
 `nine_player_promotion_v1` instead of the heads-up confirmation workflow above.
 It still requires independent confirmation and consolidated human review:
 two nine-player batches, 297 tournaments per batch and 33 candidate samples

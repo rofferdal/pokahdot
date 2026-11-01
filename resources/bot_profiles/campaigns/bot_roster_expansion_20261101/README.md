@@ -66,7 +66,7 @@ separate source-controlled membership in
 [`PlayableBotRoster`](../../../../scripts/core/agents/playable_bot_roster.gd).
 Tests generate temporary inputs from tracked fixtures and never require this
 session's `localtmp/` reports. See the
-[owning backlog](../../../../docs/BotRosterExpansionTasks.md) for task status,
+[owning backlog](../../../../docs/arkiv/BotRosterExpansionTasks.md) for task status,
 validation evidence and the full decision history.
 
 The [strategic baseline](strategic_baseline.json) contains the 25 active strategic

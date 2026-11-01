@@ -22,14 +22,19 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
-- [`BotBluffSizingTasks.md`](BotBluffSizingTasks.md) — complete: minimum-sized bluffs preferred (80%), with a 20% chance of a larger legal target; 432 core/simulation tests pass.
-
-- [`BotRosterExpansionTasks.md`](BotRosterExpansionTasks.md) — BRE-00–11 verified; the user-approved twenty-profile roster is published and active as `curated_v3` (25 strategic profiles, 28 entries total). Scoped final verification is complete.
-  Automate fair two-round selection of 20 published strategic profiles from
-  30 contenders, with equal participation, complete opponent coverage, explicit approval of both competitive manifests, one
-  consolidated human promotion review, and activation in the game roster.
+No active task backlogs are currently listed. Completed work is indexed below.
 
 ## Archived task records
+
+- [`arkiv/BotBluffSizingTasks.md`](arkiv/BotBluffSizingTasks.md) — complete:
+  minimum-sized bluffs preferred (80%), with a 20% chance of a larger legal
+  target; 432 core/simulation tests pass.
+
+- [`arkiv/BotRosterExpansionTasks.md`](arkiv/BotRosterExpansionTasks.md) —
+  complete: BRE-00–11 verified. The user-approved twenty-profile roster is
+  published and active as `curated_v3` (25 strategic profiles, 28 entries total).
+  Includes both competitions, independent confirmation, human selection and
+  publication evidence.
 
 - [`arkiv/BotFoldVsCallAfterRaisesTasks.md`](arkiv/BotFoldVsCallAfterRaisesTasks.md) —
   complete: BFCR-00–10. The v3 follow-up restores context-sensitive re-raising
