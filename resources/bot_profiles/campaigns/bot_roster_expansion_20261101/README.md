@@ -8,6 +8,10 @@ are retained and fourteen new Resources are published.
 
 ## Publication policy and evidence
 
+This directory contains development evidence and is excluded from Web game
+packs. Publication provenance JSON is also excluded. The playable `.tres`
+profiles remain runtime resources; their roster membership is unchanged.
+
 The explicit policy is `campaign_human_selection_publication_v1`. The user
 approved the revised selection and publication in place of the strict
 benchmark-performance gate. This is a human selection decision, not a claim

@@ -480,6 +480,10 @@ to `main` automatically validates that commit through the same shared jobs,
 then exports and deploys only after every check passes; follow
 [`docs/OPTIONAL_WEB_SETUP.md`](docs/OPTIONAL_WEB_SETUP.md).
 
+Web exports omit bot campaign evidence and publication provenance JSON while
+retaining the playable `.tres` profiles. Those evidence files remain in Git
+for review and reproducibility.
+
 ## Local Wi-Fi testing
 
 Build and serve the production game from your working tree before merging or

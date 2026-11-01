@@ -711,3 +711,17 @@ The documentation regression suite builds a snapshot from Git-tracked paths
 using current Markdown contents, without ignored or untracked files, and checks
 all current documentation links there. Missing `artifacts/` targets remain
 errors; the checker has not been weakened to ignore them.
+
+### Web release packaging — corrected 2026-11-01
+
+Campaign evidence JSON was included by the Web preset's `all_resources`
+export. Embedded local report paths then triggered the existing release-pack
+check. The preset now excludes the campaign evidence directory and publication
+provenance JSON while retaining every playable `.tres` profile. These evidence
+files remain tracked for review. The release-content check is unchanged.
+
+A fresh Web release export passes `make verify-web-release-output`; all 28
+playable profile entries are present, with no campaign evidence, provenance
+JSON or forbidden development-path strings. Five focused export/release tests
+and ten LAN build tests pass. Reproduction logs and exports are local-only
+under `localtmp/web-release-pack-fix/`; runtime bot behavior is unchanged.

@@ -88,8 +88,11 @@ machine-local secret, so it belongs in version control.
 5. Keep the committed recursive exclusions for `addons/`, `tests/`,
    `localtmp/`, and `artifacts/`, together with the root test-harness files.
    Godot's patterns need both the direct-child and recursive forms to exclude
-   every depth. The game must still include the production content under
-   `scenes/`, `scripts/`, `resources/`, and `assets/`.
+   every depth. Also exclude `resources/bot_profiles/campaigns/` recursively
+   and `resources/bot_profiles/published/*.provenance.json`: these are tracked
+   development evidence, not runtime data. Their JSON can contain local report
+   paths that trigger the release pack's development-content check. Keep the
+   playable `.tres` bot profiles and production scenes, scripts and assets.
 6. In the Web preset, ensure **Use Threads** is disabled. Leave Progressive
    Web App disabled unless the team explicitly decides to support offline
    installation and documents its cache/update behaviour.

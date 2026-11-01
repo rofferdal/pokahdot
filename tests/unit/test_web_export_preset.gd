@@ -38,9 +38,9 @@ func test_web_release_preset_excludes_development_content_and_is_single_threaded
 func test_bot_campaign_evidence_is_excluded_without_removing_playable_profiles() -> void:
 	var export_presets := ConfigFile.new()
 	assert_eq(export_presets.load(WEB_PRESET_PATH), OK)
-	var patterns: PackedStringArray = String(
-		export_presets.get_value(WEB_PRESET_SECTION, "exclude_filter")
-	).split(",")
+	var patterns: PackedStringArray = (
+		String(export_presets.get_value(WEB_PRESET_SECTION, "exclude_filter")).split(",")
+	)
 	for evidence: String in [
 		"resources/bot_profiles/campaigns/bot_roster_expansion_20261101/campaign.json",
 		"resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json",
