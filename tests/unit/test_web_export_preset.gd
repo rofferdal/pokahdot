@@ -17,7 +17,9 @@ func test_web_release_preset_excludes_development_content_and_is_single_threaded
 		export_presets.get_value(WEB_PRESET_SECTION, "exclude_filter"),
 		(
 			"addons/*,addons/**/*,tests/*,tests/**/*,localtmp/*,localtmp/**/*,"
-			+ "artifacts/*,artifacts/**/*,.gutconfig.json"
+			+ "artifacts/*,artifacts/**/*,resources/bot_profiles/campaigns/*,"
+			+ "resources/bot_profiles/campaigns/**/*,"
+			+ "resources/bot_profiles/published/*.provenance.json,.gutconfig.json"
 		)
 	)
 	assert_false(
@@ -31,3 +33,29 @@ func test_web_release_preset_excludes_development_content_and_is_single_threaded
 	)
 	assert_eq(export_presets.get_value(WEB_OPTIONS_SECTION, "custom_template/debug"), "")
 	assert_eq(export_presets.get_value(WEB_OPTIONS_SECTION, "custom_template/release"), "")
+
+
+func test_bot_campaign_evidence_is_excluded_without_removing_playable_profiles() -> void:
+	var export_presets := ConfigFile.new()
+	assert_eq(export_presets.load(WEB_PRESET_PATH), OK)
+	var patterns: PackedStringArray = String(
+		export_presets.get_value(WEB_PRESET_SECTION, "exclude_filter")
+	).split(",")
+	for evidence: String in [
+		"resources/bot_profiles/campaigns/bot_roster_expansion_20261101/campaign.json",
+		"resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round1_comparison.json",
+		"resources/bot_profiles/campaigns/bot_roster_expansion_20261101/round2_comparison.json",
+		"resources/bot_profiles/published/example.campaign_20261101.provenance.json",
+		"resources/bot_profiles/published/example.provenance.json",
+	]:
+		assert_true(_matches_exclusion(evidence, patterns), evidence)
+	for profile_path: String in PlayableBotRoster.DEFAULT_PROFILE_PATHS:
+		var relative_path := profile_path.trim_prefix("res://")
+		assert_false(_matches_exclusion(relative_path, patterns), relative_path)
+
+
+func _matches_exclusion(path: String, patterns: PackedStringArray) -> bool:
+	for pattern: String in patterns:
+		if path.match(pattern):
+			return true
+	return false
