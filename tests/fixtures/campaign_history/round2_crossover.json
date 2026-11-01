@@ -1,0 +1,180 @@
+{
+    "checksum": "a112a819cd38b374f5c2dd7f59d32872a38d6de664a44465c8a9722676bf2fa6",
+    "payload": {
+        "bounds": {
+            "genes": {
+                "bluff_rate": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "call_vs_raise": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "passive_vs_aggressive": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "tight_vs_loose": {
+                    "maximum": 100,
+                    "minimum": 0
+                }
+            }
+        },
+        "candidates": [
+            {
+                "candidate_id": "candidate_g1_0000_6b3df9fafcc972c3",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 44,
+                    "call_vs_raise": 44,
+                    "passive_vs_aggressive": 70,
+                    "tight_vs_loose": 13
+                },
+                "parent_ids": [
+                    "candidate_g0_0009_292e08a42fe29566",
+                    "candidate_g0_0005_7e36a0b114c9dcaf"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_0001_d86ceb9f3da208e8",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 44,
+                    "call_vs_raise": 44,
+                    "passive_vs_aggressive": 70,
+                    "tight_vs_loose": 73
+                },
+                "parent_ids": [
+                    "candidate_g0_0009_292e08a42fe29566",
+                    "candidate_g0_0005_7e36a0b114c9dcaf"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_0002_63bf03d8b9615695",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 44,
+                    "call_vs_raise": 44,
+                    "passive_vs_aggressive": 70,
+                    "tight_vs_loose": 73
+                },
+                "parent_ids": [
+                    "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "candidate_g0_0009_292e08a42fe29566"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_0003_31815e07eb7d2390",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 44,
+                    "call_vs_raise": 44,
+                    "passive_vs_aggressive": 44,
+                    "tight_vs_loose": 73
+                },
+                "parent_ids": [
+                    "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "candidate_g0_0009_292e08a42fe29566"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_0004_7cda30fdd0ebdd07",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 88,
+                    "call_vs_raise": 44,
+                    "passive_vs_aggressive": 70,
+                    "tight_vs_loose": 73
+                },
+                "parent_ids": [
+                    "candidate_g0_0009_292e08a42fe29566",
+                    "candidate_g0_0005_7e36a0b114c9dcaf"
+                ]
+            }
+        ],
+        "creation_records": [
+            {
+                "candidate_id": "candidate_g1_0000_6b3df9fafcc972c3",
+                "gene_sources": {
+                    "bluff_rate": "candidate_g0_0009_292e08a42fe29566",
+                    "call_vs_raise": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "passive_vs_aggressive": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "tight_vs_loose": "candidate_g0_0005_7e36a0b114c9dcaf"
+                },
+                "operation": "crossover",
+                "parent_ids": [
+                    "candidate_g0_0009_292e08a42fe29566",
+                    "candidate_g0_0005_7e36a0b114c9dcaf"
+                ],
+                "seed": 863402
+            },
+            {
+                "candidate_id": "candidate_g1_0001_d86ceb9f3da208e8",
+                "gene_sources": {
+                    "bluff_rate": "candidate_g0_0009_292e08a42fe29566",
+                    "call_vs_raise": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "passive_vs_aggressive": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "tight_vs_loose": "candidate_g0_0009_292e08a42fe29566"
+                },
+                "operation": "crossover",
+                "parent_ids": [
+                    "candidate_g0_0009_292e08a42fe29566",
+                    "candidate_g0_0005_7e36a0b114c9dcaf"
+                ],
+                "seed": 863402
+            },
+            {
+                "candidate_id": "candidate_g1_0002_63bf03d8b9615695",
+                "gene_sources": {
+                    "bluff_rate": "candidate_g0_0009_292e08a42fe29566",
+                    "call_vs_raise": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "passive_vs_aggressive": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "tight_vs_loose": "candidate_g0_0009_292e08a42fe29566"
+                },
+                "operation": "crossover",
+                "parent_ids": [
+                    "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "candidate_g0_0009_292e08a42fe29566"
+                ],
+                "seed": 863402
+            },
+            {
+                "candidate_id": "candidate_g1_0003_31815e07eb7d2390",
+                "gene_sources": {
+                    "bluff_rate": "candidate_g0_0009_292e08a42fe29566",
+                    "call_vs_raise": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "passive_vs_aggressive": "candidate_g0_0009_292e08a42fe29566",
+                    "tight_vs_loose": "candidate_g0_0009_292e08a42fe29566"
+                },
+                "operation": "crossover",
+                "parent_ids": [
+                    "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "candidate_g0_0009_292e08a42fe29566"
+                ],
+                "seed": 863402
+            },
+            {
+                "candidate_id": "candidate_g1_0004_7cda30fdd0ebdd07",
+                "gene_sources": {
+                    "bluff_rate": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "call_vs_raise": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "passive_vs_aggressive": "candidate_g0_0005_7e36a0b114c9dcaf",
+                    "tight_vs_loose": "candidate_g0_0009_292e08a42fe29566"
+                },
+                "operation": "crossover",
+                "parent_ids": [
+                    "candidate_g0_0009_292e08a42fe29566",
+                    "candidate_g0_0005_7e36a0b114c9dcaf"
+                ],
+                "seed": 863402
+            }
+        ],
+        "generation": 1,
+        "generation_id": "generation_g1_selection_37678c81e9aa7d56",
+        "seed": 863402
+    },
+    "schema_version": 1,
+    "tool_version": "0.1.0",
+    "type": "candidate_batch"
+}

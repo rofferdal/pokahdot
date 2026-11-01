@@ -74,6 +74,79 @@ seat rotation once per complete block of `player_count` occurrences even when
 several matchups are interleaved. Sharding filters the already planned global
 indexes and never replans local indexes.
 
+### 2.2.1 Cyclic-shift matchup construction
+
+Cyclic shifts are a compact, reproducible way to specify many-player matchups
+when a simulation cohort is larger than one table. Freeze an ordered list of
+`N` profile snapshots and number them `0..N-1`. Choose a seed pattern containing
+nine distinct indexes in that range. Generate exactly `N` matchups:
+
+```text
+matchup[t] = [(seed[i] + t) % N for i in 0..8], for t in 0..N-1
+```
+
+Each shift replaces every index with the next index, wrapping at `N`. Every
+profile therefore appears in exactly nine matchups. Store all matchups in one
+schema-2 manifest and reference them in one evaluation plan; one matchup does
+not require its own manifest. Freeze the profile ordering, seed pattern and
+resulting manifest checksum together so replay preserves the same identities.
+
+For 35 participants, the roster expansion uses the verified seed:
+
+```text
+0, 1, 4, 6, 11, 17, 23, 31, 32
+```
+
+Its first three matchups are:
+
+```text
+0, 1, 4, 6, 11, 17, 23, 31, 32
+1, 2, 5, 7, 12, 18, 24, 32, 33
+2, 3, 6, 8, 13, 19, 25, 33, 34
+```
+
+All 595 unordered opponent pairs meet: 35 pairs share one matchup, 455 share
+two, and 105 share three. The largest pair count minus the smallest is two
+matchups. The same construction works modulo 30 for 30 participants and 30
+matchups, using a separately validated pattern such as
+`7, 14, 21, 0, 5, 24, 11, 6, 2`. That pattern covers all 435 opponent pairs:
+225 share two matchups and 210 share three. The campaign permits a maximum
+pair-matchup spread of two in BOTH rounds; this particular 30-player seed
+achieves the tighter spread of one without making it a requirement. Do not reduce the 35-player seed
+modulo 30 unchanged: it would produce a duplicate index.
+
+Matchup construction, tournament repetition and seat rotation are separate:
+
+- A **matchup** selects nine starting profiles using the pattern above.
+- Repeating every matchup the same number of times gives every profile the
+  same total tournament count. A 35-matchup plan with 297 tournaments per
+  matchup runs 10,395 tournaments and gives every profile 2,673 appearances.
+- The CLI's existing [cyclic seat rotation](#22-matchups-and-cyclic-seat-rotation)
+  changes starting seats within those repeated matchups. With 297 repetitions,
+  each table completes 33 nine-seat rotations, giving every profile 297
+  observations in each starting seat across its nine matchups.
+
+Pair counts above measure **distinct scheduled matchups**, not repeated games.
+With 297 repetitions, sharing one or three matchups means meeting in 297 or
+891 tournaments. Cyclic shifts guarantee equal appearances; a seed's spacing
+determines opponent coverage and balance. Independently audit distinct indexes,
+`N` matchups, nine appearances per profile, complete pair coverage, the permitted
+pair-count spread, and completed seat/tournament counts. An arbitrary seed is
+not automatically balanced. The campaign implementation and independent audit
+are in [`campaign_schedule.py`](../tools/profile_evolution/campaign_schedule.py).
+
+The [roster expansion](BotRosterExpansionTasks.md) has two competitive
+manifests: 35 participants and 35 matchups in round one, then 30 and 30 in
+round two. Legacy-model bots are excluded; the five hand-authored strategic
+profiles participate as protected controls and cannot be eliminated. Generate
+the actual round-two manifest only after validated round-one results identify
+the 25 surviving contenders. Shuffle the complete 30-participant list before
+assigning numeric indexes, using a recorded seed and a dedicated ordering RNG
+stream. Freeze that shuffled order in the manifest so replay is deterministic;
+protected status is independent of ordering. The user must review and explicitly approve each
+complete competitive manifest before its simulations run. A generic test of
+the 30-player scheduling method is not the actual round-two manifest.
+
 ### 2.3 Strategy parameter contract
 
 `StrategyDecisionModel` schema 2 has four profile parameters:
@@ -157,7 +230,7 @@ schema 2, report schema 4 and command v6 remain unchanged; executable source
 identity distinguishes the changed policy and metric semantics. Retain the
 original published profiles and reports, and use fresh source-compatible
 evaluation evidence for promotion. See the
-[BFCR verification record](BotFoldVsCallAfterRaisesTasks.md).
+[BFCR verification record](arkiv/BotFoldVsCallAfterRaisesTasks.md).
 
 ## 3. Metrics and fitness
 
@@ -372,7 +445,7 @@ seat rotation, and 2520 tournaments. Rosters of at most nine profiles use one
 `active_roster` matchup. Larger rosters use deterministic translated
 nine-player matchups with equal appearances and complete pair coverage, so
 the catalog can grow without increasing table capacity. The default count is
-balanced for the current 18-profile roster and every single-table size.
+balanced for the current 28-profile roster and every single-table size.
 
 Use `--batch-id`, `--seed`, and `--tournament-count` to name a distinct
 benchmark. The current `standard` regime preset is the documented 100bb 5/10
@@ -799,6 +872,55 @@ confirmation. Its readiness artifact binds both source and evaluated registry
 checksums. Ranking alone does not demonstrate superiority or authorize
 promotion. Generated recipes use the existing consolidated review, whose
 candidate decisions all start `pending`.
+
+### 5.2 Nine-player roster campaign policy
+
+`tools/roster-campaign` provides a separate, explicitly identified campaign
+workflow. Its manifests use the existing schema-2 simulation CLI and the
+[cyclic-shift method](#221-cyclic-shift-matchup-construction). The approved
+campaign has 30 contenders plus five protected strategic controls in round
+one; round two uses the 25 verified survivors plus those same five controls.
+Legacy profiles are outside the campaign. The maximum opponent-pair matchup
+spread is two in both rounds, and every pair must meet at least once.
+
+Preparation freezes original candidate identities and creation checksums.
+Historical lineage imported through `historical_lineage_v1` is archival-only;
+missing execution provenance is not fabricated and historical fitness is not
+current evidence. The runner requires explicit approval of the exact manifest
+checksum before any competitive CLI process starts. Successful-producer
+receipts, complete shards, source provenance and independently checked raw
+appearances/seats/opponents gate comparison readiness. Comparison evaluates
+the whole current cohort once, ranks only contenders by eligible fitness then
+original candidate ID, and rejects exactly five. Any extra sampling needs
+separate user approval; a cutoff uncertainty flag never authorizes more games.
+
+The campaign's original strict publication policy is `nine_player_promotion_v1`, alongside the unchanged
+`promotion_evidence_v1` policy above. Two disjoint nine-player batches each
+place exactly one finalist against eight frozen strategic benchmarks. Each
+requires at least 297 tournaments and 33 candidate observations in each
+starting seat, current and identical execution provenance, no invalid-action
+fallbacks, a positive lower normal-95 bound on paired composite advantage over
+every benchmark, and the existing genetic-diversity check. Independent
+validation replays embedded original report documents through strict fitness
+validation and recomputes every summary. This multiway policy does not claim
+statistical equivalence to heads-up evidence.
+
+`nine_player_confirmation_v1` artifacts carry that policy into consolidated
+review version 3 and publication sidecars. Review decisions remain pending
+until an independent human explicitly approves or rejects each finalist.
+Unknown policies, changed confirmations and mixed-policy review batches fail.
+Existing historical publication files remain immutable. Full activation of
+the twenty approved survivors is a separate shared GUI/CLI roster change.
+
+For the 2026-11-01 campaign, the user subsequently approved the revised twenty
+profiles (Amber Horizon replacing Copper-Blaze Venture) under a separate
+`campaign_human_selection_publication_v1` policy. This human-selection path
+must bind the exact immutable campaign, round results, selected snapshots and
+explicit authorization. It retains failed and missing confirmation findings;
+it does not mark them as passing, change competition ranks, or weaken either
+strict policy. One of the revised twenty passed strict confirmation, eighteen
+failed, and Amber Horizon was not independently confirmed. Publication evidence
+and roster activation must identify the human-selection policy explicitly.
 
 ## 6. Validation and promotion
 

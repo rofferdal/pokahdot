@@ -214,7 +214,7 @@ with backdoor potential, a cheap price and at most two opponents. Further weak
 bluffs stop after the bot's own aggression. All four profile parameters still
 control their styles. Hand and draw scores are heuristics rather than winning
 probabilities. See the
-[strategy policy and verification record](docs/BotFoldVsCallAfterRaisesTasks.md).
+[strategy policy and verification record](docs/arkiv/BotFoldVsCallAfterRaisesTasks.md).
 
 ## Deterministic simulation and bot-profile workflow
 
@@ -235,9 +235,9 @@ does not read or mutate the playable product roster.
 
 To establish a benchmark for the presently playable roster, export a baseline
 manifest. The command atomically writes immutable profile snapshots; it does
-not alter the roster. Defaults use the `curated_v2`-derived batch ID, seed
+not alter the roster. Defaults use the `curated_v3`-derived batch ID, seed
 `71001`, 100bb 5/10 tables, and 2520 balanced cyclic tournaments. The current
-18-profile catalog is covered by deterministic nine-seat matchups without
+28-profile catalog (25 strategic and three optional legacy profiles) is covered by deterministic nine-seat matchups without
 raising the product table-size limit.
 
 ```bash

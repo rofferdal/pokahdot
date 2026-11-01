@@ -1,16 +1,26 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 const EXPECTED_PROMOTED_PROFILE_IDS: Array[StringName] = [
-	&"candidate_g0_0005_7e36a0b114c9dcaf__20261024_r3b0",
-	&"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
-	&"candidate_g0_0004_65dfe5e8e29beba9__20261024_r3b0",
+	&"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+	&"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+	&"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+	&"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
 	&"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+	&"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+	&"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+	&"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+	&"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+	&"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
 	&"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
-	&"candidate_g0_0001_e944f5fff577f272__20261024_r3b0",
-	&"candidate_g1_mut_0001_7420b8a13d172e7f__20261024_r3b0",
-	&"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+	&"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+	&"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+	&"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
 	&"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
 	&"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+	&"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+	&"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+	&"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+	&"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
 ]
 
 
@@ -18,9 +28,9 @@ func test_curated_roster_resolves_every_model_profile_and_has_stable_unique_ids(
 	var roster := PlayableBotRoster.new()
 
 	assert_eq(roster.validate(), PackedStringArray())
-	assert_eq(roster.get_roster_version(), &"curated_v2")
+	assert_eq(roster.get_roster_version(), &"curated_v3")
 	var profile_ids := roster.get_profile_ids()
-	assert_eq(profile_ids.size(), 18)
+	assert_eq(profile_ids.size(), 28)
 	var unique_ids: Dictionary[StringName, bool] = {}
 	for profile_id: StringName in profile_ids:
 		unique_ids[profile_id] = true
@@ -28,7 +38,55 @@ func test_curated_roster_resolves_every_model_profile_and_has_stable_unique_ids(
 	for promoted_id: StringName in EXPECTED_PROMOTED_PROFILE_IDS:
 		assert_has(profile_ids, promoted_id)
 	assert_eq(_family_count(roster, false), 3)
-	assert_eq(_family_count(roster, true), 15)
+	assert_eq(_family_count(roster, true), 25)
+
+
+func test_campaign_membership_keeps_approved_names_and_excludes_rejected_profiles() -> void:
+	var roster := PlayableBotRoster.new()
+	var expected_names: Dictionary[StringName, String] = {
+		&"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2": "Crimson Beacon",
+		&"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2": "Phantom-Copper Ripple",
+		&"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2": "Wild Crest",
+		&"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2": "Copper-Blaze Ember",
+		&"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0": "Copper-Blaze Surge",
+		&"candidate_g0_0003_8ff30e87c04596e9__20261101_r2": "Midnight Pulse",
+		&"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2": "Scarlet Torrent",
+		&"candidate_g0_0004_3683f0bcf5541341__20261101_r2": "Ivory Tempest",
+		&"candidate_g0_0006_d319bbb79e4935d8__20261101_r2": "Indigo Spark",
+		&"candidate_g0_0000_8c87829890bd1a11__20261101_r2": "Azure Current",
+		&"candidate_g0_0009_292e08a42fe29566__20261024_r3b0": "Copper Counter",
+		&"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2": "River Reverie",
+		&"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0": "Phantom-Copper Inferno",
+		&"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2": "Copper Cadence",
+		&"candidate_g0_0008_28cda20c09a12235__20261024_r3b0": "Wild Mirage",
+		&"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0": "River Velvet",
+		&"candidate_g0_0005_13cce589f42b0696__20261101_r2": "Jade Undertow",
+		&"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0": "Copper-Blaze Counter",
+		&"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2": "Phantom Orbit",
+		&"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2": "Amber Horizon",
+	}
+	var names_seen: Dictionary[String, bool] = {}
+	var catalog_ids := roster.get_profile_ids()
+	for profile: BotProfile in roster.get_catalog_profiles():
+		assert_false(names_seen.has(profile.display_name), profile.display_name)
+		names_seen[profile.display_name] = true
+		if expected_names.has(profile.profile_id):
+			assert_eq(profile.display_name, expected_names[profile.profile_id])
+		assert_ne(profile.display_name, "Copper-Blaze Venture")
+		assert_ne(profile.display_name, "Crimson Surge")
+		assert_ne(profile.display_name, "Golden Veil")
+		assert_ne(profile.display_name, "Silver Compass")
+		assert_ne(profile.display_name, "Saffron Echo")
+		assert_ne(profile.display_name, "Phantom Blaze")
+		assert_ne(profile.display_name, "Scarlet Charge")
+		assert_ne(profile.display_name, "Copper-Blaze Drift")
+		assert_ne(profile.display_name, "Copper-Blaze Glimmer")
+		assert_ne(profile.display_name, "Obsidian Tide")
+	for protected_id: StringName in [
+		&"nit_caller", &"tight_aggressive", &"loose_passive", &"loose_aggressive", &"balanced"
+	]:
+		assert_has(catalog_ids, protected_id)
+	assert_true(names_seen.has("Amber Horizon"))
 
 
 func test_default_selection_is_strategic_deterministic_and_returns_snapshots() -> void:

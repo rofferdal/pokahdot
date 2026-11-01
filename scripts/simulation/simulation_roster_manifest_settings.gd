@@ -8,7 +8,7 @@ extends RefCounted
 
 const DEFAULT_SEED_START: int = 71001
 ## 2520 is divisible by every single-table size (2 through 9) and the curated
-## 18-profile catalog, keeping the default cyclic roster schedule balanced.
+## 28-profile catalog, keeping the default cyclic roster schedule balanced.
 const DEFAULT_TOURNAMENT_COUNT: int = 2520
 const DEFAULT_STARTING_STACK: int = 1000
 const DEFAULT_SMALL_BLIND: int = 5

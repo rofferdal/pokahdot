@@ -1,0 +1,359 @@
+{
+  "baseline_manifest_sha256": "5586eea62a1fa9a622fe01cc597c9b6e4c669274c1a59dabe20addd424f845cc",
+  "campaign_id": "bot_roster_expansion_20261101",
+  "competition_policy": "strategic_models_only_v1",
+  "confirmation_benchmarks": [
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 2,
+        "call_vs_raise": 4,
+        "passive_vs_aggressive": 4,
+        "tight_vs_loose": 60
+      },
+      "profile_id": "nit_caller"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 8,
+        "call_vs_raise": 53,
+        "passive_vs_aggressive": 53,
+        "tight_vs_loose": 65
+      },
+      "profile_id": "tight_aggressive"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 5,
+        "call_vs_raise": 4,
+        "passive_vs_aggressive": 4,
+        "tight_vs_loose": 100
+      },
+      "profile_id": "loose_passive"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 22,
+        "call_vs_raise": 72,
+        "passive_vs_aggressive": 72,
+        "tight_vs_loose": 100
+      },
+      "profile_id": "loose_aggressive"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 12,
+        "call_vs_raise": 28,
+        "passive_vs_aggressive": 28,
+        "tight_vs_loose": 70
+      },
+      "profile_id": "balanced"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 30,
+        "call_vs_raise": 8,
+        "passive_vs_aggressive": 89,
+        "tight_vs_loose": 13
+      },
+      "profile_id": "candidate_g0_0003_9963610230e600f4"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 63,
+        "call_vs_raise": 27,
+        "passive_vs_aggressive": 75,
+        "tight_vs_loose": 39
+      },
+      "profile_id": "candidate_g0_0005_6c996ede771db4b0"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 50,
+        "call_vs_raise": 44,
+        "passive_vs_aggressive": 3,
+        "tight_vs_loose": 50
+      },
+      "profile_id": "candidate_g0_0010_efccaebfb834fa4d"
+    }
+  ],
+  "current_lineage_validation_errors": [
+    {
+      "diagnostic": "('invalid_schema_fields', 'lineage evaluation fields do not match the schema.', <ExitCode.INVALID_INPUT: 2>, {'context': 'lineage evaluation', 'missing_fields': ['point_fitness'], 'unknown_fields': []})",
+      "path": "artifacts/bot_evolution_20261024_r3b0/lineage_registry.json"
+    },
+    {
+      "diagnostic": "('invalid_schema_fields', 'lineage evaluation fields do not match the schema.', <ExitCode.INVALID_INPUT: 2>, {'context': 'lineage evaluation', 'missing_fields': ['point_fitness'], 'unknown_fields': []})",
+      "path": "examples/profile_evolution/milestone5/lineage_registry.json"
+    }
+  ],
+  "engine_version": "4.7.2.stable.official.ed1daf0bf",
+  "fixed_controls": [
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 2,
+        "call_vs_raise": 4,
+        "passive_vs_aggressive": 4,
+        "tight_vs_loose": 60
+      },
+      "profile_id": "nit_caller"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 8,
+        "call_vs_raise": 53,
+        "passive_vs_aggressive": 53,
+        "tight_vs_loose": 65
+      },
+      "profile_id": "tight_aggressive"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 5,
+        "call_vs_raise": 4,
+        "passive_vs_aggressive": 4,
+        "tight_vs_loose": 100
+      },
+      "profile_id": "loose_passive"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 22,
+        "call_vs_raise": 72,
+        "passive_vs_aggressive": 72,
+        "tight_vs_loose": 100
+      },
+      "profile_id": "loose_aggressive"
+    },
+    {
+      "model_id": "strategy_parameterized",
+      "parameters": {
+        "bluff_rate": 12,
+        "call_vs_raise": 28,
+        "passive_vs_aggressive": 28,
+        "tight_vs_loose": 70
+      },
+      "profile_id": "balanced"
+    }
+  ],
+  "historical_champion_qualification": "Three actually selected Milestone 5 smoke profiles; historical selection is archival identity evidence, not current performance. All confirmation is freshly simulated.",
+  "incumbents": [
+    {
+      "candidate_id": "candidate_g0_0005_7e36a0b114c9dcaf",
+      "display_name": "Phantom Blaze",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 88,
+          "call_vs_raise": 44,
+          "passive_vs_aggressive": 70,
+          "tight_vs_loose": 13
+        },
+        "profile_id": "candidate_g0_0005_7e36a0b114c9dcaf__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g0_0005_7e36a0b114c9dcaf__20261024_r3b0.tres",
+      "resource_sha256": "a68d68dd4f61cb2ddfff8b4e84f63fe56d4ad0d8a0c88531f236a4cc769749a7"
+    },
+    {
+      "candidate_id": "candidate_g1_mut_0004_23c4aa0775d54bec",
+      "display_name": "Phantom-Copper Inferno",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 92,
+          "call_vs_raise": 34,
+          "passive_vs_aggressive": 70,
+          "tight_vs_loose": 74
+        },
+        "profile_id": "candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0.tres",
+      "resource_sha256": "d7c9f9f618d7adfea41b77ae308ad84562b52924de5c25897acb061a733f52c3"
+    },
+    {
+      "candidate_id": "candidate_g0_0004_65dfe5e8e29beba9",
+      "display_name": "Crimson Surge",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 51,
+          "call_vs_raise": 69,
+          "passive_vs_aggressive": 83,
+          "tight_vs_loose": 75
+        },
+        "profile_id": "candidate_g0_0004_65dfe5e8e29beba9__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g0_0004_65dfe5e8e29beba9__20261024_r3b0.tres",
+      "resource_sha256": "daf2f68db517bdf2b3855c5b78afa92b55ad9617e7829cccc638322695917a35"
+    },
+    {
+      "candidate_id": "candidate_g1_mut_0002_e856eeb3b2a832ed",
+      "display_name": "Copper-Blaze Surge",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 47,
+          "call_vs_raise": 43,
+          "passive_vs_aggressive": 82,
+          "tight_vs_loose": 80
+        },
+        "profile_id": "candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0.tres",
+      "resource_sha256": "daf4ce21282369cfef9d54d96c8c458e12a997b4e6d642ebd00143f6573a2aea"
+    },
+    {
+      "candidate_id": "candidate_g0_0009_292e08a42fe29566",
+      "display_name": "Copper Counter",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 44,
+          "call_vs_raise": 86,
+          "passive_vs_aggressive": 44,
+          "tight_vs_loose": 73
+        },
+        "profile_id": "candidate_g0_0009_292e08a42fe29566__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g0_0009_292e08a42fe29566__20261024_r3b0.tres",
+      "resource_sha256": "28e978d4d29185576ce4e388b74991d3d0408c003262214c990166d366b13828"
+    },
+    {
+      "candidate_id": "candidate_g0_0001_e944f5fff577f272",
+      "display_name": "Scarlet Charge",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 49,
+          "call_vs_raise": 65,
+          "passive_vs_aggressive": 94,
+          "tight_vs_loose": 69
+        },
+        "profile_id": "candidate_g0_0001_e944f5fff577f272__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g0_0001_e944f5fff577f272__20261024_r3b0.tres",
+      "resource_sha256": "eea59a56d2632f6c66e670af054302003bc9147b2d974ef3c1d631e9b088269b"
+    },
+    {
+      "candidate_id": "candidate_g1_mut_0001_7420b8a13d172e7f",
+      "display_name": "Copper-Blaze Drift",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 43,
+          "call_vs_raise": 32,
+          "passive_vs_aggressive": 60,
+          "tight_vs_loose": 77
+        },
+        "profile_id": "candidate_g1_mut_0001_7420b8a13d172e7f__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g1_mut_0001_7420b8a13d172e7f__20261024_r3b0.tres",
+      "resource_sha256": "2f375c6337a9e203ce1cae5b4a7b7fa84fcdbd8d7b12f5e4375b1f991875cc0a"
+    },
+    {
+      "candidate_id": "candidate_g1_mut_0003_a92c427e3ea36b4a",
+      "display_name": "Copper-Blaze Counter",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 54,
+          "call_vs_raise": 49,
+          "passive_vs_aggressive": 39,
+          "tight_vs_loose": 66
+        },
+        "profile_id": "candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0.tres",
+      "resource_sha256": "b26a0aa8d201fc0a1f2606187250c2aaed712073c1ead98ca356ea756a81d254"
+    },
+    {
+      "candidate_id": "candidate_g0_0008_28cda20c09a12235",
+      "display_name": "Wild Mirage",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 55,
+          "call_vs_raise": 29,
+          "passive_vs_aggressive": 96,
+          "tight_vs_loose": 80
+        },
+        "profile_id": "candidate_g0_0008_28cda20c09a12235__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g0_0008_28cda20c09a12235__20261024_r3b0.tres",
+      "resource_sha256": "ddbfc13373646c87cb71377361f3f56eb78125092af7c275e32bfadf68f6590b"
+    },
+    {
+      "candidate_id": "candidate_g0_0002_ca41c8c26ecf41cf",
+      "display_name": "River Velvet",
+      "historical_publication_sidecar_available": false,
+      "profile": {
+        "model_id": "strategy_parameterized",
+        "parameters": {
+          "bluff_rate": 34,
+          "call_vs_raise": 2,
+          "passive_vs_aggressive": 28,
+          "tight_vs_loose": 88
+        },
+        "profile_id": "candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0"
+      },
+      "resource_path": "resources/bot_profiles/published/candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0.tres",
+      "resource_sha256": "b491b8848a63a2ee2425071c0b063e503e53743e56a5cddf6ac6122f7585585d"
+    }
+  ],
+  "legacy_profiles": [
+    {
+      "model_id": "random",
+      "parameters": {
+        "aggressive_weight": 2,
+        "fold_weight": 1,
+        "passive_weight": 4
+      },
+      "profile_id": "random_default"
+    },
+    {
+      "model_id": "tight_passive",
+      "parameters": {
+        "minimum_preflop_high_rank": 10,
+        "raise_frequency": 5
+      },
+      "profile_id": "tight_passive_default"
+    },
+    {
+      "model_id": "loose_aggressive",
+      "parameters": {
+        "aggression_frequency": 55,
+        "fold_frequency": 10
+      },
+      "profile_id": "loose_aggressive_default"
+    }
+  ],
+  "next_required_support": "BRE-01: explicit versioned archival lineage import; preserve old artifacts and checksums, exclude historical fitness from current scoring and seed certification.",
+  "schema_version": 1,
+  "source_commit": "4aa644774a128557cb9b15caa445979a19d80485",
+  "supersedes_preflight_sha256": "43e0a453697db1dee25f288e4f871962b40859dc8016295dc0318a5ce144c676",
+  "verification": {
+    "inventory": "10 published strategic + 5 hand-authored strategic compete; 3 legacy profiles retained outside campaign only.",
+    "profile_evolution_tests_passed": 114,
+    "roster_manifest_validation": "Godot simulation CLI validate succeeded; player_count=9"
+  }
+}

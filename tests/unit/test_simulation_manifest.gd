@@ -25,7 +25,7 @@ func test_roster_generator_creates_a_valid_schema_two_snapshot_manifest() -> voi
 	assert_true(generated.is_ok())
 	assert_true(generated.errors.is_empty())
 	assert_eq(generated.manifest.schema_version, SimulationManifest.SUPPORTED_SCHEMA_VERSION)
-	assert_eq(generated.manifest.batch_id, &"roster_curated_v2")
+	assert_eq(generated.manifest.batch_id, &"roster_curated_v3")
 	assert_eq(_profile_ids(generated.manifest.profiles), roster.get_profile_ids())
 	assert_eq(
 		_unique_model_ids(generated.manifest.profiles),
@@ -55,7 +55,7 @@ func test_roster_generator_default_plan_balances_all_roster_seats() -> void:
 
 	assert_true(generated.is_ok())
 	var manifest: SimulationManifest = generated.manifest
-	assert_eq(manifest.batch_id, &"roster_curated_v2")
+	assert_eq(manifest.batch_id, &"roster_curated_v3")
 	assert_eq(manifest.seed_start, 71001)
 	assert_eq(manifest.regimes.size(), 1)
 	var regime: SimulationRegime = manifest.regimes[0]
@@ -64,7 +64,7 @@ func test_roster_generator_default_plan_balances_all_roster_seats() -> void:
 	assert_eq(regime.starting_stack, 1000)
 	assert_eq(regime.starting_small_blind, 5)
 	assert_eq(regime.starting_big_blind, 10)
-	assert_eq(manifest.matchups.size(), 18)
+	assert_eq(manifest.matchups.size(), 28)
 	_assert_equal_appearances_and_complete_pair_coverage(manifest, roster.get_profile_ids(), 9)
 	assert_eq(manifest.evaluation_plans.size(), 1)
 	var evaluation_plan: SimulationEvaluationPlan = manifest.evaluation_plans[0]
@@ -83,7 +83,7 @@ func test_roster_generator_default_plan_balances_all_roster_seats() -> void:
 			profile_seat_counts[key] = int(profile_seat_counts.get(key, 0)) + 1
 	for profile_id: StringName in roster.get_profile_ids():
 		for seat: int in range(regime.player_count):
-			assert_eq(profile_seat_counts.get("%s:%d" % [profile_id, seat], 0), 140)
+			assert_eq(profile_seat_counts.get("%s:%d" % [profile_id, seat], 0), 90)
 
 
 func test_roster_generator_defaults_are_balanced_for_a_three_profile_roster() -> void:
@@ -120,7 +120,7 @@ func test_roster_generator_accepts_custom_planning_defaults_and_rejects_invalid_
 	var settings: SimulationRosterManifestSettings = ROSTER_MANIFEST_SETTINGS_SCRIPT.new()
 	settings.batch_id = &"custom_roster_baseline"
 	settings.seed_start = 12
-	settings.tournament_count = 180
+	settings.tournament_count = 252
 	settings.starting_stack = 2000
 	settings.starting_small_blind = 10
 	settings.starting_big_blind = 20
@@ -130,7 +130,7 @@ func test_roster_generator_accepts_custom_planning_defaults_and_rejects_invalid_
 	assert_true(generated.is_ok())
 	assert_eq(generated.manifest.batch_id, &"custom_roster_baseline")
 	assert_eq(generated.manifest.seed_start, 12)
-	assert_eq(generated.manifest.evaluation_plans[0].tournament_count, 180)
+	assert_eq(generated.manifest.evaluation_plans[0].tournament_count, 252)
 	assert_eq(generated.manifest.evaluation_plans[0].minimum_profile_samples, 20)
 	assert_eq(generated.manifest.regimes[0].starting_stack, 2000)
 	assert_eq(generated.manifest.regimes[0].starting_small_blind, 10)

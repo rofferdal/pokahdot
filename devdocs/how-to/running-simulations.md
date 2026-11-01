@@ -179,3 +179,69 @@ Use [experiment preparation and comparison](preparing-bot-experiments.md) to
 generate common candidate evaluation and independent confirmation manifests
 from validated configuration, compare cross-generation candidates from one
 compatible report cohort, and prepare commands for consolidated review.
+
+## Approved roster campaign execution
+
+`tools/roster-campaign run-round` orchestrates the existing simulation CLI; it
+does not implement poker or replace engine checkpoints. It requires an approval
+JSON record with `approved: true` and the exact displayed `manifest_checksum`.
+Record that decision only after the user explicitly approves the manifest.
+The optional `source` value must be `user`; labels/checksums do not authenticate
+reviewer identity.
+
+```bash
+tools/roster-campaign run-round \
+  --manifest localtmp/new_campaign_round1/manifest.json \
+  --approval localtmp/round1_user_approval.json \
+  --godot /Applications/Godot.app/Contents/MacOS/Godot \
+  --workers 4 \
+  --output-dir localtmp/new_campaign_round1_execution
+```
+
+The runner audits cyclic matchups, equal participation, full pair coverage and
+maximum pair-matchup spread two before launch. It freezes approved inputs,
+uses at most four CLI shards, preserves their checkpoints and reuses completed
+reports only with matching successful-producer receipts. Current executable
+provenance must agree across workers and with `--expected-provenance` when
+provided. Missing output after producer success fails validation. Readiness is
+published only after every shard validates; later comparison must consume that
+readiness artifact. Resuming the same command reuses only validated owned data.
+SIGINT/SIGTERM stop and reap workers while preserving checkpoints. Progress
+reuses each CLI worker's bounded log tail for counts, throughput and ETA.
+
+### Independent confirmation cohort
+
+After both approved rounds produce verified selections, prepare the automatic
+confirmation task from those exact results:
+
+```bash
+tools/roster-campaign prepare-confirmation-cohort \
+  --campaign localtmp/new_campaign_candidates/campaign.json \
+  --round1-result localtmp/new_campaign_round1_comparison/comparison.json \
+  --round2-result localtmp/new_campaign_round2_comparison/comparison.json \
+  --output-dir localtmp/new_confirmation_plan
+```
+
+The frozen plan contains twenty finalists and forty independent nine-player
+jobs, 297 tournaments each (11,880 total). Its execution authorization must
+bind the plan checksum, campaign checksum, `nine_player_promotion_v1`, scope
+`confirmation_cohort` and source `user_authorized_backlog`, with `authorized`
+set to true only when the user has authorized continuing that backlog task.
+This records workflow authorization, not a human promotion decision. Competitive
+manifest approval alone does not provide this authorization.
+
+```bash
+tools/roster-campaign run-confirmation-cohort \
+  --plan localtmp/new_confirmation_plan/cohort_plan.json \
+  --authorization localtmp/confirmation_workflow_authorization.json \
+  --godot /Applications/Godot.app/Contents/MacOS/Godot \
+  --workers 4 \
+  --output-dir localtmp/new_confirmation_execution
+```
+
+Each job reuses the shared CLI executor with one Godot worker; at most four
+jobs run concurrently. Distinct policy-authorized run/readiness types preserve
+the competitive approval gate. Checkpoints, successful-producer receipts,
+source identity and cancellation are enforced; complete cohort readiness is
+published only after all forty jobs succeed. Resume uses identical inputs and
+owned outputs. No additional games are inferred from uncertainty or failure.

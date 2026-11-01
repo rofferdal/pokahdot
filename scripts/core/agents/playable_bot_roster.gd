@@ -12,7 +12,7 @@ const MAX_PLAYABLE_BOT_COUNT := 8
 const MAX_STRATEGIC_PROFILE_COUNT := 25
 ## Source-controlled identity for the curated product catalog. Increment this
 ## whenever its membership or an included profile snapshot changes.
-const ROSTER_VERSION: StringName = &"curated_v2"
+const ROSTER_VERSION: StringName = &"curated_v3"
 const PUBLISHED_PROFILE_DIRECTORY := "res://resources/bot_profiles/published/"
 const DEFAULT_PROFILE_PATHS: PackedStringArray = [
 	"res://resources/bot_profiles/random_default.tres",
@@ -23,16 +23,26 @@ const DEFAULT_PROFILE_PATHS: PackedStringArray = [
 	"res://resources/bot_profiles/loose_passive.tres",
 	"res://resources/bot_profiles/loose_aggressive.tres",
 	"res://resources/bot_profiles/balanced.tres",
-	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0005_7e36a0b114c9dcaf__20261024_r3b0.tres",
-	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0.tres",
-	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0004_65dfe5e8e29beba9__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2.tres",
 	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0003_8ff30e87c04596e9__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0004_3683f0bcf5541341__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0006_d319bbb79e4935d8__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0000_8c87829890bd1a11__20261101_r2.tres",
 	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0009_292e08a42fe29566__20261024_r3b0.tres",
-	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0001_e944f5fff577f272__20261024_r3b0.tres",
-	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0001_7420b8a13d172e7f__20261024_r3b0.tres",
-	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2.tres",
 	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0008_28cda20c09a12235__20261024_r3b0.tres",
 	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0005_13cce589f42b0696__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2.tres",
+	PUBLISHED_PROFILE_DIRECTORY + "candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2.tres",
 ]
 
 const RANDOM_MODEL_SCRIPT := preload("res://scripts/core/agents/random_decision_model.gd")

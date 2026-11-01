@@ -201,7 +201,7 @@ distinct from the conventional Pot Limit post-call formula `H + P + 2C`.
 The centralized, curated bot catalog used by GUI and CLI presentation layers.
 
 - **Constants**:
-  - `ROSTER_VERSION: StringName`: Current catalog release version (`&"curated_v2"`).
+  - `ROSTER_VERSION: StringName`: Current catalog release version (`&"curated_v3"`); 25 strategic profiles and three optional legacy profiles.
   - `DEFAULT_PROFILE_PATHS`: Array of default `.tres` resource paths loaded into the roster.
   - `MAX_PLAYABLE_BOT_COUNT`: Maximum bots selectable for one tournament (8).
   - `MAX_STRATEGIC_PROFILE_COUNT`: Maximum `StrategyDecisionModel`-based profiles in the playable product roster (25). This bound does not apply to non-strategic profiles or to simulation manifests.

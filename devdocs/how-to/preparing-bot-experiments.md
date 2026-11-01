@@ -152,3 +152,63 @@ independent reviewer records `approve` or `reject` and optional names/notes;
 confirmations. Follow the [publication guide](replacing-in-game-bot-profiles.md)
 for the separate approved publication and roster changes. Neither experiment
 command makes or finalizes reviewer decisions.
+
+## Nine-player roster campaign preparation
+
+The separate [roster expansion backlog](../../docs/BotRosterExpansionTasks.md)
+requires nine-player starts throughout. Its ledger preparation, candidate generation and cyclic scheduling are
+implemented. Competitive execution requires the user's explicit approval of
+the exact manifest; roster activation remains a later task.
+The existing experiment commands above retain their heads-up policy.
+
+```bash
+tools/roster-campaign prepare \
+  --inventory tests/fixtures/campaign_inventory.json \
+  --historical-registry tests/fixtures/campaign_history/lineage_registry.json \
+  --historical-registry examples/profile_evolution/milestone5/lineage_registry.json \
+  --campaign-id bot_roster_expansion_20261101 \
+  --output-dir localtmp/new_campaign_prepared
+
+tools/roster-campaign validate \
+  --campaign localtmp/new_campaign_prepared/campaign.json
+```
+
+Create the output parent first; the destination directory must not exist.
+Preparation binds original historical artifacts in archival-only adapters,
+freezes the incumbent inventory and seed reservations, and writes the campaign
+readiness marker last. No historical execution metadata is invented, and
+historical scores never count as new evaluation or confirmation evidence.
+
+Generate and freeze the twenty new contenders from a prepared campaign:
+
+```bash
+tools/roster-campaign generate-candidates \
+  --campaign localtmp/new_campaign_prepared/campaign.json \
+  --output-dir localtmp/new_campaign_candidates
+```
+
+The new output directory must not exist. Its `campaign.json` readiness marker
+binds the prepared inputs and exact deterministic creation evidence for all
+thirty contenders. Candidate creation alone does not run or authorize promotion.
+
+Prepare the first competitive manifest and its independent fairness report:
+
+```bash
+tools/roster-campaign prepare-round \
+  --campaign localtmp/new_campaign_candidates/campaign.json \
+  --output-dir localtmp/new_campaign_round1
+```
+
+This writes one schema-2 competitive manifest with 35 cyclic-shift matchups,
+equal participation, full opponent coverage and a pair-matchup spread no larger
+than two. The seed is the user-specified `0,1,4,6,11,17,23,31,32`.
+Show the full manifest, number-to-profile mapping, fairness report and budget
+to the user before any competitive execution. No continuation instruction
+substitutes for approval of the displayed manifest checksum.
+
+The actual second manifest is prepared only after validated round-one results
+supply exactly 25 survivor IDs. Add the five protected strategic controls,
+shuffle the 30 identities using the recorded round-two ordering stream, then
+apply modulo-30 cyclic shifts and obtain separate manifest approval. Legacy
+models never enter competitive tables. A pair-matchup spread of two is allowed
+in both rounds; complete pair coverage is mandatory independently of spread.

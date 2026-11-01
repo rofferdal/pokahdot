@@ -19,6 +19,104 @@ This document defines module boundaries, state ownership, runtime flow, and the 
 
 The v1 boundary is one single-table tournament with 2–9 participants, equal starting stacks, exactly one human, and bots in every other seat. Before each tournament starts, the human may optionally override the participant count, common starting stack, starting small blind, and starting big blind; omitted values use defaults. Blinds then follow the defined hand-based blind-level schedule. V1 has no cash-game accounting, buy-ins, cash-out, rebuys, antes, rake, action timer, network play, or prize payout. Normal play ends only when one participant has chips; a human-requested quit ends it without a winner. The project uses Godot 4, GDScript, and the Compatibility renderer, with no C# or platform-specific plugins.
 
+## Simulation-selected roster expansion (2026-11-01)
+
+[BRE-00–11](BotRosterExpansionTasks.md) plans a 30-contender, two-round
+campaign producing 20 published strategic survivors plus the five
+hand-authored strategic profiles. BRE-00–03A preflight, immutable ledger
+preparation, candidate generation, confirmation policy and
+cyclic scheduling are implemented. The user-provided 35-player seed permits
+opponent-pair matchup-count differences of at most two. Both competitive rounds and independent confirmation are complete. Only one
+of the original twenty finalists passes the strict confirmation performance gate.
+The user subsequently approved a separate human-selection publication policy
+and replaced Copper-Blaze Venture with Amber Horizon. Publication and activation
+are complete as `curated_v3`; scoped final verification is complete. The three optional legacy profiles
+remain available; the 25-strategic-profile product limit is unchanged.
+
+The external Python tooling owns archival identity import and prepared campaign
+state, fair scheduling, scoring, validation and approved CLI orchestration.
+Godot retains simulation execution and
+Custom Resource profiles. Every elimination round includes remaining
+contenders and the five protected hand-authored strategic controls with equal appearances and seat
+coverage and complete opponent-pair coverage. Every campaign tournament,
+including pilots, confirmation and baselines, starts with nine distinct
+strategic-model players. Legacy profiles never enter campaign tables, and
+hand-authored controls cannot be eliminated; normal in-tournament elimination remains unchanged. Completed reports must independently satisfy the schedule contract.
+Round elimination does not authorize promotion: independent confirmation and
+one consolidated human review precede publication and shared GUI/CLI roster
+activation. BRE-03A adds an explicitly versioned nine-player confirmation
+policy alongside the existing policy that requires heads-up evidence.
+Two independent nine-player batches retain sample, seat, performance,
+diversity and provenance checks. Existing policy support and historical
+artifacts remain intact. The explicit nine-player policy is now implemented,
+including strict replay of embedded original reports, policy-bound review
+version 3 and publication sidecars; no promotion is approved automatically. See the backlog for proposed budgets, scoring, failure
+handling, implementation tasks and human-action boundaries.
+
+Implemented BRE-01: `tools/roster-campaign prepare`/`validate` use the existing
+atomic artifact writer and a `roster_campaign_v1` configuration. An explicit
+`historical_lineage_v1` adapter reconstructs old candidate ancestry and actual
+selection from embedded original artifacts, preserving their checksums and
+missing provenance. Archived evaluations never satisfy current fitness or
+execution-provenance requirements. Prepared ledgers validate incumbent genes,
+aliases, source creation records, fixed controls, disjoint benchmarks and seed
+reservations; unsupported later states fail closed until implemented.
+
+Implemented BRE-02: candidate initialization reuses the existing generation
+operation; `campaign_mutation_v1` binds mutations directly to archival incumbent
+snapshots with explicit seeds, requested deltas and bounded results. Candidate
+creation and naming are deterministic and replay-validated. A frozen ledger
+contains exactly ten incumbents and twenty new profiles, with no evaluation
+or publication authorization inferred from their creation.
+
+Implemented BRE-03: the campaign scheduler uses the user-specified 35-player
+seed and a separately verified 30-player seed, with nine-profile cyclic
+translations and independent schedule auditing. A separate SplitMix64 stream
+shuffles round-two identities before number assignment. It supports 35/30 strategic-only
+participants; the five hand-authored controls cannot enter elimination lists.
+Every pair meets, all profiles receive equal appearances, and all nine starting
+seats receive equal exposure. User-reduced budgets are 297/594 tournaments per
+round table and 297 per independent confirmation batch; the new confirmation
+policy requires 33 observations per starting seat. Schema-2 manifests use the unchanged Godot
+simulation CLI. A measured pilot remains outside competitive evidence. The user requires
+exactly two competitive manifests with 35/30 matchups and explicit approval
+before each run. The accepted fairness rule is equal appearances and cyclic shifts using the
+user's exact 35-player seed `0,1,4,6,11,17,23,31,32`. All pairs meet in one,
+two or three matchups (spread two); this supersedes the earlier spread-one
+target. A separately validated 30-player seed uses the same modulo-shift
+method and achieves two or three meetings. Independent auditing counts both
+matchups and repeated tournament appearances. The actual round-two manifest
+is generated only after validated round-one results determine its 25 survivors;
+all 30 profiles are then shuffled using a separate, reproducible ordering stream
+derived from the recorded schedule seed before numeric table assignment;
+advance construction is limited to generic scheduling tests. Both competitive
+manifests were approved and their completed reports independently verified.
+
+Implemented BRE-04: the external runner freezes approved manifests, binds
+explicit approval to their checksum, and invokes unchanged Godot CLI shards
+with its existing checkpoint/resume mechanism. Owned successful-producer
+receipts gate report reuse; complete coverage/provenance checks gate readiness.
+New checkpoint headers pin source identity promptly; interruption reaps workers
+and preserves durable progress. CLI log tails supply throughput and ETA.
+Both rounds were explicitly approved and completed with verified reports.
+Independent confirmation also completed without authorizing automatic promotion.
+
+
+The authorized publication amendment uses
+`campaign_human_selection_publication_v1`, distinct from both strict
+confirmation policies. The exact twenty frozen candidates, source campaign and
+round-result checksums, original confirmation findings (including Amber
+Horizon's absent confirmation) and explicit human selection must remain bound
+in publication provenance. Six unchanged incumbent Resources retain their
+identities; fourteen selected profiles receive new immutable Resources. The
+five hand-authored strategic and three legacy profiles remain in the active
+28-entry catalog. This policy does not alter scores, regenerate candidates,
+claim that failed confirmations passed, or weaken existing strict validators.
+The policy-specific publisher binds resource SHA-256 values to the selection,
+review and original comparison checksums. The tracked
+[campaign record](../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/README.md)
+retains those records and the completed scoped verification evidence.
+
 ## 2. Architectural drivers
 
 - One rules implementation for GUI, interactive CLI, and simulation.
@@ -553,7 +651,9 @@ foundation, public hand-potential estimator, and legal wagering policy are
 implemented and covered by the archived strategy milestones.
 The five hand-authored immutable-at-runtime profile Resources are `nit_caller`,
 `tight_aggressive`, `loose_passive`, `loose_aggressive`, and `balanced`; the
-current curated catalog also includes ten published strategic profiles.
+current `curated_v3` catalog also includes twenty selected published strategic
+profiles: six retained incumbents and fourteen new profiles. The catalog has
+25 strategic profiles and three optional legacy profiles.
 
 `StrategyDecisionTrace` is a typed, test/simulation-only value object for
 explaining a parameterized model decision. `AgentFactory` supplies the
@@ -623,7 +723,7 @@ current strength. Each target is clamped to the
 recipient-safe `GameView` minimum and maximum wager totals, and bet/raise
 requests always carry a target total rather than a chip delta.
 
-The [BFCR follow-up](BotFoldVsCallAfterRaisesTasks.md#follow-up-restore-sensible-aggression)
+The [BFCR follow-up](arkiv/BotFoldVsCallAfterRaisesTasks.md#follow-up-restore-sensible-aggression)
 uses fixed-state comparisons, isolated value/bluff ablations, all-profile
 calibration and fresh confirmation to evaluate aggression and calling together.
 The intermediate `street_response_v3_value` variant isolates value resistance;

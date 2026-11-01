@@ -24,8 +24,29 @@ func test_bank_snapshots_are_legal_detached_and_cover_required_regimes() -> void
 		assert_true(counts.has(count))
 	for stack: int in [100, 1000]:
 		assert_true(stacks.has(stack))
-	assert_eq(BANK.profiles(false).size(), 15)
-	assert_eq(BANK.profiles().size(), 20)
+	var expected_ids: Array[StringName] = []
+	for profile: BotProfile in PlayableBotRoster.new().get_catalog_profiles():
+		if profile.model_id == &"strategy_parameterized":
+			expected_ids.append(profile.profile_id)
+	assert_false(expected_ids.is_empty())
+	var product_profiles: Array[BotProfile] = BANK.profiles(false)
+	assert_eq(product_profiles.size(), expected_ids.size())
+	for profile: BotProfile in product_profiles:
+		assert_has(expected_ids, profile.profile_id)
+	var all_profiles: Array[BotProfile] = BANK.profiles()
+	assert_eq(all_profiles.size(), expected_ids.size() + 5)
+	var control_ids: Array[StringName] = []
+	for profile: BotProfile in all_profiles:
+		if not expected_ids.has(profile.profile_id):
+			control_ids.append(profile.profile_id)
+	for control_id: StringName in [
+		&"control_raise_0",
+		&"control_raise_50",
+		&"control_raise_100",
+		&"control_bluff_0",
+		&"control_bluff_100"
+	]:
+		assert_has(control_ids, control_id)
 
 
 func test_fixed_j8_all_in_fixture_recreates_public_call_price() -> void:
@@ -64,7 +85,7 @@ func test_backdoor_examples_have_weak_potential_and_a_reliably_cheap_price() -> 
 
 func test_bank_reconciles_actions_and_keeps_cards_out_of_serialized_evidence() -> void:
 	var result: Dictionary = BANK.run_bank(151001, 1)
-	assert_eq(result.rows.size(), result.cases * 20)
+	assert_eq(result.rows.size(), result.cases * BANK.profiles().size())
 	for row: Dictionary in result.rows:
 		var count: int = 0
 		for selected: int in row.actions.values():

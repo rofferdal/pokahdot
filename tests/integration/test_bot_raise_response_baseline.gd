@@ -20,7 +20,14 @@ func test_controlled_raise_responses_are_legal_and_reproducible() -> void:
 
 func test_complete_tournament_measurement_covers_real_transitions_and_conserves_chips() -> void:
 	var catalog: Array[BotProfile] = BENCHMARK.profiles()
-	assert_eq(catalog.size(), 15)
+	var expected_ids: Array[StringName] = []
+	for profile: BotProfile in PlayableBotRoster.new().get_catalog_profiles():
+		if profile.model_id == &"strategy_parameterized":
+			expected_ids.append(profile.profile_id)
+	assert_false(expected_ids.is_empty())
+	assert_eq(catalog.size(), expected_ids.size())
+	for profile: BotProfile in catalog:
+		assert_has(expected_ids, profile.profile_id)
 	var first: Dictionary = BENCHMARK.run_tournament(catalog, 0, 2, 100, false, 61001)
 	var second: Dictionary = BENCHMARK.run_tournament(catalog, 0, 2, 100, false, 61001)
 	assert_eq(first, second)

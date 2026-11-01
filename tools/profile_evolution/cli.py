@@ -298,7 +298,7 @@ def run(arguments: argparse.Namespace) -> None:
                 "Choose exactly one of --approve or --reject.",
                 ExitCode.INVALID_INPUT,
             )
-        confirmation = load_artifact(arguments.confirmation, "confirmation")
+        confirmation = load_artifact(arguments.confirmation)
         _write_result(
             arguments.output,
             create_promotion_review(
@@ -311,7 +311,7 @@ def run(arguments: argparse.Namespace) -> None:
         return
     if arguments.command == "prepare-promotion-review":
         confirmations = [
-            load_artifact(path, "confirmation") for path in arguments.confirmation
+            load_artifact(path) for path in arguments.confirmation
         ]
         plan = create_promotion_review_plan(confirmations, arguments.reviewer_id)
         write_promotion_review_plan_atomic(arguments.output, plan)
@@ -325,7 +325,7 @@ def run(arguments: argparse.Namespace) -> None:
     if arguments.command == "finalize-promotion-review":
         plan = load_json_object(arguments.plan)
         confirmations = [
-            load_artifact(path, "confirmation") for path in arguments.confirmation
+            load_artifact(path) for path in arguments.confirmation
         ]
         _write_result(
             arguments.output,
@@ -333,7 +333,7 @@ def run(arguments: argparse.Namespace) -> None:
         )
         return
     if arguments.command == "publish-profile":
-        confirmation = load_artifact(arguments.confirmation, "confirmation")
+        confirmation = load_artifact(arguments.confirmation)
         review = load_artifact(arguments.review)
         result = publish_approved_profile(
             confirmation,
@@ -347,7 +347,7 @@ def run(arguments: argparse.Namespace) -> None:
     if arguments.command == "export-candidates":
         registry = load_artifact(arguments.registry, "lineage_registry")
         confirmations = [
-            load_artifact(path, "confirmation") for path in arguments.confirmation
+            load_artifact(path) for path in arguments.confirmation
         ]
         _write_result(
             arguments.output,

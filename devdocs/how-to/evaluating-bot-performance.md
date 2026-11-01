@@ -117,7 +117,7 @@ value re-raises use the profile's `call_vs_raise` multiplied by a resistance
 factor; raising remains possible without changing the cheap-call rule. Scores
 and draw quality are heuristic ratings, so do not interpret them as equity or
 infer positive expected value merely from a cheap call. The
-[BFCR record](../../docs/BotFoldVsCallAfterRaisesTasks.md) describes the current
+[BFCR record](../../docs/arkiv/BotFoldVsCallAfterRaisesTasks.md) describes the current
 policy and its validation limits.
 
 ### 3. Invalid Action Fallbacks (Immediate Disqualification)
@@ -193,3 +193,33 @@ The authoritative [metrics and fitness contract](../../docs/Simulation_And_Evolu
 and [confirmation policy](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#5-external-profile-evolution-tool)
 own the formulas and gates. Behavioral archetype ranges above are diagnostic
 heuristics, not enforced promotion thresholds.
+
+## Comparing approved cyclic campaign rounds
+
+After the approved CLI producer finishes every shard, compare its readiness
+artifact against the frozen campaign:
+
+```bash
+tools/roster-campaign compare-round \
+  --campaign localtmp/new_campaign_candidates/campaign.json \
+  --readiness localtmp/new_campaign_round1_execution/readiness.json \
+  --output-dir localtmp/new_campaign_round1_comparison
+```
+
+The comparison revalidates successful-producer receipts, exact report bytes,
+complete shards and actual participation/seat/opponent counts. It evaluates
+all current contender aliases together, preserving original creation identity
+separately. The five protected controls remain outside ranking. Eligible
+fitness ranks descending, with original candidate ID breaking ties; exactly
+five are rejected if enough eligible contenders remain. A contender fallback
+makes that contender ineligible; a protected-control fallback blocks the round.
+Behavioral counts and rates remain available for review.
+
+`comparison.json` binds the complete selection. The actual second manifest
+requires that verified result via `prepare-round --round 2 --previous-result`;
+its thirty participant identities are seed-shuffled before cyclic table
+construction. Round-two comparison also requires `--round 2 --previous-result`
+with the verified first-round comparison artifact. Changed scores, survivor
+sets, creation records or producer files fail revalidation. An overlapping
+cutoff interval recommends more evidence but never authorizes extra games or
+changes the approved tournament budget. Ranking is not promotion eligibility.

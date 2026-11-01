@@ -1,0 +1,310 @@
+{
+    "checksum": "f65eb64c4513b764ebbc57487a123a41626a6d615f481c206ec04daf598a52bc",
+    "payload": {
+        "bounds": {
+            "genes": {
+                "bluff_rate": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "call_vs_raise": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "passive_vs_aggressive": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "tight_vs_loose": {
+                    "maximum": 100,
+                    "minimum": 0
+                }
+            }
+        },
+        "candidates": [
+            {
+                "candidate_id": "candidate_g1_mut_0000_352ecdfd56434233",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 53,
+                    "call_vs_raise": 39,
+                    "passive_vs_aggressive": 71,
+                    "tight_vs_loose": 18
+                },
+                "parent_ids": [
+                    "candidate_g1_0000_6b3df9fafcc972c3"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0001_7420b8a13d172e7f",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 43,
+                    "call_vs_raise": 32,
+                    "passive_vs_aggressive": 60,
+                    "tight_vs_loose": 77
+                },
+                "parent_ids": [
+                    "candidate_g1_0001_d86ceb9f3da208e8"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0002_e856eeb3b2a832ed",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 47,
+                    "call_vs_raise": 43,
+                    "passive_vs_aggressive": 82,
+                    "tight_vs_loose": 80
+                },
+                "parent_ids": [
+                    "candidate_g1_0002_63bf03d8b9615695"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0003_a92c427e3ea36b4a",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 54,
+                    "call_vs_raise": 49,
+                    "passive_vs_aggressive": 39,
+                    "tight_vs_loose": 66
+                },
+                "parent_ids": [
+                    "candidate_g1_0003_31815e07eb7d2390"
+                ]
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0004_23c4aa0775d54bec",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 92,
+                    "call_vs_raise": 34,
+                    "passive_vs_aggressive": 70,
+                    "tight_vs_loose": 74
+                },
+                "parent_ids": [
+                    "candidate_g1_0004_7cda30fdd0ebdd07"
+                ]
+            }
+        ],
+        "creation_records": [
+            {
+                "candidate_id": "candidate_g1_mut_0000_352ecdfd56434233",
+                "mutations": [
+                    {
+                        "after": 18,
+                        "before": 13,
+                        "clamped": false,
+                        "delta": 5,
+                        "gene": "tight_vs_loose",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 71,
+                        "before": 70,
+                        "clamped": false,
+                        "delta": 1,
+                        "gene": "passive_vs_aggressive",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 39,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": -5,
+                        "gene": "call_vs_raise",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 53,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": 9,
+                        "gene": "bluff_rate",
+                        "seed": 863403
+                    }
+                ],
+                "operation": "mutation",
+                "parent_ids": [
+                    "candidate_g1_0000_6b3df9fafcc972c3"
+                ],
+                "seed": 863403
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0001_7420b8a13d172e7f",
+                "mutations": [
+                    {
+                        "after": 77,
+                        "before": 73,
+                        "clamped": false,
+                        "delta": 4,
+                        "gene": "tight_vs_loose",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 60,
+                        "before": 70,
+                        "clamped": false,
+                        "delta": -10,
+                        "gene": "passive_vs_aggressive",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 32,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": -12,
+                        "gene": "call_vs_raise",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 43,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": -1,
+                        "gene": "bluff_rate",
+                        "seed": 863403
+                    }
+                ],
+                "operation": "mutation",
+                "parent_ids": [
+                    "candidate_g1_0001_d86ceb9f3da208e8"
+                ],
+                "seed": 863403
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0002_e856eeb3b2a832ed",
+                "mutations": [
+                    {
+                        "after": 80,
+                        "before": 73,
+                        "clamped": false,
+                        "delta": 7,
+                        "gene": "tight_vs_loose",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 82,
+                        "before": 70,
+                        "clamped": false,
+                        "delta": 12,
+                        "gene": "passive_vs_aggressive",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 43,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": -1,
+                        "gene": "call_vs_raise",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 47,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": 3,
+                        "gene": "bluff_rate",
+                        "seed": 863403
+                    }
+                ],
+                "operation": "mutation",
+                "parent_ids": [
+                    "candidate_g1_0002_63bf03d8b9615695"
+                ],
+                "seed": 863403
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0003_a92c427e3ea36b4a",
+                "mutations": [
+                    {
+                        "after": 66,
+                        "before": 73,
+                        "clamped": false,
+                        "delta": -7,
+                        "gene": "tight_vs_loose",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 39,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": -5,
+                        "gene": "passive_vs_aggressive",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 49,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": 5,
+                        "gene": "call_vs_raise",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 54,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": 10,
+                        "gene": "bluff_rate",
+                        "seed": 863403
+                    }
+                ],
+                "operation": "mutation",
+                "parent_ids": [
+                    "candidate_g1_0003_31815e07eb7d2390"
+                ],
+                "seed": 863403
+            },
+            {
+                "candidate_id": "candidate_g1_mut_0004_23c4aa0775d54bec",
+                "mutations": [
+                    {
+                        "after": 74,
+                        "before": 73,
+                        "clamped": false,
+                        "delta": 1,
+                        "gene": "tight_vs_loose",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 70,
+                        "before": 70,
+                        "clamped": false,
+                        "delta": 0,
+                        "gene": "passive_vs_aggressive",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 34,
+                        "before": 44,
+                        "clamped": false,
+                        "delta": -10,
+                        "gene": "call_vs_raise",
+                        "seed": 863403
+                    },
+                    {
+                        "after": 92,
+                        "before": 88,
+                        "clamped": false,
+                        "delta": 4,
+                        "gene": "bluff_rate",
+                        "seed": 863403
+                    }
+                ],
+                "operation": "mutation",
+                "parent_ids": [
+                    "candidate_g1_0004_7cda30fdd0ebdd07"
+                ],
+                "seed": 863403
+            }
+        ],
+        "generation": 1,
+        "generation_id": "generation_g1_selection_37678c81e9aa7d56",
+        "seed": 863403
+    },
+    "schema_version": 1,
+    "tool_version": "0.1.0",
+    "type": "generation_manifest"
+}

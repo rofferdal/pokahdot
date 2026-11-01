@@ -318,7 +318,7 @@ before publication.
 Now bring the published profile into the playable game catalog:
 
 1. Open [`scripts/core/agents/playable_bot_roster.gd`](../../scripts/core/agents/playable_bot_roster.gd).
-2. Increment `ROSTER_VERSION` (for example, from `&"curated_v2"` to `&"curated_v3"`).
+2. Increment `ROSTER_VERSION` (for example, from `&"curated_v3"` to `&"curated_v4"`).
 3. Add the published resource path to `DEFAULT_PROFILE_PATHS`:
    ```gdscript
    const DEFAULT_PROFILE_PATHS: PackedStringArray = [
@@ -334,7 +334,7 @@ Now bring the published profile into the playable game catalog:
    ```
 4. Verify that legacy profiles (`random_default`, `tight_passive_default`, `loose_aggressive_default`) are preserved.
 
-After this reviewed source change, export `curated_v2` (or the new roster
+After this reviewed source change, export `curated_v3` (or the new roster
 version) as a new baseline. Comparing its report with the retained pre-change
 baseline shows the product-level effect without losing the candidate-specific
 promotion evidence.

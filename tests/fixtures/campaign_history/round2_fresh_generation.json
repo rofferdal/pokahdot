@@ -1,0 +1,120 @@
+{
+    "checksum": "be4a1c3e5f2751ed84e5fc101a02d5b3233c57b25a5c8ef387eceae7fbe5a562",
+    "payload": {
+        "bounds": {
+            "genes": {
+                "bluff_rate": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "call_vs_raise": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "passive_vs_aggressive": {
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "tight_vs_loose": {
+                    "maximum": 100,
+                    "minimum": 0
+                }
+            }
+        },
+        "candidates": [
+            {
+                "candidate_id": "candidate_g0_0000_a4b7306ad82989f3",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 54,
+                    "call_vs_raise": 0,
+                    "passive_vs_aggressive": 24,
+                    "tight_vs_loose": 28
+                },
+                "parent_ids": []
+            },
+            {
+                "candidate_id": "candidate_g0_0001_0ba1f62045759f4c",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 32,
+                    "call_vs_raise": 46,
+                    "passive_vs_aggressive": 44,
+                    "tight_vs_loose": 40
+                },
+                "parent_ids": []
+            },
+            {
+                "candidate_id": "candidate_g0_0002_ca41c8c26ecf41cf",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 34,
+                    "call_vs_raise": 2,
+                    "passive_vs_aggressive": 28,
+                    "tight_vs_loose": 88
+                },
+                "parent_ids": []
+            },
+            {
+                "candidate_id": "candidate_g0_0003_0b9af72ec8b69a84",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 47,
+                    "call_vs_raise": 49,
+                    "passive_vs_aggressive": 56,
+                    "tight_vs_loose": 37
+                },
+                "parent_ids": []
+            },
+            {
+                "candidate_id": "candidate_g0_0004_65dfe5e8e29beba9",
+                "model_id": "strategy_parameterized",
+                "parameters": {
+                    "bluff_rate": 51,
+                    "call_vs_raise": 69,
+                    "passive_vs_aggressive": 83,
+                    "tight_vs_loose": 75
+                },
+                "parent_ids": []
+            }
+        ],
+        "creation_records": [
+            {
+                "candidate_id": "candidate_g0_0000_a4b7306ad82989f3",
+                "operation": "initialization",
+                "parent_ids": [],
+                "seed": 863401
+            },
+            {
+                "candidate_id": "candidate_g0_0001_0ba1f62045759f4c",
+                "operation": "initialization",
+                "parent_ids": [],
+                "seed": 863401
+            },
+            {
+                "candidate_id": "candidate_g0_0002_ca41c8c26ecf41cf",
+                "operation": "initialization",
+                "parent_ids": [],
+                "seed": 863401
+            },
+            {
+                "candidate_id": "candidate_g0_0003_0b9af72ec8b69a84",
+                "operation": "initialization",
+                "parent_ids": [],
+                "seed": 863401
+            },
+            {
+                "candidate_id": "candidate_g0_0004_65dfe5e8e29beba9",
+                "operation": "initialization",
+                "parent_ids": [],
+                "seed": 863401
+            }
+        ],
+        "generation": 0,
+        "generation_id": "generation_g0_b383110faff4424b",
+        "seed": 863401
+    },
+    "schema_version": 1,
+    "tool_version": "0.1.0",
+    "type": "generation_manifest"
+}

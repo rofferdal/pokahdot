@@ -298,7 +298,7 @@ performed. The authoritative
 [strategy policy contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#23-strategy-parameter-contract)
 defines the four parameter roles, resistance factor, bluff eligibility and
 metric semantics; the
-[BFCR record](../../docs/BotFoldVsCallAfterRaisesTasks.md) records verification.
+[BFCR record](../../docs/arkiv/BotFoldVsCallAfterRaisesTasks.md) records verification.
 
 ---
 
@@ -383,6 +383,7 @@ flowchart TD
 - **Automated Promotion Gates (`confirm-candidate`)**: Verifies lineage ancestry, dual independent regimes (mirrored & mixed), non-overlapping seeds, zero invalid actions, and genetic diversity (L1 distance $\ge 10$), while retaining measured VPIP/PFR/action rates separately.
 - **Human Review Barrier**: `prepare-promotion-review` creates one editable plan for the complete candidate set and compares every proposed pair using genetic and measured-behavior distances. An independent reviewer changes each candidate's single decision to `approve` or `reject`; `finalize-promotion-review` verifies every confirmation binding and pairwise review before creating one immutable batch review.
 - **Publication Boundary (`publish-profile`)**: Selects an approved decision from the consolidated review and writes a new versioned `.tres` file to `resources/bot_profiles/published/` via atomic no-clobber creation.
+- **Human-selected campaign publication**: `campaign_publication.py` implements the explicitly authorized `campaign_human_selection_publication_v1` policy separately. It binds exact frozen candidate snapshots and original round-result checksums to human approval, retains failed or absent strict confirmation findings, and publishes immutable resources with policy-specific provenance. Existing strict validators are unchanged. See the [campaign record](../../resources/bot_profiles/campaigns/bot_roster_expansion_20261101/README.md).
 
 ### 3. Curated In-Game Catalog (`PlayableBotRoster`)
 - **Shared by GUI and CLI**: Centralizes in-game bot selection and creation.

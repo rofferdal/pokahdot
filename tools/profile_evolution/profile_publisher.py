@@ -12,7 +12,9 @@ from .artifacts import canonical_json_bytes
 from .atomic_write import publish_bytes_no_replace
 from .confirmation import validate_confirmation
 from .errors import ExitCode, ToolError
-from .promotion_review import promotion_decision_for_candidate
+from .promotion_review import (
+    LEGACY_POLICY_VERSION, NINE_PLAYER_POLICY_VERSION, promotion_decision_for_candidate,
+)
 
 VERSION_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]*")
 PROFILE_ID_PATTERN = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_-]*")
@@ -92,6 +94,11 @@ def publish_approved_profile(
     confirmation = validate_confirmation(confirmation_artifact)
     candidate_id = confirmation["candidate"]["candidate_id"]
     review = promotion_decision_for_candidate(review_artifact, candidate_id)
+    policy = confirmation["evidence_policy"]["policy_version"]
+    if policy not in (LEGACY_POLICY_VERSION, NINE_PLAYER_POLICY_VERSION):
+        _fail("unsupported_promotion_policy", "Unsupported confirmation policy for publication.")
+    if review.get("policy_version", LEGACY_POLICY_VERSION) != policy:
+        _fail("promotion_review_policy_mismatch", "Review and confirmation policies differ.")
     if review["confirmation_checksum"] != confirmation_artifact["checksum"]:
         _fail("promotion_review_mismatch", "Promotion review is bound to another confirmation.")
     if review["candidate"] != confirmation["candidate"]:
@@ -108,6 +115,11 @@ def publish_approved_profile(
         resolved_name = review.get("display_name", "")
     if not resolved_name:
         resolved_name = f"Promoted {candidate['candidate_id']} {version}"
+    if policy == NINE_PLAYER_POLICY_VERSION:
+        if display_name is not None and (not isinstance(display_name, str) or not display_name or display_name.strip() != display_name):
+            _fail("invalid_display_name", "Display-name override must be a nonempty trimmed string.")
+        if any(ord(character) < 32 or ord(character) == 127 for character in resolved_name):
+            _fail("invalid_display_name", "Display names cannot contain control characters.")
     root = project_root.resolve()
     output_path = root / "resources" / "bot_profiles" / "published" / f"{profile_id}.tres"
     provenance_path = output_path.with_suffix(".provenance.json")
@@ -126,6 +138,8 @@ def publish_approved_profile(
         "resource_sha256": resource_sha256,
         "review_checksum": review_artifact["checksum"],
     }
+    if policy == NINE_PLAYER_POLICY_VERSION:
+        provenance["policy_version"] = policy
     _write_new_file(output_path, resource_text)
     try:
         _write_new_file(

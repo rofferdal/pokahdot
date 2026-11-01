@@ -54,6 +54,9 @@ ROSTER_DIVERSITY_COMPARISON_FIELDS = (
     "second_candidate_id",
 )
 REVIEW_PLAN_VERSION = 2
+NINE_PLAYER_REVIEW_PLAN_VERSION = 3
+NINE_PLAYER_POLICY_VERSION = "nine_player_promotion_v1"
+LEGACY_POLICY_VERSION = "promotion_evidence_v1"
 REVIEW_DECISIONS = ("approve", "reject")
 
 
@@ -77,6 +80,31 @@ def _validate_review_text(value: Any, field_name: str) -> str:
     return value
 
 
+def _policy_version(confirmation: dict[str, Any]) -> str:
+    policy = confirmation["evidence_policy"]["policy_version"]
+    if policy not in (LEGACY_POLICY_VERSION, NINE_PLAYER_POLICY_VERSION):
+        _fail("unsupported_promotion_policy", "Unsupported confirmation policy for promotion review.")
+    return policy
+
+
+def _review_policy(value: Any) -> str:
+    if value != NINE_PLAYER_POLICY_VERSION:
+        _fail("unsupported_promotion_policy", "Invalid nine-player promotion review policy.")
+    return value
+
+
+def _validate_new_policy_names(entries: list[dict[str, Any]]) -> None:
+    names: set[str] = set()
+    for entry in entries:
+        name = entry["display_name"]
+        if any(ord(character) < 32 or ord(character) == 127 for character in name):
+            _fail("invalid_promotion_review", "Display names cannot contain control characters.")
+        if name:
+            if name.casefold() in names:
+                _fail("invalid_promotion_review", "Display names must be unique within the review.")
+            names.add(name.casefold())
+
+
 def _confirmation_index(
     confirmation_artifacts: list[dict[str, Any]],
 ) -> dict[str, tuple[dict[str, Any], dict[str, Any]]]:
@@ -92,6 +120,8 @@ def _confirmation_index(
                 f"Candidate '{candidate_id}' appears more than once.",
             )
         result[candidate_id] = (artifact, confirmation)
+    if len({_policy_version(context) for _, context in result.values()}) != 1:
+        _fail("mixed_promotion_policies", "A consolidated review must use one confirmation policy.")
     return result
 
 
@@ -238,6 +268,7 @@ def create_promotion_review_plan(
     reviewer = require_identifier(reviewer_id, "reviewer_id")
     confirmations = _confirmation_index(confirmation_artifacts)
     candidates = []
+    policy = _policy_version(next(iter(confirmations.values()))[1])
     for artifact, confirmation in confirmations.values():
         candidates.append(
             {
@@ -249,12 +280,18 @@ def create_promotion_review_plan(
                 "review_note": "",
             }
         )
-    return {
+    plan = {
         "candidates": candidates,
         "plan_version": REVIEW_PLAN_VERSION,
         "reviewer_id": reviewer,
         "roster_diversity": _roster_diversity(confirmations),
     }
+    if policy == NINE_PLAYER_POLICY_VERSION:
+        plan["plan_version"] = NINE_PLAYER_REVIEW_PLAN_VERSION
+        plan["policy_version"] = policy
+        for entry in candidates:
+            entry["policy_version"] = policy
+    return plan
 
 
 def write_promotion_review_plan_atomic(path: Path, plan: dict[str, Any]) -> None:
@@ -291,8 +328,12 @@ def validate_promotion_review_plan(
     plan: dict[str, Any], *, require_complete: bool
 ) -> dict[str, Any]:
     """Validate the editable plan and optionally require every decision."""
-    require_exact_fields(plan, PROMOTION_REVIEW_PLAN_FIELDS, "promotion review plan")
-    if plan["plan_version"] != REVIEW_PLAN_VERSION:
+    new_policy = plan.get("plan_version") == NINE_PLAYER_REVIEW_PLAN_VERSION
+    fields = PROMOTION_REVIEW_PLAN_FIELDS + (("policy_version",) if new_policy else ())
+    require_exact_fields(plan, fields, "promotion review plan")
+    if new_policy:
+        _review_policy(plan["policy_version"])
+    if plan["plan_version"] not in (REVIEW_PLAN_VERSION, NINE_PLAYER_REVIEW_PLAN_VERSION) or isinstance(plan["plan_version"], bool) or (new_policy and type(plan["plan_version"]) is not int):
         _fail("invalid_promotion_review", "Promotion review plan version is invalid.")
     reviewer_id = require_identifier(plan["reviewer_id"], "reviewer_id")
     roster_diversity = _validate_roster_diversity(plan["roster_diversity"])
@@ -306,9 +347,11 @@ def validate_promotion_review_plan(
             _fail("invalid_promotion_review", f"Review candidate {index} must be an object.")
         require_exact_fields(
             entry,
-            PROMOTION_REVIEW_PLAN_ENTRY_FIELDS,
+            PROMOTION_REVIEW_PLAN_ENTRY_FIELDS + (("policy_version",) if new_policy else ()),
             f"promotion review candidate {index}",
         )
+        if new_policy:
+            _review_policy(entry["policy_version"])
         candidate = validate_candidate(entry["candidate"])
         candidate_id = candidate["candidate_id"]
         if candidate_id in seen_ids:
@@ -344,11 +387,17 @@ def validate_promotion_review_plan(
             "invalid_promotion_review",
             "Roster diversity candidates do not match review candidates.",
         )
-    return {
+    result = {
         "candidates": candidates,
         "reviewer_id": reviewer_id,
         "roster_diversity": roster_diversity,
     }
+    if new_policy:
+        _validate_new_policy_names(candidates)
+        result["policy_version"] = NINE_PLAYER_POLICY_VERSION
+        for entry in candidates:
+            entry["policy_version"] = NINE_PLAYER_POLICY_VERSION
+    return result
 
 
 def finalize_promotion_review(
@@ -363,6 +412,9 @@ def finalize_promotion_review(
             "promotion_review_confirmation_mismatch",
             "Review plan candidates must exactly match the supplied confirmations.",
         )
+    policy = _policy_version(next(iter(confirmations.values()))[1])
+    if review.get("policy_version", LEGACY_POLICY_VERSION) != policy:
+        _fail("promotion_review_policy_mismatch", "Review and confirmation policies differ.")
     expected_roster_diversity = _roster_diversity(confirmations)
     if review["roster_diversity"] != expected_roster_diversity:
         _fail(
@@ -404,14 +456,16 @@ def finalize_promotion_review(
                 "review_note": entry["review_note"],
             }
         )
-    return create_artifact(
-        "promotion_review_batch",
-        {
-            "decisions": decisions,
-            "reviewer_id": review["reviewer_id"],
-            "roster_diversity": expected_roster_diversity,
-        },
-    )
+    payload = {
+        "decisions": decisions,
+        "reviewer_id": review["reviewer_id"],
+        "roster_diversity": expected_roster_diversity,
+    }
+    if policy == NINE_PLAYER_POLICY_VERSION:
+        payload["policy_version"] = policy
+        for decision in decisions:
+            decision["policy_version"] = policy
+    return create_artifact("promotion_review_batch", payload)
 
 
 def create_promotion_review(
@@ -422,6 +476,8 @@ def create_promotion_review(
 ) -> dict[str, Any]:
     """Record a human decision without publishing a profile or touching a roster."""
     confirmation = validate_confirmation(confirmation_artifact)
+    if _policy_version(confirmation) == NINE_PLAYER_POLICY_VERSION:
+        _fail("consolidated_review_required", "Nine-player promotion requires one consolidated review plan.")
     reviewer = require_identifier(reviewer_id, "reviewer_id")
     if not isinstance(approved, bool):
         _fail("invalid_promotion_review", "Promotion review approval must be boolean.")
@@ -479,9 +535,12 @@ def validate_promotion_review(artifact: dict[str, Any]) -> dict[str, Any]:
 def validate_promotion_review_batch(artifact: dict[str, Any]) -> dict[str, Any]:
     validate_artifact_envelope(artifact, "promotion_review_batch")
     payload = artifact["payload"]
+    new_policy = "policy_version" in payload
     require_exact_fields(
-        payload, PROMOTION_REVIEW_BATCH_FIELDS, "promotion review batch payload"
+        payload, PROMOTION_REVIEW_BATCH_FIELDS + (("policy_version",) if new_policy else ()), "promotion review batch payload"
     )
+    if new_policy:
+        _review_policy(payload["policy_version"])
     reviewer_id = require_identifier(payload["reviewer_id"], "reviewer_id")
     raw_decisions = payload["decisions"]
     roster_diversity = _validate_roster_diversity(payload["roster_diversity"])
@@ -494,9 +553,11 @@ def validate_promotion_review_batch(artifact: dict[str, Any]) -> dict[str, Any]:
             _fail("invalid_promotion_review", f"Promotion decision {index} must be an object.")
         require_exact_fields(
             entry,
-            PROMOTION_REVIEW_BATCH_ENTRY_FIELDS,
+            PROMOTION_REVIEW_BATCH_ENTRY_FIELDS + (("policy_version",) if new_policy else ()),
             f"promotion review decision {index}",
         )
+        if new_policy:
+            _review_policy(entry["policy_version"])
         candidate = validate_candidate(entry["candidate"])
         candidate_id = candidate["candidate_id"]
         if candidate_id in seen_ids:
@@ -535,11 +596,17 @@ def validate_promotion_review_batch(artifact: dict[str, Any]) -> dict[str, Any]:
             "invalid_promotion_review",
             "Roster diversity candidates do not match promotion decisions.",
         )
-    return {
+    result = {
         "decisions": decisions,
         "reviewer_id": reviewer_id,
         "roster_diversity": roster_diversity,
     }
+    if new_policy:
+        _validate_new_policy_names(decisions)
+        result["policy_version"] = NINE_PLAYER_POLICY_VERSION
+        for entry in decisions:
+            entry["policy_version"] = NINE_PLAYER_POLICY_VERSION
+    return result
 
 
 def promotion_decision_for_candidate(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,8 @@ def publish_documents(
     documents: dict[str, dict[str, Any]],
     index_name: str,
     index: dict[str, Any],
+    *,
+    pretty_names: set[str] | None = None,
 ) -> None:
     """The index is the readiness marker; failed writes roll back owned files only.
 
@@ -26,6 +29,12 @@ def publish_documents(
     """
     encoded = {name: canonical_json_bytes(document) for name, document in documents.items()}
     encoded[index_name] = canonical_json_bytes(index)
+    selected = set() if pretty_names is None else set(pretty_names)
+    if not selected.issubset(encoded):
+        raise ToolError("invalid_pretty_document", "Pretty document names must belong to this output set.", ExitCode.INVALID_INPUT)
+    for name in selected:
+        document = index if name == index_name else documents[name]
+        encoded[name] = (json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
     owned: list[Path] = []
     reserved = False
     try:

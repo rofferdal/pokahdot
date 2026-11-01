@@ -131,7 +131,9 @@ Every agent must follow this 3-step loop for every task execution:
 ### Step 2: Implement & Test (Atomic Changes)
 *   Adopt the appropriate mode. Make **one modification at a time**. 
 *   If practicing TDD, write the test first. Otherwise, ensure the feature is immediately followed by a test suite run.
-*   If at a milestone, completing a section of tasks or need the user to build and run the application, verify that all existing tests pass alongside the new ones. 
+*   If at a milestone, completing a section of tasks or need the user to build and run the application, 
+verify that all existing tests of the changed code pass alongside the new ones. If no GUI code is changed, do not run GUI tests, 
+and if no CLI code is changed, do not run CLI tests.
 
 ### Step 3: Document & Commit Status
 *   If the architecture or data model was modified, update `docs/ARCHITECTURE.md` or relevant markdown files immediately.

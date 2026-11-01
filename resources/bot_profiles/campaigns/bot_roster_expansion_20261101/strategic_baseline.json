@@ -1,0 +1,656 @@
+{
+	"batch_id": "curated_v3_strategic_baseline",
+	"evaluation_plans": [
+		{
+			"matchup_ids": [
+				"active_roster_00",
+				"active_roster_01",
+				"active_roster_02",
+				"active_roster_03",
+				"active_roster_04",
+				"active_roster_05",
+				"active_roster_06",
+				"active_roster_07",
+				"active_roster_08",
+				"active_roster_09",
+				"active_roster_10",
+				"active_roster_11",
+				"active_roster_12",
+				"active_roster_13",
+				"active_roster_14",
+				"active_roster_15",
+				"active_roster_16",
+				"active_roster_17",
+				"active_roster_18",
+				"active_roster_19",
+				"active_roster_20",
+				"active_roster_21",
+				"active_roster_22",
+				"active_roster_23",
+				"active_roster_24"
+			],
+			"minimum_profile_samples": 100,
+			"plan_id": "roster_baseline",
+			"regime_id": "roster_9_max",
+			"seat_rotation": "cyclic",
+			"tournament_count": 2250,
+			"uncertainty_estimator": "normal_95"
+		}
+	],
+	"matchups": [
+		{
+			"matchup_id": "active_roster_00",
+			"profile_ids": [
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"loose_passive",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_01",
+			"profile_ids": [
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"loose_aggressive",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0"
+			]
+		},
+		{
+			"matchup_id": "active_roster_02",
+			"profile_ids": [
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"balanced",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_03",
+			"profile_ids": [
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0"
+			]
+		},
+		{
+			"matchup_id": "active_roster_04",
+			"profile_ids": [
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_05",
+			"profile_ids": [
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"nit_caller",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0"
+			]
+		},
+		{
+			"matchup_id": "active_roster_06",
+			"profile_ids": [
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"tight_aggressive",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0"
+			]
+		},
+		{
+			"matchup_id": "active_roster_07",
+			"profile_ids": [
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"loose_passive",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_08",
+			"profile_ids": [
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"nit_caller",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"loose_aggressive",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0"
+			]
+		},
+		{
+			"matchup_id": "active_roster_09",
+			"profile_ids": [
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"tight_aggressive",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"balanced",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_10",
+			"profile_ids": [
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"loose_passive",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"nit_caller",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_11",
+			"profile_ids": [
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"loose_aggressive",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"tight_aggressive",
+				"nit_caller"
+			]
+		},
+		{
+			"matchup_id": "active_roster_12",
+			"profile_ids": [
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"balanced",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"loose_passive",
+				"tight_aggressive"
+			]
+		},
+		{
+			"matchup_id": "active_roster_13",
+			"profile_ids": [
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"loose_aggressive",
+				"loose_passive"
+			]
+		},
+		{
+			"matchup_id": "active_roster_14",
+			"profile_ids": [
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"nit_caller",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"balanced",
+				"loose_aggressive"
+			]
+		},
+		{
+			"matchup_id": "active_roster_15",
+			"profile_ids": [
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"tight_aggressive",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"balanced"
+			]
+		},
+		{
+			"matchup_id": "active_roster_16",
+			"profile_ids": [
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"loose_passive",
+				"nit_caller",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_17",
+			"profile_ids": [
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"loose_aggressive",
+				"tight_aggressive",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_18",
+			"profile_ids": [
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"nit_caller",
+				"balanced",
+				"loose_passive",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_19",
+			"profile_ids": [
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"tight_aggressive",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"loose_aggressive",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"candidate_g0_0005_13cce589f42b0696__20261101_r2",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_20",
+			"profile_ids": [
+				"nit_caller",
+				"loose_passive",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"balanced",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0"
+			]
+		},
+		{
+			"matchup_id": "active_roster_21",
+			"profile_ids": [
+				"tight_aggressive",
+				"loose_aggressive",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_22",
+			"profile_ids": [
+				"loose_passive",
+				"balanced",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2",
+				"candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2",
+				"candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_23",
+			"profile_ids": [
+				"loose_aggressive",
+				"candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2",
+				"candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0",
+				"candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2",
+				"candidate_g0_0009_292e08a42fe29566__20261024_r3b0",
+				"nit_caller",
+				"candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2",
+				"candidate_g0_0004_3683f0bcf5541341__20261101_r2"
+			]
+		},
+		{
+			"matchup_id": "active_roster_24",
+			"profile_ids": [
+				"balanced",
+				"candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2",
+				"candidate_g0_0003_8ff30e87c04596e9__20261101_r2",
+				"candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2",
+				"candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2",
+				"tight_aggressive",
+				"candidate_g0_0008_28cda20c09a12235__20261024_r3b0",
+				"candidate_g0_0000_8c87829890bd1a11__20261101_r2",
+				"candidate_g0_0006_d319bbb79e4935d8__20261101_r2"
+			]
+		}
+	],
+	"profiles": [
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 2,
+				"call_vs_raise": 4,
+				"passive_vs_aggressive": 4,
+				"tight_vs_loose": 60
+			},
+			"profile_id": "nit_caller"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 8,
+				"call_vs_raise": 53,
+				"passive_vs_aggressive": 53,
+				"tight_vs_loose": 65
+			},
+			"profile_id": "tight_aggressive"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 5,
+				"call_vs_raise": 4,
+				"passive_vs_aggressive": 4,
+				"tight_vs_loose": 100
+			},
+			"profile_id": "loose_passive"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 22,
+				"call_vs_raise": 72,
+				"passive_vs_aggressive": 72,
+				"tight_vs_loose": 100
+			},
+			"profile_id": "loose_aggressive"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 12,
+				"call_vs_raise": 28,
+				"passive_vs_aggressive": 28,
+				"tight_vs_loose": 70
+			},
+			"profile_id": "balanced"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 52,
+				"call_vs_raise": 62,
+				"passive_vs_aggressive": 100,
+				"tight_vs_loose": 84
+			},
+			"profile_id": "candidate_campaign_mut_0002_e71136bb11dc8118__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 100,
+				"call_vs_raise": 41,
+				"passive_vs_aggressive": 60,
+				"tight_vs_loose": 86
+			},
+			"profile_id": "candidate_campaign_mut_0001_16a0d5cb77701d29__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 41,
+				"call_vs_raise": 18,
+				"passive_vs_aggressive": 100,
+				"tight_vs_loose": 92
+			},
+			"profile_id": "candidate_campaign_mut_0008_dcb88cbf0bf7e5dc__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 32,
+				"call_vs_raise": 32,
+				"passive_vs_aggressive": 86,
+				"tight_vs_loose": 91
+			},
+			"profile_id": "candidate_campaign_mut_0003_60068c2f18cd352f__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 47,
+				"call_vs_raise": 43,
+				"passive_vs_aggressive": 82,
+				"tight_vs_loose": 80
+			},
+			"profile_id": "candidate_g1_mut_0002_e856eeb3b2a832ed__20261024_r3b0"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 82,
+				"call_vs_raise": 95,
+				"passive_vs_aggressive": 100,
+				"tight_vs_loose": 79
+			},
+			"profile_id": "candidate_g0_0003_8ff30e87c04596e9__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 62,
+				"call_vs_raise": 67,
+				"passive_vs_aggressive": 100,
+				"tight_vs_loose": 81
+			},
+			"profile_id": "candidate_campaign_mut_0005_22f01c7c062f5b68__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 30,
+				"call_vs_raise": 100,
+				"passive_vs_aggressive": 64,
+				"tight_vs_loose": 85
+			},
+			"profile_id": "candidate_g0_0004_3683f0bcf5541341__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 54,
+				"call_vs_raise": 67,
+				"passive_vs_aggressive": 33,
+				"tight_vs_loose": 61
+			},
+			"profile_id": "candidate_g0_0006_d319bbb79e4935d8__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 34,
+				"call_vs_raise": 20,
+				"passive_vs_aggressive": 98,
+				"tight_vs_loose": 86
+			},
+			"profile_id": "candidate_g0_0000_8c87829890bd1a11__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 44,
+				"call_vs_raise": 86,
+				"passive_vs_aggressive": 44,
+				"tight_vs_loose": 73
+			},
+			"profile_id": "candidate_g0_0009_292e08a42fe29566__20261024_r3b0"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 53,
+				"call_vs_raise": 0,
+				"passive_vs_aggressive": 24,
+				"tight_vs_loose": 82
+			},
+			"profile_id": "candidate_campaign_mut_0009_1957546ecfb4a5cf__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 92,
+				"call_vs_raise": 34,
+				"passive_vs_aggressive": 70,
+				"tight_vs_loose": 74
+			},
+			"profile_id": "candidate_g1_mut_0004_23c4aa0775d54bec__20261024_r3b0"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 48,
+				"call_vs_raise": 97,
+				"passive_vs_aggressive": 59,
+				"tight_vs_loose": 53
+			},
+			"profile_id": "candidate_campaign_mut_0004_7c710eccf0688d55__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 55,
+				"call_vs_raise": 29,
+				"passive_vs_aggressive": 96,
+				"tight_vs_loose": 80
+			},
+			"profile_id": "candidate_g0_0008_28cda20c09a12235__20261024_r3b0"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 34,
+				"call_vs_raise": 2,
+				"passive_vs_aggressive": 28,
+				"tight_vs_loose": 88
+			},
+			"profile_id": "candidate_g0_0002_ca41c8c26ecf41cf__20261024_r3b0"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 74,
+				"call_vs_raise": 75,
+				"passive_vs_aggressive": 12,
+				"tight_vs_loose": 28
+			},
+			"profile_id": "candidate_g0_0005_13cce589f42b0696__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 54,
+				"call_vs_raise": 49,
+				"passive_vs_aggressive": 39,
+				"tight_vs_loose": 66
+			},
+			"profile_id": "candidate_g1_mut_0003_a92c427e3ea36b4a__20261024_r3b0"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 82,
+				"call_vs_raise": 37,
+				"passive_vs_aggressive": 53,
+				"tight_vs_loose": 26
+			},
+			"profile_id": "candidate_campaign_mut_0000_2f02d51fac35ab34__20261101_r2"
+		},
+		{
+			"model_id": "strategy_parameterized",
+			"parameters": {
+				"bluff_rate": 100,
+				"call_vs_raise": 14,
+				"passive_vs_aggressive": 65,
+				"tight_vs_loose": 67
+			},
+			"profile_id": "candidate_g0_0002_3dd6bffeba52fcc1__20261101_r2"
+		}
+	],
+	"regimes": [
+		{
+			"blind_progression": "normative_hand_based_v1",
+			"player_count": 9,
+			"regime_id": "roster_9_max",
+			"starting_big_blind": 10,
+			"starting_small_blind": 5,
+			"starting_stack": 1000
+		}
+	],
+	"schema_version": 2,
+	"seed_start": 2026110199
+}

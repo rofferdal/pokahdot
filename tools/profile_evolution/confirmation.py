@@ -662,6 +662,9 @@ def confirm_candidate(
 
 
 def validate_confirmation(artifact: dict[str, Any]) -> dict[str, Any]:
+    if isinstance(artifact, dict) and artifact.get("type") == "nine_player_confirmation_v1":
+        from .campaign_confirmation import validate_nine_player_confirmation
+        return validate_nine_player_confirmation(artifact)
     validate_artifact_envelope(artifact, "confirmation")
     payload = artifact["payload"]
     require_exact_fields(payload, CONFIRMATION_FIELDS, "confirmation payload")

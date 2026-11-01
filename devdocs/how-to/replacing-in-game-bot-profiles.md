@@ -18,13 +18,13 @@ Pokahdot manages all playable in-game bots through a centralized, source-control
 2. **Deep-Copy Isolation**: The catalog loads profiles once, but `select()` and `create_bot()` return deep copies. Matches cannot mutate shared profile resources.
 3. **Deterministic Positional Selection**: Given a tournament seed, seats are assigned profiles deterministically. Selection exhausts each requested model family before reusing a profile.
 4. **Legacy Availability**: The default catalog retains the three hand-authored legacy archetypes (`random_default`, `tight_passive_default`, `loose_aggressive_default`). Validation requires at least one legacy profile when legacy selection is enabled, but does not enforce those three IDs individually.
-5. **Roster Version Tracking**: The constant `ROSTER_VERSION` (`curated_v2`) provides source-controlled identity for the catalog. Interactive diagnostics log this version alongside every seat's assigned profile.
+5. **Roster Version Tracking**: The constant `ROSTER_VERSION` (`curated_v3`) provides source-controlled identity for the catalog. Interactive diagnostics log this version alongside every seat's assigned profile.
 
 ---
 
 ## 2. The Evidence-Based Promotion Workflow
 
-Never edit or replace in-game bot profiles ad-hoc. All candidate promotions follow a strict, multi-stage gate:
+The standard confirmation-based publication path follows the strict, multi-stage gate below. The separately authorized 2026-11-01 campaign amendment is described in [Human-selected campaign publication](#human-selected-campaign-publication).
 
 ```text
 [Simulation Runs (Mirrored & Mixed Reports)]
@@ -69,11 +69,11 @@ manifest remains a trustworthy before-state even after the catalog changes.
 
 ```bash
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
-  export-roster-manifest --output artifacts/curated_v2_before.json \
-  --batch-id curated_v2_before --seed 71001 --tournament-count 2520
+  export-roster-manifest --output artifacts/curated_v3_before.json \
+  --batch-id curated_v3_before --seed 71001 --tournament-count 2520
 
 godot --headless --path . --script res://scripts/simulation/simulation_cli_app.gd -- \
-  validate --config artifacts/curated_v2_before.json
+  validate --config artifacts/curated_v3_before.json
 ```
 
 Run and retain a report from this exact manifest if it will be used as a
@@ -176,7 +176,7 @@ Open [`scripts/core/agents/playable_bot_roster.gd`](../../scripts/core/agents/pl
 
 1. **Increment `ROSTER_VERSION`**:
    ```gdscript
-   const ROSTER_VERSION: StringName = &"curated_v3"
+   const ROSTER_VERSION: StringName = &"curated_v4"
    ```
 
 2. **Add or Replace Profile in `DEFAULT_PROFILE_PATHS`**:
@@ -211,7 +211,7 @@ Open [`scripts/core/agents/playable_bot_roster.gd`](../../scripts/core/agents/pl
 Update the roster unit tests in [`tests/unit/test_playable_bot_roster.gd`](../../tests/unit/test_playable_bot_roster.gd) to assert the new roster version:
 
 ```gdscript
-assert_eq(roster.get_roster_version(), &"curated_v3")
+assert_eq(roster.get_roster_version(), &"curated_v4")
 ```
 
 If replacing a legacy test expectation in [`tests/unit/test_strategy_profiles.gd`](../../tests/unit/test_strategy_profiles.gd), update the parameter dictionary accordingly.
@@ -236,7 +236,7 @@ artifacts easy to distinguish.
    The diagnostic output prints:
    ```text
    Bot roster: production
-   Bot roster version: curated_v2
+   Bot roster version: curated_v3
    Selected bot profile IDs: candidate_id__v1,tight_aggressive,balanced,...
    Seat 1: model=strategy_parameterized profile=candidate_id__v1
    ```
@@ -255,6 +255,25 @@ artifacts easy to distinguish.
 
 ---
 
+## Nine-player campaign publication
+
+The [roster expansion campaign](../../docs/BotRosterExpansionTasks.md) uses
+`nine_player_promotion_v1` instead of the heads-up confirmation workflow above.
+It still requires independent confirmation and consolidated human review:
+two nine-player batches, 297 tournaments per batch and 33 candidate samples
+per starting seat, complete source/seed independence, zero fallbacks, positive
+paired confidence bounds against every fixed benchmark, and genetic diversity.
+The [simulation contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md#52-nine-player-roster-campaign-policy)
+owns the exact policy. Existing heads-up workflows remain supported.
+
+Use `tools/roster-campaign prepare-confirmation` and `confirm` to create and
+verify these distinct artifacts. Existing `prepare-promotion-review`,
+`finalize-promotion-review` and `publish-profile` consume them with an explicit
+policy-bound review version 3 and provenance sidecar. The execution agent must
+not fill in human decisions. No candidate is activated merely by ranking or
+publishing: update the shared roster only after all required confirmations,
+review decisions and final checks exist.
+
 ## 4. Best Practice: Preserving Archetype Diversity
 
 When improving bots, resist the temptation to make all opponents identical "optimal" clones. A compelling poker game requires **stylistic variety**:
@@ -270,3 +289,56 @@ The [simulation contract](../../docs/Simulation_And_Evolutionary_Bot_Strategy.md
 owns confirmation policy: mirrored tables are heads-up against each declared
 benchmark; each mixed matchup includes both opponent classes. Review labels
 and checksums bind content but do not authenticate reviewer identity.
+
+## Prepare one review from verified confirmation producers
+
+After the full authorized confirmation cohort reports readiness, generate its
+confirmations and consolidated pending human review:
+
+```bash
+tools/roster-campaign prepare-confirmation-review \
+  --plan localtmp/new_confirmation_plan/cohort_plan.json \
+  --readiness localtmp/new_confirmation_execution/readiness.json \
+  --reviewer-id independent_human \
+  --output-dir localtmp/new_confirmation_review
+```
+
+This checks all forty successful producer receipts before consuming reports,
+creates twenty confirmations, and proposes their frozen public names in one
+readable `promotion_review_plan.json`. Every decision remains `pending`.
+`summary.json` is written last and binds the confirmations, proposed identities,
+producer evidence and eligibility reasons. Ineligible finalists remain visible;
+they are never silently approved or replaced. A missing or altered producer
+file fails validation. The existing human review and publication steps still
+apply after this preparation; no roster change is authorized by preparation.
+
+## Human-selected campaign publication
+
+The 2026-11-01 roster campaign has an explicitly authorized exception to the
+standard confirmation-based path. After reviewing the evidence, the user
+approved the selected twenty profiles with Amber Horizon replacing Copper-Blaze
+Venture, and explicitly approved publication based on that selection in place
+of strict benchmark-performance eligibility.
+
+Use the separately versioned `campaign_human_selection_publication_v1` path
+for this authorization. Preserve exact campaign and round-result checksums,
+frozen IDs, parameters, names, the selection change and explicit human approval
+in the publication record. Retain the original strict confirmation findings:
+one selected profile passed, eighteen failed, and Amber Horizon has no
+independent confirmation batches. Never edit eligibility fields or pass these
+profiles through the strict `publish-profile` validator by relabeling evidence.
+The standard confirmation, review and publication validators remain unchanged.
+
+Six selected incumbent Resources are retained without modifying their files;
+fourteen new selected profiles receive immutable Resources and policy-bound
+publication evidence. Preserve removed incumbents as historical files. Activate
+exactly the approved twenty plus the five protected hand-authored strategic and
+three optional legacy profiles in the shared GUI/CLI roster, increment its
+version once, and verify the 25-strategic-profile capacity and all 28 entries.
+Required evidence is retained under
+`resources/bot_profiles/campaigns/bot_roster_expansion_20261101/`; session-only
+reports and previews remain under `localtmp/`.
+
+This policy change is campaign-specific and explicitly human-authorized. A new
+campaign or changed selection needs its own reviewed authorization; a failed
+strict confirmation alone never authorizes this path.

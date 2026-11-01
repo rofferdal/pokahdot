@@ -105,7 +105,7 @@ Older diagnostic-free traces retain the former weak-hand-plus-legal-wager
 definition. This changes the denominator's meaning, so the historical endpoint
 figures above are not current-policy benchmarks. Source identity distinguishes
 evaluation evidence; parameter, manifest and report formats remain unchanged.
-The [BFCR record](BotFoldVsCallAfterRaisesTasks.md) owns current verification
+The [BFCR record](arkiv/BotFoldVsCallAfterRaisesTasks.md) owns current verification
 results and limits. Published Resources and historical reports are preserved.
 
 ## Current policy note: `street_response_v3`
@@ -129,7 +129,7 @@ Hand-potential and draw-quality scores are ratings, not equity. The policy uses
 call price without calculating opponent-range equity or expected value. The
 [current strategy contract](Simulation_And_Evolutionary_Bot_Strategy.md#23-strategy-parameter-contract)
 defines the resistance factor and selective windows; the
-[BFCR record](BotFoldVsCallAfterRaisesTasks.md) owns verification evidence.
+[BFCR record](arkiv/BotFoldVsCallAfterRaisesTasks.md) owns verification evidence.
 Parameter and report formats, published profiles and historical figures above
 remain unchanged. Compare results only with matching executable provenance
 and compatible opportunity definitions.

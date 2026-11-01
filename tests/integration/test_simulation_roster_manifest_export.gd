@@ -12,6 +12,8 @@ func after_each() -> void:
 
 
 func test_exported_roster_manifest_is_atomic_valid_and_immediately_validatable() -> void:
+	# Four complete nine-seat rotations per translated matchup.
+	var tournament_count := str(PlayableBotRoster.new().get_profile_ids().size() * 36)
 	var first_result := _run_cli(
 		[
 			"export-roster-manifest",
@@ -22,7 +24,7 @@ func test_exported_roster_manifest_is_atomic_valid_and_immediately_validatable()
 			"--seed",
 			"901",
 			"--tournament-count",
-			"792",
+			tournament_count,
 		]
 	)
 
@@ -40,7 +42,13 @@ func test_exported_roster_manifest_is_atomic_valid_and_immediately_validatable()
 	assert_eq(validate_result.exit_code, 0, validate_result.output)
 
 	var refused_result := _run_cli(
-		["export-roster-manifest", "--output", _output_path(), "--tournament-count", "792"]
+		[
+			"export-roster-manifest",
+			"--output",
+			_output_path(),
+			"--tournament-count",
+			tournament_count
+		]
 	)
 	assert_eq(refused_result.exit_code, 3, refused_result.output)
 	assert_eq(_read_document(), first_document)
@@ -54,7 +62,7 @@ func test_exported_roster_manifest_is_atomic_valid_and_immediately_validatable()
 			"--batch-id",
 			"replacement_roster",
 			"--tournament-count",
-			"792",
+			tournament_count,
 		]
 	)
 	assert_eq(overwrite_result.exit_code, 0, overwrite_result.output)
