@@ -110,6 +110,14 @@ A "composition root" is the place where configuration is loaded, dependencies ar
 | **Interactive CLI** | `scripts/cli/cli_app.gd` | `TournamentConstructionContract.product()` | Terminal-based game with text prompts, ASCII/Unicode cards, and standard input/output. Uses `CliMatchFactory` and `PlayableBotRoster`. |
 | **Simulation CLI** | `scripts/simulation/simulation_cli_app.gd` | `TournamentConstructionContract.simulation()` | Non-interactive, high-throughput headless runner for testing bot parameters across thousands of tournaments. Uses `SimulationMatchFactory`. |
 
+GUI and interactive CLI select a default-false `aggressive_blinds` setting
+before construction: the start-page checkbox and `--aggressive-blinds` /
+`aggressive-blinds on|off` setup commands resolve the same immutable property.
+The core owns +25%/+75% growth, identical hand-count timing, even rounding and
+cap. Simulation maps its explicit standard/aggressive regime identifier into
+that property; no presentation adapter computes blind progression. GUI changes
+for this option are confined to startup responsibilities.
+
 ### The Composition Contract (`TournamentConstructionContract`)
 To prevent accidental creation of all-bot games in the product (or human waits in simulation), `TournamentMatch` requires a contract:
 - `TournamentConstructionContract.product()`: Requires **exactly one** `HumanAgent`. Used by GUI and Interactive CLI.

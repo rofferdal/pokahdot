@@ -16,6 +16,8 @@ var has_big_blind: bool = false
 var big_blind: int = 0
 var has_use_legacy_models: bool = false
 var use_legacy_models: bool = false
+var has_aggressive_blinds: bool = false
+var aggressive_blinds: bool = false
 
 
 func set_player_count(value: int) -> StartupOverrides:
@@ -45,4 +47,10 @@ func set_big_blind(value: int) -> StartupOverrides:
 func set_use_legacy_models(value: bool) -> StartupOverrides:
 	has_use_legacy_models = true
 	use_legacy_models = value
+	return self
+
+
+func set_aggressive_blinds(value: bool) -> StartupOverrides:
+	has_aggressive_blinds = true
+	aggressive_blinds = value
 	return self

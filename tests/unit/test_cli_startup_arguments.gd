@@ -80,3 +80,22 @@ func test_semantic_option_errors_use_core_config_validation() -> void:
 		assert_false(
 			ConfigResolver.new().resolve(options.apply_to(TournamentConfig.new()), null).is_ok()
 		)
+
+
+func test_aggressive_blind_flag_defaults_and_duplicate_rejection() -> void:
+	var defaults := TournamentConfig.new()
+	assert_false(CliStartupArgumentsScript.parse([]).apply_to(defaults).aggressive_blinds)
+	var enabled := CliStartupArgumentsScript.parse(["--aggressive-blinds"])
+	assert_true(enabled.errors.is_empty())
+	assert_true(enabled.apply_to(defaults).aggressive_blinds)
+	assert_false(defaults.aggressive_blinds)
+	assert_false(
+		(
+			CliStartupArgumentsScript
+			. parse(["--aggressive-blinds", "--aggressive-blinds"])
+			. errors
+			. is_empty()
+		)
+	)
+	assert_true(CliStartupArgumentsScript.usage().contains("+25%"))
+	assert_true(CliStartupArgumentsScript.usage().contains("+75%"))

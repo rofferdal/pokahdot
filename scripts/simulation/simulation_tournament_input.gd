@@ -61,6 +61,8 @@ func get_seat_profile_ids() -> Dictionary[int, StringName]:
 func validate(player_count: int) -> PackedStringArray:
 	var errors := PackedStringArray()
 	var configured_player_count := player_count if regime == null else regime.player_count
+	if regime != null:
+		errors.append_array(regime.validate())
 	if tournament_index < 0:
 		errors.append("Tournament index must be non-negative.")
 	if matchup_occurrence < 0:

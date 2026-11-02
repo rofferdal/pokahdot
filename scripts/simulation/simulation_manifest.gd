@@ -86,8 +86,6 @@ func validate() -> PackedStringArray:
 			errors.append("Simulation regime IDs must be unique.")
 		else:
 			regime_by_id[regime.regime_id] = regime
-		if regime.blind_progression != BLIND_PROGRESSION:
-			errors.append("Simulation regimes must use the normative hand-based blind progression.")
 		errors.append_array(regime.validate())
 	var matchup_by_id: Dictionary = {}
 	for matchup: SimulationMatchup in matchups:

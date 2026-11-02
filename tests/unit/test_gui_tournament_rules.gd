@@ -15,6 +15,7 @@ func test_pointer_navigation_preserves_invalid_drafts_errors_and_return_focus() 
 	stack.text = "bad"
 	(_main.get_node("%SmallBlindInput") as LineEdit).text = " 005 "
 	(_main.get_node("%UseLegacyModelsCheckBox") as CheckBox).button_pressed = true
+	(_main.get_node("%AggressiveBlindsCheckBox") as CheckBox).button_pressed = true
 	(_main.get_node("%StartButton") as Button).pressed.emit()
 	var errors: Dictionary = _main.startup_adapter.field_errors.duplicate()
 	var message: String = (_main.get_node("%StartingStackError") as Label).text
@@ -35,8 +36,30 @@ func test_pointer_navigation_preserves_invalid_drafts_errors_and_return_focus() 
 	assert_eq(stack.text, "bad")
 	assert_eq((_main.get_node("%SmallBlindInput") as LineEdit).text, " 005 ")
 	assert_true((_main.get_node("%UseLegacyModelsCheckBox") as CheckBox).button_pressed)
+	assert_true((_main.get_node("%AggressiveBlindsCheckBox") as CheckBox).button_pressed)
 	assert_eq(_main.startup_adapter.field_errors, errors)
 	assert_eq((_main.get_node("%StartingStackError") as Label).text, message)
+
+
+func test_aggressive_checkbox_keyboard_touch_resize_and_start() -> void:
+	await _mount(Vector2i(390, 844))
+	var checkbox := _main.get_node("%AggressiveBlindsCheckBox") as CheckBox
+	assert_false(checkbox.button_pressed)
+	checkbox.grab_focus()
+	await _key(KEY_SPACE)
+	assert_true(checkbox.button_pressed)
+	_main.size = Vector2(844, 390)
+	_main._refresh_startup_layout()
+	await wait_process_frames(5)
+	assert_true(checkbox.button_pressed)
+	await _touch(checkbox.get_global_rect().get_center())
+	assert_false(checkbox.button_pressed)
+	await _touch(checkbox.get_global_rect().get_center())
+	assert_true(checkbox.button_pressed)
+	(_main.get_node("%StartButton") as Button).pressed.emit()
+	assert_true(_main.startup_adapter.resolved_config.aggressive_blinds)
+	_main._return_to_startup("Tournament complete.")
+	assert_false(checkbox.button_pressed)
 
 
 func test_keyboard_navigation_cancel_and_platform_back_preserve_valid_raw_drafts() -> void:

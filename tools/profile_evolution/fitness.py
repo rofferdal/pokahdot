@@ -369,7 +369,9 @@ def _validate_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
             or regime["starting_small_blind"] > regime["starting_big_blind"]
         ):
             _invalid("invalid_simulation_manifest", "Regime chip bounds or blind order are invalid.")
-        if regime["blind_progression"] != "normative_hand_based_v1" or player_count > 9:
+        if regime["blind_progression"] not in (
+            "normative_hand_based_v1", "aggressive_hand_based_v1"
+        ) or player_count > 9:
             _invalid("invalid_simulation_manifest", "Simulation regime is unsupported.")
         regime_by_id[regime_id] = regime
     matchup_by_id: dict[str, dict[str, Any]] = {}

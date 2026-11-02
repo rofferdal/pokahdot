@@ -25,14 +25,18 @@ func _init(io: CliIO, resolver: ConfigResolver = null) -> void:
 func run(
 	defaults: TournamentConfig, use_legacy_models: bool = false, configure: bool = false
 ) -> StartupPromptResult:
+	var selected := defaults.duplicate(true) as TournamentConfig
 	_io.write_line("Pokahdot tournament setup")
-	_io.write_line(_defaults_summary(defaults))
+	_io.write_line(_defaults_summary(selected))
 	if configure:
-		return _run_custom_configuration(defaults, use_legacy_models)
+		return _run_custom_configuration(selected, use_legacy_models)
 
 	while true:
 		_io.write_text(
-			"Press Enter to start, or type 'configure', 'short-stack', 'rules', or 'quit': "
+			(
+				"Press Enter to start, or type 'configure', 'short-stack', "
+				+ "'aggressive-blinds on|off', 'rules', or 'quit': "
+			)
 		)
 		var input: CliInputLine = _io.read_line()
 		if input.is_eof:
@@ -40,20 +44,32 @@ func run(
 			return StartupPromptResult.new(StartupPromptResult.Status.EOF)
 
 		var command := input.text.strip_edges().to_lower()
+		if command.get_slice(" ", 0) == "aggressive-blinds":
+			if command in ["aggressive-blinds on", "aggressive-blinds off"]:
+				selected.aggressive_blinds = command == "aggressive-blinds on"
+				_io.write_line(_defaults_summary(selected))
+			else:
+				_io.write_line("Use aggressive-blinds on or aggressive-blinds off before starting.")
+			continue
 		if command == "rules":
 			RulesReference.write_to(_io)
 			continue
 		if command.is_empty() or command == "start":
-			return _resolve_and_report(defaults, _startup_overrides(use_legacy_models))
+			return _resolve_and_report(selected, _startup_overrides(use_legacy_models))
 		if command in CONFIGURE_COMMANDS:
-			return _run_custom_configuration(defaults, use_legacy_models)
+			return _run_custom_configuration(selected, use_legacy_models)
 		if command in SHORT_STACK_COMMANDS:
-			return _resolve_short_stack_configuration(defaults, use_legacy_models)
+			return _resolve_short_stack_configuration(selected, use_legacy_models)
 		if command in QUIT_COMMANDS:
 			_io.write_line("Startup cancelled.")
 			return StartupPromptResult.new(StartupPromptResult.Status.QUIT)
 
-		_io.write_line("Unknown setup option. Use Enter, configure, short-stack, rules, or quit.")
+		_io.write_line(
+			(
+				"Unknown setup option. Use Enter, configure, short-stack, "
+				+ "aggressive-blinds on|off, rules, or quit."
+			)
+		)
 
 	return StartupPromptResult.new(StartupPromptResult.Status.ERROR)
 
@@ -125,6 +141,7 @@ func _report_ready(config: ResolvedTournamentConfig) -> StartupPromptResult:
 	_io.write_line("  Players: %d" % config.player_count)
 	_io.write_line("  Starting stack: %d" % config.starting_stack)
 	_io.write_line("  Blinds: %d/%d" % [config.small_blind, config.big_blind])
+	_io.write_line("  Blind level increase: +%d%%" % (75 if config.aggressive_blinds else 25))
 	_io.write_line(
 		(
 			"  Legacy heuristic models: %s"
@@ -142,12 +159,13 @@ func _report_errors(errors: Array[ConfigError]) -> void:
 
 func _defaults_summary(defaults: TournamentConfig) -> String:
 	return (
-		"Defaults: %d players, %d chips, blinds %d/%d"
+		"Defaults: %d players, %d chips, blinds %d/%d, +%d%% per level"
 		% [
 			defaults.player_count,
 			defaults.starting_stack,
 			defaults.small_blind,
 			defaults.big_blind,
+			75 if defaults.aggressive_blinds else 25,
 		]
 	)
 

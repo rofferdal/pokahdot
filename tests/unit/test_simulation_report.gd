@@ -4,6 +4,44 @@ const REPORT_SCRIPT := preload("res://scripts/simulation/simulation_report.gd")
 const PROVENANCE_SCRIPT := preload("res://scripts/simulation/simulation_provenance.gd")
 
 
+func test_aggressive_report_round_trip_replays_the_same_manifest_and_rejects_relabeling() -> void:
+	var data: Dictionary = JSON.parse_string(
+		FileAccess.get_file_as_string("res://tests/fixtures/simulation_manifest_v2.json")
+	)
+	data.regimes[0].blind_progression = String(SimulationRegime.AGGRESSIVE_PROGRESSION)
+	var manifest := SimulationManifest.parse(data).manifest
+	var runner := SimulationBatchRunner.new()
+	var batch := runner.run(
+		manifest.regimes[0].resolve(manifest.seed_start).get_config(), manifest.build_plan().inputs
+	)
+	assert_true(batch.is_success())
+	var report := SimulationReport.from_batch(
+		manifest, SimulationShard.new(), batch, "", "", _provenance()
+	)
+	var parsed := SimulationReport.from_dictionary(JSON.parse_string(report.canonical_json()))
+	assert_eq(parsed.validate(), PackedStringArray())
+	assert_eq(parsed.manifest_checksum, manifest.checksum())
+	var replay_manifest := SimulationReportManifestContract.parse(parsed.manifest).manifest
+	assert_true(
+		replay_manifest.regimes[0].resolve(manifest.seed_start).get_config().aggressive_blinds
+	)
+	var replay := runner.run(
+		replay_manifest.regimes[0].resolve(manifest.seed_start).get_config(),
+		replay_manifest.build_plan().inputs
+	)
+	var replay_report := SimulationReport.from_batch(
+		replay_manifest, SimulationShard.new(), replay, "", "", _provenance()
+	)
+	for index: int in range(report.tournaments.size()):
+		assert_eq(
+			SimulationReport.tournament_digest(replay_report.tournaments[index]),
+			SimulationReport.tournament_digest(report.tournaments[index])
+		)
+	var relabeled: Dictionary = parsed.to_dictionary()
+	relabeled.manifest.regimes[0].blind_progression = String(SimulationRegime.STANDARD_PROGRESSION)
+	assert_false(SimulationReport.from_dictionary(relabeled).validate().is_empty())
+
+
 func test_roster_provenance_matches_the_cross_language_fixture() -> void:
 	var file := FileAccess.open("res://tests/fixtures/roster_provenance_v1.json", FileAccess.READ)
 	assert_not_null(file)

@@ -194,6 +194,7 @@ Create a manifest file named `solid_tag_manifest.json`:
 ```
 
 ### Key Details:
+- **`blind_progression`**: The example uses default +25% levels via `normative_hand_based_v1`. For an explicitly separate +75% experiment, use `aggressive_hand_based_v1`. Both preserve level timing, upward even rounding and the 1,000,000 big-blind cap. The field is part of manifest/report/checkpoint identity; do not reuse a checkpoint or pool incompatible regimes after changing it.
 - **`tournament_count: 300`**: Cycles each bot through seats 0, 1, and 2 exactly 100 times under cyclic rotation, eliminating positional bias.
 - **`seed_start: 500000`**: Provides reproducible pseudo-random streams.
 - **`normal_95` only**: Both the Godot manifest/runtime path and Python

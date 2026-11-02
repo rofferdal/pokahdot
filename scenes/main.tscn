@@ -177,11 +177,25 @@ layout_mode = 2
 text = "Phone guidance: 4 players is recommended."
 autowrap_mode = 2
 
-[node name="UseLegacyModelsCheckBox" type="CheckBox" parent="Center/Panel/Margin/Form"]
+[node name="StartupOptions" type="GridContainer" parent="Center/Panel/Margin/Form"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 4
+columns = 1
+
+[node name="UseLegacyModelsCheckBox" type="CheckBox" parent="Center/Panel/Margin/Form/StartupOptions"]
 theme_type_variation = &"StartupCheckBox"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Use legacy heuristic models"
+button_pressed = false
+
+[node name="AggressiveBlindsCheckBox" type="CheckBox" parent="Center/Panel/Margin/Form/StartupOptions"]
+theme_type_variation = &"StartupCheckBox"
+unique_name_in_owner = true
+layout_mode = 2
+text = "Aggressive blind levels"
 button_pressed = false
 
 [node name="Actions" type="HBoxContainer" parent="Center/Panel/Margin/Form"]

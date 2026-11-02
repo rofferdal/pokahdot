@@ -3,6 +3,31 @@ extends "res://tests/support/poker_gut_test.gd"
 const BATCH_RUNNER_SCRIPT := preload("res://scripts/simulation/simulation_batch_runner.gd")
 
 
+func test_runner_preserves_base_mode_and_uses_explicit_regime_mode() -> void:
+	var first := _profile(&"first")
+	var second := _profile(&"second")
+	var input := SimulationTournamentInput.new(
+		0, 1707, SimulationMatchup.new(&"match", [first, second]), {0: first, 1: second}
+	)
+	var base := ResolvedTournamentConfig.new(
+		2, 30, 5, 10, 901, &"single_table", {0: &"human", 1: &"random"}, false, true
+	)
+	var runner := SimulationBatchRunner.new()
+	assert_true(runner._config_for_input(base, input).aggressive_blinds)
+	assert_eq(runner._config_for_input(base, input).rng_seed, 1707)
+	input.regime = SimulationRegime.new(&"standard", 2, 30, 5, 10)
+	assert_false(runner._config_for_input(base, input).aggressive_blinds)
+	input.regime.blind_progression = SimulationRegime.AGGRESSIVE_PROGRESSION
+	assert_true(runner._config_for_input(_config(), input).aggressive_blinds)
+	assert_true(runner.run(base, [input]).is_success())
+	input.regime.blind_progression = &"unknown"
+	var rejected := runner.run(base, [input])
+	assert_false(rejected.is_success())
+	assert_eq(
+		rejected.outcomes[0].diagnostics[0].stage, SimulationDiagnostic.Stage.INPUT_VALIDATION
+	)
+
+
 func test_runner_evaluates_explicit_indexes_without_mutating_snapshots() -> void:
 	var first := _profile(&"first")
 	var second := _profile(&"second")

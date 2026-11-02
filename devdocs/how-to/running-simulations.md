@@ -24,6 +24,23 @@ when validating `PlayableBotRoster` for GUI and CLI games.
 
 ---
 
+### Choose the blind progression
+
+The regime's existing `blind_progression` field selects
+`normative_hand_based_v1` for default +25% growth or
+`aggressive_hand_based_v1` for explicit +75% growth. Both use the same
+completed-hand intervals, upward even big-blind rounding, half-sized small
+blind and 1,000,000 big-blind cap. Level-one blinds are used as supplied.
+Roster exports and prepared experiments remain standard by default; opt in by
+creating a separate manifest with the aggressive identifier. The interactive
+CLI's `--aggressive-blinds` flag is not a simulation option.
+
+Unknown identifiers fail validation. The manifest checksum includes this
+field, so reports, replay and checkpoint resume retain the selected mode.
+Changing the identifier requires a new run/checkpoint; do not combine reports
+with incompatible regime definitions into one comparison. Existing frozen
+campaign manifests and historical +25% evidence remain unchanged.
+
 ## 2. Using the Simulation CLI
 
 The simulation entry point is [`scripts/simulation/simulation_cli_app.gd`](../../scripts/simulation/simulation_cli_app.gd). Pass arguments after `--`:

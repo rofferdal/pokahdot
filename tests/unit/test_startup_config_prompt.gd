@@ -9,7 +9,7 @@ func test_immediate_blank_starts_with_all_defaults() -> void:
 
 	assert_true(result.is_ready())
 	assert_config_values(result.config, 6, 1000, 5, 10)
-	assert_true(io.contains_write("Defaults: 6 players, 1000 chips, blinds 5/10"))
+	assert_true(io.contains_write("Defaults: 6 players, 1000 chips, blinds 5/10, +25% per level"))
 	assert_true(io.contains_write("  Players: 6"))
 	assert_true(io.contains_write("  Starting stack: 1000"))
 	assert_true(io.contains_write("  Blinds: 5/10"))
@@ -235,3 +235,73 @@ func assert_config_values(
 	assert_eq(config.starting_stack, expected_starting_stack)
 	assert_eq(config.small_blind, expected_small_blind)
 	assert_eq(config.big_blind, expected_big_blind)
+
+
+func test_aggressive_toggle_off_overrides_flag_without_mutating_defaults() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.aggressive_blinds = true
+	var io := FakeCliIO.new()
+	io.queue_line("aggressive-blinds off")
+	io.queue_blank_line()
+	var result := _run_prompt(io, defaults)
+	assert_true(result.is_ready())
+	assert_false(result.config.aggressive_blinds)
+	assert_true(defaults.aggressive_blinds)
+	assert_true(io.contains_write("  Blind level increase: +25%"))
+
+
+func test_aggressive_toggle_survives_configure_validation_retry_and_rules() -> void:
+	var io := FakeCliIO.new()
+	for line: String in ["aggressive-blinds on", "rules", "configure", "3", "200", "20", "10", "5"]:
+		io.queue_line(line)
+	var result := _run_prompt(io)
+	assert_true(result.is_ready())
+	assert_true(result.config.aggressive_blinds)
+	assert_true(io.contains_write("  Blind level increase: +75%"))
+	assert_eq(io.count_writes_containing("Tournament configuration:"), 1)
+
+
+func test_aggressive_selection_survives_short_stack_and_malformed_commands() -> void:
+	var io := FakeCliIO.new()
+	for line: String in [
+		"aggressive-blinds on",
+		"aggressive-blinds",
+		"aggressive-blinds maybe",
+		"aggressive-blinds off extra",
+		"short-stack"
+	]:
+		io.queue_line(line)
+	var result := _run_prompt(io)
+	assert_true(result.is_ready())
+	assert_true(result.config.aggressive_blinds)
+	assert_eq(result.config.rng_seed, 991)
+	assert_eq(io.count_writes_containing("Use aggressive-blinds on or aggressive-blinds off"), 3)
+
+
+func test_toggle_does_not_start_without_explicit_start() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("aggressive-blinds on")
+	io.queue_eof()
+	var result := _run_prompt(io)
+	assert_false(result.is_ready())
+	assert_false(io.contains_write("Tournament configuration:"))
+
+
+func test_direct_configure_retains_aggressive_flag_seed() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.aggressive_blinds = true
+	var io := FakeCliIO.new()
+	for index: int in range(4):
+		io.queue_blank_line()
+	var result := StartupConfigPrompt.new(io).run(defaults, false, true)
+	assert_true(result.is_ready())
+	assert_true(result.config.aggressive_blinds)
+
+
+func test_malformed_toggle_does_not_enable_standard_defaults() -> void:
+	var io := FakeCliIO.new()
+	io.queue_line("aggressive-blinds on extra")
+	io.queue_blank_line()
+	var result := _run_prompt(io)
+	assert_true(result.is_ready())
+	assert_false(result.config.aggressive_blinds)

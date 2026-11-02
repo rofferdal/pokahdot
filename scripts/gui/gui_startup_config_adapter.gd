@@ -14,6 +14,7 @@ var starting_stack_text: String
 var small_blind_text: String
 var big_blind_text: String
 var use_legacy_models: bool = false
+var aggressive_blinds: bool = false
 var field_errors: Dictionary[StringName, String] = {}
 var resolved_config: ResolvedTournamentConfig
 var match_instance: TournamentMatch
@@ -57,6 +58,7 @@ func reset_to_defaults() -> void:
 	small_blind_text = str(_defaults.small_blind)
 	big_blind_text = str(_defaults.big_blind)
 	use_legacy_models = false
+	aggressive_blinds = false
 	field_errors.clear()
 	resolved_config = null
 	match_instance = null
@@ -89,6 +91,7 @@ func try_start() -> bool:
 	overrides.set_small_blind(small_blind)
 	overrides.set_big_blind(big_blind)
 	overrides.set_use_legacy_models(use_legacy_models)
+	overrides.set_aggressive_blinds(aggressive_blinds)
 	var resolution: ConfigResolution = ConfigResolver.new().resolve(_defaults, overrides)
 	if not resolution.is_ok():
 		for error: ConfigError in resolution.get_errors():

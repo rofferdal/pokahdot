@@ -43,6 +43,12 @@ func resolve(defaults: TournamentConfig, overrides: StartupOverrides) -> ConfigR
 		else defaults.use_legacy_models
 	)
 
+	var aggressive_blinds: bool = (
+		applied_overrides.aggressive_blinds
+		if applied_overrides.has_aggressive_blinds
+		else defaults.aggressive_blinds
+	)
+
 	var errors: Array[ConfigError] = []
 	_validate_scalars(
 		player_count,
@@ -71,6 +77,7 @@ func resolve(defaults: TournamentConfig, overrides: StartupOverrides) -> ConfigR
 			defaults.tournament_mode,
 			seat_agents,
 			use_legacy_models,
+			aggressive_blinds,
 		)
 	)
 	return ConfigResolution.new(resolved_config)

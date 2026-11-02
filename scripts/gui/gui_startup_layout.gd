@@ -26,6 +26,7 @@ var _starting_stack_input: LineEdit
 var _small_blind_input: LineEdit
 var _big_blind_input: LineEdit
 var _use_legacy_models_checkbox: CheckBox
+var _aggressive_blinds_checkbox: CheckBox
 var _player_count_error: Label
 var _phone_player_count_guidance: Label
 var _starting_stack_error: Label
@@ -40,6 +41,7 @@ var _background: ColorRect
 var _startup_form_panel: PanelContainer
 var _startup_form: VBoxContainer
 var _startup_fields: GridContainer
+var _startup_options: GridContainer
 var _quit_application_button: Button
 
 
@@ -55,6 +57,7 @@ func _init(root: Control) -> void:
 	_small_blind_input = root.get_node("%SmallBlindInput") as LineEdit
 	_big_blind_input = root.get_node("%BigBlindInput") as LineEdit
 	_use_legacy_models_checkbox = root.get_node("%UseLegacyModelsCheckBox") as CheckBox
+	_aggressive_blinds_checkbox = root.get_node("%AggressiveBlindsCheckBox") as CheckBox
 	_player_count_error = root.get_node("%PlayerCountError") as Label
 	_phone_player_count_guidance = root.get_node("%PhonePlayerCountGuidance") as Label
 	_starting_stack_error = root.get_node("%StartingStackError") as Label
@@ -69,6 +72,7 @@ func _init(root: Control) -> void:
 	_startup_form_panel = root.get_node("%Panel") as PanelContainer
 	_startup_form = root.get_node("%Form") as VBoxContainer
 	_startup_fields = root.get_node("%Fields") as GridContainer
+	_startup_options = root.get_node("%StartupOptions") as GridContainer
 	_quit_application_button = root.get_node("%QuitApplicationButton") as Button
 
 
@@ -96,6 +100,7 @@ func apply(available: Vector2, size_class: GuiSizeClass, table_visible: bool) ->
 	_use_legacy_models_checkbox.text = (
 		"Use legacy bots" if phone_layout else "Use legacy heuristic models"
 	)
+	_aggressive_blinds_checkbox.text = "Aggressive blind levels"
 	_player_count_label.text = "Players (2–7)" if phone_layout else "Participants (2–9)"
 	_starting_stack_label.text = "Stack" if phone_layout else "Starting stack"
 	_small_blind_label.text = "Small blind"
@@ -115,7 +120,10 @@ func apply(available: Vector2, size_class: GuiSizeClass, table_visible: bool) ->
 	var compact_margin: int = 8 if phone_layout else (14 if compact_form else 28)
 	for side: StringName in [&"margin_left", &"margin_top", &"margin_right", &"margin_bottom"]:
 		form_margin.add_theme_constant_override(side, compact_margin)
-	_startup_form.add_theme_constant_override("separation", 8 if compact_form else 18)
+	_startup_form.add_theme_constant_override(
+		"separation", (6 if is_compact_landscape else 8) if compact_form else 18
+	)
+	_startup_options.columns = 2 if is_compact_landscape else 1
 	_startup_fields.add_theme_constant_override("v_separation", 6 if compact_form else 10)
 	_startup_fields.columns = (
 		(2 if is_portrait else 4) if phone_layout else (1 if is_portrait else 2)
@@ -191,6 +199,7 @@ func _set_startup_touch_targets(geometry_scale: float) -> void:
 		_small_blind_input,
 		_big_blind_input,
 		_use_legacy_models_checkbox,
+		_aggressive_blinds_checkbox,
 		_start_button,
 		_rules_button,
 		_quit_application_button,

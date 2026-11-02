@@ -45,6 +45,7 @@ func _init(
 				config.small_blind,
 				config.big_blind,
 				config.player_count,
+				config.aggressive_blinds,
 			)
 		)
 

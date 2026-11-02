@@ -28,6 +28,7 @@ var _startup_layout: GuiStartupLayout
 @onready var _starting_stack_input: LineEdit = %StartingStackInput
 @onready var _small_blind_input: LineEdit = %SmallBlindInput
 @onready var _big_blind_input: LineEdit = %BigBlindInput
+@onready var _aggressive_blinds_checkbox: CheckBox = %AggressiveBlindsCheckBox
 @onready var _use_legacy_models_checkbox: CheckBox = %UseLegacyModelsCheckBox
 @onready var _player_count_error: Label = %PlayerCountError
 @onready var _phone_player_count_guidance: Label = %PhonePlayerCountGuidance
@@ -95,6 +96,7 @@ func get_layout_snapshot() -> GuiLayoutSnapshot:
 		&"small_blind_label": _small_blind_label,
 		&"big_blind_label": _big_blind_label,
 		&"legacy_models": _use_legacy_models_checkbox,
+		&"aggressive_blinds": _aggressive_blinds_checkbox,
 		&"player_count_error": _player_count_error,
 		&"starting_stack_error": _starting_stack_error,
 		&"small_blind_error": _small_blind_error,
@@ -166,6 +168,7 @@ func _on_start_pressed() -> void:
 	startup_adapter.small_blind_text = _small_blind_input.text
 	startup_adapter.big_blind_text = _big_blind_input.text
 	startup_adapter.use_legacy_models = _use_legacy_models_checkbox.button_pressed
+	startup_adapter.aggressive_blinds = _aggressive_blinds_checkbox.button_pressed
 	if not _phone_player_count_is_valid():
 		startup_adapter.field_errors.clear()
 		startup_adapter.field_errors[&"player_count"] = PHONE_PLAYER_COUNT_ERROR
@@ -382,6 +385,7 @@ func _apply_defaults() -> void:
 	_small_blind_input.text = startup_adapter.small_blind_text
 	_big_blind_input.text = startup_adapter.big_blind_text
 	_use_legacy_models_checkbox.button_pressed = startup_adapter.use_legacy_models
+	_aggressive_blinds_checkbox.button_pressed = startup_adapter.aggressive_blinds
 	_clear_errors()
 
 

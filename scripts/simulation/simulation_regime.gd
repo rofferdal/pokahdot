@@ -6,6 +6,9 @@ extends RefCounted
 ## Resolution delegates to the ordinary product ConfigResolver so the same
 ## player-count, stack, blind, overflow, and fixed-mode rules are enforced.
 
+const STANDARD_PROGRESSION: StringName = &"normative_hand_based_v1"
+const AGGRESSIVE_PROGRESSION: StringName = &"aggressive_hand_based_v1"
+
 var regime_id: StringName
 var player_count: int
 var starting_stack: int
@@ -31,12 +34,23 @@ func _init(
 
 
 func resolve(seed: int) -> ConfigResolution:
+	if blind_progression not in [STANDARD_PROGRESSION, AGGRESSIVE_PROGRESSION]:
+		var error := (
+			ConfigError
+			. new(
+				ConfigError.Code.UNSUPPORTED_TOURNAMENT_MODE,
+				&"blind_progression",
+				"Unsupported simulation blind progression: %s" % blind_progression,
+			)
+		)
+		return ConfigResolution.new(null, [error])
 	var config := TournamentConfig.new()
 	config.player_count = player_count
 	config.starting_stack = starting_stack
 	config.small_blind = starting_small_blind
 	config.big_blind = starting_big_blind
 	config.rng_seed = seed
+	config.aggressive_blinds = blind_progression == AGGRESSIVE_PROGRESSION
 	config.tournament_mode = &"single_table"
 	config.seat_agents = _product_validation_agents()
 	return ConfigResolver.new().resolve(config, null)

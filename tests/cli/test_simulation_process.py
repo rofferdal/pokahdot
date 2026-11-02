@@ -87,6 +87,28 @@ class SimulationCliProcessTests(unittest.TestCase):
         self.assertIn("trace_count: 0", result.stdout)
         self.assertEqual(json.loads(no_trace.read_text())["traces"], [])
 
+    def test_aggressive_mode_survives_inspect_replay_and_rejects_standard_resume(self) -> None:
+        manifest = json.loads(self.manifest.read_text(encoding="utf-8"))
+        manifest["regimes"][0]["blind_progression"] = "aggressive_hand_based_v1"
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+        report, _ = self.run_report()
+        published = json.loads(report.read_text(encoding="utf-8"))
+        self.assertEqual(published["manifest"]["regimes"][0]["blind_progression"],
+                         "aggressive_hand_based_v1")
+        inspected = self.execute("inspect", "--report", str(report), "--format", "json")
+        self.assertEqual(inspected.returncode, 0, inspected.stdout + inspected.stderr)
+        replay = self.execute("replay", "--report", str(report), "--tournament-index", "0",
+                              "--trace", "none", "--format", "json")
+        self.assertEqual(replay.returncode, 0, replay.stdout + replay.stderr)
+        self.assertTrue(json.loads(replay.stdout)["match"])
+        manifest["regimes"][0]["blind_progression"] = "normative_hand_based_v1"
+        self.manifest.write_text(json.dumps(manifest), encoding="utf-8")
+        rejected = self.execute("run", "--config", str(self.manifest), "--output", str(report),
+                                "--resume", "--overwrite", "--trace", "none")
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("Checkpoint identity does not match", rejected.stderr)
+        self.assertEqual(json.loads(report.read_text(encoding="utf-8")), published)
+
     def test_failed_run_diagnostics_do_not_pollute_json_stdout(self) -> None:
         result = self.execute("run", "--config", str(self.work / "missing.json"),
                               "--output", str(self.work / "failed.json"))

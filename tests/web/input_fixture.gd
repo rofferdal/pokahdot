@@ -17,6 +17,7 @@ class CallingAgent:
 		return PlayerAction.call_action()
 
 
+var _blind_startup_fixture: bool = false
 var _main: StartupConfigController
 var _table: GuiReplacementTableController
 var _table_fixture: bool = false
@@ -36,6 +37,9 @@ func _ready() -> void:
 	if not OS.has_feature("web"):
 		set_process(false)
 		return
+	_blind_startup_fixture = bool(
+		JavaScriptBridge.eval("location.search.includes('startup-blinds')")
+	)
 	_fullscreen_fixture = bool(JavaScriptBridge.eval("location.search.includes('fullscreen')"))
 	_preset_fixture = bool(JavaScriptBridge.eval("location.search.includes('presets')"))
 	_live_fixture = bool(JavaScriptBridge.eval("location.search.includes('phone-live')"))
@@ -119,6 +123,9 @@ func _prepare_showdown() -> void:
 func _process(_delta: float) -> void:
 	_frame += 1
 	var layout: GuiLayoutSnapshot = _main.get_layout_snapshot()
+	if _blind_startup_fixture:
+		_publish_blind_startup(layout)
+		return
 	if _live_fixture:
 		_publish_live_phone(layout)
 		return
@@ -296,3 +303,23 @@ func _publish_fullscreen(layout: GuiLayoutSnapshot) -> void:
 		state["human_turn"] = view.acting_seat == 0
 		state["history"] = view.action_history.size()
 	JavaScriptBridge.eval("window.pokahdotFullscreen = " + JSON.stringify(state) + "; void 0")
+
+
+func _publish_blind_startup(layout: GuiLayoutSnapshot) -> void:
+	var playing: bool = _table.is_visible_in_tree()
+	var controls: Dictionary = {}
+	if not playing:
+		for role: StringName in [&"aggressive_blinds", &"start"]:
+			controls[String(role)] = Json.element(layout.elements[StringName("startup/%s" % role)])
+	var state := {
+		"frame": _frame,
+		"playing": playing,
+		"ready": layout.ready,
+		"pending": layout.pending,
+		"viewport": [layout.viewport_rect.size.x, layout.viewport_rect.size.y],
+		"controls": controls,
+		"checked": (_main.get_node("%AggressiveBlindsCheckBox") as CheckBox).button_pressed,
+		"resolved_aggressive":
+		_main.startup_adapter.resolved_config.aggressive_blinds if playing else false,
+	}
+	JavaScriptBridge.eval("window.pokahdotBlindStartup = " + JSON.stringify(state) + "; void 0")

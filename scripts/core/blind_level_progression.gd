@@ -27,6 +27,7 @@ var active_player_count_at_level_start: int:
 	get:
 		return _active_player_count_at_level_start
 
+var _aggressive_blinds: bool
 var _small_blind: int
 var _big_blind: int
 var _blind_level: int = 1
@@ -39,6 +40,7 @@ func _init(
 	initial_small_blind: int,
 	initial_big_blind: int,
 	initial_active_player_count: int,
+	initial_aggressive_blinds: bool = false,
 ) -> void:
 	assert(initial_small_blind > 0, "The initial small blind must be positive.")
 	assert(
@@ -48,6 +50,7 @@ func _init(
 	assert(initial_big_blind <= MAX_BIG_BLIND, "The initial big blind exceeds the limit.")
 	assert(initial_small_blind <= MAX_BIG_BLIND, "The initial small blind exceeds the limit.")
 	assert(initial_active_player_count >= 1, "A blind level requires an active player count.")
+	_aggressive_blinds = initial_aggressive_blinds
 	_small_blind = initial_small_blind
 	_big_blind = initial_big_blind
 	_active_player_count_at_level_start = initial_active_player_count
@@ -71,6 +74,7 @@ func copy() -> BlindLevelProgression:
 			_small_blind,
 			_big_blind,
 			_active_player_count_at_level_start,
+			_aggressive_blinds,
 		)
 	)
 	copied._blind_level = _blind_level
@@ -93,14 +97,15 @@ func _interval_for(active_player_count: int) -> int:
 
 
 func _next_big_blind(current_big_blind: int) -> int:
-	# ceil(current * 1.25), then move to the next even integer if needed.
+	# Round the selected integer ratio upward, then move to an even integer.
+	var numerator: int = 7 if _aggressive_blinds else 5
 	if current_big_blind >= MAX_BIG_BLIND:
 		return MAX_BIG_BLIND
 	# The cap is checked before multiplication so malformed large inputs cannot
 	# wrap before the result is clamped.
-	if current_big_blind > (MAX_BIG_BLIND * 4 - 3) / 5:
+	if current_big_blind > (MAX_BIG_BLIND * 4 - 3) / numerator:
 		return MAX_BIG_BLIND
-	var rounded_up: int = (current_big_blind * 5 + 3) / 4
+	var rounded_up: int = (current_big_blind * numerator + 3) / 4
 	if rounded_up % 2 != 0:
 		rounded_up += 1
 	return mini(rounded_up, MAX_BIG_BLIND)

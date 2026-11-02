@@ -20,6 +20,26 @@ func test_default_form_starts_with_resolved_defaults() -> void:
 	assert_eq(_bot_model_ids(adapter.match_instance, 6).count(&"strategy_parameterized"), 5)
 
 
+func test_aggressive_blinds_default_override_snapshot_and_reset() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.aggressive_blinds = true
+	var adapter = GuiStartupConfigAdapterScript.new(defaults)
+	assert_false(adapter.aggressive_blinds, "Fresh GUI startup always defaults to unchecked.")
+	assert_true(adapter.try_start())
+	assert_false(adapter.resolved_config.aggressive_blinds)
+	adapter.aggressive_blinds = true
+	adapter.starting_stack_text = "invalid"
+	assert_false(adapter.try_start())
+	assert_true(adapter.aggressive_blinds, "Validation preserves the draft selection.")
+	adapter.starting_stack_text = "1000"
+	assert_true(adapter.try_start())
+	assert_true(adapter.resolved_config.aggressive_blinds)
+	adapter.aggressive_blinds = false
+	assert_true(adapter.resolved_config.aggressive_blinds, "Resolved selection is immutable.")
+	adapter.reset_to_defaults()
+	assert_false(adapter.aggressive_blinds)
+
+
 func test_legacy_model_opt_in_resolves_and_resets_to_disabled() -> void:
 	var adapter = GuiStartupConfigAdapterScript.new()
 	adapter.use_legacy_models = true

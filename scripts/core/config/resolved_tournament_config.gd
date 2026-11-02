@@ -31,6 +31,10 @@ var use_legacy_models: bool:
 	get:
 		return _use_legacy_models
 
+var aggressive_blinds: bool:
+	get:
+		return _aggressive_blinds
+
 var seat_agents: Dictionary[int, StringName]:
 	get:
 		return _copy_seat_agents()
@@ -42,6 +46,7 @@ var _big_blind: int
 var _rng_seed: int
 var _tournament_mode: StringName
 var _use_legacy_models: bool
+var _aggressive_blinds: bool
 var _seat_agents: Dictionary[int, StringName]
 
 
@@ -54,6 +59,7 @@ func _init(
 	config_tournament_mode: StringName,
 	config_seat_agents: Dictionary[int, StringName],
 	config_use_legacy_models: bool = false,
+	config_aggressive_blinds: bool = false,
 ) -> void:
 	_player_count = config_player_count
 	_starting_stack = config_starting_stack
@@ -62,6 +68,7 @@ func _init(
 	_rng_seed = config_rng_seed
 	_tournament_mode = config_tournament_mode
 	_use_legacy_models = config_use_legacy_models
+	_aggressive_blinds = config_aggressive_blinds
 	_seat_agents = config_seat_agents.duplicate(true)
 
 

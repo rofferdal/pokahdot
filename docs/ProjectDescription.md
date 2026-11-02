@@ -48,8 +48,8 @@ or rebuy.
 - Rake.
 - Action timers. Human input may wait indefinitely; bots respond
   synchronously.
-- Alternate blind schedules. Simulation may vary starting blinds, but uses
-  the same fixed progression as product play.
+- Arbitrary blind schedules beyond the standard +25% and optional +75%
+  structures defined in section 4.1. Simulation uses these same rules.
 
 ## 4. Poker rules (normative)
 
@@ -66,7 +66,9 @@ or rebuy.
 - Startup accepts positive integer starting small and big blinds, with the
   small blind no greater than the big blind. Defaults are **small blind = 5**
   and **big blind = 10**. Each starting blind is at most **1,000,000**. They
-  define the first blind level.
+  define the first blind level. Startup also offers an optional aggressive
+  blind structure: unchecked/omitted defaults to +25% per level; checked
+  selects +75%. Freeze this selection for the tournament.
 - Startup accepts a positive integer starting stack. The default is **1000**
   (100 starting big blinds), and the maximum is **1,000,000**. The resolved
   value is applied equally to every participant; stacks then change only
@@ -86,11 +88,12 @@ with fewer than five active players lasts 10 completed hands. The interval is
 fixed for the entire level even if the active-player count changes; the next
 level captures a new count.
 
-At each increase, the new big blind is the smallest even integer greater than
-or equal to `current_big_blind * 1.25` (125%, rounded upward to the nearest
-even integer). The new small blind is exactly half the new big blind. Examples:
-5/10 becomes 7/14 (`10 * 1.25 = 12.5`, rounded up to 14), and 7/14 becomes
-9/18 (`14 * 1.25 = 17.5`, rounded up to 18). Big-blind growth saturates at
+At each increase, multiply the current big blind by **1.25** in standard
+mode (the default), or **1.75** in aggressive mode. Round upward to the nearest
+even integer and set the new small blind to exactly half the new big blind.
+Standard examples: 5/10 becomes 7/14, then 9/18. Aggressive examples: 5/10
+becomes 9/18, then 16/32, then 28/56. Both modes use the same hand-count
+intervals and apply increases only before the next hand. Big-blind growth saturates at
 **1,000,000**; at that level and every later level, blinds remain
 500,000/1,000,000 while the normal level counters and intervals continue.
 
@@ -282,9 +285,9 @@ Chen-like preflop score and postflop board texture, but they must not cheat.
 Simulation v1 may create 2–9 all-bot participants only through the dedicated
 non-interactive simulation composition root. It may vary player count,
 starting stack, starting small blind, and starting big blind per explicit
-regime. It must use the fixed blind progression from section 4.1; alternate
-blind schedules are deferred. Simulation does not relax card privacy or any
-poker rule.
+regime, including an explicit choice of standard +25% or aggressive +75%
+blind growth from section 4.1. Standard is the default; other schedules are
+unsupported. Simulation does not relax card privacy or any poker rule.
 
 ## 6. Architecture
 
@@ -387,6 +390,12 @@ cards were actually shown.
   small blind, and big blind, prefilled with defaults. Starting without edits
   is valid. Explain invalid input and do not begin a hand until all values are
   valid.
+- Provide an unchecked **Aggressive blind levels** checkbox on Start.
+  Show only the checkbox and that label, without percentages or blind-rate
+  guidance on the start page. Unchecked uses +25%; retain the choice through
+  validation and Rules navigation.
+  This option changes only start-page GUI/configuration wiring; existing game-
+  screen layout and blind-value display remain as implemented.
 - Provide a Rules action on Start for the concise Pokahdot tournament reference,
   sourced from one presentation-neutral document shared with the CLI `rules`
   command. Back, keyboard cancel and platform Back return to the exact existing
@@ -606,6 +615,11 @@ godot --headless --path . --script res://scripts/cli/cli_app.gd
   startup without supplied values. In configuration mode, each field may be
   overridden independently; blank input retains that field's displayed value.
   Correction retains valid edits and reprompts fields with validation errors.
+- `--aggressive-blinds` selects +75% growth; omission uses the normal +25%
+  defaults. At the setup-choice prompt, `aggressive-blinds on` and
+  `aggressive-blinds off` change the selection without starting play. Off can
+  override an enabled startup flag. The setting is frozen after Start and
+  cannot be changed through in-play commands. Report the mode in setup summary.
 - Explain invalid startup values and prompt again. No hand starts from invalid
   configuration.
 - Support the exact, trimmed, case-insensitive `rules` command at startup choice
@@ -660,14 +674,17 @@ input:
 
 Before constructing each product tournament, GUI and interactive CLI may
 independently override `player_count`, `starting_stack`, `small_blind`,
-`big_blind`, and `use_legacy_models`. Defaults are 6, 1000, 5, 10, and false.
+`big_blind`, `use_legacy_models`, and `aggressive_blinds`. Defaults are 6, 1000,
+5, 10, false, and false.
 Omitted values are resolved individually from defaults. Validate, copy, and freeze the resolved
 configuration when the tournament starts. A later tournament may choose new
 values. Product play has `player_count - 1` bot seats and one human at seat 0.
 
 A simulation manifest specifies one or more explicit regimes using the same
-four configurable values and ordinary validation. Every regime uses the
-normative fixed blind progression. Simulation profile parameters for
+four numeric configurable values and ordinary validation. The regime
+identifier `normative_hand_based_v1` selects +25% growth;
+`aggressive_hand_based_v1` selects +75%. Unknown identifiers are rejected.
+Both structures use the normative level timing, rounding and saturation rules. Simulation profile parameters for
 `StrategyDecisionModel` are integer percentages in the inclusive range
 0–100. The simulation adapter may export a curated-roster baseline only by
 copying immutable profile snapshots into a manifest; this export must not

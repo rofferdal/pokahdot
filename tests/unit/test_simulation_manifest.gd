@@ -10,6 +10,46 @@ const ROSTER_MANIFEST_SETTINGS_SCRIPT := preload(
 const BATCH_RUNNER_SCRIPT := preload("res://scripts/simulation/simulation_batch_runner.gd")
 
 
+func test_blind_modes_round_trip_and_resolve_without_reinterpreting_standard() -> void:
+	var data: Dictionary = JSON.parse_string(
+		FileAccess.get_file_as_string("res://tests/fixtures/simulation_manifest_v2.json")
+	)
+	var standard := SimulationManifest.parse(data).manifest
+	var standard_checksum := standard.checksum()
+	assert_eq(standard.regimes[0].blind_progression, &"normative_hand_based_v1")
+	assert_false(standard.regimes[0].resolve(17).get_config().aggressive_blinds)
+	for progression: StringName in [
+		SimulationRegime.STANDARD_PROGRESSION, SimulationRegime.AGGRESSIVE_PROGRESSION
+	]:
+		data.regimes[0].blind_progression = String(progression)
+		var parsed := SimulationReportManifestContract.parse(data)
+		assert_true(parsed.is_ok(), str(parsed.errors))
+		var serialized: Dictionary = JSON.parse_string(parsed.manifest.canonical_json())
+		var round_trip := SimulationReportManifestContract.parse(serialized)
+		assert_true(round_trip.is_ok(), str(round_trip.errors))
+		assert_eq(round_trip.manifest.checksum(), parsed.manifest.checksum())
+		assert_eq(round_trip.manifest.regimes[0].blind_progression, progression)
+		assert_eq(
+			round_trip.manifest.input_at(0).regime.resolve(17).get_config().aggressive_blinds,
+			progression == SimulationRegime.AGGRESSIVE_PROGRESSION,
+		)
+		if progression == SimulationRegime.AGGRESSIVE_PROGRESSION:
+			assert_ne(round_trip.manifest.checksum(), standard_checksum)
+	assert_eq(standard.checksum(), standard_checksum)
+
+
+func test_unknown_blind_mode_fails_direct_resolution_and_report_contract() -> void:
+	var regime := SimulationRegime.new(&"bad", 2, 100, 5, 10, &"unknown")
+	assert_false(regime.resolve(17).is_ok())
+	assert_true(regime.validate()[0].contains("Unsupported simulation blind progression"))
+	var data: Dictionary = JSON.parse_string(
+		FileAccess.get_file_as_string("res://tests/fixtures/simulation_manifest_v2.json")
+	)
+	data.regimes[0].blind_progression = "unknown"
+	assert_false(SimulationManifest.parse(data).is_ok())
+	assert_false(SimulationReportManifestContract.parse(data).is_ok())
+
+
 func test_evaluation_plan_rejects_unimplemented_bootstrap_estimator() -> void:
 	var plan := SimulationEvaluationPlan.new(
 		&"bootstrap", &"regime", [&"matchup"], 10, 1, &"bootstrap_95"

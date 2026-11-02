@@ -14,6 +14,26 @@ func before_each() -> void:
 	)
 
 
+func test_resume_rejects_changed_blind_mode_with_other_settings_identical() -> void:
+	var original_checksum := _manifest.checksum()
+	_fresh()
+	_manifest.regimes[0].blind_progression = SimulationRegime.AGGRESSIVE_PROGRESSION
+	assert_eq(_manifest.validate(), PackedStringArray())
+	assert_ne(_manifest.checksum(), original_checksum)
+	var resumed := SimulationCheckpointStore.new()
+	assert_false(
+		resumed.initialize(
+			_directory,
+			_manifest,
+			SimulationShard.new(),
+			_provenance(),
+			SimulationTraceConfig.new(),
+			true
+		)
+	)
+	assert_true(resumed.error_message.contains("Checkpoint identity does not match"))
+
+
 func test_checkpoint_owns_snapshots_and_refuses_duplicate_publication() -> void:
 	var store := _fresh()
 	var outcome := _outcome()

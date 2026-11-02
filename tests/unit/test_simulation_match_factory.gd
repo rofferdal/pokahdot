@@ -1,6 +1,51 @@
 extends "res://tests/support/poker_gut_test.gd"
 
 
+func test_factory_preserves_selected_blind_mode_through_an_actual_level_transition() -> void:
+	for aggressive: bool in [false, true]:
+		var regime := (
+			SimulationRegime
+			. new(
+				&"progression",
+				2,
+				10000,
+				5,
+				10,
+				(
+					SimulationRegime.AGGRESSIVE_PROGRESSION
+					if aggressive
+					else SimulationRegime.STANDARD_PROGRESSION
+				),
+			)
+		)
+		var profiles := _random_profiles()
+		for profile: BotProfile in profiles.values():
+			var parameters := profile.parameters as RandomDecisionModelParameters
+			parameters.fold_weight = 0
+			parameters.passive_weight = 1
+			parameters.aggressive_weight = 0
+		var creation := SimulationMatchFactory.new().create(
+			regime.resolve(901).get_config(), profiles
+		)
+		assert_true(creation.is_ok(), str(creation.errors))
+		var match_instance := creation.match_instance
+		var result := match_instance.start()
+		for hand: int in range(1, 11):
+			while result.status in [StepResult.Status.YIELDED, StepResult.Status.PREFLOP_COMPLETE]:
+				result = match_instance.advance_until_blocked()
+			assert_eq(result.status, StepResult.Status.HAND_COMPLETED)
+			assert_eq(match_instance.get_view_for(0).hand_number, hand)
+			assert_eq(match_instance.get_view_for(0).big_blind, 10)
+			if hand < 10:
+				result = match_instance.advance_until_blocked()
+		result = match_instance.advance_until_blocked(1)
+		assert_ne(result.status, StepResult.Status.ERROR)
+		var next := match_instance.get_view_for(0)
+		assert_eq(next.hand_number, 11)
+		assert_eq(next.blind_level, 2)
+		assert_eq(next.big_blind, 18 if aggressive else 14)
+
+
 func test_factory_creates_an_all_bot_match_from_profile_snapshots() -> void:
 	var profiles := _random_profiles()
 	var creation := SimulationMatchFactory.new().create(_product_config(), profiles)

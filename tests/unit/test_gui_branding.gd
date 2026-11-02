@@ -89,6 +89,10 @@ func test_startup_branding_keeps_essential_form_fully_visible_without_scrolling(
 		var logo := main.get_node("%BrandLogo") as TextureRect
 		assert_eq(logo.mouse_filter, Control.MOUSE_FILTER_IGNORE)
 		assert_true(bounds.grow(0.01).encloses(logo.get_global_rect()), str(extent))
+		assert_eq(
+			(main.get_node("%AggressiveBlindsCheckBox") as CheckBox).text, "Aggressive blind levels"
+		)
+		assert_false(main.has_node("%BlindProgressionGuidance"))
 		var snapshot: GuiLayoutSnapshot = main.get_layout_snapshot()
 		assert_eq(Assertions.validate_snapshot(snapshot), PackedStringArray(), str(extent))
 		for role: StringName in [
@@ -102,7 +106,8 @@ func test_startup_branding_keeps_essential_form_fully_visible_without_scrolling(
 			&"starting_stack_label",
 			&"small_blind_label",
 			&"big_blind_label",
-			&"legacy_models"
+			&"legacy_models",
+			&"aggressive_blinds",
 		]:
 			var field: GuiLayoutElement = snapshot.startup.fields[role]
 			assert_true(field.visible, "%s %s" % [extent, role])
@@ -130,6 +135,7 @@ func test_startup_uses_role_metrics_without_geometry_multiplied_text() -> void:
 			"PlayerCountLabel",
 			"Description",
 			"UseLegacyModelsCheckBox",
+			"AggressiveBlindsCheckBox",
 			"StartButton",
 			"QuitApplicationButton",
 		]:

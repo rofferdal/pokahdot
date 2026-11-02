@@ -373,6 +373,7 @@ func _config_for_input(
 			base_config.tournament_mode,
 			base_config.seat_agents,
 			base_config.use_legacy_models,
+			base_config.aggressive_blinds,
 		)
 	)
 

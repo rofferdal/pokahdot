@@ -50,7 +50,7 @@ Before looking at code, let's establish four fundamental concepts:
 Let's follow the lifecycle of a tournament from startup to the final hand.
 
 ### Step 1: Configuration Resolution
-A tournament begins with configuration. The game provides defaults in `resources/default_tournament_config.tres` (6 players, 1000 starting chips, 5/10 blinds).
+A tournament begins with configuration. The game provides defaults in `resources/default_tournament_config.tres` (6 players, 1000 starting chips, 5/10 blinds, +25% per blind level). The GUI startup checkbox or CLI `--aggressive-blinds` selects +75%; CLI setup can change the choice with `aggressive-blinds on|off`. Both resolve the same default-false `aggressive_blinds` property, frozen before play. Both modes retain completed-hand timing, upward even rounding and the 1,000,000 big-blind cap.
 
 The following GDScript blocks are integration fragments inside a front-end
 method, not standalone scripts. Supply `defaults: TournamentConfig` and

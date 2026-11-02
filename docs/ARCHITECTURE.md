@@ -8,7 +8,7 @@ inferred. Earlier limitations remain in the archived
 [OptimizingPhoneGuiTasks.md](arkiv/OptimizingPhoneGuiTasks.md).
 The [visual evidence contract](GUI_VISUAL_TESTING.md) owns acceptance
 terminology and current profile coverage.
-Last updated: 2026-10-31
+Last updated: 2026-11-02
 Requirements source: [`docs/ProjectDescription.md`](ProjectDescription.md)
 
 ## 1. Purpose
@@ -18,6 +18,29 @@ Pokahdot is a single-table No Limit Texas Hold'em tournament for one human playe
 This document defines module boundaries, state ownership, runtime flow, and the contracts that presentation layers and agents use. `docs/ProjectDescription.md` is normative; this document may refine implementation structure but must not add or change game rules.
 
 The v1 boundary is one single-table tournament with 2–9 participants, equal starting stacks, exactly one human, and bots in every other seat. Before each tournament starts, the human may optionally override the participant count, common starting stack, starting small blind, and starting big blind; omitted values use defaults. Blinds then follow the defined hand-based blind-level schedule. V1 has no cash-game accounting, buy-ins, cash-out, rebuys, antes, rake, action timer, network play, or prize payout. Normal play ends only when one participant has chips; a human-requested quit ends it without a winner. The project uses Godot 4, GDScript, and the Compatibility renderer, with no C# or platform-specific plugins.
+
+## Optional aggressive blinds — implemented (2026-11-02)
+
+[AggressiveBlindStructureTasks](AggressiveBlindStructureTasks.md) implements a
+startup-only `aggressive_blinds` option, default false, carried through shared
+configuration into `BlindLevelProgression`. Core growth uses checked 5/4
+(default +25%) or 7/4 (opt-in +75%) arithmetic, with the same hand-count
+intervals, upward even rounding and 1,000,000 big-blind cap. The mode is frozen
+in the resolved match configuration; explicit false overrides a true template.
+
+The GUI start-page checkbox and CLI `--aggressive-blinds` flag select the same
+setting. CLI setup commands `aggressive-blinds on|off` change it before play.
+The setup summary and reproduction options identify the choice. GUI changes
+are confined to startup controls, layout and configuration wiring. Game-screen
+geometry is unchanged; its existing blind display receives the core values.
+
+Simulation serializes the choice in the existing regime `blind_progression`
+field: `normative_hand_based_v1` remains +25%, while
+`aggressive_hand_based_v1` means +75%. Standard generators retain the former.
+Unknown IDs fail validation and direct resolution. The manifest checksum
+binds the mode into reports, replay and checkpoint compatibility; incompatible
+regimes cannot be silently combined in one comparison. Historical manifests
+and published campaign evidence retain their original standard progression.
 
 ## Simulation-selected roster expansion (2026-11-01)
 
@@ -395,7 +418,7 @@ Trace detail does not change outcome digests or provenance checks.
 | Keep GUI display names in the GUI presentation layer | A validated 50-name catalog and tournament-local assignment map affect rendering only; the GUI human label is `Human`, while interactive CLI labeling remains unchanged. |
 | Separate presentation RNG streams | GUI name selection uses `gui_names` and avatar selection uses `gui_avatars`; neither may perturb the other or any game RNG stream. |
 | Keep GUI action pacing in a Resource | Per-seat action pauses and the shared completed-hand pause for showdown or a pre-showdown winner are configurable without putting timers or presentation policy in poker rules. |
-| Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, and 125%-to-even rounding must be identical for GUI and CLI. |
+| Keep blind-level progression in the core | Hand-completion timing, active-player snapshots, selected 125%/175% growth, even rounding and cap must be identical for GUI and CLI. |
 | Enforce role-specific GUI text floors | Seat copy may scale to 18 logical/CSS px; card ranks and other GUI text retain 20 px, with 48×48 touch targets. |
 | Use responsive Control layout guidance | `canvas_items` with `expand`, containers, anchors, and responsive margins govern layout adaptation; font and texture crispness is not assumed from stretch mode alone. |
 | Give GUI geometry one owner | `GuiViewportAdapter` normalizes the real root Window to actual canvas CSS geometry on Web and client/current-window scale on native platforms. Startup, table and popups consume the same usable rectangle; fixture roots remain isolated. |
@@ -460,7 +483,8 @@ Hand-specific state is reset by `HandController`; `busted` survives between hand
 
 `TournamentMatch` owns the mutable blind-level state (implemented as a core value/component), including the level number, current small and big blinds, completed hands in the level, the active-player count captured when the level began, and the computed hands until the next increase. The state uses an interval of `active_player_count_at_level_start * 2` for levels that began with at least five active players, otherwise 10; that interval remains unchanged until the next level begins.
 
-After a hand settles and zero-stack players are eliminated, `TournamentMatch` records the completed hand in the blind-level state. If the interval is reached, it calculates the next big blind as the smallest even integer greater than or equal to 125% of the current big blind and sets the small blind to exactly half of it. Growth uses checked arithmetic and saturates at 1,000,000 big blind (500,000 small blind); later levels still advance and reset their counters at that cap. The current hand keeps its posted blinds, so an increase is applied only when the next hand is initialized. The new level then captures the current active-player count and starts its completion counter at zero.
+After a hand settles and zero-stack players are eliminated, `TournamentMatch` records the completed hand in the blind-level state. If the interval is reached, it calculates the next big blind as the smallest even integer greater than or equal to 125% of the current big blind by default, or 175% when the immutable
+`aggressive_blinds` setting is enabled and sets the small blind to exactly half of it. Growth uses checked arithmetic and saturates at 1,000,000 big blind (500,000 small blind); later levels still advance and reset their counters at that cap. The current hand keeps its posted blinds, so an increase is applied only when the next hand is initialized. The new level then captures the current active-player count and starts its completion counter at zero.
 
 ### 5.6 `player_action.gd`
 
@@ -3060,17 +3084,19 @@ Use a typed configuration `Resource` as the source of defaults; its validated re
 - `rng_seed`: 0 selects a time-based seed; every other value is deterministic and tests must use a nonzero value;
 - `use_legacy_models`: false by default; permits the defined legacy-model
   share in product roster selection;
+- `aggressive_blinds`: false by default; selects +75% instead of +25% per blind
+  level without changing level timing, even rounding or cap;
 - `seat_agents`: complete seat-to-agent-ID mapping with exactly one `HumanAgent` in every valid v1 match;
 - `tournament_mode`: only `single_table` is valid in v1.
 
 Configuration crosses the startup boundary through four explicit types:
 
 - `TournamentConfig` is the mutable editor-facing default/template `Resource`; it is never passed to a running match.
-- `StartupOverrides` stores each optional user value with a separate presence flag, so an omitted value differs from an explicitly invalid zero. It also carries the explicit legacy-model opt-in.
+- `StartupOverrides` stores each optional user value with a separate presence flag, so an omitted value differs from an explicitly invalid zero. It also carries explicit legacy-model and aggressive-blind selections; presence flags distinguish an omitted boolean from an explicit false.
 - `ConfigResolver` merges defaults and overrides, performs authoritative validation, and returns typed field/error codes in `ConfigResolution`.
 - `ResolvedTournamentConfig` is a defensive runtime snapshot with read-only public properties and copied collections. `TournamentMatch` will accept only this resolved type.
 
-Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. This includes `use_legacy_models`, which is disabled by default and does not change poker rules. Model/profile ID lookup remains the responsibility of `AgentFactory` and `PlayableBotRoster` during product composition.
+Changing the template, overrides, or a returned collection after resolution cannot alter the snapshot. This includes default-false `use_legacy_models` and `aggressive_blinds`. The latter selects blind growth once before construction; neither setting can change during play. Model/profile ID lookup remains the responsibility of `AgentFactory` and `PlayableBotRoster` during product composition.
 
 Before every tournament starts, both adapters may collect independent overrides for `player_count`, `starting_stack`, `small_blind`, and `big_blind`. No override is required. Each omitted field retains its value from `default_tournament_config.tres`, allowing a match to start with no supplied values or with only some fields overridden. Explicit values must be integers; participant count must be 2–9, starting stack and both blinds must be 1–1,000,000, and small blind must not exceed big blind. Text adapters reject values outside signed 64-bit range before conversion, while core validation of the fully resolved configuration remains authoritative. With at most nine one-million-chip stacks, all legal runtime stack, bet, contribution, and pot totals remain far below the signed 64-bit limit. Simulation planning likewise checks `seed_start + tournament_index` before addition and rejects a plan whose effective seed would overflow or equal zero.
 

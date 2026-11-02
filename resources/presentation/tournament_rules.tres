@@ -31,7 +31,7 @@ body = "With pot P and your existing street wager H, Pot adds P chips and submit
 script = ExtResource("2_section")
 id = &"blinds"
 title = "Blinds"
-body = "Levels count completed hands, not time. Starting with at least five active players means twice that count in hands; otherwise ten. The interval stays fixed despite eliminations. After settlement, the next level's first hand uses big blind × 1.25, rounded upward to even, with small blind half: 5/10 → 7/14 → 9/18. Blinds saturate at 500,000/1,000,000; level counters continue."
+body = "Levels count completed hands, not time. Starting with at least five active players means twice that count in hands; otherwise ten. The interval stays fixed despite eliminations. After settlement, the next level's first hand uses big blind × 1.25 by default (+25%), rounded upward to even, with small blind half: 5/10 → 7/14 → 9/18. Select aggressive blinds at startup for × 1.75 (+75%): 5/10 → 9/18 → 16/32 → 28/56. The selection stays fixed during play; both modes use the same hand intervals. Blinds saturate at 500,000/1,000,000; level counters continue."
 
 [sub_resource type="Resource" id="Section_ending"]
 script = ExtResource("2_section")

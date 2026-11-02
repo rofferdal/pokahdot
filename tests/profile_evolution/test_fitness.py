@@ -307,6 +307,40 @@ class FitnessTests(unittest.TestCase):
             self.assertEqual(result["sample_count"], 4)
             self.assertEqual(result["component_means"]["chip_score"], 0.5)
 
+    def test_aggressive_blind_reports_are_supported_with_distinct_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            generation, reports = _case(Path(name), shard_count=2)
+            for path in reports:
+                report = json.loads(path.read_text(encoding="utf-8"))
+                old_checksum = report["manifest_checksum"]
+                report["manifest"]["regimes"][0]["blind_progression"] = "aggressive_hand_based_v1"
+                report["manifest_checksum"] = _simulation_manifest_checksum(report["manifest"])
+                self.assertNotEqual(report["manifest_checksum"], old_checksum)
+                path.write_text(json.dumps(report), encoding="utf-8")
+            artifact = evaluate_fitness(generation, reports)
+            self.assertTrue(artifact["payload"]["candidate_results"])
+
+    def test_reports_with_different_blind_modes_cannot_be_pooled(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            generation, reports = _case(Path(name), shard_count=2)
+            report = json.loads(reports[0].read_text(encoding="utf-8"))
+            report["manifest"]["regimes"][0]["blind_progression"] = "aggressive_hand_based_v1"
+            report["manifest_checksum"] = _simulation_manifest_checksum(report["manifest"])
+            reports[0].write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaisesRegex(ToolError, "identical manifest"):
+                evaluate_fitness(generation, reports)
+
+    def test_unknown_blind_progression_is_rejected(self) -> None:
+        for progression in ("unknown", "", True, 1, []):
+            with self.subTest(progression=progression), tempfile.TemporaryDirectory() as name:
+                generation, reports = _case(Path(name))
+                report = json.loads(reports[0].read_text(encoding="utf-8"))
+                report["manifest"]["regimes"][0]["blind_progression"] = progression
+                report["manifest_checksum"] = _simulation_manifest_checksum(report["manifest"])
+                reports[0].write_text(json.dumps(report), encoding="utf-8")
+                with self.assertRaisesRegex(ToolError, "regime is unsupported"):
+                    evaluate_fitness(generation, reports)
+
     def test_insufficient_samples_are_ineligible_and_not_ranked(self) -> None:
         with tempfile.TemporaryDirectory() as name:
             generation, reports = _case(Path(name), minimum_samples=3)

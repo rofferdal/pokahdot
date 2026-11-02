@@ -18,10 +18,10 @@ The simulation path:
 - creates an all-bot tournament only through `scripts/simulation/`;
 - reuses the product poker core, action validation, recipient-safe views, and
   deterministic RNG services;
-- may vary player count, starting stack, starting small blind, and starting
-  big blind; and
-- always uses the normative fixed hand-based blind progression. Alternate
-  blind schedules are deferred.
+- may vary player count, starting stack, starting small blind, starting
+  big blind, and the explicit standard/aggressive blind progression; and
+- uses the product hand-based schedule: default +25% or explicit +75% per
+  level, with identical timing, upward even rounding and blind cap.
 
 ## 2. Reproducible evaluation
 
@@ -427,8 +427,23 @@ invalid tournament settings are rejected.
 Each profile is a complete immutable snapshot rather than a reference to a
 mutable roster. Each matchup must contain exactly the referenced regime's
 `player_count` profile IDs for every plan that uses it. All plans use cyclic
-rotation. The single permitted blind progression identifier explicitly binds
-every regime to the product schedule.
+rotation. Each regime explicitly identifies its product blind schedule:
+
+| `blind_progression` | Big-blind growth | Resolved `aggressive_blinds` |
+| --- | --- | --- |
+| `normative_hand_based_v1` | +25% (5/4), default | `false` |
+| `aggressive_hand_based_v1` | +75% (7/4), explicit opt-in | `true` |
+
+Both retain the active-player snapshot and completed-hand intervals from the
+product rules, upward rounding to an even big blind, half-sized small blind,
+and the 1,000,000 big-blind cap. Starting blinds are used as supplied for level
+one. Unknown identifiers fail manifest validation and direct regime resolution.
+No report-schema boolean is added: the existing manifest field and checksum
+bind the mode into reports, replay and checkpoints. Changing it rejects resume
+against an earlier checkpoint; incompatible regime definitions cannot be
+silently pooled as one comparison. Roster exports and prepared experiments
+continue to emit `normative_hand_based_v1` by default. Frozen historical
+manifests and published campaign evidence retain their original progression.
 
 The global tournament plan concatenates evaluation plans in manifest order.
 Within each plan, its local index selects matchups and rotations by section

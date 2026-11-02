@@ -28,10 +28,14 @@ godot --path . scenes/main.tscn
 ```
 *Alternatively, open the project in the Godot Editor and press **F5** (Play).*
 
+The **Aggressive blind levels** startup checkbox defaults off (+25%).
+It changes only the next tournament's blind growth; the game-screen layout and
+existing blind display are unchanged.
+
 Select **Rules** on Start to read the fixed tournament reference. Scroll its
 body by pointer, touch drag or keyboard; Back remains outside scrolling.
 **Back**, Escape or platform Back returns to the same form, retaining exact
-input strings, the legacy-model checkbox, validation messages and focus.
+input strings, both startup checkbox selections, validation messages and focus.
 Rules does not create a match or bypass an active numeric keypad. The user
 accepted the native Start/Rules previews on 2026-10-31. Native fixtures cover
 widths from 360 px; smaller widths, browsers and physical devices require
@@ -57,8 +61,20 @@ validation corrections.
 
 Options after Godot's `--` separator are validated before setup: `--players`
 (2–9), `--stack`, `--small-blind`, `--big-blind` (each 1–1,000,000), `--seed`
-(a signed 64-bit integer), and `--use-legacy-models`. The small blind cannot
-exceed the big blind. Unknown, duplicate, missing, malformed and out-of-range
+(a signed 64-bit integer), `--use-legacy-models`, and `--aggressive-blinds`.
+The last flag selects +75% per blind level; omitted, the default remains +25%.
+At the startup choice, `aggressive-blinds on` or `aggressive-blinds off` changes
+that selection without starting. A flag-seeded selection can be disabled with
+`off`; configuration retries retain the selected mode. The setting is frozen
+when play starts and is not an in-play command. The setup summary prints the
+selected increase. Both modes retain level timing, upward even rounding and
+the 1,000,000 big-blind cap. For example:
+
+```bash
+godot --headless --path . --script res://scripts/cli/cli_app.gd -- --aggressive-blinds
+```
+
+The small blind cannot exceed the big blind. Unknown, duplicate, missing, malformed and out-of-range
 options exit with status 1 before a hand starts. `--help` prints usage without
 reading stdin. With no options, immediate Enter startup remains available.
 

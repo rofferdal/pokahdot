@@ -31,7 +31,10 @@ directory or files are required. See the [testing guide](devdocs/how-to/running-
    CLI, and core configuration retain 2–9 support. Touch presses open the
    in-canvas number pad, while pointer focus leaves ordinary physical-keyboard
    entry available regardless of layout size.
-4. **Use legacy heuristic models** is unchecked by default. Leave it unchecked
+4. **Aggressive blind levels** is unchecked by default. Leave it off
+   for +25% per level, or select it for +75%. The choice is fixed when the
+   tournament starts and survives validation, resizing and Rules navigation.
+5. **Use legacy heuristic models** is unchecked by default. Leave it unchecked
    to select only strategic `StrategyDecisionModel` profiles. Select it to
    include legacy heuristic profiles; this choice resets when returning to the
    startup screen.
@@ -137,7 +140,16 @@ On macOS without `godot` in `PATH`:
 
 Press Enter to start immediately, or type `configure` to edit setup. Options
 after `--` include `--help`, `--configure`, `--players`, `--stack`,
-`--small-blind`, `--big-blind`, and `--seed`. Startup prints the effective seed
+`--small-blind`, `--big-blind`, `--seed`, and `--aggressive-blinds`. At the
+startup choice, `aggressive-blinds on` selects +75% per level and
+`aggressive-blinds off` restores the default +25%, without starting a game.
+The setting cannot change during play. To start setup with +75% selected:
+
+```bash
+godot --headless --path . --script res://scripts/cli/cli_app.gd -- --aggressive-blinds
+```
+
+Startup prints the selected increase, effective seed
 and reproduction options for the actual match. Invalid setup fields can be
 corrected without reentering valid edits. Type `rules` at the startup choice or
 any numeric configuration prompt to read the same tournament reference, then
@@ -160,8 +172,11 @@ or more active players lasts twice that starting player count in completed
 hands; a level that begins with fewer than five players lasts 10 completed
 hands. Startup stacks and blinds are positive integers capped at 1,000,000. An
 increase applies to the next hand. The next big blind is 125% of the previous
-big blind, rounded upward to an even integer, and the small blind is half of it
-(for example, 5/10 becomes 7/14, then 9/18). Growth saturates at
+big blind by default, or 175% with aggressive blinds enabled, rounded upward
+to an even integer; the small blind is half of it. From 5/10, standard levels
+continue 7/14 → 9/18 → 12/24, while aggressive levels continue
+9/18 → 16/32 → 28/56. Both modes use the same level timing and rounding.
+Growth saturates at
 500,000/1,000,000 while level timing continues. The CLI and table show the
 current blinds, level, completed hands, and hands remaining in the level.
 

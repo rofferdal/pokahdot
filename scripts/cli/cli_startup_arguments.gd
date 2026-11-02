@@ -11,6 +11,7 @@ const NUMBER_OPTIONS: PackedStringArray = [
 var show_help: bool = false
 var configure: bool = false
 var legacy_models: bool = false
+var aggressive_blinds: bool = false
 var errors: PackedStringArray = []
 var _values: Dictionary[String, int] = {}
 
@@ -30,6 +31,8 @@ static func parse(arguments: PackedStringArray) -> CliStartupArguments:
 				result.show_help = true
 			"--configure":
 				result.configure = true
+			"--aggressive-blinds":
+				result.aggressive_blinds = true
 			USE_LEGACY_MODELS_FLAG:
 				result.legacy_models = true
 			_:
@@ -62,6 +65,7 @@ func apply_to(defaults: TournamentConfig) -> TournamentConfig:
 				configured.big_blind = _values[option]
 			"--seed":
 				configured.rng_seed = _values[option]
+	configured.aggressive_blinds = aggressive_blinds or defaults.aggressive_blinds
 	configured.use_legacy_models = legacy_models or defaults.use_legacy_models
 	return configured
 
@@ -71,9 +75,11 @@ static func usage() -> String:
 		"Usage: godot --headless --path . --script res://scripts/cli/cli_app.gd -- [options]\n"
 		+ "Options: --help --configure --players 2..9 --stack 1..1000000 "
 		+ "--small-blind 1..1000000 --big-blind 1..1000000 --seed INTEGER "
-		+ "--use-legacy-models\n"
+		+ "--use-legacy-models --aggressive-blinds\n"
 		+ "Seed 0 chooses a time seed; other signed 64-bit seeds reproduce play. "
 		+ "Press Enter to start; --configure opens setup directly.\n"
+		+ "Blinds increase +25% per level by default; --aggressive-blinds selects +75%.\n"
+		+ "At setup, aggressive-blinds on|off changes the selection without starting.\n"
 		+ "Type rules at setup or play prompts to read Pokahdot tournament rules."
 	)
 

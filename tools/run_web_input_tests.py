@@ -468,14 +468,93 @@ def exercise_replacement(browser, base_url: str, work: Path) -> dict:
         context.close()
 
 
+def exercise_blind_startup(browser, base_url: str, work: Path,
+                           mobile: bool, aggressive: bool) -> dict:
+    """Use the exported canvas controls; observer state never injects input."""
+    context = browser.new_context(viewport={"width": 390 if mobile else 1280,
+                                           "height": 844 if mobile else 720},
+                                  has_touch=mobile, is_mobile=mobile)
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.on("console", lambda message: errors.append(message.text)
+            if message.type == "error" else None)
+    name = f"startup-blinds-{'touch' if mobile else 'pointer'}-{'75' if aggressive else '25'}"
+    page.set_default_timeout(20000)
+
+    def wait(expression: str) -> dict:
+        page.wait_for_function("window.pokahdotBlindStartup && (" + expression + ")")
+        return page.evaluate("window.pokahdotBlindStartup")
+
+    def activate(role: str) -> None:
+        state = wait(f"window.pokahdotBlindStartup.controls.{role}?.visible")
+        x, y, width, height = state["controls"][role]["rect"]
+        canvas = page.locator("canvas").bounding_box()
+        assert canvas is not None
+        assert x >= 0 and y >= 0 and width >= 48 and height >= 48, state
+        assert x + width <= state["viewport"][0] + 0.1, state
+        assert y + height <= state["viewport"][1] + 0.1, state
+        point = (canvas["x"] + (x + width / 2) * canvas["width"] / state["viewport"][0],
+                 canvas["y"] + (y + height / 2) * canvas["height"] / state["viewport"][1])
+        if mobile:
+            page.touchscreen.tap(*point)
+        else:
+            page.mouse.click(*point)
+
+    try:
+        page.goto(base_url + "/index.html?startup-blinds")
+        state = wait("window.pokahdotBlindStartup.frame > 10 && window.pokahdotBlindStartup.ready")
+        assert not state["checked"], state
+        assert state["controls"]["aggressive_blinds"]["text"] == "Aggressive blind levels", state
+        if aggressive:
+            activate("aggressive_blinds")
+            wait("window.pokahdotBlindStartup.checked")
+        page.screenshot(path=str(work / (name + ".png")))
+        activate("start")
+        state = wait("window.pokahdotBlindStartup.playing")
+        assert state["resolved_aggressive"] is aggressive, state
+        assert not errors, errors
+        return {"case": name, "passed": True, "resolved_aggressive": aggressive}
+    finally:
+        context.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--godot", default="godot")
     parser.add_argument("--output", type=Path, default=ROOT / "localtmp" / "web-input")
+    parser.add_argument("--startup-blinds-only", action="store_true",
+                        help="Only verify both startup blind selections with pointer and touch.")
     args = parser.parse_args()
     # Refuse stale evidence instead of silently testing an older export.
     args.output.mkdir(parents=True, exist_ok=False)
     output = export_fixture(args.godot, args.output.resolve())
+    if args.startup_blinds_only:
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0),
+            functools.partial(QuietHandler, directory=str(output)))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            with sync_playwright() as playwright:
+                browser = playwright.chromium.launch(args=["--enable-unsafe-swiftshader"])
+                version = browser.version
+                results = [exercise_blind_startup(
+                    browser, f"http://127.0.0.1:{server.server_port}", args.output, mobile, aggressive)
+                    for mobile in (False, True) for aggressive in (False, True)]
+                browser.close()
+            result_document = {
+                "suite": "exported_startup_blinds_v1",
+                "browser": version,
+                "copied_project_sha256": (args.output / "source.sha256").read_text(),
+                "exported_pack_sha256": hashlib.sha256((output / "index.pck").read_bytes()).hexdigest(),
+                "cases": results,
+            }
+            (args.output / "results.json").write_text(json.dumps(result_document, indent=2) + "\n")
+            print(json.dumps(results, indent=2))
+        finally:
+            server.shutdown()
+            server.server_close()
+        return
     replacement_work = args.output / "replacement-check"
     replacement_work.mkdir()
     replacement_output = export_fixture(
@@ -499,6 +578,9 @@ def main() -> None:
             results = [exercise(browser, f"http://127.0.0.1:{server.server_port}", args.output,
                                 fixture, mobile)
                        for fixture in ("startup", "table") for mobile in (False, True)]
+            results.extend(exercise_blind_startup(
+                browser, f"http://127.0.0.1:{server.server_port}", args.output, mobile, aggressive)
+                for mobile in (False, True) for aggressive in (False, True))
             results.append(exercise(browser, f"http://127.0.0.1:{server.server_port}", args.output,
                                     "table-showdown", True))
             results.append(exercise_live_phone(

@@ -22,7 +22,9 @@ This is the single entry point for active work. Follow the first unchecked task
 in the selected backlog unless the user explicitly selects another task or
 section. Keep completion evidence and checkboxes in the owning backlog.
 
-No active task backlogs are currently listed. Completed work is indexed below.
+- [`AggressiveBlindStructureTasks.md`](AggressiveBlindStructureTasks.md) — complete:
+  optional +75% blind growth through a GUI checkbox and CLI controls; +25%
+  remains the default. ABS-01–07 are verified; implementation awaits user review.
 
 ## Archived task records
 

@@ -16,6 +16,7 @@ func test_defaults_resolve_to_the_specified_configuration() -> void:
 	assert_eq(config.rng_seed, 0)
 	assert_eq(config.tournament_mode, &"single_table")
 	assert_false(config.use_legacy_models)
+	assert_false(config.aggressive_blinds)
 
 
 func test_default_resource_resolves_without_overrides() -> void:
@@ -28,6 +29,7 @@ func test_default_resource_resolves_without_overrides() -> void:
 	assert_eq(resolution.get_config().starting_stack, 1000)
 	assert_eq(resolution.get_config().small_blind, 5)
 	assert_eq(resolution.get_config().big_blind, 10)
+	assert_false(resolution.get_config().aggressive_blinds)
 
 
 func test_default_seat_agents_have_one_human_at_seat_zero() -> void:
@@ -305,3 +307,31 @@ func _resolve_without_overrides() -> ConfigResolution:
 
 func _resolve(overrides: StartupOverrides) -> ConfigResolution:
 	return ConfigResolver.new().resolve(TournamentConfig.new(), overrides)
+
+
+func test_aggressive_blinds_resolve_from_defaults_or_explicit_overrides() -> void:
+	var defaults := TournamentConfig.new()
+	defaults.aggressive_blinds = true
+	assert_true(ConfigResolver.new().resolve(defaults, null).get_config().aggressive_blinds)
+	var overrides := StartupOverrides.new()
+	overrides.set_aggressive_blinds(false)
+	assert_true(overrides.has_aggressive_blinds)
+	assert_false(ConfigResolver.new().resolve(defaults, overrides).get_config().aggressive_blinds)
+	defaults.aggressive_blinds = false
+	overrides.set_aggressive_blinds(true)
+	var snapshot := ConfigResolver.new().resolve(defaults, overrides).get_config()
+	assert_true(snapshot.aggressive_blinds)
+	overrides.set_aggressive_blinds(false)
+	defaults.aggressive_blinds = true
+	assert_true(snapshot.aggressive_blinds)
+	var standard := ConfigResolver.new().resolve(defaults, overrides).get_config()
+	defaults.aggressive_blinds = false
+	overrides.set_aggressive_blinds(true)
+	assert_false(standard.aggressive_blinds)
+
+
+func test_older_resolved_constructor_defaults_to_standard_blinds() -> void:
+	var config := ResolvedTournamentConfig.new(
+		2, 1000, 5, 10, 1, &"single_table", {0: &"human", 1: &"random"}
+	)
+	assert_false(config.aggressive_blinds)

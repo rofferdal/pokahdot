@@ -21,6 +21,13 @@ named `PokerTable`, initially hidden. Validated startup constructs and binds a
 tournament; invalid input leaves startup visible without starting a hand.
 `GuiStartupLayout` adapts the form, yielding optional logo/copy allocation
 before essential controls, without scrolling or reducing their text/target floors.
+The start-page **Aggressive blind levels** checkbox defaults off;
+the start page shows no percentage suffix or supporting blind-rate copy.
+Its selection survives validation, resizing and Rules navigation and resolves the shared
+`aggressive_blinds` configuration property before match construction. The
+startup options grid keeps the controls reachable across supported layouts.
+The running game has no mode toggle or new badge; its geometry and layout
+rules are unchanged, and the existing blind display renders core values.
 
 The Start **Rules** action opens the persistent sibling
 `TournamentRulesPage.tscn`, outside replaceable table compositions. It renders

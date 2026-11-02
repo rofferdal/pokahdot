@@ -28,6 +28,28 @@ The top-level orchestrator of a single-table tournament.
   - `request_quit() -> StepResult`: Instantly aborts the active hand and finishes the tournament without a winner (`end_reason = &"player_quit"`).
   - `get_view_for(seat: int) -> GameView`: Returns the recipient-safe snapshot for a seat.
 
+### Tournament configuration and blind levels
+
+`TournamentConfig` is the editable defaults Resource. `StartupOverrides`
+records optional values with presence flags; `set_aggressive_blinds(false)`
+explicitly disables a true template value. `ConfigResolver` validates and
+creates an immutable `ResolvedTournamentConfig`, including the default-false
+`aggressive_blinds` property. `TournamentMatch` retains that resolved setting
+for the whole tournament; editing a template or override cannot change it.
+
+`BlindLevelProgression` uses checked 5/4 growth by default and 7/4 when
+aggressive blinds are enabled. It rounds the next big blind upward to an even
+integer, sets the small blind to half, and saturates at 500,000/1,000,000.
+Level one uses the configured starting blinds unchanged. A level starting
+with at least five active players lasts twice that captured count in completed
+hands; otherwise it lasts ten. Advancement follows settlement and elimination,
+and new blinds apply to the next hand. Timing and level counters continue at
+the cap, and progression copies preserve the selected mode.
+
+GUI and CLI startup select the same configuration property. Simulation maps
+`normative_hand_based_v1` to false and `aggressive_hand_based_v1` to true;
+unknown identifiers fail validation rather than selecting a default.
+
 ### `HandController` (`scripts/core/hand_controller.gd`)
 Controls the lifecycle and action flow of an individual hand.
 

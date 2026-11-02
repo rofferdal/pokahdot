@@ -30,6 +30,9 @@ class InteractiveCliProcessTests(unittest.TestCase):
         result = self.run_cli(["--help"])
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--seed INTEGER", result.stdout)
+        self.assertIn("--aggressive-blinds", result.stdout)
+        self.assertIn("+25%", result.stdout)
+        self.assertIn("+75%", result.stdout)
         self.assertNotIn("Seat agents:", result.stdout)
         self.assertNotIn("tournament setup", result.stdout)
 
@@ -51,6 +54,7 @@ class InteractiveCliProcessTests(unittest.TestCase):
         self.assertEqual(first.stdout, second.stdout)
         self.assertIn("Effective seed: 4242", first.stdout)
         self.assertIn("Reproduce options: --players 3 --stack 100 --small-blind 5 --big-blind 10 --seed 4242", first.stdout)
+        self.assertIn("  Blind level increase: +25%", first.stdout)
         self.assertIn("Hand 1 -", first.stdout)
         self.assertIn("Action history:", first.stdout)
         self.assertIn("Goodbye.", first.stdout)
@@ -75,3 +79,32 @@ class InteractiveCliProcessTests(unittest.TestCase):
         self.assertIn("Starting stack: 200", result.stdout)
         self.assertIn("Blinds: 5/10", result.stdout)
         self.assertIn("Effective seed: 4242", result.stdout)
+
+
+    def test_aggressive_flag_and_setup_off_preserve_reproduction_options(self) -> None:
+        options = ["--players", "3", "--seed", "4242", "--aggressive-blinds"]
+        enabled = self.run_cli(options, "\nquit\n")
+        disabled = self.run_cli(options, "aggressive-blinds off\nshort-stack\nquit\n")
+        for result in [enabled, disabled]:
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotIn("SCRIPT ERROR", result.stderr)
+        self.assertIn("  Blind level increase: +75%", enabled.stdout)
+        reproduce = next(line for line in enabled.stdout.splitlines() if "Reproduce options:" in line)
+        self.assertIn("--aggressive-blinds", reproduce)
+        self.assertIn("  Blind level increase: +25%", disabled.stdout)
+        reproduce = next(line for line in disabled.stdout.splitlines() if "Reproduce options:" in line)
+        self.assertNotIn("--aggressive-blinds", reproduce)
+
+    def test_aggressive_setup_command_is_rejected_during_play(self) -> None:
+        result = self.run_cli(["--players", "3", "--seed", "4242"],
+                              "aggressive-blinds on\n\naggressive-blinds off\nquit\n")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Unknown command 'aggressive-blinds off'", result.stdout)
+        self.assertEqual(result.stdout.count("Tournament configuration:"), 1)
+        self.assertNotIn("Blind level increase: +25%", result.stdout)
+
+    def test_duplicate_aggressive_flag_fails_before_setup(self) -> None:
+        result = self.run_cli(["--aggressive-blinds", "--aggressive-blinds"])
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("Duplicate option: --aggressive-blinds", result.stdout)
+        self.assertNotIn("Pokahdot tournament setup", result.stdout)

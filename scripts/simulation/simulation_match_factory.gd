@@ -138,6 +138,7 @@ func _simulation_config(
 			config.tournament_mode,
 			seat_agents,
 			config.use_legacy_models,
+			config.aggressive_blinds,
 		)
 	)
 
